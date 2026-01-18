@@ -1,6 +1,7 @@
 // Start a game session and generate first round
 import { createHandler, requireString, corsResponse, getSession, AppError, shuffleArray } from '../_shared/utils.ts';
 import { GROUP_SIZE, TOTAL_ROUNDS } from '../_shared/prompts.ts';
+import { createTeamGroups } from '../_shared/grouping.ts';
 import type { Session, Round, RoundGroup } from '../_shared/types.ts';
 
 /**
@@ -152,12 +153,13 @@ async function handleStartSession(req: Request, uid: string, supabase: any): Pro
     
     for (let i = 0; i < totalRounds; i++) {
       const groups: RoundGroup[] = [];
-      const teamsForRound = [...shuffledTeamIds];
       
-      // Create groups of GROUP_SIZE
-      while (teamsForRound.length > 0) {
-        const groupTeamIds = teamsForRound.splice(0, GROUP_SIZE);
-        const groupId = `g${groups.length}`;
+      // Create groups using new algorithm
+      const teamGroups = createTeamGroups(shuffledTeamIds);
+      
+      // Create RoundGroup objects for each team group
+      teamGroups.forEach((groupTeamIds, index) => {
+        const groupId = `g${index}`;
         
         // Get next prompt
         if (promptCursor >= promptDeck.length) {
@@ -171,7 +173,7 @@ async function handleStartSession(req: Request, uid: string, supabase: any): Pro
           prompt,
           teamIds: groupTeamIds,
         });
-      }
+      });
       
       rounds.push({
         prompt: groups[0]?.prompt,

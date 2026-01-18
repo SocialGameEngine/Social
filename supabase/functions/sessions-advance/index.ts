@@ -1,5 +1,6 @@
 // Advance session to next phase
 import { createHandler, requireString, corsResponse, getSession, AppError } from '../_shared/utils.ts';
+import { createTeamGroups } from '../_shared/grouping.ts';
 import type { Session } from '../_shared/types.ts';
 
 async function handleAdvanceSession(req: Request, uid: string, supabase: any): Promise<Response> {
@@ -22,7 +23,7 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
     
     const currentStatus = session.status;
     const roundIndex = session.round_index || 0;
-    const rounds = session.rounds || [];
+    let rounds = session.rounds || [];
     const currentRound = rounds[roundIndex];
     const settings = session.settings || {};
     
@@ -139,7 +140,48 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
       case 'results': {
         // Check if there are more rounds
         if (roundIndex + 1 < rounds.length) {
-          // Next round
+          // Next round - regenerate groups with shuffled teams
+          const nextRoundIndex = roundIndex + 1;
+          
+          // Get all current teams
+          const { data: currentTeams } = await supabase
+            .from('teams')
+            .select('id')
+            .eq('session_id', sessionId)
+            .eq('is_host', false);
+            
+          if (currentTeams && currentTeams.length > 0) {
+            // Create new groups with shuffled teams
+            const teamIds = currentTeams.map((t: { id: string }) => t.id);
+            const newTeamGroups = createTeamGroups(teamIds);
+            
+            // Update next round with new groups while preserving prompts
+            const nextRound = rounds[nextRoundIndex];
+            const updatedGroups = newTeamGroups.map((groupTeamIds, index) => {
+              const existingGroup = nextRound.groups[index];
+              return {
+                id: `g${index}`,
+                prompt: existingGroup?.prompt || "What's your hot take?",
+                teamIds: groupTeamIds,
+              };
+            });
+            
+            // Update rounds array
+            const updatedRounds = [...rounds];
+            updatedRounds[nextRoundIndex] = {
+              ...nextRound,
+              groups: updatedGroups,
+            };
+            
+            // Save updated rounds
+            await supabase
+              .from('sessions')
+              .update({ rounds: updatedRounds })
+              .eq('id', sessionId);
+              
+            rounds = updatedRounds; // Use updated rounds for rest of function
+          }
+          
           const isJeopardyMode = settings.gameMode === 'jeopardy';
           
           if (isJeopardyMode) {

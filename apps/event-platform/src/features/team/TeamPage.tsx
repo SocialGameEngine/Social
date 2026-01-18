@@ -327,6 +327,7 @@ export function TeamPage() {
     setIsJoining,
     setSessionId,
     setTeamSession,
+    clearTeamSession,
     setHasManuallyLeft,
     setAutoJoinAttempted,
     answerText,

@@ -189,7 +189,6 @@ export function subscribeToTeams(
         team_members (
           id,
           user_id,
-          player_name,
           is_captain,
           joined_at
         )
