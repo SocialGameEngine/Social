@@ -203,7 +203,7 @@ export function useTeamEffects({
     
     // Redirect to join form
     console.log("🔥 Redirecting to join form");
-    window.location.href = '/play';
+    window.location.href = '/join';
   }, [
     sessionId,
     gameState,

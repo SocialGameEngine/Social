@@ -143,16 +143,7 @@ export async function fetchSession(sessionId: string) {
   if (error) throw error;
   if (!data) throw new Error("Session not found");
   
-  console.log('Fetched session data:', {
-    id: data.id,
-    status: data.status,
-    gameMode: data.settings?.gameMode,
-    hasCategoryGrid: !!data.categoryGrid,
-    hasCategoryGridSnake: !!data.category_grid,
-    categoryGridKeys: data.categoryGrid ? Object.keys(data.categoryGrid) : 'none',
-    rawCategoryGrid: data.category_grid || data.categoryGrid
-  });
-  
+    
   return mapSession(data);
 }
 
@@ -189,11 +180,8 @@ export function subscribeToTeams(
   sessionId: string,
   callback: (teams: Team[]) => void,
 ) {
-  console.log("🚀 subscribeToTeams called with sessionId:", sessionId);
-  
   // Initial fetch
   const fetchTeams = () => {
-    console.log("Fetching teams for session:", sessionId);
     supabase
       .from("teams")
       .select(`
@@ -215,9 +203,7 @@ export function subscribeToTeams(
           callback([]);
         } else {
           const teams = data?.map(mapTeam).filter((team): team is Team => Boolean(team)) ?? [];
-          console.log("Calling callback with", teams.length, "teams:", teams.map(t => t.teamName));
           callback(teams);
-          console.log("Callback invoked successfully");
         }
       });
   };
@@ -237,21 +223,15 @@ export function subscribeToTeams(
         filter: `session_id=eq.${sessionId}`,
       },
       (payload) => {
-        console.log("Team change detected:", payload.eventType, "for session:", sessionId);
-        
         // For DELETE events, refetch immediately
         if (payload.eventType === 'DELETE') {
-          console.log("Team deleted, refetching immediately");
           fetchTeams();
         } else if (payload.eventType === 'INSERT') {
-          console.log("Team added, refetching after short delay");
           setTimeout(fetchTeams, 100);
         } else if (payload.eventType === 'UPDATE') {
-          console.log("Team updated, refetching after short delay");
           setTimeout(fetchTeams, 100);
         } else {
           // Unknown event type, refetch anyway
-          console.log("Unknown event type, refetching");
           fetchTeams();
         }
       }
@@ -268,45 +248,25 @@ export function subscribeToTeams(
         table: "team_members",
       },
       (payload) => {
-        console.log("🔥 Team member change detected:", {
-          eventType: payload.eventType,
-          sessionId: sessionId,
-          payload: payload,
-          timestamp: new Date().toISOString()
-        });
-        
         // Always refetch teams when team_members change
-        console.log("🔄 Refetching teams due to team member change");
         fetchTeams();
       }
     );
 
   // Subscribe both channels
   teamsChannel.subscribe((status) => {
-    console.log("Teams subscription status:", status);
-    if (status === 'SUBSCRIBED') {
-      console.log("Successfully subscribed to teams for session:", sessionId);
-    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-      console.error("Failed to subscribe to teams for session:", sessionId, status);
-      // Fallback: set up polling if subscription fails
-      console.log("Setting up fallback polling for teams");
-      const pollInterval = setInterval(fetchTeams, 5000); // Poll every 5 seconds
-      // Store interval ID for cleanup
-      (teamsChannel as any)._fallbackInterval = pollInterval;
+    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+      console.error("Failed to subscribe to teams:", status);
     }
   });
 
   membersChannel.subscribe((status) => {
-    console.log("Team members subscription status:", status);
-    if (status === 'SUBSCRIBED') {
-      console.log("Successfully subscribed to team members for session:", sessionId);
-    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-      console.error("Failed to subscribe to team members for session:", sessionId, status);
+    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+      console.error("Failed to subscribe to team members:", status);
     }
   });
   
   return () => {
-    console.log("Unsubscribing from teams and team members for session:", sessionId);
     // Clear fallback polling if it exists
     const teamsFallbackInterval = (teamsChannel as any)._fallbackInterval;
     if (teamsFallbackInterval) {
@@ -579,7 +539,7 @@ export const submitVote = async (payload: SubmitVoteRequest) => {
   return data;
 };
 
-export const kickPlayer = async (payload: KickTeamRequest) => {
+export const kickPlayer = async (payload: { sessionId: string; teamId: string; userId: string }) => {
   const { data, error } = await supabase.functions.invoke<{ success: boolean }>(
     "sessions-kick-player",
     { body: payload }
@@ -588,12 +548,54 @@ export const kickPlayer = async (payload: KickTeamRequest) => {
   return data;
 };
 
-export const banPlayer = async (payload: KickTeamRequest) => {
+export const banPlayer = async (payload: { sessionId: string; teamId: string; userId: string }) => {
   const { data, error } = await supabase.functions.invoke<{ success: boolean }>(
     "sessions-ban-player",
     { body: payload }
   );
   if (error) throw error;
+  return data;
+};
+
+export const captainKickMember = async (payload: { sessionId: string; teamId: string; userIdToKick: string }) => {
+  const { data, error } = await supabase.functions.invoke<{ success: boolean }>(
+    "captain-kick-member",
+    { body: payload }
+  );
+
+  if (error) {
+    console.error('Error kicking member:', error);
+    throw new Error('Failed to kick team member');
+  }
+
+  return data;
+};
+
+export const hostKickMember = async (payload: { sessionId: string; teamId: string; userIdToKick: string }) => {
+  const { data, error } = await supabase.functions.invoke<{ success: boolean }>(
+    "host-kick-member",
+    { body: payload }
+  );
+
+  if (error) {
+    console.error('Error kicking member:', error);
+    throw new Error('Failed to kick team member');
+  }
+
+  return data;
+};
+
+export const captainPromoteMember = async (payload: { sessionId: string; teamId: string; userIdToPromote: string }) => {
+  const { data, error } = await supabase.functions.invoke<{ success: boolean }>(
+    "captain-promote-member",
+    { body: payload }
+  );
+
+  if (error) {
+    console.error('Error promoting member:', error);
+    throw new Error('Failed to promote team member');
+  }
+
   return data;
 };
 

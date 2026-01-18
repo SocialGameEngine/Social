@@ -5,9 +5,10 @@ import { corsHeaders } from "../_shared/cors.ts"
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 
-interface BanTeamRequest {
+interface BanPlayerRequest {
   sessionId: string;
   teamId: string;
+  userId: string;
 }
 
 serve(async (req) => {
@@ -25,11 +26,11 @@ serve(async (req) => {
       )
     }
 
-    const { sessionId, teamId }: BanTeamRequest = await req.json()
+    const { sessionId, teamId, userId }: BanPlayerRequest = await req.json()
 
-    if (!sessionId || !teamId) {
+    if (!sessionId || !teamId || !userId) {
       return new Response(
-        JSON.stringify({ error: "sessionId and teamId are required" }),
+        JSON.stringify({ error: "sessionId, teamId, and userId are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       )
     }
@@ -66,14 +67,29 @@ serve(async (req) => {
       )
     }
 
-    console.log("Team to ban:", { id: team.id, name: team.team_name, uid: team.uid })
+    // Get the team member to check if they exist and if they're captain
+    const { data: member, error: memberError } = await supabase
+      .from("team_members")
+      .select("user_id, player_name, is_captain")
+      .eq("team_id", teamId)
+      .eq("user_id", userId)
+      .single()
 
-    // Check if user is already banned (by UID)
+    if (memberError || !member) {
+      return new Response(
+        JSON.stringify({ error: "Player not found in team" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      )
+    }
+
+    console.log("Player to ban:", { userId, playerName: member.player_name, isCaptain: member.is_captain })
+
+    // Check if user is already banned
     const { data: existingBan } = await supabase
       .from("banned_teams")
       .select("id")
       .eq("session_id", sessionId)
-      .eq("uid", team.uid)
+      .eq("uid", userId)
       .single()
 
     console.log("Existing ban check:", { existingBan })
@@ -85,50 +101,93 @@ serve(async (req) => {
       )
     }
 
-    // Perform the ban in a transaction
-    // 1. Delete the team from the session
+    // 1. Remove the player from team_members
     const { error: deleteError } = await supabase
-      .from("teams")
+      .from("team_members")
       .delete()
-      .eq("id", teamId)
-      .eq("session_id", sessionId)
+      .eq("team_id", teamId)
+      .eq("user_id", userId)
 
     if (deleteError) {
-      console.error("Error deleting team during ban:", deleteError)
+      console.error("Error removing player from team:", deleteError)
       return new Response(
-        JSON.stringify({ error: "Failed to remove team from session" }),
+        JSON.stringify({ error: "Failed to remove player from team" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       )
     }
 
-    // 2. Add the user to banned_teams table (ban by UID, not team name)
+    // 2. Add the user to banned_teams table
     const { error: banError } = await supabase
       .from("banned_teams")
       .insert({
         session_id: sessionId,
         team_id: teamId,
         team_name: team.team_name,
-        uid: team.uid,
+        uid: userId,  // Ban by user_id
         banned_by: session.host_uid,
         reason: "Banned by host"
       })
 
     if (banError) {
-      console.error("Error adding team to banned list:", banError)
-      // Note: Team was already deleted, but we couldn't record the ban
-      // This is a partial failure state
+      console.error("Error adding player to banned list:", banError)
       return new Response(
-        JSON.stringify({ error: "Team was removed but ban could not be recorded" }),
+        JSON.stringify({ error: "Player was removed but ban could not be recorded" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       )
     }
 
-    console.log(`Team ${team.team_name} (${teamId}) banned from session ${sessionId}`)
+    // 3. If banned player was captain, handle captain promotion
+    if (member.is_captain) {
+      console.log("Banned player was captain, checking for remaining members")
+      
+      // Get remaining team members
+      const { data: remainingMembers } = await supabase
+        .from("team_members")
+        .select("id, user_id")
+        .eq("team_id", teamId)
+        .order("joined_at", { ascending: true })
+      
+      if (remainingMembers && remainingMembers.length > 0) {
+        // Promote first remaining member to captain
+        const newCaptain = remainingMembers[0]
+        console.log("Promoting new captain:", newCaptain.user_id)
+        
+        await supabase
+          .from("teams")
+          .update({
+            captain_id: newCaptain.user_id,
+            uid: newCaptain.user_id
+          })
+          .eq("id", teamId)
+        
+        await supabase
+          .from("team_members")
+          .update({ is_captain: true })
+          .eq("id", newCaptain.id)
+        
+        console.log("Successfully promoted new captain")
+      } else {
+        // No members left, clear captain fields
+        console.log("No members left, clearing captain fields")
+        
+        await supabase
+          .from("teams")
+          .update({
+            captain_id: null,
+            uid: null
+          })
+          .eq("id", teamId)
+        
+        console.log("Team is now empty and invisible")
+      }
+    }
+
+    console.log(`Player ${member.player_name} (${userId}) banned from session ${sessionId}`)
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: "Team banned successfully"
+        message: "Player banned successfully"
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )

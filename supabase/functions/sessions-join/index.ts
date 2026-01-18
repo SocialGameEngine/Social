@@ -383,6 +383,22 @@ serve(async (req) => {
           console.log("Successfully rejoined existing team");
           // Skip to response
         } else {
+          // Check if user is banned from this session
+          const { data: isBanned } = await supabase
+            .from('banned_teams')
+            .select('id')
+            .eq('session_id', teamCodeData.session_id)
+            .eq('uid', userId)
+            .single();
+          
+          if (isBanned) {
+            console.log('User is banned from this session:', userId);
+            return new Response(
+              JSON.stringify({ error: 'You are banned from this session' }),
+              { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          
           // User is not a member yet, check if team has any members
           const { data: existingMembers, error: countError } = await supabase
             .from("team_members")

@@ -11,14 +11,14 @@ interface KickTeamDeps {
 }
 
 export const handleKickTeam =
-  (deps: KickTeamDeps) => async (teamId: string) => {
+  (deps: KickTeamDeps) => async (teamId: string, userId?: string) => {
     const { session, toast, setKickingTeamId, refresh } = deps;
 
     if (!session) return;
 
     setKickingTeamId(teamId);
     try {
-      await kickPlayer({ sessionId: session.id, teamId });
+      await kickPlayer({ sessionId: session.id, teamId, userId: userId || "" });
       
       // Force refresh if available - this ensures UI updates immediately
       if (refresh) {

@@ -98,14 +98,10 @@ export function VIBoxJukeboxInner({
 
   // Pure realtime approach - no polling
   useEffect(() => {
-    console.log('🔍 VIBox Debug - Setting up pure realtime');
-    
     const fetchQueue = () => {
-      console.log('🔍 VIBox Debug - Fetching queue');
       viboxApi.getQueue().then((response) => {
         if (response.success && response.data) {
           setQueue(response.data.queue);
-          console.log('🔍 VIBox Debug - Queue fetched:', response.data.count, 'items');
         }
       });
     };
@@ -124,23 +120,17 @@ export function VIBoxJukeboxInner({
           table: 'vibox_queue',
         },
         (payload) => {
-          console.log('🔍 VIBox Debug - Realtime event received:', payload.eventType);
           // Immediate fetch for realtime events
           fetchQueue();
         }
       )
       .subscribe((status, err) => {
-        console.log('🔍 VIBox Debug - Realtime status:', status, err?.message);
-        
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ VIBox Debug - Realtime connected successfully');
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('❌ VIBox Debug - Realtime failed:', status, err?.message);
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('VIBox realtime failed:', status, err?.message);
         }
       });
 
     return () => {
-      console.log('🔍 VIBox Debug - Cleaning up realtime subscription');
       channel.unsubscribe();
     };
   }, []);
