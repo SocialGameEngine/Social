@@ -6,6 +6,7 @@ import { VIBoxButton } from "../../shared/components/vibox/VIBoxButton";
 import { BackgroundAnimation } from "../../components/BackgroundAnimation";
 import { HowToPlayModal } from "../howToPlay/HowToPlayModal";
 import { VIBoxJukebox } from "../../shared/components/vibox/VIBoxJukebox";
+import { TeamMembersPanel } from "./components/TeamMembersPanel";
 import { transformRoundSummariesForUI, transformLeaderboardForUI } from "../../application";
 import { useActiveGroupAnswers } from "../../shared/hooks";
 import { useTeamState, useTeamEffects, useTeamPhaseRenderer, useTeamHandlers, useTeamComputations, useTeamTimers, useTeamSessionManagement, useTeamQueryParams, useTeamKickedPlayerDetection, useTeamAnswerInitialization } from "./hooks";
@@ -25,7 +26,7 @@ import {
 import { JoinForm, EndedPhase } from "./Phases";
 
 export function TeamPage() {
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { teamSession, setTeamSession, clearTeamSession } = useTeamSession();
@@ -128,22 +129,26 @@ export function TeamPage() {
 
   // Use gameState.userTeam when available, otherwise use teamSession.teamId like LobbyPhase
   const currentTeam = useMemo(() => {
+    // First try gameState.userTeam
     if (gameState.userTeam) {
-      return activeTeams.find(team => team.id === gameState.userTeam?.id) ?? null;
+      const team = activeTeams.find(team => team.id === gameState.userTeam?.id);
+      // Double-check user is still in this team
+      if (team && team.team_members?.some((member: any) => member.user_id === user?.id)) {
+        return team;
+      }
     }
     
     // Use the same logic as LobbyPhase - check teamId from session
-    if (teamSession?.teamId && activeTeams.length > 0) {
-      return activeTeams.find(team => team.id === teamSession.teamId) ?? null;
-    }
-    
-    // Fallback: check if team has members and user is in them
-    if (teamSession?.uid && activeTeams.length > 0) {
-      return activeTeams.find(team => team.uid === teamSession.uid) ?? null;
+    if (teamSession?.teamId) {
+      const team = activeTeams.find(team => team.id === teamSession.teamId);
+      // Double-check user is still in this team
+      if (team && team.team_members?.some((member: any) => member.user_id === user?.id)) {
+        return team;
+      }
     }
     
     return null;
-  }, [gameState.userTeam, activeTeams, teamSession?.teamId, teamSession?.uid]);
+  }, [gameState.userTeam, activeTeams, teamSession?.teamId, teamSession?.uid, user?.id]);
 
   // Extract session management logic into custom hook
   useTeamSessionManagement({
@@ -550,6 +555,25 @@ export function TeamPage() {
           {!session ? <div className="p-4"></div> : null}
           {mainContent}
 
+          {(() => {
+            // Check if user is captain by looking in team_members array using auth user
+            const userMember = currentTeam?.team_members?.find((member: any) => 
+              member.user_id === user?.id
+            );
+            const isUserCaptain = userMember?.is_captain === true;
+            
+            return session && currentTeam && teamSession && isUserCaptain;
+          })() && (
+            <TeamMembersPanel
+              sessionId={sessionId || ''}
+              teamId={currentTeam.id}
+              currentUserId={teamSession.uid}
+              isCaptain={currentTeam?.uid === teamSession?.uid}
+              teamCode={(currentTeam as any).team_code || ''}
+              toast={toast}
+            />
+          )}
+
           {session ? (
             <Button variant="ghost" onClick={effectsHandleLeave} fullWidth>
               Leave session
@@ -678,7 +702,7 @@ export function TeamPage() {
             setShowKickedModal(false);
             clearTeamSession();
             setSessionId(null);
-            navigate("/play");
+            navigate("/join");
           }}
           title="You've been removed"
           footer={
@@ -687,7 +711,7 @@ export function TeamPage() {
                 setShowKickedModal(false);
                 clearTeamSession();
                 setSessionId(null);
-                navigate("/play");
+                navigate("/join");
               }}
               fullWidth
             >
@@ -696,7 +720,7 @@ export function TeamPage() {
           }
         >
           <p className={`text-sm ${!isDark ? 'text-slate-600' : 'text-cyan-300'}`}>
-            The host has removed you from this session. You can join a different session if you'd like.
+            The host has removed you from this session. You can join a different session using the join page.
           </p>
         </Modal>
         <Modal

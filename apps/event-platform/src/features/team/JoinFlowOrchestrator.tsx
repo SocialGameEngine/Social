@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@social/ui";
 import { RoomCodeEntry } from "./Phases/RoomCodeEntry";
-import { TeamSelectionLobby } from "./Phases/TeamSelectionLobby";
+import { TeamCodeEntry as TeamCodeForm } from "./Phases/TeamCodeEntry";
 import { JoinTeamModal } from "./components/JoinTeamModal";
 import { joinSession } from "../session/sessionService";
 import { supabase } from "../../supabase/client";
@@ -113,12 +113,15 @@ export function JoinFlowOrchestrator() {
 
       // Store session and team info in the correct format for useTeamSession
       if (result.sessionId && result.team?.id) {
+        // Get the current user's ID from Supabase auth
+        const { data: { user } } = await supabase.auth.getUser();
+        
         const teamSession = {
           sessionId: result.sessionId,
           teamId: result.team.id,
           teamName: teamName,
           code: state.sessionCode || '',
-          uid: result.team.uid,
+          uid: user?.id || result.team.uid, // Use current user's ID, fallback to team captain ID
           playerName: playerName // Store player name separately
         };
         localStorage.setItem("sidebets_team_session", JSON.stringify(teamSession));
@@ -181,7 +184,7 @@ export function JoinFlowOrchestrator() {
   if (step === "team-selection" && state.sessionId && state.sessionCode) {
     return (
       <>
-        <TeamSelectionLobby
+        <TeamCodeForm
           sessionId={state.sessionId}
           sessionCode={state.sessionCode}
           onTeamSelect={handleTeamSelect}

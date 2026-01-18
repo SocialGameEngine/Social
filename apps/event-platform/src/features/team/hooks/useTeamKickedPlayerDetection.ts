@@ -36,16 +36,6 @@ export function useTeamKickedPlayerDetection({
 
   // Detect when player is kicked (currentTeam becomes null while session exists and other teams are still present)
   useEffect(() => {
-    console.log("Kick detection check:", {
-      hasSession: !!session,
-      hasTeamSession: !!teamSession,
-      sessionSnapshotReady,
-      currentTeam,
-      activeTeamsCount: activeTeams.length,
-      showKickedModal,
-      hasTriggered: hasTriggeredKickRef.current
-    });
-    
     // Clear any pending timeout if conditions change
     if (kickDetectionTimeoutRef.current) {
       clearTimeout(kickDetectionTimeoutRef.current);
@@ -59,15 +49,14 @@ export function useTeamKickedPlayerDetection({
     
     // Simplified detection: if we have teamSession but currentTeam is null and session exists
     // This means we were removed from the session
+    // Check if user was kicked
     if (
-      session &&
       teamSession &&
       sessionSnapshotReady &&
       currentTeam === null &&
       !showKickedModal &&
       !hasTriggeredKickRef.current
     ) {
-      console.log("⚠️ Kick condition met - starting timeout");
       // Wait 500ms to confirm this is a real kick, not just a temporary state during re-subscription
       kickDetectionTimeoutRef.current = setTimeout(() => {
         // Double-check conditions are still true after delay
@@ -80,22 +69,20 @@ export function useTeamKickedPlayerDetection({
           !hasTriggeredKickRef.current
         ) {
           // Player was removed - they're not in the teams list anymore but other teams exist
-          console.log("🚨 Player removal confirmed - showing modal and preparing redirect");
-          
           hasTriggeredKickRef.current = true;
           
           // Show the kicked modal
           setShowKickedModal(true);
           
-          // Clear session after showing modal (no automatic redirect)
+          // Clear session and redirect to join page after showing modal
           setTimeout(() => {
-            console.log("Clearing session for removed player (no redirect)");
             clearTeamSession();
             setSessionId(null);
-            // Note: No automatic redirect - user stays on page
-          }, 3000); // 3 second delay to show the modal
+            // Redirect to join page
+            window.location.href = '/join';
+          }, 1000); // 1 second delay to show the modal
         }
-      }, 500); // 500ms debounce (reduced from 1s for faster response)
+      }, 100); // 100ms debounce for immediate response
     }
 
     return () => {
