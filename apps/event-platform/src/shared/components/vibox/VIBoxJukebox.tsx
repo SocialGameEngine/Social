@@ -1,6 +1,7 @@
 import React from "react";
 import { VIBoxThemeProviderWithSystem } from "./ThemeProvider";
 import { VIBoxJukeboxInner } from "./VIBoxJukeboxInner";
+import { VotingProvider } from "../../contexts/ViboxVotingContext";
 
 interface VIBoxJukeboxProps {
   isOpen: boolean;
@@ -12,13 +13,15 @@ interface VIBoxJukeboxProps {
 
 /**
  * VIBoxJukebox - Main entry point with VIBox theme system
- * Wraps the original VIBoxJukeboxInner with the VIBox theme provider
- * This gives us the full-featured original implementation with proper theming
+ * Wraps the original VIBoxJukeboxInner with the VIBox theme provider and voting context
+ * This gives us the full-featured original implementation with proper theming and database-backed voting
  */
 export const VIBoxJukebox: React.FC<VIBoxJukeboxProps> = (props) => {
   return (
     <VIBoxThemeProviderWithSystem>
-      <VIBoxJukeboxInner {...props} />
+      <VotingProvider>
+        <VIBoxJukeboxInner {...props} />
+      </VotingProvider>
     </VIBoxThemeProviderWithSystem>
   );
 };

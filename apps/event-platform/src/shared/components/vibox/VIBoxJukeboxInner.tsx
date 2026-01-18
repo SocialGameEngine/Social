@@ -21,6 +21,7 @@ import { getSessionId } from "../../utils/session";
 import { log } from "../../utils/logger";
 import { getNextTrackByVibe, getPreviousTrackByVibe, getNextTrackLinear, getPreviousTrackLinear } from "../../utils/vibeNavigation";
 import { handleQueueError, handleQueueSuccess, handleQueueInfo } from "../../utils/errorHandlers";
+import { useVoting } from "../../contexts/ViboxVotingContext";
 
 
 interface VIBoxJukeboxProps {
@@ -53,6 +54,22 @@ export function VIBoxJukeboxInner({
   const [viewMode, setViewMode] = useState<'vibes' | 'all'>('vibes');
   const [queue, setQueue] = useState<ViboxQueueItem[]>([]);
   const [isQueueLoading, setIsQueueLoading] = useState(false);
+  const [currentTrackInfo, setCurrentTrackInfo] = useState<{
+    track_id: string;
+    track_title: string;
+    track_artist: string;
+    track_url: string;
+    track_duration?: number;
+    track_genre?: string;
+    primary_vibe?: string;
+    secondary_vibe?: string;
+    is_playing: boolean;
+    current_time: number;
+    started_at: string;
+  } | null>(null);
+  
+  // Use voting context
+  const { voteCounts, userVotes, handleVote, getVoteCount, getUserVote } = useVoting();
   const [windowWidth, setWindowWidth] = useState(0);
   const [bottomPlayerHeight, setBottomPlayerHeight] = useState(0);
   const bottomPlayerExtraLeeway = 64;
@@ -240,12 +257,35 @@ export function VIBoxJukeboxInner({
       }
     };
 
+    const handleLoadedMetadata = () => {
+      // Broadcast actual duration when audio metadata loads
+      if (mode === "host" && currentTrackInfo && audio.duration) {
+        const updatedTrackInfo = {
+          ...currentTrackInfo,
+          track_duration: audio.duration,
+        };
+        
+        setCurrentTrackInfo(updatedTrackInfo);
+        
+        // Broadcast to all users via Supabase Realtime
+        supabase
+          .channel('vibox-current-track')
+          .send({
+            type: 'broadcast',
+            event: 'current_track_update',
+            payload: updatedTrackInfo
+          });
+      }
+    };
+
     audio.addEventListener('timeupdate', updateTime);
     audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
 
     return () => {
       audio.removeEventListener('timeupdate', updateTime);
       audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
   }, [currentTrack, queue]);
 
@@ -476,6 +516,35 @@ export function VIBoxJukeboxInner({
       audioRef.current.play();
       setCurrentTrack(track);
       setIsPlaying(true);
+      
+      // Broadcast current track information to all users
+      if (mode === "host") {
+        const trackInfo = {
+          track_id: track.id,
+          track_title: track.title,
+          track_artist: track.artist,
+          track_url: track.url,
+          track_duration: track.duration,
+          track_genre: track.genre,
+          primary_vibe: track.primaryVibe,
+          secondary_vibe: track.secondaryVibe,
+          is_playing: true,
+          current_time: 0,
+          started_at: new Date().toISOString(),
+        };
+        
+        // Update local state for immediate feedback
+        setCurrentTrackInfo(trackInfo);
+        
+        // Broadcast to all users via Supabase Realtime
+        supabase
+          .channel('vibox-current-track')
+          .send({
+            type: 'broadcast',
+            event: 'current_track_update',
+            payload: trackInfo
+          });
+      }
     }
   };
 
@@ -496,6 +565,128 @@ export function VIBoxJukeboxInner({
     }
   }, [isOpen]);
 
+  // Listen for current track updates from other users
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const channel = supabase
+      .channel('vibox-current-track')
+      .on('broadcast', { event: 'current_track_update' }, (payload) => {
+        const trackInfo = payload.payload as typeof currentTrackInfo;
+        
+        if (!trackInfo) return;
+        
+        // Update current track info for all users
+        setCurrentTrackInfo(trackInfo);
+        
+        // For players (non-hosts), update their local state to match host (but don't play audio)
+        if (mode !== "host") {
+          // Find the track in the local tracks array
+          const track = tracks.find(t => t.id === trackInfo.track_id);
+          if (track) {
+            setCurrentTrack(track);
+            setIsPlaying(trackInfo.is_playing);
+            setCurrentTime(trackInfo.current_time);
+            
+            // Don't play audio on player devices - only sync the visual state
+            // Players can see what's playing but audio only plays on host
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isOpen, mode, tracks]);
+
+  // Broadcast current time regularly from host for real-time progress updates
+  useEffect(() => {
+    if (!isOpen || mode !== "host" || !currentTrackInfo || !isPlaying) return;
+
+    const interval = setInterval(() => {
+      if (audioRef.current && currentTrackInfo) {
+        const updatedTrackInfo = {
+          ...currentTrackInfo,
+          current_time: audioRef.current.currentTime,
+          is_playing: isPlaying,
+          track_duration: audioRef.current.duration || currentTrackInfo.track_duration,
+        };
+        
+        setCurrentTrackInfo(updatedTrackInfo);
+        
+        // Broadcast to all users via Supabase Realtime
+        supabase
+          .channel('vibox-current-track')
+          .send({
+            type: 'broadcast',
+            event: 'current_track_update',
+            payload: updatedTrackInfo
+          });
+      }
+    }, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, [isOpen, mode, currentTrackInfo, isPlaying]);
+
+  // Listen for votes from other users
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const channel = supabase
+      .channel('vibox-votes')
+      .on('broadcast', { event: 'track_vote' }, (payload) => {
+        const vote = payload.payload as {
+          track_id: string;
+          vote_type: 'up' | 'down' | null;
+          session_id: string;
+        };
+        
+        if (!vote) return;
+        
+        const sessionId = getSessionId();
+        const isOwnVote = vote.session_id === sessionId;
+        
+        setTrackVotes(prev => {
+          const currentVotes = prev.get(vote.track_id) || { upvotes: 0, downvotes: 0 };
+          const newVotes = { ...currentVotes };
+          
+          if (vote.vote_type === 'up') {
+            newVotes.upvotes = currentVotes.upvotes + 1;
+            if (!isOwnVote) {
+              // Don't update userVote for other users' votes
+            } else {
+              newVotes.userVote = 'up';
+            }
+          } else if (vote.vote_type === 'down') {
+            newVotes.downvotes = currentVotes.downvotes + 1;
+            if (!isOwnVote) {
+              // Don't update userVote for other users' votes
+            } else {
+              newVotes.userVote = 'down';
+            }
+          } else {
+            // Vote removal - need to determine which vote was removed
+            if (currentVotes.userVote === 'up') {
+              newVotes.upvotes = currentVotes.upvotes - 1;
+            } else if (currentVotes.userVote === 'down') {
+              newVotes.downvotes = currentVotes.downvotes - 1;
+            }
+            if (isOwnVote) {
+              delete newVotes.userVote;
+            }
+          }
+          
+          return new Map(prev).set(vote.track_id, newVotes);
+        });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isOpen]);
+
   // Helper function to check if vibe contains current track
   const isVibeActive = (primaryVibe: string, secondaryVibe?: string) => {
     if (!currentTrack) return false;
@@ -507,15 +698,40 @@ export function VIBoxJukeboxInner({
     return currentTrack.primaryVibe === primaryVibe;
   };
 
+  
   const togglePlayPause = () => {
     if (!audioRef.current || !currentTrack) return;
 
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
+    const newIsPlaying = !isPlaying;
+    
+    if (newIsPlaying) {
       audioRef.current.play();
       setIsPlaying(true);
+    } else {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+    
+    // Broadcast play/pause state to all users
+    if (mode === "host" && currentTrackInfo) {
+      const updatedTrackInfo = {
+        ...currentTrackInfo,
+        is_playing: newIsPlaying,
+        current_time: audioRef.current.currentTime,
+        track_duration: audioRef.current.duration || currentTrackInfo.track_duration,
+      };
+      
+      // Update local state for immediate feedback
+      setCurrentTrackInfo(updatedTrackInfo);
+      
+      // Broadcast to all users via Supabase Realtime
+      supabase
+        .channel('vibox-current-track')
+        .send({
+          type: 'broadcast',
+          event: 'current_track_update',
+          payload: updatedTrackInfo
+        });
     }
   };
 
@@ -875,19 +1091,25 @@ export function VIBoxJukeboxInner({
             padding: 0 !important;
             margin: 0 !important;
           }
-          /* Expanded Player Slide-up Animation */
+          /* Expanded Player Slide-up/Slide-down Animation */
           .expanded-player {
             transform: translateY(100vh);
-            transition: transform 0.3s ease-out;
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease-out;
             opacity: 0;
             pointer-events: none;
             height: 100% !important;
             min-height: 100% !important;
+            will-change: transform, opacity;
           }
           .expanded-player.show {
             transform: translateY(0);
             opacity: 1;
             pointer-events: auto;
+          }
+          .expanded-player.collapsing {
+            transform: translateY(100vh);
+            opacity: 0;
+            pointer-events: none;
           }
           
           /* Force consistent heights */
@@ -939,6 +1161,254 @@ export function VIBoxJukeboxInner({
           .svg-glow-secondary {
             filter: drop-shadow(0 0 8px var(--color-text-secondary));
           }
+
+          /* VIBox UI Animations */
+          
+          /* Button animations */
+          .vibox-button {
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform-origin: center;
+          }
+          .vibox-button:hover {
+            transform: scale(1.05);
+          }
+          .vibox-button:active {
+            transform: scale(0.95);
+            transition-duration: 0.1s;
+          }
+          
+          /* Track item animations */
+          .track-item {
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform-origin: center;
+          }
+          .track-item:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+          }
+          .track-item.playing {
+            animation: playingPulse 2s ease-in-out infinite;
+          }
+          
+          /* Queue item animations */
+          .queue-item {
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform-origin: left center;
+          }
+          .queue-item:hover {
+            transform: translateX(4px);
+            background-color: var(--color-vibox-card-hover) !important;
+          }
+          .queue-item.entering {
+            animation: slideInRight 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          }
+          .queue-item.removing {
+            animation: slideOutRight 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          }
+          
+          /* Vibe category animations */
+          .vibe-category {
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          }
+          .vibe-category:hover {
+            transform: translateX(8px);
+          }
+          .vibe-category.expanded {
+            animation: expandDown 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          }
+          
+          /* Player controls animations */
+          .player-control {
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          }
+          .player-control:hover {
+            transform: scale(1.1);
+            filter: brightness(1.2);
+          }
+          .player-control:active {
+            transform: scale(0.9);
+            transition-duration: 0.1s;
+          }
+          .player-control.playing {
+            animation: controlPulse 1s ease-in-out infinite;
+          }
+          
+          /* Progress bar animations */
+          .progress-bar {
+            transition: width 0.1s linear;
+          }
+          .progress-bar:hover {
+            filter: brightness(1.1);
+          }
+          
+          /* Modal animations */
+          .vibox-modal {
+            animation: modalFadeIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          }
+          .vibox-modal.closing {
+            animation: modalFadeOut 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          }
+          
+          /* Tab animations */
+          .vibox-tab {
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          }
+          .vibox-tab:hover {
+            transform: translateY(-2px);
+          }
+          .vibox-tab.active {
+            animation: tabActivate 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          }
+          
+          /* Volume slider animations */
+          .volume-slider {
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          }
+          .volume-slider:hover {
+            transform: scale(1.05);
+          }
+          
+          /* Keyframe animations */
+          @keyframes playingPulse {
+            0%, 100% { 
+              opacity: 1; 
+              transform: scale(1);
+            }
+            50% { 
+              opacity: 0.8; 
+              transform: scale(1.01);
+            }
+          }
+          
+          @keyframes slideInRight {
+            from {
+              opacity: 0;
+              transform: translateX(100px);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(0);
+            }
+          }
+          
+          @keyframes slideOutRight {
+            from {
+              opacity: 1;
+              transform: translateX(0);
+            }
+            to {
+              opacity: 0;
+              transform: translateX(100px);
+            }
+          }
+          
+          @keyframes expandDown {
+            from {
+              opacity: 0;
+              max-height: 0;
+              transform: translateY(-10px);
+            }
+            to {
+              opacity: 1;
+              max-height: 500px;
+              transform: translateY(0);
+            }
+          }
+          
+          @keyframes vibeExpand {
+            0% {
+              transform: scale(1);
+              opacity: 1;
+            }
+            50% {
+              transform: scale(1.05);
+              opacity: 0.9;
+            }
+            100% {
+              transform: scale(1);
+              opacity: 1;
+            }
+          }
+          
+          @keyframes vibeCollapse {
+            0% {
+              transform: scale(1);
+              opacity: 1;
+            }
+            100% {
+              transform: scale(0.98);
+              opacity: 0.8;
+            }
+          }
+          
+          @keyframes dropdownOpen {
+            from {
+              opacity: 0;
+              transform: scaleY(0) translateY(-20px);
+              max-height: 0;
+            }
+            to {
+              opacity: 1;
+              transform: scaleY(1) translateY(0);
+              max-height: 1000px;
+            }
+          }
+          
+          @keyframes dropdownClose {
+            from {
+              opacity: 1;
+              transform: scaleY(1) translateY(0);
+              max-height: 1000px;
+            }
+            to {
+              opacity: 0;
+              transform: scaleY(0) translateY(-10px);
+              max-height: 0;
+            }
+          }
+          
+          @keyframes controlPulse {
+            0%, 100% { 
+              transform: scale(1); 
+            }
+            50% { 
+              transform: scale(1.05); 
+            }
+          }
+          
+          @keyframes modalFadeIn {
+            from {
+              opacity: 0;
+              transform: scale(0.9) translateY(20px);
+            }
+            to {
+              opacity: 1;
+              transform: scale(1) translateY(0);
+            }
+          }
+          
+          @keyframes modalFadeOut {
+            from {
+              opacity: 1;
+              transform: scale(1) translateY(0);
+            }
+            to {
+              opacity: 0;
+              transform: scale(0.9) translateY(20px);
+            }
+          }
+          
+          @keyframes tabActivate {
+            0% {
+              transform: translateY(0);
+            }
+            50% {
+              transform: translateY(-4px);
+            }
+            100% {
+              transform: translateY(-2px);
+            }
+          }
           /* Vibe selection colors */
           .vibe-selected-text {
             color: var(--color-vibox-background-gradient-via);
@@ -960,7 +1430,7 @@ export function VIBoxJukeboxInner({
         )}
 
         {/* Phone Layout */}
-        <div className={`h-[90vh] max-h-[700px] min-h-[500px] md:h-[700px] md:max-h-[700px] md:min-h-[700px] flex flex-col bg-gradient-to-br from-[var(--color-vibox-background-gradient-from)] via-[var(--color-vibox-background-gradient-via)] to-[var(--color-vibox-background-gradient-to)] overflow-hidden relative rounded-2xl`}>
+        <div className={`vibox-modal h-[90vh] max-h-[700px] min-h-[500px] md:h-[700px] md:max-h-[700px] md:min-h-[700px] flex flex-col bg-gradient-to-br from-[var(--color-vibox-background-gradient-from)] via-[var(--color-vibox-background-gradient-via)] to-[var(--color-vibox-background-gradient-to)] overflow-hidden relative rounded-2xl`}>
           {/* Header Bar */}
           <div className="bg-[var(--color-player-background)]/85 backdrop-blur-xl">
             <div className="flex items-center justify-between px-6 py-2 text-sm [--tw-text-opacity:1] text-[var(--color-text-primary)]">
@@ -1129,24 +1599,45 @@ export function VIBoxJukeboxInner({
                                       </p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                      <button
-                                        onClick={currentTrack?.id === track.id ? togglePlayPause : () => playTrack(track)}
-                                        className="[--tw-text-opacity:1] text-[var(--color-button-primary)] hover:[--tw-text-opacity:0.8] transition-opacity svg-glow-primary"
-                                      >
-                                        {currentTrack?.id === track.id && isPlaying ? (
-                                          <PauseIcon className="w-5 h-5" />
-                                        ) : (
-                                          <PlayIcon className="w-5 h-5" />
-                                        )}
-                                      </button>
+                                      {mode === "host" && (
+                                        <button
+                                          onClick={currentTrack?.id === track.id ? togglePlayPause : () => playTrack(track)}
+                                          className="player-control vibox-button [--tw-text-opacity:1] text-[var(--color-button-primary)] hover:[--tw-text-opacity:0.8] transition-opacity svg-glow-primary"
+                                        >
+                                          {currentTrack?.id === track.id && isPlaying ? (
+                                            <PauseIcon className="w-5 h-5" />
+                                          ) : (
+                                            <PlayIcon className="w-5 h-5" />
+                                          )}
+                                        </button>
+                                      )}
                                       <button
                                         onClick={() => addToQueue(track)}
-                                        className="[--tw-text-opacity:1] text-[var(--color-button-primary)] hover:[--tw-text-opacity:0.8] transition-opacity svg-glow-primary"
+                                        className="vibox-button [--tw-text-opacity:1] text-[var(--color-button-primary)] hover:[--tw-text-opacity:0.8] transition-opacity svg-glow-primary"
                                       >
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                          <path d="M12 5v14M5 12h14"/>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round">
+                                          <line x1="3" y1="6" x2="13" y2="6" />
+                                          <line x1="3" y1="10" x2="13" y2="10" />
+                                          <line x1="3" y1="14" x2="9" y2="14" />
+                                          <line x1="17" y1="11" x2="17" y2="17" />
+                                          <line x1="14" y1="14" x2="20" y2="14" />
                                         </svg>
                                       </button>
+                                      {/* Net vote display */}
+                                      <div className="flex items-center gap-1 border-l border-[var(--color-vibox-player-border)]/20 pl-2">
+                                        <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                                          (getVoteCount(track.id)?.net_votes || 0) > 0
+                                            ? 'text-green-500 [--tw-text-opacity:0.8] bg-green-500/10'
+                                            : (getVoteCount(track.id)?.net_votes || 0) < 0
+                                            ? 'text-red-500 [--tw-text-opacity:0.8] bg-red-500/10'
+                                            : 'text-[var(--color-text-secondary)] [--tw-text-opacity:0.6]'
+                                        }`}>
+                                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                          </svg>
+                                          <span>{getVoteCount(track.id)?.net_votes || 0}</span>
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
                                 );
@@ -1178,10 +1669,10 @@ export function VIBoxJukeboxInner({
                   {tracks.map((track) => (
                     <div
                       key={track.id}
-                      className={`flex items-center gap-3 p-3 [--tw-bg-opacity:0.5] bg-[var(--color-vibox-card-background)] rounded-2xl hover:bg-opacity-0.7 transition-all ${
+                      className={`track-item vibox-button flex items-center gap-3 p-3 [--tw-bg-opacity:0.5] bg-[var(--color-vibox-card-background)] rounded-2xl hover:bg-opacity-0.7 transition-all ${
                         windowWidth < 640 ? 'min-w-[280px]' : 'min-w-[320px]'
                       } ${
-                        currentTrack?.id === track.id ? 'ring-2 ring-[var(--color-vibox-button-primary)]' : ''
+                        currentTrack?.id === track.id ? 'ring-2 ring-[var(--color-vibox-button-primary)] playing' : ''
                       }`}
                     >
                       <div className="flex-1 min-w-0">
@@ -1194,28 +1685,51 @@ export function VIBoxJukeboxInner({
                       </div>
                       <div className="flex items-center gap-3">
                         {currentTrack?.id === track.id && isPlaying ? (
-                          <button
-                            onClick={togglePlayPause}
-                            className="[--tw-text-opacity:1] text-[var(--color-button-primary)] hover:[--tw-text-opacity:0.8] transition-opacity svg-glow-primary"
-                          >
-                            <PauseIcon className="w-6 h-6" />
-                          </button>
+                          mode === "host" && (
+                            <button
+                              onClick={togglePlayPause}
+                              className="player-control vibox-button [--tw-text-opacity:1] text-[var(--color-button-primary)] hover:[--tw-text-opacity:0.8] transition-opacity svg-glow-primary"
+                            >
+                              <PauseIcon className="w-6 h-6" />
+                            </button>
+                          )
                         ) : (
-                          <button
-                            onClick={() => playTrack(track)}
-                            className="[--tw-text-opacity:1] text-[var(--color-button-primary)] hover:[--tw-text-opacity:0.8] transition-opacity svg-glow-primary"
-                          >
-                            <PlayIcon className="w-6 h-6" />
-                          </button>
+                          mode === "host" && (
+                            <button
+                              onClick={() => playTrack(track)}
+                              className="[--tw-text-opacity:1] text-[var(--color-button-primary)] hover:[--tw-text-opacity:0.8] transition-opacity svg-glow-primary"
+                            >
+                              <PlayIcon className="w-6 h-6" />
+                            </button>
+                          )
                         )}
                         <button
                           onClick={() => addToQueue(track)}
-                          className="[--tw-text-opacity:1] text-[var(--color-button-primary)] hover:[--tw-text-opacity:0.8] transition-opacity svg-glow-primary"
+                          className="vibox-button [--tw-text-opacity:1] text-[var(--color-button-primary)] hover:[--tw-text-opacity:0.8] transition-opacity svg-glow-primary"
                         >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 5v14M5 12h14"/>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="6" x2="13" y2="6" />
+                            <line x1="3" y1="10" x2="13" y2="10" />
+                            <line x1="3" y1="14" x2="9" y2="14" />
+                            <line x1="17" y1="11" x2="17" y2="17" />
+                            <line x1="14" y1="14" x2="20" y2="14" />
                           </svg>
                         </button>
+                        {/* Net vote display */}
+                        <div className="flex items-center gap-1 border-l border-[var(--color-vibox-player-border)]/20 pl-2">
+                          <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                            (getVoteCount(track.id)?.net_votes || 0) > 0
+                              ? 'text-green-500 [--tw-text-opacity:0.8] bg-green-500/10'
+                              : (getVoteCount(track.id)?.net_votes || 0) < 0
+                              ? 'text-red-500 [--tw-text-opacity:0.8] bg-red-500/10'
+                              : 'text-[var(--color-text-secondary)] [--tw-text-opacity:0.6]'
+                          }`}>
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                            <span>{getVoteCount(track.id)?.net_votes || 0}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1233,17 +1747,12 @@ export function VIBoxJukeboxInner({
                 <div className="flex items-center justify-between px-6 py-4">
                   <button 
                     onClick={() => setExpandedPlayer(false)}
-                    className="w-10 h-10 flex items-center justify-center [--tw-text-opacity:0.8] text-[var(--color-button-primary)] opacity-70 hover:opacity-100 transition-opacity svg-glow-primary ml-12"
+                    className="w-10 h-10 flex items-center justify-center [--tw-text-opacity:0.8] text-[var(--color-button-primary)] opacity-70 hover:opacity-100 transition-opacity svg-glow-primary"
                     aria-label="Collapse"
                   >
                   {/* Collapse Queue Button */}
                   <div className="flex items-center svg-glow-primary">
-                    <ChevronDownIcon className="w-8 h-8 mr-1 text-[var(--color-button-primary)]" />
-                    <span className="text-2xl flex items-center">
-                      <span className="[--tw-text-opacity:0.8] text-[var(--color-button-primary)]">Q</span>
-                      <span className="[--tw-text-opacity:0.8] text-[var(--color-text-primary)]">ueue</span>
-                      <span className="[--tw-text-opacity:0.8] text-[var(--color-text-primary)]"> ({queue.length})</span>
-                    </span>
+                    <ChevronDownIcon className="w-8 h-8 text-[var(--color-button-primary)]" />
                   </div>
                   </button>
                   <div className="w-8 h-8" />
@@ -1280,7 +1789,7 @@ export function VIBoxJukeboxInner({
                         {queue.map((item, index) => (
                           <div
                             key={item.id}
-                            className={`flex items-center gap-2 p-2 [--tw-bg-opacity:0.5] bg-[var(--color-vibox-card-background)] rounded hover:bg-opacity-0.7 transition-colors`}
+                            className={`queue-item flex items-center gap-2 p-2 [--tw-bg-opacity:0.5] bg-[var(--color-vibox-card-background)] rounded hover:bg-opacity-0.7 transition-colors`}
                           >
                             <span className={`text-sm font-medium w-6 [--tw-text-opacity:0.8] text-[var(--color-text-secondary)]`}>
                               {index + 1}
@@ -1310,13 +1819,13 @@ export function VIBoxJukeboxInner({
                                     };
                                     playTrack(track);
                                   }}
-                                  className="[--tw-text-opacity:1] text-[var(--color-button-primary)] hover:[--tw-text-opacity:0.8] transition-opacity p-2 svg-glow-primary"
+                                  className="player-control vibox-button [--tw-text-opacity:1] text-[var(--color-button-primary)] hover:[--tw-text-opacity:0.8] transition-opacity p-2 svg-glow-primary"
                                 >
                                   <PlayIcon className="w-6 h-6" />
                                 </button>
                                 <button
                                   onClick={() => removeFromQueue(item.id)}
-                                  className="[--tw-text-opacity:1] text-[var(--color-text-secondary)] hover:[--tw-text-opacity:0.8] transition-opacity p-2 svg-glow-secondary"
+                                  className="vibox-button [--tw-text-opacity:1] text-[var(--color-text-secondary)] hover:[--tw-text-opacity:0.8] transition-opacity p-2 svg-glow-secondary"
                                 >
                                   <TrashIcon className="w-6 h-6" />
                                 </button>
@@ -1336,85 +1845,133 @@ export function VIBoxJukeboxInner({
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <h2 className={`text-xl font-semibold [--tw-text-opacity:1] text-[var(--color-text-primary)] mb-1`}>{currentTrack?.title || 'No track playing'}</h2>
-                        <p className={`text-sm [--tw-text-opacity:0.8] text-[var(--color-text-secondary)]`}>{currentTrack?.artist || 'No artist'}</p>
+                        <h2 className={`text-xl font-semibold [--tw-text-opacity:1] text-[var(--color-text-primary)] mb-1`}>
+                          {currentTrack?.title || currentTrackInfo?.track_title || 'No track playing'}
+                        </h2>
+                        <p className={`text-sm [--tw-text-opacity:0.8] text-[var(--color-text-secondary)]`}>
+                          {currentTrack?.artist || currentTrackInfo?.track_artist || 'No artist'}
+                        </p>
                       </div>
                       
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        <button 
-                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isDark ? 'bg-[var(--color-vibox-button-danger)]/50 text-[var(--color-vibox-button-danger)] hover:bg-[var(--color-vibox-button-danger)]/70' : 'bg-[var(--color-vibox-button-danger)]/50 text-[var(--color-vibox-button-danger)] hover:bg-[var(--color-vibox-button-danger)]/70'}`}
-                          title="Hide Song"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
-                          </svg>
-                        </button>
-                        <button 
-                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isDark ? 'bg-[var(--color-vibox-card-background)] [--tw-text-opacity:1] text-[var(--color-text-primary)] hover:bg-[var(--color-vibox-card-hover)]' : 'bg-[var(--color-vibox-card-background)] [--tw-text-opacity:1] text-[var(--color-text-primary)] hover:bg-[var(--color-vibox-card-hover)]'}`}
-                          title="Add to Playlist"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M12 5v14M5 12h14"/>
-                          </svg>
-                        </button>
-                      </div>
+                      {/* Voting Section - Prominent for currently playing track */}
+                      {(currentTrack || currentTrackInfo) && (
+                        <div className="flex items-center gap-3 ml-6">
+                          <div className="flex items-center gap-2 border-l border-[var(--color-vibox-player-border)]/20 pl-4">
+                            <button
+                              onClick={() => handleVote(currentTrack?.id || currentTrackInfo?.track_id || '', 'up')}
+                              className={`vibox-button flex items-center gap-2 px-4 py-3 rounded-xl transition-all transform hover:scale-105 ${
+                                getUserVote(currentTrack?.id || currentTrackInfo?.track_id || '') === 'up'
+                                  ? 'text-green-500 [--tw-text-opacity:1] bg-green-500/20 border border-green-500/30 shadow-lg'
+                                  : 'text-[var(--color-text-secondary)] hover:text-green-500 [--tw-text-opacity:0.8] hover:[--tw-text-opacity:1] bg-green-500/10 border border-transparent'
+                              }`}
+                            >
+                              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M7 11v8h10v-8h-10zM5 11l7-7 7 7h-14z"/>
+                              </svg>
+                              <span className="text-base font-bold">{getVoteCount(currentTrack?.id || currentTrackInfo?.track_id || '')?.upvotes || 0}</span>
+                            </button>
+                            <button
+                              onClick={() => handleVote(currentTrack?.id || currentTrackInfo?.track_id || '', 'down')}
+                              className={`vibox-button flex items-center gap-2 px-4 py-3 rounded-xl transition-all transform hover:scale-105 ${
+                                getUserVote(currentTrack?.id || currentTrackInfo?.track_id || '') === 'down'
+                                  ? 'text-red-500 [--tw-text-opacity:1] bg-red-500/20 border border-red-500/30 shadow-lg'
+                                  : 'text-[var(--color-text-secondary)] hover:text-red-500 [--tw-text-opacity:0.8] hover:[--tw-text-opacity:1] bg-red-500/10 border border-transparent'
+                              }`}
+                            >
+                              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M7 13v-8h10v8h-10zM5 13l7 7 7 -7h-14z"/>
+                              </svg>
+                              <span className="text-base font-bold">{getVoteCount(currentTrack?.id || currentTrackInfo?.track_id || '')?.downvotes || 0}</span>
+                            </button>
+                          </div>
+                          
+                          {/* Action Buttons - Host Only */}
+                          {mode === "host" && (
+                            <div className="flex gap-2">
+                              <button 
+                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isDark ? 'bg-[var(--color-vibox-button-danger)]/50 text-[var(--color-vibox-button-danger)] hover:bg-[var(--color-vibox-button-danger)]/70' : 'bg-[var(--color-vibox-button-danger)]/50 text-[var(--color-vibox-button-danger)] hover:bg-[var(--color-vibox-button-danger)]/70'}`}
+                                title="Hide Song"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                </svg>
+                              </button>
+                              <button 
+                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isDark ? 'bg-[var(--color-vibox-card-background)] [--tw-text-opacity:1] text-[var(--color-text-primary)] hover:bg-[var(--color-vibox-card-hover)]' : 'bg-[var(--color-vibox-card-background)] [--tw-text-opacity:1] text-[var(--color-text-primary)] hover:bg-[var(--color-vibox-card-hover)]'}`}
+                                title="Add to Playlist"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M12 5v14M5 12h14"/>
+                                </svg>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Expanded Progress Bar - Old Style */}
+                {/* Expanded Progress Bar - Host Only Seeking */}
                 <div className="px-6 pb-6">
                   <div className="mb-1">
                     <div 
-                      className={`w-full h-2 bg-[var(--color-vibox-progress-track)] rounded-full cursor-pointer`}
-                      onMouseDown={handleProgressMouseDown}
-                      onTouchStart={handleProgressTouchStart}
+                      className={`progress-bar w-full h-2 bg-[var(--color-vibox-progress-track)] rounded-full ${
+                        mode === "host" ? "cursor-pointer" : "cursor-default"
+                      }`}
+                      onMouseDown={mode === "host" ? handleProgressMouseDown : undefined}
+                      onTouchStart={mode === "host" ? handleProgressTouchStart : undefined}
                     >
                       <div 
                         className={`h-full rounded-full transition-all relative [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)]`}
-                        style={{ width: `${(currentTime / (audioRef.current?.duration || 1)) * 100}%` }}
+                        style={{ width: `${(currentTime / (mode === "host" ? (audioRef.current?.duration || currentTrackInfo?.track_duration || currentTrack?.duration || 1) : (currentTrackInfo?.track_duration || 1))) * 100}%` }}
                       >
                         <div className={`absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full shadow-lg [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)]`} />
                       </div>
                     </div>
                     <div className={`flex justify-between text-xs mt-1 [--tw-text-opacity:0.8] text-[var(--color-text-secondary)]`}>
                       <span>{formatTime(currentTime)}</span>
-                      <span>{formatTime(audioRef.current?.duration || 0)}</span>
+                      <span>{formatTime(audioRef.current?.duration || currentTrackInfo?.track_duration || 0)}</span>
                     </div>
                   </div>
 
-                  {/* Expanded Controls */}
+                  {/* Expanded Controls - Host Only */}
                   <div className="flex items-center justify-center gap-6">
-                    <button
-                      onClick={playPrevious}
-                      disabled={tracks.length <= 1}
-                      className={`w-12 h-12 rounded-full flex items-center justify-center ${isDark ? 'bg-[var(--color-vibox-card-background)] [--tw-text-opacity:1] text-[var(--color-button-primary)]' : 'bg-[var(--color-vibox-card-background)] [--tw-text-opacity:1] text-[var(--color-button-primary)]'} opacity-70 hover:opacity-100 disabled:opacity-30 transition-all svg-glow-primary`}
-                    >
-                      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M11 17L6 12L11 7L11 17zM17 17L12 12L17 7L17 17z"/>
-                      </svg>
-                    </button>
-                    <button
-                      onClick={togglePlayPause}
-                      className={`w-16 h-16 rounded-full flex items-center justify-center hover:scale-105 transition-transform [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)] text-[var(--color-vibox-button-play-text)] svg-glow-primary`}
-                    >
-                      {isPlaying ? (
-                        <PauseIcon className="w-6 h-6" />
-                      ) : (
-                        <PlayIcon className="w-6 h-6" />
-                      )}
-                    </button>
+                    {mode === "host" ? (
+                      <button
+                        onClick={playPrevious}
+                        disabled={tracks.length <= 1}
+                        className={`player-control vibox-button w-12 h-12 rounded-full flex items-center justify-center ${isDark ? 'bg-[var(--color-vibox-card-background)] [--tw-text-opacity:1] text-[var(--color-button-primary)]' : 'bg-[var(--color-vibox-card-background)] [--tw-text-opacity:1] text-[var(--color-button-primary)]'} opacity-70 hover:opacity-100 disabled:opacity-30 transition-all svg-glow-primary`}
+                      >
+                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M11 17L6 12L11 7L11 17zM17 17L12 12L17 7L17 17z"/>
+                        </svg>
+                      </button>
+                    ) : null}
+                    {mode === "host" && (
+                      <button
+                        onClick={togglePlayPause}
+                        className="player-control vibox-button w-16 h-16 rounded-full flex items-center justify-center hover:scale-105 transition-transform [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)] text-[var(--color-vibox-button-play-text)] svg-glow-primary"
+                      >
+                        {isPlaying ? (
+                          <PauseIcon className="w-6 h-6" />
+                        ) : (
+                          <PlayIcon className="w-6 h-6" />
+                        )}
+                      </button>
+                    )}
                     
-                    <button
-                      onClick={playNext}
-                      disabled={tracks.length <= 1}
-                      className={`w-12 h-12 rounded-full flex items-center justify-center ${isDark ? 'bg-[var(--color-vibox-card-background)] [--tw-text-opacity:1] text-[var(--color-button-primary)]' : 'bg-[var(--color-vibox-card-background)] [--tw-text-opacity:1] text-[var(--color-button-primary)]'} opacity-70 hover:opacity-100 disabled:opacity-30 transition-all svg-glow-primary`}
-                    >
-                      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M7 17L12 12L7 7L7 17zM13 17L18 12L13 7L13 17z"/>
-                      </svg>
-                    </button>
+                    {mode === "host" ? (
+                      <button
+                        onClick={playNext}
+                        disabled={tracks.length <= 1}
+                        className={`player-control vibox-button w-12 h-12 rounded-full flex items-center justify-center ${isDark ? 'bg-[var(--color-vibox-card-background)] [--tw-text-opacity:1] text-[var(--color-button-primary)]' : 'bg-[var(--color-vibox-card-background)] [--tw-text-opacity:1] text-[var(--color-button-primary)]'} opacity-70 hover:opacity-100 disabled:opacity-30 transition-all svg-glow-primary`}
+                      >
+                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M7 17L12 12L7 7L7 17zM13 17L18 12L13 7L13 17z"/>
+                        </svg>
+                      </button>
+                    ) : null}
                   </div>
                   </div>
                 </div>
@@ -1434,7 +1991,7 @@ export function VIBoxJukeboxInner({
           <div ref={bottomPlayerRef} className={`absolute bottom-0 left-0 right-0 bg-[var(--color-player-background)]/85 backdrop-blur-2xl`}>
             {/* Now Playing Mini Bar */}
             <div className={expandedPlayer ? 'hidden' : 'block'}>
-            {currentTrack ? (
+            {(currentTrack || currentTrackInfo) ? (
               <div className="px-4 py-3">
                 {/* Track Info and Play Button - Horizontal Layout */}
                 <div className="flex items-center gap-3 px-4">
@@ -1443,31 +2000,40 @@ export function VIBoxJukeboxInner({
                     <div className="flex items-center justify-center w-10 h-10 group hover:scale-105 transition-transform">
                       <div className="flex items-center svg-glow-primary">
                         <ChevronUpIcon className="w-8 h-8 mr-1 text-[var(--color-button-primary)]" />
-                        <span className="text-2xl flex items-center">
-                          <span className="[--tw-text-opacity:0.8] text-[var(--color-button-primary)]">Q</span>
-                        </span>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round" className="[--tw-text-opacity:0.8] text-[var(--color-button-primary)]">
+                          <line x1="3" y1="6" x2="21" y2="6" />
+                          <line x1="3" y1="10" x2="21" y2="10" />
+                          <line x1="3" y1="14" x2="21" y2="14" />
+                          <line x1="3" y1="18" x2="15" y2="18" />
+                        </svg>
                       </div>
                     </div>
                     <div className="flex-1 min-w-0 text-center">
-                      <p className={`text-sm font-medium truncate [--tw-text-opacity:1] text-[var(--color-text-primary)]`}>{currentTrack.title}</p>
-                      <p className={`text-xs truncate [--tw-text-opacity:0.8] text-[var(--color-text-secondary)]`}>{currentTrack.artist}</p>
+                      <p className={`text-sm font-medium truncate [--tw-text-opacity:1] text-[var(--color-text-primary)]`}>
+                        {currentTrack?.title || currentTrackInfo?.track_title || 'Unknown Track'}
+                      </p>
+                      <p className={`text-xs truncate [--tw-text-opacity:0.8] text-[var(--color-text-secondary)]`}>
+                        {currentTrack?.artist || currentTrackInfo?.track_artist || 'Unknown Artist'}
+                      </p>
                     </div>
                   </div>
-                  <button
-                    onClick={togglePlayPause}
-                    className={`hover:scale-105 transition-transform [--tw-text-opacity:1] text-[var(--color-button-primary)] flex-shrink-0 svg-glow-primary`}
-                  >
-                    {isPlaying ? (
-                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                        <rect x="6" y="4" width="4" height="16" />
-                        <rect x="14" y="4" width="4" height="16" />
-                      </svg>
-                    ) : (
-                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z"/>
-                      </svg>
+                    {mode === "host" && (
+                      <button
+                        onClick={togglePlayPause}
+                        className="player-control vibox-button hover:scale-105 transition-transform [--tw-text-opacity:1] text-[var(--color-button-primary)] flex-shrink-0 svg-glow-primary"
+                      >
+                        {isPlaying ? (
+                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <rect x="6" y="4" width="4" height="16" />
+                            <rect x="14" y="4" width="4" height="16" />
+                          </svg>
+                        ) : (
+                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        )}
+                      </button>
                     )}
-                  </button>
                 </div>
               </div>
             ) : (
@@ -1478,9 +2044,12 @@ export function VIBoxJukeboxInner({
                     <div className="flex items-center justify-center w-10 h-10 group hover:scale-105 transition-transform">
                       <div className="flex items-center svg-glow-primary">
                         <ChevronUpIcon className="w-8 h-8 mr-1 text-[var(--color-button-primary)]" />
-                        <span className="text-2xl flex items-center">
-                          <span className="[--tw-text-opacity:0.8] text-[var(--color-button-primary)]">Q</span>
-                        </span>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round" className="[--tw-text-opacity:0.8] text-[var(--color-button-primary)]">
+                          <line x1="3" y1="6" x2="21" y2="6" />
+                          <line x1="3" y1="10" x2="21" y2="10" />
+                          <line x1="3" y1="14" x2="21" y2="14" />
+                          <line x1="3" y1="18" x2="15" y2="18" />
+                        </svg>
                       </div>
                     </div>
                     <div className="flex-1 min-w-0 text-center">
@@ -1499,18 +2068,20 @@ export function VIBoxJukeboxInner({
               </div>
             )}
             
-            {/* Progress Bar - Direct in Bottom Player Bar */}
+            {/* Progress Bar - Direct in Bottom Player Bar - Host Only Seeking */}
             <div 
-              className="w-full h-2 bg-[var(--color-vibox-progress-track)] relative cursor-pointer"
-              onMouseDown={handleProgressMouseDown}
-              onTouchStart={handleProgressTouchStart}
+              className={`progress-bar w-full h-2 bg-[var(--color-vibox-progress-track)] relative ${
+                mode === "host" ? "cursor-pointer" : "cursor-default"
+              }`}
+              onMouseDown={mode === "host" ? handleProgressMouseDown : undefined}
+              onTouchStart={mode === "host" ? handleProgressTouchStart : undefined}
             >
-              {currentTrack && (
+              {((currentTrack || currentTrackInfo) && (
                 <div 
                   className="h-full [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)] absolute top-0 left-0 transition-all"
-                  style={{ width: `${(currentTime / (audioRef.current?.duration || 1)) * 100}%` }}
+                  style={{ width: `${(currentTime / (audioRef.current?.duration || currentTrackInfo?.track_duration || 1)) * 100}%` }}
                 />
-              )}
+              ))}
             </div>
             </div>
 
