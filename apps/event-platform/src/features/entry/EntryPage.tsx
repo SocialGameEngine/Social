@@ -326,11 +326,8 @@ export function EntryPage() {
             </Card>
 
             <Card className={`space-y-4 ${!isDark ? 'bg-amber-50/60' : 'bg-slate-800/60'}`} isDark={isDark}>
-              <p className={`text-xs font-semibold uppercase tracking-[0.4em] ${!isDark ? 'text-amber-600' : 'text-cyan-400'}`}>
+              <p className={`text-xs font-bold uppercase tracking-[0.4em] ${!isDark ? 'text-amber-600' : 'text-cyan-400'}`}>
                 Account
-              </p>
-              <p className={`text-base font-semibold ${!isDark ? 'text-slate-900' : 'text-pink-400'}`}>
-                {isGuest ? "Join the community to unlock full access." : "Jump back in and manage your games."}
               </p>
               <Link
                 to="/auth"
@@ -340,34 +337,6 @@ export function EntryPage() {
               </Link>
             </Card>
           </div>
-
-          <Card className="space-y-6" isDark={isDark}>
-            <div className={`flex flex-col gap-4 text-sm ${!isDark ? 'text-slate-600' : 'text-slate-300'} sm:flex-row sm:items-center sm:justify-between`}>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <svg className={`h-5 w-5 ${!isDark ? 'text-amber-500' : 'text-cyan-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <span>{barConfig.contact.address}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className={`h-5 w-5 ${!isDark ? 'text-amber-500' : 'text-cyan-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  <span>{barConfig.contact.phone}</span>
-                </div>
-              </div>
-              <a href="#" className={`text-sm font-semibold transition ${!isDark ? 'text-amber-600 hover:text-amber-500' : 'text-cyan-400 hover:text-cyan-300'}`}>
-                Privacy
-              </a>
-            </div>
-            <div className={`flex items-center justify-center gap-2 border-t pt-4 text-xs ${!isDark ? 'border-slate-100 text-slate-500' : 'border-slate-700 text-slate-400'}`}>
-              <span>Powered by</span>
-              <img src="/logo.png" alt="Söcial" className="h-4 w-auto opacity-80" />
-              <span className={`font-semibold ${!isDark ? 'text-slate-600' : 'text-slate-300'}`}>Söcial</span>
-            </div>
-          </Card>
         </div>
       </main>
     </>

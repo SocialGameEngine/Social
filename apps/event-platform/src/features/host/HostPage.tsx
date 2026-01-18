@@ -793,15 +793,6 @@ export function HostPage() {
               <h1 className="text-3xl font-black text-pink-400">
                 Host Console
               </h1>
-              {session ? (
-                <p className="text-sm text-cyan-300">
-                  {phaseCopy[session.status]}
-                </p>
-              ) : (
-                <p className="text-sm text-cyan-300">
-                  Create a game room when you're ready to host.
-                </p>
-              )}
             </div>
           </div>
           <div className="flex flex-col items-center gap-2 rounded-2xl px-6 py-4 border bg-cyan-900/30 border-cyan-400/50">

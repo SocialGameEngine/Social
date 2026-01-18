@@ -92,25 +92,50 @@ export function RootLayout() {
 
 
   return (
-    <div className="min-h-screen min-h-[100svh] bg-transparent text-slate-900">
+    <div className="min-h-[100svh] bg-transparent text-slate-900">
       {/* Navbar - Fixed positioning, hides on mobile scroll */}
       <nav className={`
         fixed top-0 left-0 right-0 z-50 h-16
         transition-transform duration-200 will-change-transform
         ${isMobile && navbarHidden ? '-translate-y-full' : 'translate-y-0'}
+        backdrop-blur-md bg-slate-900/40 border-b border-slate-700/50
+        shadow-lg shadow-black/10
       `}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
           {/* Left: User Avatar with Account Menu */}
           <div className="flex-shrink-0 relative" ref={accountMenuRef}>
             <button
               onClick={() => setShowAccountMenu(!showAccountMenu)}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold bg-slate-700 hover:bg-slate-600 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-slate-950"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold bg-slate-700/60 hover:bg-slate-600/60 backdrop-blur-sm border border-slate-600/50 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-slate-950"
               aria-label="Account menu"
               aria-expanded={showAccountMenu}
             >
-              {user ? (
-                isGuest ? (
-                  // Guest mode icon
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 shrink-0">
+                {user ? (
+                  isGuest ? (
+                    // Guest mode icon
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                      className="w-4 h-4 text-slate-300"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                  ) : (
+                    // User initial
+                    <span className="text-slate-200">
+                      {(user.user_metadata?.display_name?.[0] || user.email?.[0] || "U").toUpperCase()}
+                    </span>
+                  )
+                ) : (
+                  // Not logged in - show guest icon
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -125,28 +150,12 @@ export function RootLayout() {
                       d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                     />
                   </svg>
-                ) : (
-                  // User initial
-                  <span className="text-slate-200">
-                    {(user.user_metadata?.display_name?.[0] || user.email?.[0] || "U").toUpperCase()}
-                  </span>
-                )
-              ) : (
-                // Not logged in - show guest icon
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                  className="w-4 h-4 text-slate-300"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
+                )}
+              </div>
+              {user && (
+                <span className="text-slate-200 hidden sm:block max-w-[120px] truncate">
+                  {user.user_metadata?.display_name || user.email?.split('@')[0] || 'Account'}
+                </span>
               )}
             </button>
 
@@ -220,15 +229,24 @@ export function RootLayout() {
             )}
           </div>
 
-          {/* Center: Logo - absolute left-1/2 -translate-x-1/2 top-0 outside any parent with transform */}
-          <div className="absolute left-1/2 top-0 h-16 flex items-center -translate-x-1/2">
-            <Link to="/" className="block transition-transform hover:scale-105">
+          {/* Center: Logo with Pub Social text - absolute left-1/2 -translate-x-1/2 top-0 outside any parent with transform */}
+          <div className="absolute left-1/2 top-0 h-16 flex items-center gap-3 -translate-x-1/2">
+            <Link to="/" className="flex items-center gap-3 transition-transform hover:scale-105">
               <img
                 src="/logo.png"
                 alt="Söcial logo - Click to go home"
                 className="h-12 w-auto drop-shadow-lg cursor-pointer"
                 title="Click to go home"
               />
+              <span 
+                className="text-2xl font-black tracking-tight"
+                style={{
+                  color: '#ff00ff',
+                  filter: 'drop-shadow(0 0 2px #ff00ff) drop-shadow(0 0 4px rgba(255, 0, 255, 0.3))'
+                }}
+              >
+                Pub Söcial
+              </span>
             </Link>
           </div>
         </div>
