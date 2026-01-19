@@ -420,12 +420,13 @@ serve(async (req) => {
           if (shouldBecomeCaptain) {
             console.log("Setting first member as captain:", userId);
             
-            // Set both captain_id and uid on the team
+            // Set both captain_id and uid on the team, and update team name
             const { error: captainError } = await supabase
               .from("teams")
               .update({ 
                 captain_id: userId,
-                uid: userId  // Also set uid so team appears in filtered queries
+                uid: userId,  // Also set uid so team appears in filtered queries
+                team_name: normalizedTeamName  // Update team name with user input
               })
               .eq("id", teamCodeData.team_id);
             
@@ -523,7 +524,10 @@ serve(async (req) => {
             console.log("Continuing with join despite team member error");
           }
           
-          newTeam = teamData;
+          newTeam = {
+            ...teamData,
+            team_name: normalizedTeamName  // Use the updated team name
+          };
           console.log("Successfully added player to existing team");
         }
       }

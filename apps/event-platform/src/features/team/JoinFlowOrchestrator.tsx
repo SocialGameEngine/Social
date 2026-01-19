@@ -50,10 +50,11 @@ export function JoinFlowOrchestrator() {
         return;
       }
 
-      if (session.status !== "lobby" && session.status !== "waiting") {
+      // Allow joining at any time except when session has ended
+      if (session.status === "ended") {
         addToast({
           title: "Room not available",
-          description: "This room is not accepting new players.",
+          description: "This room has ended and is no longer accepting players.",
           variant: "error"
         });
         return;

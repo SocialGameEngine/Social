@@ -40,8 +40,9 @@ export function RoomCodeEntry({ onSuccess, toast }: RoomCodeEntryProps) {
         return;
       }
 
-      if (session.status !== "lobby" && session.status !== "waiting") {
-        setError("This room is not accepting new players.");
+      // Allow joining at any time except when session has ended
+      if (session.status === "ended") {
+        setError("This room has ended and is no longer accepting players.");
         return;
       }
 

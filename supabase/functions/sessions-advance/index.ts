@@ -141,7 +141,7 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
         // Check if there are more rounds
         if (roundIndex + 1 < rounds.length) {
           // Next round - regenerate groups with shuffled teams
-          const nextRoundIndex = roundIndex + 1;
+          nextRoundIndex = roundIndex + 1;
           
           // Get all current teams
           const { data: currentTeams } = await supabase
@@ -331,10 +331,13 @@ async function calculateRoundScores(supabase: any, sessionId: string, roundIndex
       console.log(`Team ${teamId} placed second with ${voteCount} votes and earned 5 second place bonus points`);
     }
     
+    // Apply 100x display multiplier before storing in database
+    const displayScore = totalScore * 100;
+    
     // Update team score
     await supabase.rpc('increment_team_score', {
       team_id: teamId,
-      score_delta: totalScore,
+      score_delta: displayScore,
     });
   }
   
@@ -444,11 +447,14 @@ async function calculateVoterRewards(
       voterPoints += 3;
     }
     
+    // Apply 100x display multiplier before storing in database
+    const displayVoterPoints = voterPoints * 100;
+    
     // Award points to voter
     if (voterPoints > 0) {
       await supabase.rpc('increment_team_score', {
         team_id: voterId,
-        score_delta: voterPoints,
+        score_delta: displayVoterPoints,
       });
       
       totalVoterPointsAwarded += voterPoints;
