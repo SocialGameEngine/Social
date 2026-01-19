@@ -207,7 +207,7 @@ export function Leaderboard({
           <li
             key={team.id}
             data-team-id={team.id}
-            className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 shadow-lg border transition ${
+            className={`flex items-center gap-2 sm:gap-3 rounded-2xl px-2 sm:px-3 py-2 sm:py-2.5 shadow-lg border transition ${
               isHighlighted
                 ? "bg-brand-light ring-2 ring-brand-primary border-brand-primary/30"
                 : (!isDark ? "bg-white border-slate-200 shadow-slate-300/40" : "bg-slate-800 border-slate-600 shadow-slate-500/20")
@@ -215,7 +215,7 @@ export function Leaderboard({
           >
             {/* Rank badge */}
             <div
-              className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+              className={`flex h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                 isHighlighted
                   ? "bg-brand-primary text-white"
                   : (!isDark
@@ -228,7 +228,7 @@ export function Leaderboard({
 
             {/* Mascot avatar */}
             {mascotPath ? (
-              <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full p-1 shadow-sm ring-2 ${
+              <div className={`flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full p-1 shadow-sm ring-2 ${
                 !isDark
                   ? 'bg-white ring-white/50'
                   : 'bg-slate-600 ring-slate-500'
@@ -245,10 +245,10 @@ export function Leaderboard({
                 />
               </div>
             ) : (
-              <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${
+              <div className={`flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full ${
                 !isDark ? 'bg-slate-200' : 'bg-slate-500'
               }`}>
-                <span className={`text-lg font-bold ${
+                <span className={`text-base sm:text-lg font-bold ${
                   !isDark ? 'text-slate-400' : 'text-slate-300'
                 }`}>
                   {team.teamName.charAt(0).toUpperCase()}
@@ -271,9 +271,9 @@ export function Leaderboard({
             </div>
 
             {/* Points */}
-            <div className="flex-shrink-0 text-right min-w-0 ml-2">
+            <div className="flex-shrink-0 text-right min-w-0 ml-1 sm:ml-2">
               <p
-                className={`text-sm font-bold ${
+                className={`text-xs sm:text-sm font-bold whitespace-nowrap ${
                   isHighlighted
                     ? "text-brand-primary"
                     : (!isDark ? "text-slate-800" : "text-cyan-300")

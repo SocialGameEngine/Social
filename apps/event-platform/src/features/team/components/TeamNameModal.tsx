@@ -27,8 +27,8 @@ export function TeamNameModal({ isOpen, teamCode, onSubmit, onCancel }: TeamName
       return;
     }
 
-    if (name.length > 30) {
-      setError("Team name must be less than 30 characters");
+    if (name.length > 10) {
+      setError("Team name must be 10 characters or less");
       return;
     }
 
@@ -85,7 +85,7 @@ export function TeamNameModal({ isOpen, teamCode, onSubmit, onCancel }: TeamName
               }
             }}
             placeholder="Enter your team name"
-            maxLength={30}
+            maxLength={10}
             className={`w-full px-4 py-3 rounded-lg border-2 ${
               error
                 ? 'border-red-500 bg-red-50'
@@ -101,7 +101,7 @@ export function TeamNameModal({ isOpen, teamCode, onSubmit, onCancel }: TeamName
             <p className="mt-2 text-sm text-red-500">{error}</p>
           )}
           <p className={`mt-2 text-xs ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-            {teamName.length}/30 characters
+            {teamName.length}/10 characters
           </p>
         </div>
 
