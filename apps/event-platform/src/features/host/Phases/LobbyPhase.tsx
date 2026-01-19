@@ -27,7 +27,6 @@ export function LobbyPhase({
         <h3 className={`text-xl font-semibold ${!isDark ? 'text-slate-900' : 'text-pink-400'}`}>
           Waiting for teams
         </h3>
-        <p className={`text-sm ${!isDark ? 'text-slate-600' : 'text-cyan-300'}`}>Share the code and link below.</p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <button
