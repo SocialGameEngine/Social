@@ -2,6 +2,7 @@ import { Card, Button, SessionTimer, ProgressBar } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 import { clsx } from "clsx";
 import type { Session, RoundGroup, Answer } from "../../../shared/types";
+import { usePromptLibrary } from "../../../shared/hooks/usePromptLibraries";
 
 interface AnswerPhaseProps {
   session: Session;
@@ -34,6 +35,9 @@ export function AnswerPhase({
     "Loading prompt...";
   const characterCount = Math.min(answerText.length, CHAR_LIMIT);
   const limitReached = characterCount >= CHAR_LIMIT;
+  
+  // Get prompt library info
+  const { data: promptLibrary } = usePromptLibrary(session.promptLibraryId || 'classic');
 
   return (
     <Card className="space-y-3 p-3 sm:space-y-5 sm:p-5" isDark={isDark}>
@@ -53,6 +57,14 @@ export function AnswerPhase({
           <ProgressBar endTime={session.endsAt} totalSeconds={totalSeconds} paused={session.paused} />
         </div>
       </div>
+      {promptLibrary && (
+        <div className="text-center">
+          <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 backdrop-blur-sm">
+            <span className="text-lg">{promptLibrary.emoji}</span>
+            <span className="text-xs font-semibold text-purple-200">{promptLibrary.name}</span>
+          </div>
+        </div>
+      )}
       <p className="text-center text-xs font-semibold uppercase tracking-wide sm:text-sm text-cyan-200">
         Round {session.roundIndex + 1}
       </p>
