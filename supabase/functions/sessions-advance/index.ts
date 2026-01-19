@@ -300,13 +300,17 @@ async function calculateRoundScores(supabase: any, sessionId: string, roundIndex
     const groupTeamVotes = Array.from(votesByTeam.entries())
       .filter(([_, d]) => d.groupId === groupId)
       .map(([tid, d]) => ({ teamId: tid, votes: d.voteCount }));
-    
     const maxVotes = Math.max(...groupTeamVotes.map(t => t.votes));
     const isWinner = voteCount === maxVotes && voteCount > 0;
     
-    // Check for second place (if there are at least 2 teams with votes)
+    // Check for ties in first place
+    const winners = groupTeamVotes.filter(t => t.votes === maxVotes && t.votes > 0);
+    const isFirstPlaceTie = winners.length > 1;
+    
+    // Check for second place (only if no first place tie)
     const sortedVotes = groupTeamVotes.sort((a, b) => b.votes - a.votes);
-    const isSecondPlace = sortedVotes.length >= 2 && 
+    const isSecondPlace = !isFirstPlaceTie && 
+                          sortedVotes.length >= 2 && 
                           sortedVotes[1].teamId === teamId && 
                           sortedVotes[1].votes > 0;
     
@@ -322,14 +326,24 @@ async function calculateRoundScores(supabase: any, sessionId: string, roundIndex
         console.log(`Team ${teamId} won with ${voteCount} votes and earned ${bonus.bonusValue}x multiplier (${totalScore} total)`);
       }
     } else if (isWinner && !bonus) {
-      // Classic mode: Add 10-point group winner bonus
-      totalScore += 10;
-      console.log(`Team ${teamId} won group with ${voteCount} votes and earned 10 winner bonus points`);
+      if (isFirstPlaceTie) {
+        // Classic mode: Tie for first place - all tied teams get 5 points
+        totalScore += 5;
+        console.log(`Team ${teamId} tied for first with ${voteCount} votes and earned 5 tie bonus points`);
+      } else {
+        // Classic mode: Clear winner - 10 points
+        totalScore += 10;
+        console.log(`Team ${teamId} won group with ${voteCount} votes and earned 10 winner bonus points`);
+      }
     } else if (isSecondPlace && !bonus) {
-      // Classic mode: Add 5-point second place bonus
+      // Classic mode: Add 5-point second place bonus (only if no first place tie)
       totalScore += 5;
       console.log(`Team ${teamId} placed second with ${voteCount} votes and earned 5 second place bonus points`);
     }
+    
+    // Add participation points for all teams
+    totalScore += 1;
+    console.log(`Team ${teamId} earned 1 participation point`);
     
     // Apply 100x display multiplier before storing in database
     const displayScore = totalScore * 100;
