@@ -2,6 +2,7 @@ import { Card, Button, SessionTimer, ProgressBar } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 import { clsx } from "clsx";
 import type { Session, RoundGroup, Answer } from "../../../shared/types";
+import { usePromptLibrary } from "../../../shared/hooks/usePromptLibraries";
 
 interface AnswerPhaseProps {
   session: Session;
@@ -34,6 +35,9 @@ export function AnswerPhase({
     "Loading prompt...";
   const characterCount = Math.min(answerText.length, CHAR_LIMIT);
   const limitReached = characterCount >= CHAR_LIMIT;
+  
+  // Get prompt library info
+  const { data: promptLibrary } = usePromptLibrary(session.promptLibraryId || 'classic');
 
   return (
     <Card className="space-y-3 p-3 sm:space-y-5 sm:p-5" isDark={isDark}>
@@ -53,11 +57,26 @@ export function AnswerPhase({
           <ProgressBar endTime={session.endsAt} totalSeconds={totalSeconds} paused={session.paused} />
         </div>
       </div>
+      {promptLibrary && (
+        <div className="text-center">
+          <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 backdrop-blur-sm">
+            <span className="text-lg">{promptLibrary.emoji}</span>
+            <span className="text-xs font-semibold text-purple-200">{promptLibrary.name}</span>
+          </div>
+        </div>
+      )}
       <p className="text-center text-xs font-semibold uppercase tracking-wide sm:text-sm text-cyan-200">
         Round {session.roundIndex + 1}
       </p>
       {myAnswer ? (
         <div className="space-y-3 sm:space-y-4">
+          {/* Keep showing the prompt even after submission */}
+          <div className="rounded-3xl px-3 py-3 text-center sm:px-4 sm:py-4 shadow-xl border-2 bg-gradient-to-br from-cyan-900/40 to-blue-900/40 border-cyan-400/50 text-cyan-100">
+            <p className="text-2xl font-black tracking-tight drop-shadow-lg sm:text-3xl text-pink-300">
+              {promptFallback}
+            </p>
+          </div>
+          
           <div className="relative rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-center border-2 shadow-xl backdrop-blur-sm"
                style={{
                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(34, 197, 94, 0.1))',

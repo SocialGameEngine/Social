@@ -41,7 +41,7 @@ import {
 import { handleBanTeam } from "./Handlers/banPlayerHandler";
 import { PromptLibrarySelector } from "./components/PromptLibrarySelector";
 import { BannedTeamsManager } from "./components/BannedTeamsManager";
-import { TeamCodesManager } from "./components/TeamCodesManager";
+import { TeamsManager } from "./components/TeamsManager";
 import { VIBoxJukebox } from "../../shared/components/vibox/VIBoxJukebox";
 import type {
   PromptLibraryId,
@@ -66,7 +66,7 @@ export function HostPage() {
   const [newCategories, setNewCategories] = useState<PromptLibraryId[]>([]);
   const [isUpdatingCategories, setIsUpdatingCategories] = useState(false);
   const [showBannedTeamsModal, setShowBannedTeamsModal] = useState(false);
-  const [showTeamCodesModal, setShowTeamCodesModal] = useState(false);
+  const [showTeamsModal, setShowTeamsModal] = useState(false);
   const [showVIBoxModal, setShowVIBoxModal] = useState(false);
   const [showVenueAuthPrompt, setShowVenueAuthPrompt] = useState(false);
   
@@ -716,6 +716,7 @@ export function HostPage() {
             sessionEndsAt={session.endsAt}
             answerSecs={session.settings.answerSecs ?? 90}
             sessionPaused={session.paused}
+            promptLibraryId={session.promptLibraryId}
           />
         );
 
@@ -786,9 +787,9 @@ export function HostPage() {
               {session && (
                 <Button
                   variant="ghost"
-                  onClick={() => setShowTeamCodesModal(true)}
+                  onClick={() => setShowTeamsModal(true)}
                 >
-                  Team Codes
+                  Teams
                 </Button>
               )}
               <VIBoxButton 
@@ -1187,10 +1188,10 @@ export function HostPage() {
       />
       
       {sessionId && (
-        <TeamCodesManager
+        <TeamsManager
           sessionId={sessionId}
-          isOpen={showTeamCodesModal}
-          onClose={() => setShowTeamCodesModal(false)}
+          isOpen={showTeamsModal}
+          onClose={() => setShowTeamsModal(false)}
           toast={addToast}
         />
       )}

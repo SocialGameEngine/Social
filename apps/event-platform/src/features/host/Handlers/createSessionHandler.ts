@@ -2,7 +2,6 @@ import type { FormEvent } from "react";
 import type { Toast } from "../../../shared/hooks/useToast";
 import { createSession } from "../../session/sessionService";
 import { createSessionSchema } from "../../../shared/schemas";
-import { maskProfanity } from "../../../shared/utils/profanity";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import type { User } from "@supabase/supabase-js";
 
@@ -85,9 +84,7 @@ export const handleCreateSession =
 
     try {
       const response = await createSession({
-        venueName: parsed.data.venueName
-          ? maskProfanity(parsed.data.venueName)
-          : undefined,
+        venueName: parsed.data.venueName || undefined,
         gameMode,
         selectedCategories: gameMode === 'jeopardy' ? selectedCategories : undefined,
         totalRounds: totalRounds || (gameMode === 'jeopardy' ? 1 : 5),

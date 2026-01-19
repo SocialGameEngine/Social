@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { containsProfanity } from "../../../shared/utils/profanity";
 import { joinSchema } from "../../../shared/schemas";
 import { joinSession } from "../../session/sessionService";
 import { formatCode } from "../../../shared/constants";
@@ -70,19 +69,7 @@ export function useTeamAutoJoin({
       notifyError = true,
     } = options;
 
-    if (containsProfanity(values.teamName)) {
-      toast({
-        title: "Inappropriate language detected",
-        description: "Pick a different team name.",
-        variant: "error",
-      });
-      return false;
-    }
-
-    const parsed = joinSchema.safeParse({
-      code: formatCode(values.code),
-      teamName: values.teamName,
-    });
+    const parsed = joinSchema.safeParse(values);
 
     if (!parsed.success) {
       if (showFieldErrors) {
