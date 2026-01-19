@@ -54,37 +54,23 @@ async function handleSubmitVote(req: Request, uid: string, supabase: any): Promi
       throw new AppError(400, 'Answer not in current voting group', 'failed-precondition');
     }
     
-    // Check if already voted in this round/group
-    const { data: existingVote } = await supabase
+    // Use upsert to either create new vote or update existing one
+    const voteData = {
+      session_id: sessionId,
+      voter_id: team.id,
+      answer_id: answerId,
+      round_index: roundIndex,
+      group_id: currentGroup.id,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: upsertError } = await supabase
       .from('votes')
-      .select('id')
-      .eq('voter_id', team.id)
-      .eq('round_index', roundIndex)
-      .eq('group_id', currentGroup.id)
-      .single();
+      .upsert(voteData, {
+        onConflict: 'voter_id,round_index,group_id'
+      });
     
-    if (existingVote) {
-      // Update existing vote
-      const { error: updateError } = await supabase
-        .from('votes')
-        .update({ answer_id: answerId })
-        .eq('id', existingVote.id);
-      
-      if (updateError) throw updateError;
-    } else {
-      // Insert new vote
-      const { error: insertError } = await supabase
-        .from('votes')
-        .insert({
-          session_id: sessionId,
-          voter_id: team.id,
-          answer_id: answerId,
-          round_index: roundIndex,
-          group_id: currentGroup.id,
-        });
-      
-      if (insertError) throw insertError;
-    }
+    if (upsertError) throw upsertError;
     
     return corsResponse({ success: true });
   }

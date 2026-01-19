@@ -120,7 +120,7 @@ async function handleCreateSession(req: Request, uid: string, supabase: any): Pr
         category_grid: categoryGrid,
         settings: {
           answerSecs: 90,
-          voteSecs: 90,
+          voteSecs: 30,
           resultsSecs: 12,
           maxTeams: 10,
           gameMode: mode,

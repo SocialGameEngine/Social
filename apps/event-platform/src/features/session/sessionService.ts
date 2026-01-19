@@ -73,7 +73,7 @@ function mapSession(data: any): Session | null {
     endsAt: data.ends_at,
     settings: (data.settings ?? {
       answerSecs: 90,
-      voteSecs: 90,
+      voteSecs: 30,
       resultsSecs: 12,
       maxTeams: 24,
     }) as SessionSettings,
