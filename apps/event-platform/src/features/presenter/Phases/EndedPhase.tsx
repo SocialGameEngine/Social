@@ -16,7 +16,6 @@ export function EndedPhase({ leaderboard }: EndedPhaseProps) {
       <div className="mt-4">
         <Leaderboard
           leaderboard={leaderboard}
-          maxItems={8}
           variant="presenter"
           className="space-y-3 text-2xl font-semibold"
           isDark={isDark}

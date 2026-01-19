@@ -48,17 +48,17 @@ async function handlePauseSession(req: Request, uid: string, supabase: any): Pro
     pausedAt = null;
   }
 
-  // Update session
+  // Update session using atomic stored procedure
+  // This ensures all fields update in a single transaction
+  // preventing intermediate states from being sent to real-time subscriptions
   const { data: updatedSession, error: updateError } = await supabase
-    .from('sessions')
-    .update({
-      paused: pause,
-      paused_at: pausedAt,
-      ends_at: endsAt,
-      total_paused_ms: remainingMsAtPause,
+    .rpc('pause_session_atomic', {
+      p_session_id: sessionId,
+      p_pause: pause,
+      p_paused_at: pausedAt,
+      p_ends_at: endsAt,
+      p_total_paused_ms: remainingMsAtPause,
     })
-    .eq('id', sessionId)
-    .select()
     .single();
 
   if (updateError) throw updateError;

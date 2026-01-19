@@ -30,7 +30,6 @@ export function EndedPhase({ leaderboard, analytics }: EndedPhaseProps) {
         </h4>
         <Leaderboard
           leaderboard={leaderboard}
-          maxItems={5}
           variant="host"
           isDark={isDark}
         />

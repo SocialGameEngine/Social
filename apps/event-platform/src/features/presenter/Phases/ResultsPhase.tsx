@@ -30,7 +30,6 @@ export function ResultsPhase({
         <div className="mt-4">
           <Leaderboard
             leaderboard={leaderboard}
-            maxItems={6}
             variant="presenter"
             className="grid gap-3 text-lg font-semibold lg:grid-cols-2"
             isDark={isDark}

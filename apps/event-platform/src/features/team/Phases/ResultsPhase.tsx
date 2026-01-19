@@ -127,7 +127,6 @@ export function ResultsPhase({
           <Leaderboard
             leaderboard={finalLeaderboard}
             highlightTeamId={currentTeam?.id}
-            maxItems={6}
             variant="presenter"
             className="grid gap-3 text-lg font-semibold lg:grid-cols-2"
             isDark={isDark}
