@@ -571,6 +571,9 @@ export function TeamPage() {
               currentUserId={teamSession.uid}
               isCaptain={currentTeam?.uid === teamSession?.uid}
               teamCode={(currentTeam as any).team_code || ''}
+              roomCode={session?.code}
+              teamName={currentTeam.teamName}
+              sessionStatus={session?.status}
               toast={toast}
             />
           )}
