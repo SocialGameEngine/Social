@@ -24,6 +24,7 @@ export function createGroupSizes(totalTeams: number): number[] {
   
   // Step 1: Determine number of groups
   const groupCount = Math.min(Math.floor(totalTeams / 2), 4);
+  console.log(`createGroupSizes: ${totalTeams} teams → ${groupCount} groups`);
   
   // Step 2: Initialize groups with 2 teams each
   for (let i = 0; i < groupCount; i++) {
@@ -40,6 +41,7 @@ export function createGroupSizes(totalTeams: number): number[] {
     index = (index + 1) % groupCount;
   }
   
+  console.log(`createGroupSizes result:`, groups);
   return groups;
 }
 

@@ -155,7 +155,9 @@ async function handleStartSession(req: Request, uid: string, supabase: any): Pro
       const groups: RoundGroup[] = [];
       
       // Create groups using new algorithm
+      console.log(`Round ${i}: Creating groups for ${shuffledTeamIds.length} teams`);
       const teamGroups = createTeamGroups(shuffledTeamIds);
+      console.log(`Round ${i}: createTeamGroups returned ${teamGroups.length} groups:`, teamGroups.map(g => g.length));
       
       // Create RoundGroup objects for each team group
       teamGroups.forEach((groupTeamIds, index) => {
@@ -168,6 +170,7 @@ async function handleStartSession(req: Request, uid: string, supabase: any): Pro
         const prompt = promptDeck[promptCursor] || "What's your hot take?";
         promptCursor++;
         
+        console.log(`Round ${i}, Group ${index}: ${groupTeamIds.length} teams`);
         groups.push({
           id: groupId,
           prompt,
@@ -175,6 +178,7 @@ async function handleStartSession(req: Request, uid: string, supabase: any): Pro
         });
       });
       
+      console.log(`Round ${i}: Created ${groups.length} groups total`);
       rounds.push({
         prompt: groups[0]?.prompt,
         groups,
