@@ -34,17 +34,23 @@ export function LobbyPhase({ teams }: LobbyPhaseProps) {
     return false;
   });
   
-  // Only log when there are captain status issues
+  // Calculate captain count first
   const captainCount = currentTeam?.team_members?.filter(m => m.is_captain).length || 0;
+  
+  // Always log for debugging team members issue
+  console.log("LobbyPhase debug:", {
+    teams: teams.length,
+    teamId: teamSession?.teamId,
+    userId: user?.id,
+    currentTeam: currentTeam?.teamName,
+    hasMembers: currentTeam?.team_members?.length || 0,
+    captainCount,
+    allTeamsMembers: teams.map(t => ({ id: t.id, name: t.teamName, memberCount: t.team_members?.length || 0 }))
+  });
+  
+  // Only log when there are captain status issues
   if (captainCount !== 1) {
-    console.log("LobbyPhase debug:", {
-      teams: teams.length,
-      teamId: teamSession?.teamId,
-      userId: user?.id,
-      currentTeam: currentTeam?.teamName,
-      hasMembers: currentTeam?.team_members?.length || 0,
-      captainCount
-    });
+    console.log("Captain issue detected - see above for team data");
   }
   
   return (

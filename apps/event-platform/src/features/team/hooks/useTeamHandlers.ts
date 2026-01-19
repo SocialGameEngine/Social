@@ -14,6 +14,7 @@ interface UseTeamHandlersProps {
   setIsJoining: (joining: boolean) => void;
   setSessionId: (id: string | null) => void;
   setTeamSession: (session: any) => void;
+  clearTeamSession: () => void;
   setHasManuallyLeft: (hasLeft: boolean) => void;
   setAutoJoinAttempted: (attempted: boolean) => void;
   answerText: string;
@@ -35,6 +36,7 @@ export function useTeamHandlers({
   setIsJoining,
   setSessionId,
   setTeamSession,
+  clearTeamSession,
   setHasManuallyLeft,
   setAutoJoinAttempted,
   answerText,
@@ -87,6 +89,9 @@ export function useTeamHandlers({
         setIsJoining(false);
         return;
       }
+
+      // Clear old team session before joining new team to prevent auto-join from restoring it
+      clearTeamSession();
 
       try {
         const response = await joinSession({

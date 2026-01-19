@@ -74,15 +74,15 @@ export function useTeamKickedPlayerDetection({
           // Show the kicked modal
           setShowKickedModal(true);
           
-          // Clear session and redirect to join page after showing modal
-          setTimeout(() => {
-            clearTeamSession();
-            setSessionId(null);
-            // Redirect to join page
-            window.location.href = '/join';
-          }, 1000); // 1 second delay to show the modal
+          // TEMPORARILY DISABLED: Clear session and redirect to join page after showing modal
+          // setTimeout(() => {
+          //   clearTeamSession();
+          //   setSessionId(null);
+          //   // Redirect to join page
+          //   window.location.href = '/join';
+          // }, 1000); // 1 second delay to show the modal
         }
-      }, 100); // 100ms debounce for immediate response
+      }, 1000); // 1000ms debounce to allow team data to fully load
     }
 
     return () => {
