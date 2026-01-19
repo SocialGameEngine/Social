@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button, QRCodeBlock, Card, Modal, useToast } from "@social/ui";
 import { VIBoxButton } from "../../shared/components/vibox/VIBoxButton";
@@ -41,7 +41,7 @@ import {
 import { handleBanTeam } from "./Handlers/banPlayerHandler";
 import { PromptLibrarySelector } from "./components/PromptLibrarySelector";
 import { BannedTeamsManager } from "./components/BannedTeamsManager";
-import { TeamsManager } from "./components/TeamsManager";
+import { TeamCodesManager } from "./components/TeamCodesManager";
 import { VIBoxJukebox } from "../../shared/components/vibox/VIBoxJukebox";
 import type {
   PromptLibraryId,
@@ -66,7 +66,7 @@ export function HostPage() {
   const [newCategories, setNewCategories] = useState<PromptLibraryId[]>([]);
   const [isUpdatingCategories, setIsUpdatingCategories] = useState(false);
   const [showBannedTeamsModal, setShowBannedTeamsModal] = useState(false);
-  const [showTeamsModal, setShowTeamsModal] = useState(false);
+  const [showTeamCodesModal, setShowTeamCodesModal] = useState(false);
   const [showVIBoxModal, setShowVIBoxModal] = useState(false);
   const [showVenueAuthPrompt, setShowVenueAuthPrompt] = useState(false);
   
@@ -125,7 +125,15 @@ export function HostPage() {
 
   // Extract data from gameState for compatibility with existing code
   const session = gameState.session;
-  const teams = gameState.teams; // Already filtered at DB level
+  // Filter out teams with no members - ensure empty teams don't show in host panel
+  // This is a safety filter in case any empty teams slip through the subscription filter
+  const teams = useMemo(() => {
+    return gameState.teams.filter(team => {
+      const members = team.team_members;
+      // Only include teams with at least one member
+      return members && Array.isArray(members) && members.length > 0;
+    });
+  }, [gameState.teams]);
   const answers = gameState.answers;
   const sessionSnapshotReady = !gameState.isLoading;
 
@@ -778,9 +786,9 @@ export function HostPage() {
               {session && (
                 <Button
                   variant="ghost"
-                  onClick={() => setShowTeamsModal(true)}
+                  onClick={() => setShowTeamCodesModal(true)}
                 >
-                  Teams
+                  Team Codes
                 </Button>
               )}
               <VIBoxButton 
@@ -793,6 +801,15 @@ export function HostPage() {
               <h1 className="text-3xl font-black text-pink-400">
                 Host Console
               </h1>
+              {session ? (
+                <p className="text-sm text-cyan-300">
+                  {phaseCopy[session.status]}
+                </p>
+              ) : (
+                <p className="text-sm text-cyan-300">
+                  Create a game room when you're ready to host.
+                </p>
+              )}
             </div>
           </div>
           <div className="flex flex-col items-center gap-2 rounded-2xl px-6 py-4 border bg-cyan-900/30 border-cyan-400/50">
@@ -952,7 +969,7 @@ export function HostPage() {
 
           <aside className="flex flex-col gap-6">
             {session ? (
-              <QRCodeBlock value={inviteLink || ""} caption="Scan to join" isDark={isDark} />
+              <QRCodeBlock value={inviteLink || ""} caption="Scan to join!" isDark={isDark} />
             ) : (
               <div className="rounded-3xl p-6 text-center text-sm shadow-lg bg-slate-800 text-cyan-300 shadow-fuchsia-500/20">
                 Start a session to generate a QR code for your guests.
@@ -1170,10 +1187,10 @@ export function HostPage() {
       />
       
       {sessionId && (
-        <TeamsManager
+        <TeamCodesManager
           sessionId={sessionId}
-          isOpen={showTeamsModal}
-          onClose={() => setShowTeamsModal(false)}
+          isOpen={showTeamCodesModal}
+          onClose={() => setShowTeamCodesModal(false)}
           toast={addToast}
         />
       )}

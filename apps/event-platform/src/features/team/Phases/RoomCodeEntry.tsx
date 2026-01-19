@@ -64,9 +64,6 @@ export function RoomCodeEntry({ onSuccess, toast }: RoomCodeEntryProps) {
             <h1 className={`text-3xl font-black mb-2 ${isDark ? 'text-pink-400' : 'text-pink-600'}`}>
               Join Game
             </h1>
-            <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Enter the 6-digit room code from your host
-            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

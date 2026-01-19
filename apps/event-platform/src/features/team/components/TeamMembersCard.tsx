@@ -65,7 +65,7 @@ export function TeamMembersCard({ teamMembers, teamName }: TeamMembersCardProps)
       <div className="space-y-2">
         {sortedMembers.map((member) => (
           <div
-            key={member.id}
+            key={`${member.id}-${member.user_id}`}
             className={`flex items-center justify-between p-2 rounded-lg ${
               !isDark 
                 ? 'bg-slate-50 border border-slate-200' 
@@ -104,14 +104,6 @@ export function TeamMembersCard({ teamMembers, teamName }: TeamMembersCardProps)
                 </span>
               )}
             </div>
-            <span className={`text-xs ${
-              !isDark ? 'text-slate-500' : 'text-cyan-300/60'
-            }`}>
-              Joined {new Date(member.joined_at).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </span>
           </div>
         ))}
       </div>
