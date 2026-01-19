@@ -104,7 +104,7 @@ export function Leaderboard({
               </div>
 
               {/* Points */}
-              <div className="flex-shrink-0 text-right">
+              <div className="flex-shrink-0 text-right min-w-0 ml-2">
                 <p className={`font-bold transition-all duration-200 ${
                   !isDark ? 'text-slate-900' : 'text-cyan-300 drop-shadow-sm'
                 }`}>{team.score * 100}</p>
@@ -181,7 +181,7 @@ export function Leaderboard({
               </div>
 
               {/* Points */}
-              <div className="flex-shrink-0 text-right">
+              <div className="flex-shrink-0 text-right min-w-0 ml-2">
                 <p className={`text-sm font-bold ${
                   !isDark ? 'text-slate-700' : 'text-slate-200'
                 }`}>{team.score * 100}</p>
@@ -271,7 +271,7 @@ export function Leaderboard({
             </div>
 
             {/* Points */}
-            <div className="flex-shrink-0 text-right">
+            <div className="flex-shrink-0 text-right min-w-0 ml-2">
               <p
                 className={`text-sm font-bold ${
                   isHighlighted
