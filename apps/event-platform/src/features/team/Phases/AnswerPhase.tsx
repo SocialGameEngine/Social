@@ -58,6 +58,13 @@ export function AnswerPhase({
       </p>
       {myAnswer ? (
         <div className="space-y-3 sm:space-y-4">
+          {/* Keep showing the prompt even after submission */}
+          <div className="rounded-3xl px-3 py-3 text-center sm:px-4 sm:py-4 shadow-xl border-2 bg-gradient-to-br from-cyan-900/40 to-blue-900/40 border-cyan-400/50 text-cyan-100">
+            <p className="text-2xl font-black tracking-tight drop-shadow-lg sm:text-3xl text-pink-300">
+              {promptFallback}
+            </p>
+          </div>
+          
           <div className="relative rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-center border-2 shadow-xl backdrop-blur-sm"
                style={{
                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(34, 197, 94, 0.1))',

@@ -1,7 +1,6 @@
 import { useCallback } from "react";
 import type { Session, Answer, RoundGroup } from "../../../shared/types";
 import { joinSession, submitAnswer, submitVote, selectCategory } from "../../session/sessionService";
-import { maskProfanity, containsProfanity } from "../../../shared/utils/profanity";
 import { answerSchema, joinSchema } from "../../../shared/schemas";
 import { isBannedFromCode } from "../utils/teamConstants";
 
@@ -150,14 +149,6 @@ export function useTeamHandlers({
 
   const handleSubmitAnswer = useCallback(async () => {
     if (!session || !sessionId) return;
-    
-    if (containsProfanity(answerText)) {
-      toast({
-        title: "Inappropriate language detected - Keep it classy!",
-        variant: "error",
-      });
-      return;
-    }
 
     const parsed = answerSchema.safeParse(answerText);
     if (!parsed.success) {
@@ -174,7 +165,7 @@ export function useTeamHandlers({
     try {
       const response = await submitAnswer({
         sessionId: session.id,
-        text: maskProfanity(parsed.data),
+        text: parsed.data,
       });
       
       toast({
@@ -184,7 +175,46 @@ export function useTeamHandlers({
     } catch (error: any) {
       console.error('Submit answer error:', error);
       
-      const errorMessage = error instanceof Error ? error.message : "Failed to submit answer";
+      // Try to extract the error code from the response
+      let errorMessage = "Something went wrong — try again in a moment";
+      
+      // Check for error code in the response context (Supabase includes this in the error)
+      console.log('Full error context for debugging:', error?.context);
+      let errorCode;
+      
+      // The context is a Response object, we need to read its JSON body
+      if (error?.context instanceof Response) {
+        try {
+          const errorData = await error.context.json();
+          errorCode = errorData?.code;
+          console.log('Error data from response:', errorData);
+        } catch (e) {
+          console.log('Could not parse error response:', e);
+        }
+      }
+      
+      console.log('Extracted error code:', errorCode);
+      
+      if (errorCode === 'LOW_EFFORT') {
+        errorMessage = "Put a little more effort into it 😄";
+      } else if (errorCode === 'BLOCKED_CONTENT') {
+        errorMessage = "That one won't work — try something funny without crossing the line.";
+      } else if (errorCode === 'OPENAI_VIOLATION') {
+        errorMessage = "The AI content police flagged that one — try again!";
+      } else if (error?.name === 'FunctionsHttpError' && error?.context?.status === 400) {
+        // Fallback for 400 errors when we can't read the specific code
+        errorMessage = "That one won't work — try something funny without crossing the line.";
+      } else if (error instanceof Error) {
+        // Check for direct error messages (fallback)
+        if (error.message === 'LOW_EFFORT') {
+          errorMessage = "Put a little more effort into it 😄";
+        } else if (error.message === 'BLOCKED_CONTENT') {
+          errorMessage = "That one won't work — try something funny without crossing the line.";
+        } else if (error.message === 'OPENAI_VIOLATION') {
+          errorMessage = "The AI content police flagged that one — try again!";
+        }
+      }
+      
       toast({
         title: errorMessage,
         variant: "error",

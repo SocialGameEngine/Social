@@ -1,5 +1,6 @@
 // Submit an answer for a prompt
 import { createHandler, requireString, corsResponse, getSession, validateSessionPhase, AppError } from '../_shared/utils.ts';
+import { moderateContent } from '../_shared/moderation.ts';
 
 async function handleSubmitAnswer(req: Request, uid: string, supabase: any): Promise<Response> {
   const { sessionId, text } = await req.json();
@@ -96,8 +97,17 @@ async function handleSubmitAnswer(req: Request, uid: string, supabase: any): Pro
       }
     }
     
-    // Simple profanity filter (you can enhance this)
-    const masked = containsProfanity(cleanedText);
+    // Content moderation (block list + OpenAI)
+    console.log('answers-submit: Running content moderation');
+    const prompt = currentRound.groups.find((g: any) => g.id === groupId)?.prompt || '';
+    const moderationResult = await moderateContent(cleanedText, prompt);
+    
+    if (!moderationResult.allowed) {
+      console.log('answers-submit: Content rejected', { reason: moderationResult.reason, details: moderationResult.details });
+      throw new AppError(400, moderationResult.reason || 'BLOCKED_CONTENT', moderationResult.reason || 'content-rejected');
+    }
+    
+    console.log('answers-submit: Content approved');
     
     // Check if already answered (for logging/tracking purposes)
     console.log('answers-submit: Checking for existing answer', { sessionId, teamId: team.id, roundIndex });
@@ -120,7 +130,7 @@ async function handleSubmitAnswer(req: Request, uid: string, supabase: any): Pro
       round_index: roundIndex,
       group_id: groupId,
       text: cleanedText,
-      masked,
+      masked: false,
       updated_at: new Date().toISOString(),
     };
 
@@ -130,7 +140,6 @@ async function handleSubmitAnswer(req: Request, uid: string, supabase: any): Pro
       roundIndex,
       groupId,
       textLength: cleanedText.length,
-      masked,
       isUpdate
     });
 
@@ -147,14 +156,6 @@ async function handleSubmitAnswer(req: Request, uid: string, supabase: any): Pro
   console.log('answers-submit: Success', { isUpdate });
   return corsResponse({ success: true, isUpdate });
 }
-
-function containsProfanity(text: string): boolean {
-  // Basic profanity check - enhance with a proper library in production
-  const badWords = ['fuck', 'shit', 'bitch', 'ass', 'damn'];
-  const lowerText = text.toLowerCase();
-  return badWords.some(word => lowerText.includes(word));
-}
-
 
 Deno.serve(createHandler(handleSubmitAnswer));
 
