@@ -50,23 +50,23 @@ export function Leaderboard({
 
   if (variant === "presenter") {
     return (
-      <ul className={`space-y-4 text-2xl font-semibold ${className}`}>
+      <ul className={`space-y-2 sm:space-y-4 text-base sm:text-2xl font-semibold ${className}`}>
         {displayLeaderboard.map((team) => {
           const mascotPath = team.mascotId ? getMascotPath(team.mascotId) : null;
 
           return (
             <li
               key={team.id}
-              className={`flex items-center gap-4 ${itemClassName || ""}`}
+              className={`flex items-center gap-2 sm:gap-4 ${itemClassName || ""}`}
             >
               {/* Rank badge */}
-              <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full text-lg font-bold ring-2 transition-all duration-200 ${getRankBackground(team.rank, isDark)} ${getRankGlow(team.rank)}`}>
+              <div className={`flex h-8 w-8 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full text-sm sm:text-lg font-bold ring-2 transition-all duration-200 ${getRankBackground(team.rank, isDark)} ${getRankGlow(team.rank)}`}>
                 {team.rank}
               </div>
 
               {/* Mascot avatar */}
               {mascotPath ? (
-                <div className={`flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full p-2 ring-2 transition-all duration-200 ${
+                <div className={`flex h-10 w-10 sm:h-16 sm:w-16 flex-shrink-0 items-center justify-center rounded-full p-1 sm:p-2 ring-2 transition-all duration-200 ${
                   !isDark
                     ? 'bg-slate-50 ring-slate-200'
                     : 'bg-slate-700 ring-cyan-400 shadow-lg shadow-cyan-400/20'
@@ -83,12 +83,12 @@ export function Leaderboard({
                   />
                 </div>
               ) : (
-                <div className={`flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full ring-2 transition-all duration-200 ${
+                <div className={`flex h-10 w-10 sm:h-16 sm:w-16 flex-shrink-0 items-center justify-center rounded-full ring-2 transition-all duration-200 ${
                   !isDark
                     ? 'bg-slate-50 ring-slate-200'
                     : 'bg-slate-700 ring-cyan-400 shadow-lg shadow-cyan-400/20'
                 }`}>
-                  <span className={`text-2xl font-bold ${
+                  <span className={`text-lg sm:text-2xl font-bold ${
                     !isDark ? 'text-slate-400' : 'text-cyan-200'
                   }`}>
                     {team.teamName.charAt(0).toUpperCase()}
@@ -104,12 +104,12 @@ export function Leaderboard({
               </div>
 
               {/* Points */}
-              <div className="flex-shrink-0 text-right min-w-0 ml-2">
-                <p className={`font-bold transition-all duration-200 ${
-                  !isDark ? 'text-slate-900' : 'text-cyan-300 drop-shadow-sm'
+              <div className="flex-shrink-0 text-right min-w-0 ml-1 sm:ml-2">
+                <p className={`text-sm sm:text-xl font-bold whitespace-nowrap transition-all duration-200 ${
+                  !isDark ? 'text-cyan-400' : 'text-cyan-300 drop-shadow-sm'
                 }`}>{team.score * 100}</p>
                 <p className={`text-sm transition-all duration-200 ${
-                  !isDark ? 'text-slate-600' : 'text-slate-400'
+                  !isDark ? 'text-cyan-200' : 'text-slate-400'
                 }`}>pts</p>
               </div>
             </li>

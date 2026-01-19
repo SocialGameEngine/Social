@@ -37,6 +37,9 @@ export function PresenterPage() {
     voteCounts,
   } = useGameStateIntegration({ sessionId });
 
+  // Debug: log presenter view data changes
+  console.log('Presenter View - roundGroups updated:', roundGroups.map(g => ({ id: g.id, prompt: g.prompt })));
+
   // Use shared timer hook
   const { now } = useSessionTimers();
 
@@ -101,7 +104,12 @@ export function PresenterPage() {
     teams
   );
 
-  const timeRemaining = gameState.timeRemaining ? Math.ceil(gameState.timeRemaining / 1000) : 0;
+  // Calculate time remaining based on current time for real-time updates
+  const timeRemaining = useMemo(() => {
+    if (!session?.endsAt) return 0;
+    const remaining = new Date(session.endsAt).getTime() - now;
+    return Math.max(0, Math.ceil(remaining / 1000));
+  }, [session?.endsAt, now]);
 
   const presenterHeading = useMemo(() => {
     if (!session) return "";
@@ -135,7 +143,7 @@ export function PresenterPage() {
 
         // Dynamic Alberta-style messaging based on time remaining
         if (timeRemaining >= 61) {
-          return `ANSWER THE PROMPT\nThat prompt on your phone. Yeah, that one.\nSend 'er, bud. Make it funny. No stress.\nTime left: ${timeRemaining} seconds`;
+          return `ANSWER THE PROMPT\nMake it funny. No stress.\nTime left: ${timeRemaining} seconds`;
         } else if (timeRemaining >= 41) {
           return `You got this. Just pick somethin', bud.\n${timeRemaining} seconds left`;
         } else if (timeRemaining >= 26) {

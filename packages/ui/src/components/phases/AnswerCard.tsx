@@ -37,7 +37,7 @@ export function AnswerCard({
         className={`relative rounded-2xl px-4 py-4 text-left text-xl font-semibold shadow-md ${!isDark ? 'bg-white' : 'bg-slate-800'} ${className}`}
       >
         {showSummary ? (
-          <span className="absolute -top-3 right-4 rounded-full bg-amber-500 px-4 py-1 text-xs font-semibold text-white shadow">
+          <span className="absolute -top-3 right-4 rounded-full bg-cyan-400 px-4 py-1 text-xs font-semibold text-slate-900 shadow-lg shadow-cyan-400/50">
             +{points}
           </span>
         ) : null}
