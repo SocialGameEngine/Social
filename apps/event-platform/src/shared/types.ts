@@ -105,6 +105,7 @@ export interface TeamMember {
   id: string;
   team_id: string;
   user_id: string;
+  player_name?: string | null;
   is_captain: boolean;
   joined_at: string;
 }

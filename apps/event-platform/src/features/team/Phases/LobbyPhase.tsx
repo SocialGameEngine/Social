@@ -65,12 +65,13 @@ export function LobbyPhase({ teams }: LobbyPhaseProps) {
       </Card>
 
       {/* Team members card */}
-      {currentTeam && currentTeam.team_members && currentTeam.team_members.length > 0 && (
+      {currentTeam && currentTeam.team_members && Array.isArray(currentTeam.team_members) && currentTeam.team_members.length > 0 ? (
         <TeamMembersCard 
+          key={`${currentTeam.id}-${currentTeam.team_members.length}-${currentTeam.team_members.map(m => m.id).join(',')}`}
           teamMembers={currentTeam.team_members}
           teamName={currentTeam.teamName}
         />
-      )}
+      ) : null}
 
       {/* Floating mascot drink tank */}
       <DrinkTank teams={teams} className="mt-6" />

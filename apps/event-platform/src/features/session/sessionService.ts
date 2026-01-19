@@ -91,6 +91,9 @@ function mapSession(data: any): Session | null {
 function mapTeam(data: any): Team | null {
   if (!data) return null;
   
+  // Ensure team_members is always an array (never null/undefined)
+  const teamMembers = Array.isArray(data.team_members) ? data.team_members : [];
+  
   return {
     id: data.id,
     uid: data.uid || null, // Handle nullable uid for teams without captains
@@ -100,7 +103,7 @@ function mapTeam(data: any): Team | null {
     joinedAt: data.joined_at ?? new Date().toISOString(),
     lastActiveAt: data.last_active_at,
     mascotId: typeof data.mascot_id === "number" ? data.mascot_id : undefined,
-    team_members: data.team_members || [], // Now properly fetched from the query
+    team_members: teamMembers, // Always an array, never null/undefined
   };
 }
 
@@ -182,6 +185,7 @@ export function subscribeToTeams(
 ) {
   // Initial fetch
   const fetchTeams = () => {
+    // First, get all teams with their members
     supabase
       .from("teams")
       .select(`
@@ -189,19 +193,42 @@ export function subscribeToTeams(
         team_members (
           id,
           user_id,
+          player_name,
           is_captain,
           joined_at
         )
       `)
       .eq("session_id", sessionId)
-      .not("uid", "is", null) // Only fetch teams with captains
+      .not("uid", "is", null) // Only fetch teams with captains (but they might have no members)
       .order("joined_at", { ascending: true })
       .then(({ data, error }) => {
         if (error) {
           console.error("Error fetching teams:", error);
           callback([]);
         } else {
-          const teams = data?.map(mapTeam).filter((team): team is Team => Boolean(team)) ?? [];
+          if (!data || data.length === 0) {
+            callback([]);
+            return;
+          }
+          
+          // Filter out teams with no members at the raw data level
+          // This catches cases where Supabase returns null or empty arrays for team_members
+          const teamsWithMembers = data.filter((rawTeam: any) => {
+            const rawMembers = rawTeam.team_members;
+            // Exclude teams with null, undefined, non-array, or empty team_members
+            return rawMembers && Array.isArray(rawMembers) && rawMembers.length > 0;
+          });
+          
+          // Map and filter the teams
+          const teams = teamsWithMembers
+            .map(mapTeam)
+            .filter((team): team is Team => {
+              if (!team) return false;
+              // Final check after mapping
+              const members = team.team_members;
+              return members && Array.isArray(members) && members.length > 0;
+            });
+          
           callback(teams);
         }
       });
@@ -222,13 +249,25 @@ export function subscribeToTeams(
         filter: `session_id=eq.${sessionId}`,
       },
       (payload) => {
-        // For DELETE events, refetch immediately
+        // Handle different event types
         if (payload.eventType === 'DELETE') {
+          // Team deleted - refetch immediately
           fetchTeams();
-        } else if (payload.eventType === 'INSERT') {
-          setTimeout(fetchTeams, 100);
         } else if (payload.eventType === 'UPDATE') {
-          setTimeout(fetchTeams, 100);
+          // Team updated - check if uid was set to null (all players left)
+          const newData = payload.new as any;
+          const oldData = payload.old as any;
+          
+          // If uid changed from non-null to null, team is now empty - refetch immediately
+          if (oldData?.uid && !newData?.uid) {
+            setTimeout(() => fetchTeams(), 50);
+          } else {
+            // Other updates can use a small delay
+            setTimeout(() => fetchTeams(), 100);
+          }
+        } else if (payload.eventType === 'INSERT') {
+          // New team added
+          setTimeout(() => fetchTeams(), 100);
         } else {
           // Unknown event type, refetch anyway
           fetchTeams();
@@ -237,6 +276,8 @@ export function subscribeToTeams(
     );
 
   // Subscribe to team_members table changes
+  // We need to listen to all team_members changes and refetch teams
+  // This ensures that when players leave, the teams list updates immediately
   const membersChannel = supabase
     .channel(`team_members:${sessionId}`)
     .on(
@@ -248,7 +289,20 @@ export function subscribeToTeams(
       },
       (payload) => {
         // Always refetch teams when team_members change
-        fetchTeams();
+        // This ensures empty teams are removed immediately and member lists update
+        // Use a delay to allow database transaction to complete
+        // For DELETE events, refetch immediately; for others, use a small delay
+        if (payload.eventType === 'DELETE') {
+          // DELETE events need immediate refetch to remove players from UI
+          setTimeout(() => {
+            fetchTeams();
+          }, 100);
+        } else {
+          // INSERT/UPDATE events can use a shorter delay
+          setTimeout(() => {
+            fetchTeams();
+          }, 50);
+        }
       }
     );
 
@@ -596,6 +650,44 @@ export const captainPromoteMember = async (payload: { sessionId: string; teamId:
   }
 
   return data;
+};
+
+export const captainUpdateTeamName = async (payload: { sessionId: string; teamId: string; teamName: string }) => {
+  try {
+    const { data, error } = await supabase.functions.invoke<{ success: boolean } | { error: string }>(
+      "captain-update-team-name",
+      { body: payload }
+    );
+
+    // Check if data contains an error field (from our Edge Function)
+    if (data && 'error' in data) {
+      console.error("Update team name returned error:", data.error);
+      throw new Error((data as any).error);
+    }
+
+    if (error) {
+      console.error('Error updating team name:', error);
+      
+      // Check if it's a function not found error
+      const errorMessage = (error as any)?.message || (error as any)?.error || '';
+      if (errorMessage.includes('Function not found') || errorMessage.includes('Failed to send a request')) {
+        throw new Error('Edge function not deployed. Please deploy captain-update-team-name function to Supabase.');
+      }
+      
+      // Try to extract error message from error object
+      const finalErrorMessage = errorMessage || 'Failed to update team name';
+      throw new Error(finalErrorMessage);
+    }
+
+    return data;
+  } catch (err) {
+    // Re-throw if it's already an Error with a message
+    if (err instanceof Error) {
+      throw err;
+    }
+    // Otherwise wrap it
+    throw new Error('Failed to update team name. Please ensure the edge function is deployed.');
+  }
 };
 
 export const endSession = async (payload: TransitionPhaseRequest) => {
