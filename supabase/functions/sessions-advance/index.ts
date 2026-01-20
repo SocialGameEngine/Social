@@ -73,40 +73,19 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
         }));
         
         console.log('Groups after processing:', updatedGroups.map((g: any) => ({ id: g.id, category: g.promptLibraryId, hasPrompt: !!g.prompt })));
-        
-        // Update rounds with prompts
-        const updatedRounds = [...rounds];
-        updatedRounds[roundIndex] = {
+
+        // Update rounds with prompts (will be applied atomically later)
+        rounds = [...rounds];
+        rounds[roundIndex] = {
           ...currentRound,
           groups: updatedGroups,
         };
-        
-        console.log('Updating session to answer phase');
-        
-        // Update session to answer phase
-        const { error: updateError } = await supabase
-          .from('sessions')
-          .update({
-            status: 'answer',
-            rounds: updatedRounds,
-            ends_at: new Date(Date.now() + (settings.answerSecs || 90) * 1000).toISOString(),
-          })
-          .eq('id', sessionId);
-        
-        if (updateError) {
-          console.error('Error updating session:', updateError);
-          throw updateError;
-        }
-        
-        console.log('Session updated successfully');
-        
-        const { data: updatedSession } = await supabase
-          .from('sessions')
-          .select()
-          .eq('id', sessionId)
-          .single();
-        
-        return corsResponse({ session: updatedSession as Session });
+
+        console.log('Transitioning to answer phase');
+
+        // Set transition values (will be applied atomically)
+        nextStatus = 'answer';
+        endsAt = new Date(Date.now() + (settings.answerSecs || 90) * 1000).toISOString();
       }
       
       case 'answer':
@@ -150,11 +129,13 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
             .eq('session_id', sessionId)
             .eq('is_host', false);
             
+          let finalRounds = rounds; // Will hold the final rounds state
+
           if (currentTeams && currentTeams.length > 0) {
             // Create new groups with shuffled teams
             const teamIds = currentTeams.map((t: { id: string }) => t.id);
             const newTeamGroups = createTeamGroups(teamIds);
-            
+
             // Update next round with new groups while preserving prompts
             const nextRound = rounds[nextRoundIndex];
             const updatedGroups = newTeamGroups.map((groupTeamIds, index) => {
@@ -165,46 +146,32 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
                 teamIds: groupTeamIds,
               };
             });
-            
+
             // Update rounds array
-            const updatedRounds = [...rounds];
-            updatedRounds[nextRoundIndex] = {
+            finalRounds = [...rounds];
+            finalRounds[nextRoundIndex] = {
               ...nextRound,
               groups: updatedGroups,
             };
-            
-            // Save updated rounds
-            await supabase
-              .from('sessions')
-              .update({ rounds: updatedRounds })
-              .eq('id', sessionId);
-              
-            rounds = updatedRounds; // Use updated rounds for rest of function
           }
-          
+
           const isJeopardyMode = settings.gameMode === 'jeopardy';
-          
+
           if (isJeopardyMode) {
             // Jeopardy mode: go to category selection
             // Select random team for each group in the next round
-            const nextRound = rounds[roundIndex + 1];
+            const nextRound = finalRounds[roundIndex + 1];
             if (nextRound && nextRound.groups) {
-              const updatedRounds = [...rounds];
-              updatedRounds[roundIndex + 1] = {
+              finalRounds = [...finalRounds];
+              finalRounds[roundIndex + 1] = {
                 ...nextRound,
                 groups: nextRound.groups.map((group: any) => ({
                   ...group,
                   selectingTeamId: group.teamIds[Math.floor(Math.random() * group.teamIds.length)],
                 })),
               };
-              
-              // Update rounds in database
-              await supabase
-                .from('sessions')
-                .update({ rounds: updatedRounds })
-                .eq('id', sessionId);
             }
-            
+
             nextStatus = 'category-select';
             nextRoundIndex = roundIndex + 1;
             voteGroupIndex = null;
@@ -216,6 +183,9 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
             voteGroupIndex = null;
             endsAt = new Date(Date.now() + (settings.answerSecs || 90) * 1000).toISOString();
           }
+
+          // Store final rounds for atomic update
+          rounds = finalRounds;
         } else {
           // Game over
           nextStatus = 'ended';
@@ -229,10 +199,11 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
         throw new AppError(400, 'Cannot advance from current phase', 'failed-precondition');
     }
     
-    // Update session
+    // Update session atomically with all changes
     const { data: updatedSession, error: updateError } = await supabase
       .from('sessions')
       .update({
+        rounds: rounds, // Include any rounds changes
         status: nextStatus,
         round_index: nextRoundIndex,
         vote_group_index: voteGroupIndex,
