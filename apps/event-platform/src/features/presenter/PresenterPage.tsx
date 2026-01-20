@@ -117,7 +117,7 @@ export function PresenterPage() {
       case "lobby":
         return "Scan the QR to join the round";
       case "answer":
-        if (!totalGroups) return "Preparing prompts...";
+        if (!totalGroups) return null;
 
         // Show pause messages when session is paused
         if (session.paused) {
