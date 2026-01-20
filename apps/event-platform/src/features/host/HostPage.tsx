@@ -29,6 +29,7 @@ import {
   ResultsPhase,
   EndedPhase,
   CreateSessionModal,
+  JoinSessionModal,
 } from "./Phases";
 import {
   handleCopyLink,
@@ -69,6 +70,8 @@ export function HostPage() {
   const [showTeamsModal, setShowTeamsModal] = useState(false);
   const [showVIBoxModal, setShowVIBoxModal] = useState(false);
   const [showVenueAuthPrompt, setShowVenueAuthPrompt] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [isJoiningSession, setIsJoiningSession] = useState(false);
   
   const hostState = useHostState(storedSessionId);
   const {
@@ -374,6 +377,34 @@ export function HostPage() {
       navigate("/");
     }
   }, [setShowCreateModal, session, navigate]);
+
+  const handleJoinSession = useCallback(async (joinSessionId: string) => {
+    setIsJoiningSession(true);
+    try {
+      // Verify the session exists
+      const { data: sessionData, error } = await supabase
+        .from('sessions')
+        .select('id, code')
+        .eq('id', joinSessionId)
+        .single();
+
+      if (error || !sessionData) {
+        addToast({ title: 'Session not found', description: 'Please check the session ID and try again', variant: 'error' });
+        setIsJoiningSession(false);
+        return;
+      }
+
+      // Set the session in local storage
+      setSessionId(joinSessionId);
+      setHostSession({ sessionId: joinSessionId, code: sessionData.code });
+      setShowJoinModal(false);
+      addToast({ title: 'Joined session successfully', variant: 'success' });
+    } catch (error) {
+      addToast({ title: getErrorMessage(error, 'Failed to join session'), variant: 'error' });
+    } finally {
+      setIsJoiningSession(false);
+    }
+  }, [addToast, setSessionId, setHostSession]);
 
   // Handler for selecting/swapping categories
   const handleCategoryClick = useCallback(async (index: number) => {
@@ -958,12 +989,20 @@ export function HostPage() {
                   </Button>
                 )
               ) : (
-                <Button
-                  variant="secondary"
-                  onClick={handleOpenCreateModal}
-                >
-                  New session
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={handleOpenCreateModal}
+                  >
+                    New session
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowJoinModal(true)}
+                  >
+                    Join session
+                  </Button>
+                </div>
               )}
             </div>
           </div>
@@ -1050,6 +1089,12 @@ export function HostPage() {
         isCreating={isCreating}
         canCreateSession={canCreateSession}
         onSubmit={createSessionHandler}
+      />
+      <JoinSessionModal
+        open={showJoinModal}
+        onClose={() => setShowJoinModal(false)}
+        onJoin={handleJoinSession}
+        isJoining={isJoiningSession}
       />
       <Modal
         open={showPromptLibraryModal && Boolean(session)}
