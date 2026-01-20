@@ -119,7 +119,7 @@ export function TeamCodeEntry({
               value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
               error={errors.teamName}
-              maxLength={20}
+              maxLength={10}
               isDark={isDark}
             />
 

@@ -113,7 +113,7 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
         // Move to vote phase
         nextStatus = 'vote';
         voteGroupIndex = 0;
-        endsAt = new Date(Date.now() + (settings.voteSecs || 90) * 1000).toISOString();
+        endsAt = new Date(Date.now() + (settings.voteSecs || 30) * 1000).toISOString();
         break;
         
       case 'vote': {
@@ -124,7 +124,7 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
         if (nextGroupIndex < groups.length) {
           // Vote on next group
           voteGroupIndex = nextGroupIndex;
-          endsAt = new Date(Date.now() + (settings.voteSecs || 90) * 1000).toISOString();
+          endsAt = new Date(Date.now() + (settings.voteSecs || 30) * 1000).toISOString();
         } else {
           // Move to results
           nextStatus = 'results';

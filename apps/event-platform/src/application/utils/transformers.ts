@@ -54,6 +54,9 @@ export function transformRoundSummariesForUI(
       teamIds: []
     };
 
+    // Find the group's index in the groups array (0-based)
+    const groupIndex = groups.findIndex(g => g.id === summary.groupId);
+
     const enrichAnswer = (answerData: { answer: Answer }) => {
       const team = teams.find(t => t.id === answerData.answer.teamId);
       return {
@@ -64,7 +67,7 @@ export function transformRoundSummariesForUI(
 
     return {
       group,
-      index: summary.roundIndex,
+      index: groupIndex,
       answers: summary.answers.map(enrichAnswer),
       winners: summary.winners.map(enrichAnswer)
     };

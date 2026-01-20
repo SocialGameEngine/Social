@@ -23,6 +23,11 @@ export function GroupCard({
     .map((id) => teamLookup.get(id) ?? "Unknown team")
     .join(", ");
 
+  // Debug: log presenter view data (only log when prompt changes)
+  if (variant === "presenter") {
+    console.log('Presenter GroupCard - Group', index + 1, 'prompt:', group.prompt);
+  }
+
   if (variant === "presenter") {
     return (
       <div

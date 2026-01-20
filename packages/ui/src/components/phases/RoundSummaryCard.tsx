@@ -37,7 +37,7 @@ export function RoundSummaryCard({
             <p className={`text-xs font-semibold uppercase tracking-[0.3em] ${!isDark ? 'text-slate-600' : 'text-brand-primary'}`}>
               Group {summary.index + 1}
             </p>
-            <p className={`mt-1 text-2xl font-bold leading-tight ${!isDark ? 'text-slate-900' : 'text-white'}`}>
+            <p className={`mt-1 text-2xl font-bold leading-tight ${!isDark ? 'text-slate-900' : 'text-pink-400'}`}>
               {summary.group.prompt}
             </p>
           </div>
@@ -75,7 +75,7 @@ export function RoundSummaryCard({
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
-                    <span className="text-sm font-semibold text-slate-900">
+                    <span className="text-sm font-semibold text-cyan-400">
                       +{points}
                     </span>
                   </div>

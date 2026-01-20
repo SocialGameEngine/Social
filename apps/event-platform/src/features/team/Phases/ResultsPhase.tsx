@@ -119,7 +119,7 @@ export function ResultsPhase({
           Round {session.roundIndex + 1} recap & leaderboard.
         </p>
       </div>
-      <div className="elevated-card p-5">
+      <div className="elevated-card p-3 sm:p-5">
         <h3 className="text-sm font-semibold uppercase tracking-wide transition-all duration-200 text-cyan-400 drop-shadow-sm">
           Current leaderboard
         </h3>
@@ -128,7 +128,7 @@ export function ResultsPhase({
             leaderboard={finalLeaderboard}
             highlightTeamId={currentTeam?.id}
             variant="presenter"
-            className="grid gap-3 text-lg font-semibold lg:grid-cols-2"
+            className="grid gap-2 sm:gap-3 text-lg font-semibold lg:grid-cols-2"
             isDark={isDark}
           />
         </div>

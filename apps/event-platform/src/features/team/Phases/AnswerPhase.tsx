@@ -29,10 +29,35 @@ export function AnswerPhase({
 }: AnswerPhaseProps) {
   const { isDark } = useTheme();
   const CHAR_LIMIT = 120;
-  const promptFallback =
-    myGroup?.prompt ??
-    roundGroups[0]?.prompt ??
-    "Loading prompt...";
+  
+  // Get current prompt from session data for real-time updates
+  const currentPrompt = (() => {
+    // Debug: log session data changes
+    console.log('Team AnswerPhase - session.roundIndex:', session.roundIndex, 'myGroup.id:', myGroup?.id);
+    
+    const currentRound = session.rounds?.[session.roundIndex || 0];
+    if (currentRound && currentRound.groups && currentRound.groups.length > 0) {
+      // Try to find the group that matches my team, or just use the first group's prompt
+      let prompt = "Loading prompt...";
+      
+      if (myGroup) {
+        // Find the group in current round that matches myGroup
+        const groupInRound = currentRound.groups.find(g => g.id === myGroup.id);
+        prompt = groupInRound?.prompt || currentRound.groups[0]?.prompt || currentRound.prompt || "Loading prompt...";
+      } else {
+        // No myGroup, use first available prompt
+        prompt = currentRound.groups[0]?.prompt || currentRound.prompt || "Loading prompt...";
+      }
+      
+      console.log('Team AnswerPhase - final prompt:', prompt);
+      return prompt;
+    }
+    
+    // Fallback to myGroup or roundGroups
+    const fallbackPrompt = myGroup?.prompt || roundGroups[0]?.prompt || "Loading prompt...";
+    console.log('Team AnswerPhase - fallback prompt:', fallbackPrompt);
+    return fallbackPrompt;
+  })();
   const characterCount = Math.min(answerText.length, CHAR_LIMIT);
   const limitReached = characterCount >= CHAR_LIMIT;
   
@@ -73,7 +98,7 @@ export function AnswerPhase({
           {/* Keep showing the prompt even after submission */}
           <div className="rounded-3xl px-3 py-3 text-center sm:px-4 sm:py-4 shadow-xl border-2 bg-gradient-to-br from-cyan-900/40 to-blue-900/40 border-cyan-400/50 text-cyan-100">
             <p className="text-2xl font-black tracking-tight drop-shadow-lg sm:text-3xl text-pink-300">
-              {promptFallback}
+              {currentPrompt}
             </p>
           </div>
           
@@ -180,7 +205,7 @@ export function AnswerPhase({
           <div className="space-y-2 sm:space-y-3">
             <div className="rounded-3xl px-3 py-3 text-center sm:px-4 sm:py-4 shadow-xl border-2 bg-gradient-to-br from-cyan-900/40 to-blue-900/40 border-cyan-400/50 text-cyan-100">
               <p className="text-2xl font-black tracking-tight drop-shadow-lg sm:text-3xl text-pink-300">
-                {promptFallback}
+                {currentPrompt}
               </p>
             </div>
             <div className="flex items-center justify-between text-[11px] sm:text-xs text-brand-primary">

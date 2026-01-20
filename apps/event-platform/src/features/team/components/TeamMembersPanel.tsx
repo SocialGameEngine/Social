@@ -3,7 +3,6 @@ import { Button } from "@social/ui";
 import { supabase } from "../../../supabase/client";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 import { captainKickMember, captainPromoteMember, captainUpdateTeamName } from "../../session/sessionService";
-import { UserXIcon, CrownIcon, CrownIcon as CrownTransferIcon } from "../../../shared/components/icons/VIBoxIcons";
 
 interface TeamMember {
   id: string;
@@ -311,7 +310,7 @@ export function TeamMembersPanel({
                 >
                   <div className="flex items-center gap-2">
                     {member.is_captain && (
-                      <CrownIcon className="w-4 h-4 text-yellow-500" />
+                      <span className="text-yellow-500">👑</span>
                     )}
                     <span className={isDark ? 'text-slate-200' : 'text-slate-800'}>
                       {member.player_name || 'Anonymous'}
@@ -335,8 +334,8 @@ export function TeamMembersPanel({
                           className="text-yellow-500 hover:text-yellow-600"
                           title="Pass captain role"
                         >
-                          <CrownIcon className="w-4 h-4" />
-                          {promotingUserId === member.user_id ? 'Passing...' : 'Pass'}
+                          <span className="text-yellow-500">👑</span>
+                          {promotingUserId === member.user_id ? 'Promoting...' : 'Promote'}
                         </Button>
                       )}
                       <Button
@@ -346,7 +345,7 @@ export function TeamMembersPanel({
                         disabled={kickingUserId === member.user_id}
                         className="text-red-500 hover:text-red-600"
                       >
-                        <UserXIcon className="w-4 h-4" />
+                        <span className="text-red-500">🚫</span>
                         {kickingUserId === member.user_id ? 'Removing...' : 'Remove'}
                       </Button>
                     </div>
