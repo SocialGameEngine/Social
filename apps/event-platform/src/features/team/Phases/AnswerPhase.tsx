@@ -1,6 +1,7 @@
 import { Card, Button, SessionTimer, ProgressBar } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 import { clsx } from "clsx";
+import { useState, useEffect } from "react";
 import type { Session, RoundGroup, Answer } from "../../../shared/types";
 import { usePromptLibrary } from "../../../shared/hooks/usePromptLibraries";
 
@@ -32,31 +33,21 @@ export function AnswerPhase({
   
   // Get current prompt from session data for real-time updates
   const currentPrompt = (() => {
-    // Debug: log session data changes
-    console.log('Team AnswerPhase - session.roundIndex:', session.roundIndex, 'myGroup.id:', myGroup?.id);
-    
     const currentRound = session.rounds?.[session.roundIndex || 0];
     if (currentRound && currentRound.groups && currentRound.groups.length > 0) {
       // Try to find the group that matches my team, or just use the first group's prompt
-      let prompt = "Loading prompt...";
-      
       if (myGroup) {
         // Find the group in current round that matches myGroup
         const groupInRound = currentRound.groups.find(g => g.id === myGroup.id);
-        prompt = groupInRound?.prompt || currentRound.groups[0]?.prompt || currentRound.prompt || "Loading prompt...";
+        return groupInRound?.prompt || currentRound.groups[0]?.prompt || currentRound.prompt || null;
       } else {
         // No myGroup, use first available prompt
-        prompt = currentRound.groups[0]?.prompt || currentRound.prompt || "Loading prompt...";
+        return currentRound.groups[0]?.prompt || currentRound.prompt || null;
       }
-      
-      console.log('Team AnswerPhase - final prompt:', prompt);
-      return prompt;
     }
     
     // Fallback to myGroup or roundGroups
-    const fallbackPrompt = myGroup?.prompt || roundGroups[0]?.prompt || "Loading prompt...";
-    console.log('Team AnswerPhase - fallback prompt:', fallbackPrompt);
-    return fallbackPrompt;
+    return myGroup?.prompt || roundGroups[0]?.prompt || null;
   })();
   const characterCount = Math.min(answerText.length, CHAR_LIMIT);
   const limitReached = characterCount >= CHAR_LIMIT;
@@ -97,9 +88,19 @@ export function AnswerPhase({
         <div className="space-y-3 sm:space-y-4">
           {/* Keep showing the prompt even after submission */}
           <div className="rounded-3xl px-3 py-3 text-center sm:px-4 sm:py-4 shadow-xl border-2 bg-gradient-to-br from-cyan-900/40 to-blue-900/40 border-cyan-400/50 text-cyan-100">
-            <p className="text-2xl font-black tracking-tight drop-shadow-lg sm:text-3xl text-pink-300">
-              {currentPrompt}
-            </p>
+            {currentPrompt ? (
+              <p className="text-2xl font-black tracking-tight drop-shadow-lg sm:text-3xl text-pink-300">
+                {currentPrompt}
+              </p>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5 text-cyan-400" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span className="text-sm text-cyan-300">Loading...</span>
+              </div>
+            )}
           </div>
           
           <div className="relative rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-center border-2 shadow-xl backdrop-blur-sm"
@@ -204,9 +205,19 @@ export function AnswerPhase({
         <>
           <div className="space-y-2 sm:space-y-3">
             <div className="rounded-3xl px-3 py-3 text-center sm:px-4 sm:py-4 shadow-xl border-2 bg-gradient-to-br from-cyan-900/40 to-blue-900/40 border-cyan-400/50 text-cyan-100">
-              <p className="text-2xl font-black tracking-tight drop-shadow-lg sm:text-3xl text-pink-300">
-                {currentPrompt}
-              </p>
+              {currentPrompt ? (
+                <p className="text-2xl font-black tracking-tight drop-shadow-lg sm:text-3xl text-pink-300">
+                  {currentPrompt}
+                </p>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5 text-cyan-400" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span className="text-sm text-cyan-300">Loading...</span>
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-between text-[11px] sm:text-xs text-brand-primary">
               <span>Type your answer below</span>
