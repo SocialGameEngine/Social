@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Session Isolation Demo</title>
+</head>
+<body>
+    <h1>Session Variable Demo</h1>
+    <p>Open this page in multiple tabs to see session isolation!</p>
+
+    <div>
+        <label>Enter your name:</label>
+        <input type="text" id="nameInput" placeholder="Type here...">
+        <button onclick="saveName()">Save Name</button>
+    </div>
+
+    <div>
+        <h3>Saved Names:</h3>
+        <ul id="nameList"></ul>
+    </div>
+
+    <div>
+        <h3>Session Info:</h3>
+        <p>Tab ID: <span id="tabId"></span></p>
+        <p>Session Start: <span id="sessionStart"></span></p>
+        <p>Names in this tab: <span id="nameCount">0</span></p>
+    </div>
+
+    <script>
+        // Generate unique tab ID
+        const tabId = 'Tab_' + Math.random().toString(36).substr(2, 9);
+        document.getElementById('tabId').textContent = tabId;
+
+        // Set session start time
+        const sessionStart = new Date().toLocaleTimeString();
+        document.getElementById('sessionStart').textContent = sessionStart;
+
+        // Load saved names from this tab's localStorage
+        function loadNames() {
+            const names = JSON.parse(localStorage.getItem('demo_names') || '[]');
+            const nameList = document.getElementById('nameList');
+            const nameCount = document.getElementById('nameCount');
+
+            nameList.innerHTML = '';
+            names.forEach(name => {
+                const li = document.createElement('li');
+                li.textContent = `${name} (saved in ${tabId})`;
+                nameList.appendChild(li);
+            });
+
+            nameCount.textContent = names.length;
+        }
+
+        // Save a name to this tab's localStorage
+        function saveName() {
+            const input = document.getElementById('nameInput');
+            const name = input.value.trim();
+
+            if (name) {
+                const names = JSON.parse(localStorage.getItem('demo_names') || '[]');
+                names.push(name);
+                localStorage.setItem('demo_names', JSON.stringify(names));
+
+                input.value = '';
+                loadNames();
+            }
+        }
+
+        // Load names on page load
+        loadNames();
+
+        // Update every second to show isolation
+        setInterval(() => {
+            loadNames();
+        }, 1000);
+    </script>
+</body>
+</html>
