@@ -8,6 +8,8 @@ import type { PromptLibraryId } from "../../../shared/promptLibraries";
 interface CreateSessionModalProps {
   open: boolean;
   onClose: () => void;
+  title?: string;
+  submitLabel?: string;
   createForm: { venueName: string; gameMode: "classic" | "jeopardy"; selectedCategories: PromptLibraryId[]; totalRounds?: number };
   setCreateForm: React.Dispatch<
     React.SetStateAction<{ venueName: string; gameMode: "classic" | "jeopardy"; selectedCategories: PromptLibraryId[]; totalRounds?: number }>
@@ -21,6 +23,8 @@ interface CreateSessionModalProps {
 export function CreateSessionModal({
   open,
   onClose,
+  title,
+  submitLabel,
   createForm,
   setCreateForm,
   createErrors,
@@ -49,7 +53,7 @@ export function CreateSessionModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Create a Söcial session"
+      title={title ?? "Create a Söcial session"}
       isDark={isDark}
       footer={
         <div className="flex w-full items-center justify-between">
@@ -67,7 +71,7 @@ export function CreateSessionModal({
                 : undefined
             }
           >
-            Create session
+            {submitLabel ?? "Create session"}
           </Button>
         </div>
       }

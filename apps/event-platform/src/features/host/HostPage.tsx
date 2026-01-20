@@ -34,6 +34,7 @@ import {
 import {
   handleCopyLink,
   handleCreateSession,
+  handleUpdateSession,
   handleEndSession,
   handleHostVote,
   handleKickTeam,
@@ -81,6 +82,10 @@ export function HostPage() {
     setShowCreateModal,
     isCreating,
     setIsCreating,
+    showEditModal,
+    setShowEditModal,
+    isUpdatingSession,
+    setIsUpdatingSession,
     createErrors,
     setCreateErrors,
     createForm,
@@ -234,6 +239,25 @@ export function HostPage() {
     totalRounds: createForm.totalRounds,
   });
 
+  const updateSessionHandler = handleUpdateSession({
+    user,
+    authLoading,
+    isVenueAccount,
+    toast: addToast,
+    setCreateErrors,
+    isUpdating: isUpdatingSession,
+    setIsUpdating: setIsUpdatingSession,
+    sessionId: session?.id ?? "",
+    onUpdated: ({ sessionId, code }) => {
+      setSessionId(sessionId);
+      setHostSession({ sessionId, code });
+    },
+    setShowEditModal,
+    gameMode: createForm.gameMode,
+    selectedCategories: createForm.selectedCategories,
+    totalRounds: createForm.totalRounds,
+  });
+
   const primaryActionHandler = handlePrimaryAction({
     session,
     teams,
@@ -370,6 +394,26 @@ export function HostPage() {
     }
     setShowCreateModal(true);
   }, [requireVenueAccount, setShowCreateModal]);
+
+  const handleOpenEditModal = useCallback(() => {
+    if (!requireVenueAccount()) {
+      return;
+    }
+    if (!session) {
+      return;
+    }
+
+    // Prefill the create form from the current session so hosts can "upsert" settings.
+    const sessionSettings = (session.settings ?? {}) as any;
+    setCreateForm({
+      venueName: session.venueName ?? "",
+      gameMode: sessionSettings.gameMode === "jeopardy" ? "jeopardy" : "classic",
+      selectedCategories: Array.isArray(sessionSettings.selectedCategories) ? sessionSettings.selectedCategories : [],
+      totalRounds: typeof sessionSettings.totalRounds === "number" ? sessionSettings.totalRounds : (sessionSettings.gameMode === "jeopardy" ? 1 : 5),
+    });
+    setCreateErrors({});
+    setShowEditModal(true);
+  }, [requireVenueAccount, session, setCreateErrors, setCreateForm, setShowEditModal]);
 
   const handleCreateModalClose = useCallback(() => {
     setShowCreateModal(false);
@@ -983,6 +1027,20 @@ export function HostPage() {
                 </Button>
                 <Button
                   variant="ghost"
+                  onClick={handleOpenEditModal}
+                  disabled={!session || session.status !== "lobby" || isUpdatingSession}
+                  title={
+                    !session
+                      ? "Create or join a session first"
+                      : session.status !== "lobby"
+                        ? "Room settings can only be changed before the session starts."
+                        : undefined
+                  }
+                >
+                  Room settings
+                </Button>
+                <Button
+                  variant="ghost"
                   onClick={() => setShowJoinModal(true)}
                 >
                   Join session
@@ -1088,6 +1146,18 @@ export function HostPage() {
         isCreating={isCreating}
         canCreateSession={canCreateSession}
         onSubmit={createSessionHandler}
+      />
+      <CreateSessionModal
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        title="Room settings"
+        submitLabel={isUpdatingSession ? "Saving..." : "Save settings"}
+        createForm={createForm}
+        setCreateForm={setCreateForm}
+        createErrors={createErrors}
+        isCreating={isUpdatingSession}
+        canCreateSession={canCreateSession}
+        onSubmit={updateSessionHandler}
       />
       <JoinSessionModal
         open={showJoinModal}

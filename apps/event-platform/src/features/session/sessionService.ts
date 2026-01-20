@@ -12,6 +12,8 @@ interface TeamMember {
 import type {
   CreateSessionRequest,
   CreateSessionResponse,
+  UpdateSessionRequest,
+  UpdateSessionResponse,
   JoinSessionRequest,
   JoinSessionResponse,
   KickTeamRequest,
@@ -449,6 +451,17 @@ export const createSession = async (payload: CreateSessionRequest) => {
 
   if (error) throw error;
   if (!data) throw new Error("No data returned from createSession");
+  return data;
+};
+
+export const updateSession = async (payload: UpdateSessionRequest) => {
+  const { data, error } = await supabase.functions.invoke<UpdateSessionResponse>(
+    "sessions-update",
+    { body: payload }
+  );
+
+  if (error) throw error;
+  if (!data) throw new Error("No data returned from updateSession");
   return data;
 };
 

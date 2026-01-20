@@ -10,6 +10,8 @@ export function useHostState(storedSessionId: string | null) {
   const [sessionId, setSessionId] = useState<string | null>(storedSessionId);
   const [showCreateModal, setShowCreateModal] = useState(!storedSessionId);
   const [isCreating, setIsCreating] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [isUpdatingSession, setIsUpdatingSession] = useState(false);
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
   const [createForm, setCreateForm] = useState<{ venueName: string; gameMode: "classic" | "jeopardy"; selectedCategories: string[]; totalRounds?: number }>({ 
     venueName: "", 
@@ -39,6 +41,10 @@ export function useHostState(storedSessionId: string | null) {
     setShowCreateModal,
     isCreating,
     setIsCreating,
+    showEditModal,
+    setShowEditModal,
+    isUpdatingSession,
+    setIsUpdatingSession,
     createErrors,
     setCreateErrors,
     createForm,
