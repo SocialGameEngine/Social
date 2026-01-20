@@ -35,6 +35,20 @@ export interface CreateSessionResponse {
   session: any; // Use domain Session type
 }
 
+export interface UpdateSessionRequest {
+  sessionId: string;
+  venueName?: string;
+  gameMode?: "classic" | "jeopardy";
+  selectedCategories?: PromptLibraryId[];
+  totalRounds?: number;
+}
+
+export interface UpdateSessionResponse {
+  sessionId: string;
+  code: string;
+  session: any; // Use domain Session type
+}
+
 export interface JoinSessionRequest {
   code: string;
   teamName: string;

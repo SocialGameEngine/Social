@@ -17,8 +17,13 @@ export function useActiveGroupAnswers(
   myGroup?: { id: string } | null
 ): Answer[] {
   return useMemo(() => {
-    if (session?.status === "vote" && activeGroup) {
-      return answers.filter((answer) => answer.groupId === activeGroup.id);
+    if (session?.status === "vote") {
+      if (activeGroup) {
+        return answers.filter((answer) => answer.groupId === activeGroup.id);
+      }
+      // During vote phase with no activeGroup, show nothing instead of all answers
+      // This prevents the "all teams appear as one group" bug
+      return [];
     }
     if (myGroup) {
       return answers.filter((answer) => answer.groupId === myGroup.id);

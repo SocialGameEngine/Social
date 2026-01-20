@@ -1,7 +1,6 @@
 import { Card, Button, SessionTimer, ProgressBar } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 import { clsx } from "clsx";
-import { useState, useEffect } from "react";
 import type { Session, RoundGroup, Answer } from "../../../shared/types";
 import { usePromptLibrary } from "../../../shared/hooks/usePromptLibraries";
 

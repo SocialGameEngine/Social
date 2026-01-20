@@ -29,10 +29,12 @@ import {
   ResultsPhase,
   EndedPhase,
   CreateSessionModal,
+  JoinSessionModal,
 } from "./Phases";
 import {
   handleCopyLink,
   handleCreateSession,
+  handleUpdateSession,
   handleEndSession,
   handleHostVote,
   handleKickTeam,
@@ -69,6 +71,8 @@ export function HostPage() {
   const [showTeamsModal, setShowTeamsModal] = useState(false);
   const [showVIBoxModal, setShowVIBoxModal] = useState(false);
   const [showVenueAuthPrompt, setShowVenueAuthPrompt] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [isJoiningSession, setIsJoiningSession] = useState(false);
   
   const hostState = useHostState(storedSessionId);
   const {
@@ -78,6 +82,10 @@ export function HostPage() {
     setShowCreateModal,
     isCreating,
     setIsCreating,
+    showEditModal,
+    setShowEditModal,
+    isUpdatingSession,
+    setIsUpdatingSession,
     createErrors,
     setCreateErrors,
     createForm,
@@ -231,6 +239,25 @@ export function HostPage() {
     totalRounds: createForm.totalRounds,
   });
 
+  const updateSessionHandler = handleUpdateSession({
+    user,
+    authLoading,
+    isVenueAccount,
+    toast: addToast,
+    setCreateErrors,
+    isUpdating: isUpdatingSession,
+    setIsUpdating: setIsUpdatingSession,
+    sessionId: session?.id ?? "",
+    onUpdated: ({ sessionId, code }) => {
+      setSessionId(sessionId);
+      setHostSession({ sessionId, code });
+    },
+    setShowEditModal,
+    gameMode: createForm.gameMode,
+    selectedCategories: createForm.selectedCategories,
+    totalRounds: createForm.totalRounds,
+  });
+
   const primaryActionHandler = handlePrimaryAction({
     session,
     teams,
@@ -368,12 +395,60 @@ export function HostPage() {
     setShowCreateModal(true);
   }, [requireVenueAccount, setShowCreateModal]);
 
+  const handleOpenEditModal = useCallback(() => {
+    if (!requireVenueAccount()) {
+      return;
+    }
+    if (!session) {
+      return;
+    }
+
+    // Prefill the create form from the current session so hosts can "upsert" settings.
+    const sessionSettings = (session.settings ?? {}) as any;
+    setCreateForm({
+      venueName: session.venueName ?? "",
+      gameMode: sessionSettings.gameMode === "jeopardy" ? "jeopardy" : "classic",
+      selectedCategories: Array.isArray(sessionSettings.selectedCategories) ? sessionSettings.selectedCategories : [],
+      totalRounds: typeof sessionSettings.totalRounds === "number" ? sessionSettings.totalRounds : (sessionSettings.gameMode === "jeopardy" ? 1 : 5),
+    });
+    setCreateErrors({});
+    setShowEditModal(true);
+  }, [requireVenueAccount, session, setCreateErrors, setCreateForm, setShowEditModal]);
+
   const handleCreateModalClose = useCallback(() => {
     setShowCreateModal(false);
     if (!session) {
       navigate("/");
     }
   }, [setShowCreateModal, session, navigate]);
+
+  const handleJoinSession = useCallback(async (joinSessionId: string) => {
+    setIsJoiningSession(true);
+    try {
+      // Verify the session exists
+      const { data: sessionData, error } = await supabase
+        .from('sessions')
+        .select('id, code')
+        .eq('id', joinSessionId)
+        .single();
+
+      if (error || !sessionData) {
+        addToast({ title: 'Session not found', description: 'Please check the session ID and try again', variant: 'error' });
+        setIsJoiningSession(false);
+        return;
+      }
+
+      // Set the session in local storage
+      setSessionId(joinSessionId);
+      setHostSession({ sessionId: joinSessionId, code: sessionData.code });
+      setShowJoinModal(false);
+      addToast({ title: 'Joined session successfully', variant: 'success' });
+    } catch (error) {
+      addToast({ title: getErrorMessage(error, 'Failed to join session'), variant: 'error' });
+    } finally {
+      setIsJoiningSession(false);
+    }
+  }, [addToast, setSessionId, setHostSession]);
 
   // Handler for selecting/swapping categories
   const handleCategoryClick = useCallback(async (index: number) => {
@@ -821,9 +896,14 @@ export function HostPage() {
               {session?.code ?? storedCode ?? "---"}
             </span>
             {session ? (
-              <span className="text-xs text-cyan-400">
-                {teams.length} team{teams.length === 1 ? "" : "s"} online
-              </span>
+              <>
+                <span className="text-xs text-cyan-400">
+                  {teams.length} team{teams.length === 1 ? "" : "s"} online
+                </span>
+                <span className="text-xs text-slate-500 font-mono">
+                  ID: {session.id.slice(0, 8)}...
+                </span>
+              </>
             ) : null}
           </div>
         </Card>
@@ -938,33 +1018,49 @@ export function HostPage() {
                   </span>
                 </Button>
               )}
-              {session ? (
-                session.status === "ended" ? (
-                  <>
-                    <Button variant="secondary" onClick={handleOpenCreateModal}>
-                      New Session
-                    </Button>
-                    <Button variant="ghost" onClick={handleReturnHome}>
-                      Return home
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    onClick={showEndSessionModalHandler}
-                    disabled={isEndingSession}
-                  >
-                    End session
-                  </Button>
-                )
-              ) : (
+              <div className="flex gap-2">
                 <Button
                   variant="secondary"
                   onClick={handleOpenCreateModal}
                 >
                   New session
                 </Button>
-              )}
+                <Button
+                  variant="ghost"
+                  onClick={handleOpenEditModal}
+                  disabled={!session || session.status !== "lobby" || isUpdatingSession}
+                  title={
+                    !session
+                      ? "Create or join a session first"
+                      : session.status !== "lobby"
+                        ? "Room settings can only be changed before the session starts."
+                        : undefined
+                  }
+                >
+                  Room settings
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowJoinModal(true)}
+                >
+                  Join session
+                </Button>
+                {session ? (
+                  session.status === "ended" ? (
+                    <Button variant="ghost" onClick={handleReturnHome}>
+                      Return home
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      onClick={showEndSessionModalHandler}
+                      disabled={isEndingSession}
+                    >
+                      End session
+                    </Button>
+                  )
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -1050,6 +1146,24 @@ export function HostPage() {
         isCreating={isCreating}
         canCreateSession={canCreateSession}
         onSubmit={createSessionHandler}
+      />
+      <CreateSessionModal
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        title="Room settings"
+        submitLabel={isUpdatingSession ? "Saving..." : "Save settings"}
+        createForm={createForm}
+        setCreateForm={setCreateForm}
+        createErrors={createErrors}
+        isCreating={isUpdatingSession}
+        canCreateSession={canCreateSession}
+        onSubmit={updateSessionHandler}
+      />
+      <JoinSessionModal
+        open={showJoinModal}
+        onClose={() => setShowJoinModal(false)}
+        onJoin={handleJoinSession}
+        isJoining={isJoiningSession}
       />
       <Modal
         open={showPromptLibraryModal && Boolean(session)}
