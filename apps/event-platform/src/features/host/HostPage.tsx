@@ -852,9 +852,14 @@ export function HostPage() {
               {session?.code ?? storedCode ?? "---"}
             </span>
             {session ? (
-              <span className="text-xs text-cyan-400">
-                {teams.length} team{teams.length === 1 ? "" : "s"} online
-              </span>
+              <>
+                <span className="text-xs text-cyan-400">
+                  {teams.length} team{teams.length === 1 ? "" : "s"} online
+                </span>
+                <span className="text-xs text-slate-500 font-mono">
+                  ID: {session.id.slice(0, 8)}...
+                </span>
+              </>
             ) : null}
           </div>
         </Card>
@@ -969,41 +974,35 @@ export function HostPage() {
                   </span>
                 </Button>
               )}
-              {session ? (
-                session.status === "ended" ? (
-                  <>
-                    <Button variant="secondary" onClick={handleOpenCreateModal}>
-                      New Session
-                    </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={handleOpenCreateModal}
+                >
+                  New session
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowJoinModal(true)}
+                >
+                  Join session
+                </Button>
+                {session ? (
+                  session.status === "ended" ? (
                     <Button variant="ghost" onClick={handleReturnHome}>
                       Return home
                     </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    onClick={showEndSessionModalHandler}
-                    disabled={isEndingSession}
-                  >
-                    End session
-                  </Button>
-                )
-              ) : (
-                <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={handleOpenCreateModal}
-                  >
-                    New session
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => setShowJoinModal(true)}
-                  >
-                    Join session
-                  </Button>
-                </div>
-              )}
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      onClick={showEndSessionModalHandler}
+                      disabled={isEndingSession}
+                    >
+                      End session
+                    </Button>
+                  )
+                ) : null}
+              </div>
             </div>
           </div>
 

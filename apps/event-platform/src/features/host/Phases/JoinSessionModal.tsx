@@ -1,6 +1,14 @@
-import { Modal, Button, FormField } from "@social/ui";
+import { Modal, Button } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "../../../supabase/client";
+
+interface Session {
+  id: string;
+  code: string;
+  status: string;
+  created_at: string;
+}
 
 interface JoinSessionModalProps {
   open: boolean;
@@ -16,77 +24,218 @@ export function JoinSessionModal({
   isJoining,
 }: JoinSessionModalProps) {
   const { isDark } = useTheme();
-  const [sessionId, setSessionId] = useState("");
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [view, setView] = useState<"active" | "ended">("active");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!sessionId.trim()) {
-      setError("Please enter a session ID");
-      return;
+  useEffect(() => {
+    if (open) {
+      setView("active");
+      fetchHostSessions();
     }
+  }, [open]);
 
-    // Basic UUID validation
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(sessionId.trim())) {
-      setError("Please enter a valid session ID");
-      return;
-    }
-
+  const fetchHostSessions = async () => {
+    setLoading(true);
     setError("");
-    onJoin(sessionId.trim());
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError("Not authenticated");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('sessions')
+        .select('id, code, status, created_at')
+        .eq('host_uid', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        setError("Failed to load sessions");
+        return;
+      }
+
+      setSessions(data || []);
+    } catch (err) {
+      setError("Failed to load sessions");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleJoinSession = (sessionId: string) => {
+    onJoin(sessionId);
   };
 
   const handleClose = () => {
-    setSessionId("");
+    setSessions([]);
     setError("");
     onClose();
   };
 
+  const activeSessions = sessions.filter((session) => session.status !== "ended");
+  const endedSessions = sessions.filter((session) => session.status === "ended");
+  const sessionsToShow = view === "ended" ? endedSessions : activeSessions;
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
-    <Modal open={open} onClose={handleClose} title="Join Existing Session" isDark={isDark}>
+    <Modal open={open} onClose={handleClose} title="Join Your Sessions" isDark={isDark}>
       <div className="space-y-6">
         <p className={`text-sm ${!isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-          Enter the session ID to join as host
+          Select a session to join as host
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <FormField
-              label="Session ID"
-              value={sessionId}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSessionId(e.target.value)}
-              placeholder="e.g., 3c6d7f1a-2831-4f76-b991-3fb77b40bf21"
-              error={error}
-              isDark={isDark}
-              disabled={isJoining}
-            />
-            <p className={`mt-1 text-xs ${!isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-              You can find the session ID in the URL of the presenter or team view
-            </p>
+        {error && (
+          <div className={`p-3 rounded-lg text-sm ${!isDark ? 'bg-red-50 text-red-700' : 'bg-red-900/20 text-red-400'}`}>
+            {error}
           </div>
+        )}
 
-          <div className="flex gap-3">
+        {!loading && !error && sessions.length > 0 ? (
+          <div className="flex items-center gap-2">
+            <div
+              className={`inline-flex rounded-xl border p-1 ${
+                !isDark ? "border-slate-200 bg-slate-50" : "border-slate-700 bg-slate-900/30"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => setView("active")}
+                disabled={isJoining}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  view === "active"
+                    ? !isDark
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "bg-slate-800 text-cyan-100 shadow-sm"
+                    : !isDark
+                      ? "text-slate-600 hover:text-slate-900"
+                      : "text-slate-400 hover:text-slate-200"
+                } disabled:opacity-50`}
+              >
+                Active ({activeSessions.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setView("ended")}
+                disabled={isJoining}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  view === "ended"
+                    ? !isDark
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "bg-slate-800 text-cyan-100 shadow-sm"
+                    : !isDark
+                      ? "text-slate-600 hover:text-slate-900"
+                      : "text-slate-400 hover:text-slate-200"
+                } disabled:opacity-50`}
+              >
+                Ended ({endedSessions.length})
+              </button>
+            </div>
             <Button
               type="button"
-              onClick={handleClose}
-              variant="secondary"
-              fullWidth
+              variant="ghost"
+              onClick={fetchHostSessions}
               disabled={isJoining}
+              className="text-xs"
             >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              fullWidth
-              isLoading={isJoining}
-              disabled={isJoining}
-            >
-              {isJoining ? "Joining..." : "Join Session"}
+              Refresh
             </Button>
           </div>
-        </form>
+        ) : null}
+
+        <div className="space-y-3">
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-400 mx-auto"></div>
+              <p className={`mt-2 text-sm ${!isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                Loading your sessions...
+              </p>
+            </div>
+          ) : sessions.length === 0 ? (
+            <div className="text-center py-8">
+              <p className={`text-sm ${!isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                No sessions found. Create a new session first.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {sessionsToShow.length === 0 ? (
+                <div className="rounded-xl p-4 text-center">
+                  <p className={`text-sm ${!isDark ? "text-slate-600" : "text-slate-400"}`}>
+                    {view === "ended" ? "No ended sessions." : "No active sessions."}
+                  </p>
+                </div>
+              ) : null}
+
+              {sessionsToShow.map((session) => (
+                <button
+                  key={session.id}
+                  onClick={() => handleJoinSession(session.id)}
+                  disabled={isJoining}
+                  className={`w-full p-4 rounded-lg border text-left transition-all hover:scale-[1.02] ${
+                    !isDark
+                      ? 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                      : 'bg-slate-800 border-slate-600 hover:bg-slate-700 hover:border-slate-500'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl font-bold text-pink-400">
+                          {session.code}
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          session.status === 'lobby'
+                            ? (!isDark ? 'bg-green-100 text-green-800' : 'bg-green-900/30 text-green-400')
+                            : session.status === 'ended'
+                            ? (!isDark ? 'bg-gray-100 text-gray-800' : 'bg-gray-900/30 text-gray-400')
+                            : (!isDark ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-900/30 text-yellow-400')
+                        }`}>
+                          {session.status}
+                        </span>
+                      </div>
+                      <p className={`text-xs mt-1 ${!isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                        Created {formatDate(session.created_at)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      {isJoining ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-pink-400"></div>
+                      ) : (
+                        <span className={`text-sm ${!isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                          Join →
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            onClick={handleClose}
+            variant="secondary"
+            fullWidth
+            disabled={isJoining}
+          >
+            Cancel
+          </Button>
+        </div>
       </div>
     </Modal>
   );
