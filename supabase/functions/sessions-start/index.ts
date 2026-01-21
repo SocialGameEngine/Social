@@ -146,9 +146,12 @@ async function handleStartSession(req: Request, uid: string, supabase: any): Pro
     let promptCursor = session.prompt_cursor || 0;
     const promptDeck = session.prompt_deck || [];
     
-    // Use session's totalRounds setting, fallback to TOTAL_ROUNDS for backward compatibility
+    // Use session's totalRounds setting
     // For Jeopardy mode, double the rounds to account for both cards (Card 1 and Card 2)
-    const baseTotalRounds = session.settings?.totalRounds || TOTAL_ROUNDS;
+    const baseTotalRounds = session.settings?.totalRounds;
+    if (!baseTotalRounds) {
+      throw new Error("totalRounds setting is required");
+    }
     const totalRounds = isJeopardyMode ? baseTotalRounds * 2 : baseTotalRounds;
     
     for (let i = 0; i < totalRounds; i++) {

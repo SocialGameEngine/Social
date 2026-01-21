@@ -695,12 +695,23 @@ export function HostPage() {
                 <span className={`text-xs font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-400'}`}>
                   Prompt library
                 </span>
-                <p className={`text-lg font-bold ${!isDark ? 'text-slate-900' : 'text-pink-400'}`}>
-                  {currentPromptLibrary?.emoji} {currentPromptLibrary?.name || 'Loading...'}
-                </p>
-                <p className={`text-sm ${!isDark ? 'text-slate-500' : 'text-cyan-300'}`}>
-                  {currentPromptLibrary?.description || 'Loading prompt library...'}
-                </p>
+                {currentPromptLibrary ? (
+                  <>
+                    <p className={`text-lg font-bold ${!isDark ? 'text-slate-900' : 'text-pink-400'}`}>
+                      {currentPromptLibrary.emoji} {currentPromptLibrary.name}
+                    </p>
+                    <p className={`text-sm ${!isDark ? 'text-slate-500' : 'text-cyan-300'}`}>
+                      {currentPromptLibrary.description}
+                    </p>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-400"></div>
+                    <p className={`ml-2 text-sm ${!isDark ? 'text-slate-500' : 'text-cyan-300'}`}>
+                      Loading...
+                    </p>
+                  </div>
+                )}
               </div>
               <Button
                 variant="ghost"

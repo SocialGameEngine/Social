@@ -136,6 +136,12 @@ export async function moderateContent(text: string, context?: string): Promise<M
     
     const inputText = context ? `${context}\n${text}` : text;
     
+    // Log the input being sent to OpenAI for debugging
+    console.log('moderation: Sending to OpenAI', { 
+      inputText: inputText,
+      textLength: inputText.length 
+    });
+    
     // Retry on 429 rate limit
     let moderation;
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -162,12 +168,12 @@ export async function moderateContent(text: string, context?: string): Promise<M
       categories: result.categories
     });
 
-    // Block on hard violations + harassment (targeted bullying)
+    // Block on hard violations + only severe harassment/violence
     if (
       result.categories.hate ||
       result.categories['sexual/minors'] ||
-      result.categories.violence ||
-      result.categories.harassment
+      result.categories['violence/graphic'] ||
+      result.categories['harassment/threatening']
     ) {
       console.log('moderation: Rejected by OpenAI', { categories: result.categories });
       return {

@@ -22,6 +22,7 @@ export function useSessionOrchestrator(config: SessionOrchestratorConfig): UseSe
   const [nextPhase, setNextPhase] = useState<string | null>(null);
   const [autoAdvanceIn, setAutoAdvanceIn] = useState<number | null>(null);
   const [lastTransitionAt, setLastTransitionAt] = useState<string | null>(null);
+  const [currentSession, setCurrentSession] = useState<any>(null);
 
   // Refs for timer management
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
@@ -42,10 +43,10 @@ export function useSessionOrchestrator(config: SessionOrchestratorConfig): UseSe
 
   // Auto-advance function
   const performAutoAdvance = useCallback(async () => {
-    if (!sessionId || !sessionRef.current) return false;
+    if (!sessionId || !currentSession) return false;
 
     // Don't auto-advance if session is paused
-    if (sessionRef.current.paused) {
+    if (currentSession.paused) {
       console.log('Auto-advance: Session is paused, skipping');
       return false;
     }
@@ -62,16 +63,16 @@ export function useSessionOrchestrator(config: SessionOrchestratorConfig): UseSe
       console.error('Auto-advance failed:', error);
       return false;
     }
-  }, [sessionId]);
+  }, [sessionId, currentSession]);
 
   // Setup auto-advance timer
   useEffect(() => {
-    if (!sessionRef.current) {
+    if (!currentSession) {
       console.log("Auto-advance: No session in ref");
       return;
     }
 
-    const session = sessionRef.current;
+    const session = currentSession;
     
     console.log("Auto-advance setup:", {
       status: session.status,
@@ -133,7 +134,7 @@ export function useSessionOrchestrator(config: SessionOrchestratorConfig): UseSe
 
     // Cleanup on unmount
     return clearTimers;
-  }, [isAutoAdvanceEnabled, sessionRef.current?.status, sessionRef.current?.paused, sessionRef.current?.endsAt, clearTimers, performAutoAdvance]);
+  }, [isAutoAdvanceEnabled, currentSession?.status, currentSession?.paused, currentSession?.endsAt, clearTimers, performAutoAdvance]);
 
   // Update session ref and calculate next phase
   useEffect(() => {
@@ -144,6 +145,7 @@ export function useSessionOrchestrator(config: SessionOrchestratorConfig): UseSe
   // Method to update the current session (called by parent)
   const updateSession = useCallback((session: any) => {
     sessionRef.current = session;
+    setCurrentSession(session);
     
     if (session) {
       const context = SessionStateMachine.buildContext(session, [], [], []);
@@ -218,9 +220,9 @@ export function useSessionOrchestrator(config: SessionOrchestratorConfig): UseSe
   }, []);
 
   // Computed state
-  const isPaused = sessionRef.current?.paused ?? false;
-  const canAutoAdvance = sessionRef.current ? 
-    SessionStateMachine.canAutoAdvance(sessionRef.current, SessionStateMachine.buildContext(sessionRef.current, [], [], [])) : false;
+  const isPaused = currentSession?.paused ?? false;
+  const canAutoAdvance = currentSession ? 
+    SessionStateMachine.canAutoAdvance(currentSession, SessionStateMachine.buildContext(currentSession, [], [], [])) : false;
 
   // Cleanup on unmount
   useEffect(() => {

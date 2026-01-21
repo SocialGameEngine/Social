@@ -17,7 +17,7 @@ interface EndedPhaseProps {
   setSelfieImage: (image: string | null) => void;
   isTakingSelfie: boolean;
   handleLeave: () => void;
-  scoreboardRef: React.RefObject<HTMLDivElement | null>;
+  scoreboardRef: React.Ref<HTMLDivElement>;
 }
 
 export function EndedPhase({
@@ -110,7 +110,7 @@ export function EndedPhase({
       )}
 
       <div
-        ref={scoreboardRef as React.LegacyRef<HTMLDivElement>}
+        ref={scoreboardRef}
         className={`elevated-card max-h-80 overflow-y-auto p-4`}
       >
         <Leaderboard

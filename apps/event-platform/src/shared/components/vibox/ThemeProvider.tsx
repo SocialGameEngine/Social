@@ -14,10 +14,10 @@ interface VIBoxThemeProviderProps {
   defaultDark?: boolean;
 }
 
-export const VIBoxThemeProvider: React.FC<VIBoxThemeProviderProps> = ({
+export const VIBoxThemeProvider = ({
   children,
   defaultDark = false,
-}) => {
+}: VIBoxThemeProviderProps) => {
   const [isDark, setIsDark] = useState(defaultDark);
   const viboxContainerRef = useRef<HTMLDivElement>(null);
 
@@ -136,10 +136,13 @@ export const useAppTheme = (): boolean => {
 };
 
 // Enhanced provider that syncs with main app theme
-export const VIBoxThemeProviderWithSystem: React.FC<{
+export const VIBoxThemeProviderWithSystem = ({
+  children,
+  followApp = true,
+}: {
   children: React.ReactNode;
   followApp?: boolean;
-}> = ({ children, followApp = true }) => {
+}) => {
   const appDark = useAppTheme();
   
   return (

@@ -4,13 +4,6 @@ import type { CategoryGrid as CategoryGridType } from "../utils/categoryGrid";
 import { useTheme } from "../providers/ThemeProvider";
 import { getActiveCard, getCardCategories, getCardRemainingPrompts, getPromptBonus } from "../utils/categoryGrid";
 
-// Extend Window interface for throttle flag
-declare global {
-  interface Window {
-    categoryGridLogThrottle?: boolean;
-  }
-}
-
 interface CategoryGridProps {
   libraries: PromptLibrary[];
   categoryGrid: CategoryGridType;
@@ -28,8 +21,7 @@ export function CategoryGrid({
   categoryGrid,
   selectedCategory,
   onSelect,
-  disabled = false,
-  canSelect = false,
+  canSelect = true,
   highlightUsed = true,
   roundIndex,
   totalRounds,
@@ -117,24 +109,7 @@ export function CategoryGrid({
               
               const tilesPerCategory = Math.ceil(unlockedPerCard / 3);
               
-              // Throttle logging to once per second
-              if (!window.categoryGridLogThrottle) {
-                window.categoryGridLogThrottle = true;
-                setTimeout(() => { window.categoryGridLogThrottle = false; }, 1000);
-                
-                const cardCategories = displayLibraries.map(lib => ({
-                  libraryId: lib.id,
-                  lockedTilesCount: categoryGrid.lockedTiles?.filter(t => t.categoryId === lib.id).length || 0
-                }));
-                
-                console.log("Card rendering:", {
-                  currentCard,
-                  unlockedPerCard,
-                  tilesPerCategory,
-                  totalLockedTiles: categoryGrid.lockedTiles?.length || 0,
-                  cardCategories
-                });
-              }
+              // Log category selection (throttled by parent component)
               
               return Array.from({ length: tilesPerCategory }, (_, i) => i);
             })().map((promptIndex) => {

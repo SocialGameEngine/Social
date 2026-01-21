@@ -143,7 +143,7 @@ export function VIBoxJukeboxInner({
       )
       .subscribe((status, err) => {
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('VIBox realtime failed:', status, err?.message);
+          // Handle realtime connection errors silently
         }
       });
 

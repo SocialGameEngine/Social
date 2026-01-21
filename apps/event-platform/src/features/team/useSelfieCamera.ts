@@ -17,30 +17,29 @@ export function useSelfieCamera({ currentTeam, finalLeaderboard, venueName }: Us
 
   // Handle camera stream initialization when cameraStream changes
   useEffect(() => {
-    console.log('useEffect triggered, cameraStream:', cameraStream ? 'present' : 'null', 'videoRef:', videoRef.current ? 'present' : 'null');
-    
     if (!cameraStream) {
       // If cameraStream is cleared, stop any existing video
       if (videoRef.current) {
         videoRef.current.srcObject = null;
+        videoRef.current.pause();
       }
       return;
     }
     
     // Wait for video element to be rendered
     if (!videoRef.current) {
-      console.log('Video element not mounted yet, waiting...');
       // Check again after a short delay
       const checkInterval = setInterval(() => {
         if (videoRef.current) {
-          console.log('Video element mounted, initializing now');
           clearInterval(checkInterval);
           const cleanup = initializeVideo(videoRef.current, cameraStream);
           return cleanup;
         }
       }, 50);
       
-      return () => clearInterval(checkInterval);
+      return () => {
+        clearInterval(checkInterval);
+      };
     }
 
     const cleanup = initializeVideo(videoRef.current, cameraStream);
@@ -48,24 +47,17 @@ export function useSelfieCamera({ currentTeam, finalLeaderboard, venueName }: Us
   }, [cameraStream]);
   
   const initializeVideo = (video: HTMLVideoElement, stream: MediaStream) => {
-    console.log('Setting srcObject on video element');
     // Set video source
     video.srcObject = stream;
     video.autoplay = true;
     video.muted = true;
     video.playsInline = true;
     
-    console.log('Video initialized with stream, readyState:', video.readyState);
-    console.log('Camera stream active:', stream.active);
-    console.log('Camera stream tracks:', stream.getTracks().length);
-    
     // Event handlers
     const handleCanPlay = () => {
-      console.log('Video can play');
       if (video.paused) {
         video.play()
           .then(() => {
-            console.log('Video started playing');
             setIsTakingSelfie(false);
           })
           .catch((error) => {
@@ -76,7 +68,6 @@ export function useSelfieCamera({ currentTeam, finalLeaderboard, venueName }: Us
     };
     
     const handlePlaying = () => {
-      console.log('Video is playing');
       setIsTakingSelfie(false);
     };
     
@@ -92,20 +83,19 @@ export function useSelfieCamera({ currentTeam, finalLeaderboard, venueName }: Us
     
     // Try to play after a short delay to let the stream load
     const playTimeout = setTimeout(() => {
-      console.log('Attempting to play video after delay');
       video.play()
         .then(() => {
-          console.log('Video started playing');
           setIsTakingSelfie(false);
         })
         .catch((error) => {
-          console.log('Play failed:', error);
+          console.error('Video play failed:', error);
           // Try again
           setTimeout(() => {
             video.play().then(() => {
-              console.log('Video playing on retry');
               setIsTakingSelfie(false);
-            }).catch(console.error);
+            }).catch((retryError) => {
+              console.error('Video retry failed:', retryError);
+            });
           }, 200);
         });
     }, 100);

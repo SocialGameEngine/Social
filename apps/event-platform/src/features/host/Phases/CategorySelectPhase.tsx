@@ -28,9 +28,12 @@ export function CategorySelectPhase({
   if (isLoading) {
     return (
       <Card isDark={isDark}>
-        <p className={`text-center ${!isDark ? 'text-slate-600' : 'text-cyan-300'}`}>
-          Loading prompt libraries...
-        </p>
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+          <p className={`ml-3 ${!isDark ? 'text-slate-600' : 'text-cyan-300'}`}>
+            Loading...
+          </p>
+        </div>
       </Card>
     );
   }

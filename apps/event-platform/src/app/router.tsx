@@ -2,7 +2,8 @@ import { createBrowserRouter } from "react-router-dom";
 import { AppProviders } from "./AppProviders";
 import { RootLayout } from "./RootLayout";
 import { EntryPage } from "../features/entry/EntryPage";
-import { AuthPage } from "../features/auth/AuthPage";
+import { PlayerAuthPage } from "../features/auth/PlayerAuthPage";
+import { VenueAuthPage } from "../features/auth/VenueAuthPage";
 import { HostPage } from "../features/host/HostPage";
 import { TeamPage } from "../features/team/TeamPage";
 import { JoinFlowOrchestrator } from "../features/team/JoinFlowOrchestrator";
@@ -19,8 +20,8 @@ export const appRouter = createBrowserRouter([
     ),
     children: [
       { index: true, element: <EntryPage /> },
-      { path: "auth", element: <AuthPage /> },
-      { path: "venue-auth", element: <AuthPage variant="venue" /> },
+      { path: "auth", element: <PlayerAuthPage /> },
+      { path: "venue-auth", element: <VenueAuthPage /> },
       { path: "host", element: <HostPage /> },
       { path: "join", element: <JoinFlowOrchestrator /> },
       { path: "play", element: <TeamPage /> },

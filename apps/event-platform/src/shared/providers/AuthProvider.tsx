@@ -80,10 +80,27 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         if (!cancelled) {
           setUser(session?.user ?? null);
           setLoading(false);
+          
+          // If user just signed in, ensure venue account is loaded immediately
+          if (session?.user && (_event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED')) {
+            try {
+              const account = await fetchVenueAccount(session.user.id);
+              if (!cancelled) {
+                setVenueAccount(account);
+                setVenueAccountLoading(false);
+              }
+            } catch (error) {
+              if (!cancelled) {
+                console.error("Failed to load venue account on auth change:", error);
+                setVenueAccount(null);
+                setVenueAccountLoading(false);
+              }
+            }
+          }
         }
       }
     );
@@ -92,7 +109,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchVenueAccount]);
 
   useEffect(() => {
     let cancelled = false;
