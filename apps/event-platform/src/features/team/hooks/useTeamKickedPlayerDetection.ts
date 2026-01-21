@@ -1,11 +1,13 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
+import { getBannedFromSessions } from '../utils/teamConstants';
+import type { Session, Team } from '../../../shared/types';
 
 interface UseTeamKickedPlayerDetectionProps {
-  session: any;
+  session: Session;
   teamSession: { sessionId: string; code: string; teamName: string } | null;
   sessionSnapshotReady: boolean;
-  currentTeam: any;
-  activeTeams: any[];
+  currentTeam: Team | null;
+  activeTeams: Team[];
   showKickedModal: boolean;
   setShowKickedModal: (show: boolean) => void;
   addBannedSession: (sessionId: string, code: string) => void;
@@ -25,10 +27,7 @@ export function useTeamKickedPlayerDetection({
   showKickedModal,
   setShowKickedModal,
   addBannedSession,
-  removeBannedSession,
-  getBannedFromSessions,
   setSessionId,
-  clearTeamSession,
   toast,
 }: UseTeamKickedPlayerDetectionProps) {
   const kickDetectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -73,14 +72,6 @@ export function useTeamKickedPlayerDetection({
           
           // Show the kicked modal
           setShowKickedModal(true);
-          
-          // TEMPORARILY DISABLED: Clear session and redirect to join page after showing modal
-          // setTimeout(() => {
-          //   clearTeamSession();
-          //   setSessionId(null);
-          //   // Redirect to join page
-          //   window.location.href = '/join';
-          // }, 1000); // 1 second delay to show the modal
         }
       }, 1000); // 1000ms debounce to allow team data to fully load
     }
@@ -99,7 +90,6 @@ export function useTeamKickedPlayerDetection({
     showKickedModal,
     setShowKickedModal,
     addBannedSession,
-    clearTeamSession,
     setSessionId,
   ]);
 
@@ -114,12 +104,11 @@ export function useTeamKickedPlayerDetection({
     if (bannedFromSessions.has(session.id) && currentTeam) {
       // They somehow rejoined - clear immediately
       setSessionId(null);
-      clearTeamSession();
       toast({
         title: "Cannot rejoin session",
         description: "You were banned from this session and cannot rejoin.",
         variant: "error",
       });
     }
-  }, [session, sessionSnapshotReady, currentTeam, setSessionId, clearTeamSession, toast, getBannedFromSessions]);
+  }, [session, sessionSnapshotReady, currentTeam, setSessionId, toast, getBannedFromSessions]);
 }
