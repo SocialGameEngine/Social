@@ -230,4 +230,25 @@ export async function validateSessionPhase(session: any, requiredPhase: string) 
   }
 }
 
+/**
+ * Verify that the user has an active venue account
+ * Throws AppError if verification fails
+ */
+export async function verifyVenueAccount(uid: string, supabase: any): Promise<void> {
+  const { data: venueAccount, error: venueError } = await supabase
+    .from('venue_accounts')
+    .select('id, is_active')
+    .eq('auth_user_id', uid)
+    .maybeSingle();
+
+  if (venueError) {
+    console.error('Failed to verify venue account', venueError);
+    throw new AppError(500, 'Unable to verify venue account', 'venue-verification-failed');
+  }
+
+  if (!venueAccount || !venueAccount.is_active) {
+    throw new AppError(403, 'Venue login required', 'venue-required');
+  }
+}
+
 

@@ -57,7 +57,7 @@ export async function signInAnonymouslyUser() {
 }
 
 export async function ensureVenueAccountProfile(options?: { fullName?: string; phone?: string }) {
-  const { error } = await supabase.functions.invoke('venue-accounts-register', {
+  const { data, error } = await supabase.functions.invoke('venue-accounts-register', {
     body: {
       fullName: options?.fullName,
       phone: options?.phone,
@@ -65,7 +65,11 @@ export async function ensureVenueAccountProfile(options?: { fullName?: string; p
   });
 
   if (error) {
+    console.error('Edge function error:', error);
     throw error;
   }
+
+  // Return the venue account data from the edge function
+  return data;
 }
 

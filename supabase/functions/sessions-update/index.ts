@@ -1,42 +1,7 @@
 // Update an existing game session's configuration (host-only)
-import { createHandler, cleanTeamName, AppError, corsResponse } from "../_shared/utils.ts";
+import { createHandler, cleanTeamName, AppError, corsResponse, verifyVenueAccount } from "../_shared/utils.ts";
 import { getPromptLibrary, TOTAL_ROUNDS } from "../_shared/prompts.ts";
-
-/**
- * Generate shuffled bonuses for a category column (7 prompts)
- * 6 cards with point values (100-700) + 1 card with 2x multiplier
- */
-function generateCategoryBonuses() {
-  const pointValues = [100, 200, 300, 400, 500, 600, 700];
-  const bonuses = [];
-
-  // Add 6 point cards
-  for (let i = 0; i < 6; i++) {
-    bonuses.push({
-      promptIndex: i,
-      bonusType: "points",
-      bonusValue: pointValues[i],
-      revealed: false,
-    });
-  }
-
-  // Add 1 multiplier card
-  bonuses.push({
-    promptIndex: 6,
-    bonusType: "multiplier",
-    bonusValue: 2,
-    revealed: false,
-  });
-
-  // Shuffle array using Fisher-Yates algorithm
-  for (let i = bonuses.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [bonuses[i], bonuses[j]] = [bonuses[j], bonuses[i]];
-  }
-
-  // Reassign promptIndex after shuffle
-  return bonuses.map((bonus, index) => ({ ...bonus, promptIndex: index }));
-}
+import { generateCategoryBonuses } from "../_shared/categoryGrid.ts";
 
 async function handleUpdateSession(req: Request, uid: string, supabase: any): Promise<Response> {
   const { sessionId, venueName, gameMode, selectedCategories, totalRounds } = await req.json();
@@ -45,21 +10,8 @@ async function handleUpdateSession(req: Request, uid: string, supabase: any): Pr
     throw new AppError(400, "sessionId is required", "invalid-argument");
   }
 
-  // Verify venue account is active (same rule as create)
-  const { data: venueAccount, error: venueError } = await supabase
-    .from("venue_accounts")
-    .select("id, is_active")
-    .eq("auth_user_id", uid)
-    .maybeSingle();
-
-  if (venueError) {
-    console.error("Failed to verify venue account", venueError);
-    throw new AppError(500, "Unable to verify venue account", "venue-verification-failed");
-  }
-
-  if (!venueAccount || !venueAccount.is_active) {
-    throw new AppError(403, "Venue login required to update sessions", "venue-required");
-  }
+  // Verify venue account is active
+  await verifyVenueAccount(uid, supabase);
 
   const { data: session, error: sessionError } = await supabase
     .from("sessions")

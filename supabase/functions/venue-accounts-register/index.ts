@@ -67,7 +67,22 @@ async function handleVenueAccountRegister(req: Request, uid: string, supabase: a
     }
   }
 
-  return corsResponse({ success: true });
+  // Fetch the final venue account to return
+  const { data: finalAccount, error: fetchError } = await supabase
+    .from('venue_accounts')
+    .select('*')
+    .eq('auth_user_id', uid)
+    .single();
+
+  if (fetchError || !finalAccount) {
+    console.error('Failed to fetch final venue account', fetchError);
+    throw new AppError(500, 'Unable to retrieve venue account', 'venue-account-fetch');
+  }
+
+  return corsResponse({ 
+    success: true, 
+    venueAccount: finalAccount 
+  });
 }
 
 Deno.serve(createHandler(handleVenueAccountRegister));
