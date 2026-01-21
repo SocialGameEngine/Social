@@ -1,5 +1,5 @@
 // Update an existing game session's configuration (host-only)
-import { createHandler, cleanTeamName, AppError } from "../_shared/utils.ts";
+import { createHandler, cleanTeamName, AppError, corsResponse } from "../_shared/utils.ts";
 import { getPromptLibrary, TOTAL_ROUNDS } from "../_shared/prompts.ts";
 
 /**
@@ -163,15 +163,13 @@ async function handleUpdateSession(req: Request, uid: string, supabase: any): Pr
     throw new AppError(500, "Failed to update session", "internal");
   }
 
-  return new Response(
-    JSON.stringify({
-      sessionId: updatedSession.id,
-      code: updatedSession.code,
-      session: updatedSession,
-    }),
-    { headers: { "Content-Type": "application/json" } },
-  );
+  return corsResponse({
+    sessionId: updatedSession.id,
+    code: updatedSession.code,
+    session: updatedSession,
+  });
 }
 
-createHandler(handleUpdateSession);
+// @ts-ignore - Deno global is available in Supabase Edge Functions runtime
+Deno.serve(createHandler(handleUpdateSession));
 
