@@ -72,7 +72,6 @@ export interface UseSessionOrchestratorReturn extends SessionOrchestrationState 
 export interface GameStateConfig {
   sessionId?: string;
   userId?: string;
-  teamSession?: { sessionId: string; code: string; teamName: string; uid?: string } | null;
   autoRefresh?: boolean;
   refreshInterval?: number;
 }

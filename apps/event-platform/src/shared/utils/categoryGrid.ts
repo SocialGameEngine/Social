@@ -287,7 +287,10 @@ export function getActiveCard(grid: CategoryGrid, roundIndex?: number, totalRoun
  * Get categories for a specific card (1 or 2)
  */
 export function getCardCategories(grid: CategoryGrid, cardNumber: 1 | 2) {
-  const categoriesPerCard = grid.categoriesPerCard || 3; // Default to 3 for legacy sessions
+  const categoriesPerCard = grid.categoriesPerCard;
+  if (!categoriesPerCard) {
+    throw new Error("categoriesPerCard is required");
+  }
   const startIndex = cardNumber === 1 ? 0 : categoriesPerCard;
   const endIndex = cardNumber === 1 ? categoriesPerCard : categoriesPerCard * 2;
   return grid.categories.slice(startIndex, endIndex);

@@ -1,4 +1,5 @@
 // Submit an answer for a prompt
+// @ts-nocheck - Deno runtime types not available in IDE
 import { createHandler, requireString, corsResponse, getSession, validateSessionPhase, AppError } from '../_shared/utils.ts';
 import { moderateContent } from '../_shared/moderation.ts';
 

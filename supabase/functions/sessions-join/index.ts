@@ -1,3 +1,4 @@
+// @ts-nocheck - Deno runtime types not available in IDE
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { corsHeaders } from "../_shared/cors.ts"
@@ -27,12 +28,8 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Parsing request body...");
     const body = await req.json();
     const { code, teamName, playerName }: JoinSessionRequest = body;
-    
-    console.log("Join session request:", { code, teamName, playerName });
-    console.log("Request body parsed successfully");
 
     if (!code || !teamName) {
       console.error("Missing required fields:", { code, teamName })
@@ -42,42 +39,27 @@ serve(async (req) => {
       )
     }
 
-    console.log("Normalizing inputs...");
     // Normalize inputs
     const normalizedCode = code.trim().toUpperCase()
     const normalizedTeamName = teamName.trim()
-    
-    console.log("Normalized inputs:", { normalizedCode, normalizedTeamName });
 
-    console.log("Creating Supabase client...");
     // Create service role client for admin operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     
-    console.log("Getting authenticated user...");
     // Get the authenticated user from the request
     const authHeader = req.headers.get('Authorization')
     let userId = null
     let isAuthenticated = false
     if (authHeader) {
-      console.log("Auth header found, getting user...");
       const token = authHeader.replace('Bearer ', '')
       const { data: { user } } = await supabase.auth.getUser(token)
       userId = user?.id
       isAuthenticated = !!user
-    } else {
-      console.log("No auth header found");
     }
-    
-    console.log("User ID from auth:", userId, "Authenticated:", isAuthenticated);
-    console.log("Authentication step completed");
 
-    console.log("Detecting code type...");
     // Detect code type: 6 digits = session code, 4 digits = team code
     const isSessionCode = normalizedCode.length === 6;
     const isTeamCode = normalizedCode.length === 4;
-    
-    console.log("Code type detected:", { isSessionCode, isTeamCode, code: normalizedCode });
-    console.log("Code detection completed");
     
     let session: any = null;
     let teamCodeData: any = null;
@@ -103,7 +85,6 @@ serve(async (req) => {
       session = sessionData;
     } else if (isTeamCode) {
       // New flow: Find team code and get session
-      console.log("Looking for team code:", normalizedCode);
       const { data: codeData, error: codeError } = await supabase
         .from("team_codes")
         .select("session_id, team_id, is_used")

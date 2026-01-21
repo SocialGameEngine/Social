@@ -221,15 +221,10 @@ export function subscribeToTeams(
             return rawMembers && Array.isArray(rawMembers) && rawMembers.length > 0;
           });
           
-          // Map and filter the teams
+          // Map the teams (already filtered to have members)
           const teams = teamsWithMembers
             .map(mapTeam)
-            .filter((team): team is Team => {
-              if (!team) return false;
-              // Final check after mapping
-              const members = team.team_members;
-              return members && Array.isArray(members) && members.length > 0;
-            });
+            .filter((team): team is Team => !!team);
           
           callback(teams);
         }
