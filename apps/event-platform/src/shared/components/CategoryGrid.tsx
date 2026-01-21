@@ -122,19 +122,7 @@ export function CategoryGrid({
                 window.categoryGridLogThrottle = true;
                 setTimeout(() => { window.categoryGridLogThrottle = false; }, 1000);
                 
-                const cardCategories = displayLibraries.map(lib => ({
-                  libraryId: lib.id,
-                  lockedTilesCount: categoryGrid.lockedTiles?.filter(t => t.categoryId === lib.id).length || 0
-                }));
-                
-                console.log("Card rendering:", {
-                  currentCard,
-                  unlockedPerCard,
-                  tilesPerCategory,
-                  totalLockedTiles: categoryGrid.lockedTiles?.length || 0,
-                  cardCategories
-                });
-              }
+                }
               
               return Array.from({ length: tilesPerCategory }, (_, i) => i);
             })().map((promptIndex) => {

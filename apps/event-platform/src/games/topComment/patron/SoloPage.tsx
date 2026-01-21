@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { Button, Card, TextAreaField } from "@social/ui";
-import { AnswerCard } from "../components/AnswerCard";
+import { AnswerCard } from "@social/ui";
 
 interface SoloGameState {
   phase: "welcome" | "answer" | "vote" | "results" | "ended";
