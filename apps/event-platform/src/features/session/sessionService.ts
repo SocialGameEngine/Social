@@ -1,14 +1,5 @@
 import { supabase } from "../../supabase/client";
 
-// Define team member interface
-interface TeamMember {
-  id: string;
-  team_id: string;
-  user_id: string;
-  is_captain: boolean;
-  joined_at: string;
-  player_name?: string;
-}
 import type {
   CreateSessionRequest,
   CreateSessionResponse,
@@ -16,7 +7,6 @@ import type {
   UpdateSessionResponse,
   JoinSessionRequest,
   JoinSessionResponse,
-  KickTeamRequest,
   SessionAnalyticsResponse,
   StartGameRequest,
   SubmitAnswerRequest,
@@ -39,7 +29,7 @@ import type {
 function mapSession(data: any): Session | null {
   if (!data) return null;
   
-  return {
+  const mappedSession = {
     id: data.id,
     code: data.code,
     hostUid: data.host_uid,
@@ -48,17 +38,23 @@ function mapSession(data: any): Session | null {
     rounds: Array.isArray(data.rounds)
       ? data.rounds.map((round: any) => {
           if (round && typeof round === "object" && Array.isArray(round.groups)) {
-            const groups = round.groups.map((group: any, index: number) => ({
-              id: typeof group.id === "string" ? group.id : `g${index}`,
-              prompt: typeof group.prompt === "string" ? group.prompt : "",
-              teamIds: Array.isArray(group.teamIds) ? group.teamIds.filter((value: any): value is string => typeof value === "string") : [],
-              selectingTeamId: group.selectingTeamId,
-              promptLibraryId: group.promptLibraryId,
-            }));
-            return {
+            const groups = round.groups.map((group: any, index: number) => {
+              
+              return {
+                id: typeof group.id === "string" ? group.id : `g${index}`,
+                prompt: typeof group.prompt === "string" ? group.prompt : "",
+                teamIds: Array.isArray(group.teamIds) ? group.teamIds.filter((value: any): value is string => typeof value === "string") : [],
+                selectingTeamId: group.selectingTeamId,
+                promptLibraryId: group.promptLibraryId,
+              };
+            });
+            
+            const mappedRound = {
               prompt: typeof round.prompt === "string" ? round.prompt : groups[0]?.prompt,
               groups,
             };
+            
+            return mappedRound;
           }
           if (round && typeof round === "object" && "prompt" in round && typeof round.prompt === "string") {
             return { prompt: round.prompt, groups: [] };
@@ -66,9 +62,9 @@ function mapSession(data: any): Session | null {
           if (typeof round === "string") {
             return { prompt: round, groups: [] };
           }
-          return { prompt: undefined, groups: [] };
+          return { prompt: "", groups: [] };
         })
-      : [],
+      : data.rounds || [],
     voteGroupIndex: typeof data.vote_group_index === "number" ? data.vote_group_index : null,
     createdAt: data.created_at ?? new Date().toISOString(),
     startedAt: data.started_at,
@@ -87,6 +83,8 @@ function mapSession(data: any): Session | null {
     totalPausedMs: data.total_paused_ms ?? 0,
     endedByHost: data.ended_by_host ?? false,
   };
+  
+  return mappedSession;
 }
 
 // Helper to convert Supabase team to our Team type
@@ -171,7 +169,8 @@ export function subscribeToSession(
         filter: `id=eq.${sessionId}`,
       },
       (payload) => {
-        callback(mapSession(payload.new));
+        const mappedSession = mapSession(payload.new);
+        callback(mappedSession);
       }
     )
     .subscribe();

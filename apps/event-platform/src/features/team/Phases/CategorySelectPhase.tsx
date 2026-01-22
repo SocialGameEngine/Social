@@ -38,7 +38,7 @@ export function CategorySelectPhase({
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
           <p className={`ml-3 ${!isDark ? 'text-slate-600' : 'text-cyan-300'}`}>
-            Loading...
+            {session?.paused ? "Game Paused" : "Loading..."}
           </p>
         </div>
       </Card>

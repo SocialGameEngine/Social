@@ -1,5 +1,5 @@
 // Start a game session and generate first round
-import { createHandler, requireString, corsResponse, getSession, AppError, shuffleArray } from '../_shared/utils.ts';
+import { createHandler, requireString, corsResponse, getSession, AppError, shuffleArray, getActiveTeamIds } from '../_shared/utils.ts';
 import { GROUP_SIZE, TOTAL_ROUNDS } from '../_shared/prompts.ts';
 import { createTeamGroups } from '../_shared/grouping.ts';
 import type { Session, Round, RoundGroup } from '../_shared/types.ts';
@@ -92,51 +92,16 @@ async function handleStartSession(req: Request, uid: string, supabase: any): Pro
 
   // Session already validated by getSession() and validateSessionPhase()
 
-  // Get all non-host teams
-  const { data: teams } = await supabase
-    .from('teams')
-    .select('id, captain_id')
-    .eq('session_id', sessionId)
-    .eq('is_host', false);
-    
-  if (!teams || teams.length === 0) {
-    throw new AppError(400, 'Need at least one player to start', 'failed-precondition');
-  }
-  
-  // Remove empty teams (teams without captains) before starting the game
-  const teamsWithCaptains = teams?.filter(t => t.captain_id) || [];
-  const emptyTeamIds = teams?.filter(t => !t.captain_id).map(t => t.id) || [];
-  
-  if (emptyTeamIds.length > 0) {
-    console.log(`Removing ${emptyTeamIds.length} empty teams:`, emptyTeamIds);
-    
-    // Delete team members for empty teams
-    await supabase
-      .from('team_members')
-      .delete()
-      .in('team_id', emptyTeamIds);
-    
-    // Delete the empty teams
-    await supabase
-      .from('teams')
-      .delete()
-      .in('id', emptyTeamIds);
-    
-    // Delete associated team codes
-    await supabase
-      .from('team_codes')
-      .delete()
-      .in('team_id', emptyTeamIds);
-    
-    console.log(`Cleaned up ${emptyTeamIds.length} empty teams`);
-  }
-  
-  if (teamsWithCaptains.length === 0) {
+  // Only include "active" teams (teams with at least one member).
+  // This prevents pre-created empty teams from being grouped.
+  const activeTeamIds = await getActiveTeamIds(supabase, sessionId);
+
+  if (activeTeamIds.length === 0) {
     throw new AppError(400, 'Need at least one player to start', 'failed-precondition');
   }
     
     // Shuffle teams
-    const shuffledTeamIds: string[] = shuffleArray(teamsWithCaptains.map((t: { id: string }) => t.id));
+    const shuffledTeamIds: string[] = shuffleArray(activeTeamIds);
     
     // Determine game mode
     const isJeopardyMode = session.settings?.gameMode === 'jeopardy';

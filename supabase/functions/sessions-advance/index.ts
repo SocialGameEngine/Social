@@ -1,5 +1,5 @@
 // Advance session to next phase
-import { createHandler, requireString, corsResponse, getSession, AppError } from '../_shared/utils.ts';
+import { createHandler, requireString, corsResponse, getSession, AppError, getActiveTeamIds } from '../_shared/utils.ts';
 import { createTeamGroups } from '../_shared/grouping.ts';
 import type { Session } from '../_shared/types.ts';
 
@@ -122,19 +122,14 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
           // Next round - regenerate groups with shuffled teams
           nextRoundIndex = roundIndex + 1;
           
-          // Get all current teams
-          const { data: currentTeams } = await supabase
-            .from('teams')
-            .select('id')
-            .eq('session_id', sessionId)
-            .eq('is_host', false);
+          // Only regroup active (joined) teams to avoid including pre-created empty teams
+          const activeTeamIds = await getActiveTeamIds(supabase, sessionId);
             
           let finalRounds = rounds; // Will hold the final rounds state
 
-          if (currentTeams && currentTeams.length > 0) {
+          if (activeTeamIds.length > 0) {
             // Create new groups with shuffled teams
-            const teamIds = currentTeams.map((t: { id: string }) => t.id);
-            const newTeamGroups = createTeamGroups(teamIds);
+            const newTeamGroups = createTeamGroups(activeTeamIds);
 
             // Update next round with new groups while preserving prompts
             const nextRound = rounds[nextRoundIndex];

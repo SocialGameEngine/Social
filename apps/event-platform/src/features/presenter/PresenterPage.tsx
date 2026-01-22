@@ -106,10 +106,11 @@ export function PresenterPage() {
 
   // Calculate time remaining based on current time for real-time updates
   const timeRemaining = useMemo(() => {
-    if (!session?.endsAt) return 0;
+    // If session is paused or no timer, show 0 or special state
+    if (session?.paused || !session?.endsAt) return 0;
     const remaining = new Date(session.endsAt).getTime() - now;
     return Math.max(0, Math.ceil(remaining / 1000));
-  }, [session?.endsAt, now]);
+  }, [session?.paused, session?.endsAt, now]);
 
   const presenterHeading = useMemo(() => {
     if (!session) return "";
