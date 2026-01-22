@@ -50,7 +50,7 @@ import type {
 } from "../../shared/promptLibraries";
 
 export function HostPage() {
-  const { user, loading: authLoading, isVenueAccount, venueAccountLoading } = useAuth();
+  const { user, loading: authLoading, isVenueAccount, venueAccountLoading, refreshVenueAccount } = useAuth();
   const { addToast } = useToast();
   const { isDark } = useTheme(); 
   const {
@@ -144,6 +144,15 @@ export function HostPage() {
   }, [gameState.teams]);
   const answers = gameState.answers;
   const sessionSnapshotReady = !gameState.isLoading;
+
+  // Automatically load venue account when HostPage mounts
+  useEffect(() => {
+    if (user && !user.is_anonymous && !venueAccountLoading && !isVenueAccount) {
+      refreshVenueAccount().catch((error) => {
+        console.error("Failed to load venue account on HostPage mount:", error);
+      });
+    }
+  }, [user, venueAccountLoading, isVenueAccount, refreshVenueAccount]);
 
   // Set sessionRef.current to latest session for auto advance actions.
   useEffect(() => {
