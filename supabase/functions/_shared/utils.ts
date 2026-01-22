@@ -231,6 +231,47 @@ export async function validateSessionPhase(session: any, requiredPhase: string) 
 }
 
 /**
+ * Returns "active" (joined) non-host teams for a session.
+ * Definition: a team is active if it has at least one row in team_members.
+ *
+ * This avoids including pre-created empty teams in grouping/round logic.
+ */
+export async function getActiveTeamIds(
+  supabase: any,
+  sessionId: string,
+): Promise<string[]> {
+  const { data: teams, error: teamsError } = await supabase
+    .from('teams')
+    .select('id')
+    .eq('session_id', sessionId)
+    .eq('is_host', false);
+
+  if (teamsError) {
+    throw teamsError;
+  }
+
+  const teamIds: string[] = (teams ?? []).map((t: { id: string }) => t.id);
+  if (teamIds.length === 0) {
+    return [];
+  }
+
+  const { data: members, error: membersError } = await supabase
+    .from('team_members')
+    .select('team_id')
+    .in('team_id', teamIds);
+
+  if (membersError) {
+    throw membersError;
+  }
+
+  const activeSet = new Set<string>(
+    (members ?? []).map((m: { team_id: string }) => m.team_id),
+  );
+
+  return teamIds.filter((id) => activeSet.has(id));
+}
+
+/**
  * Verify that the user has an active venue account
  * Throws AppError if verification fails
  */
