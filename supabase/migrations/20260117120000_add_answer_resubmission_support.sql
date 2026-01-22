@@ -47,23 +47,33 @@ CREATE INDEX IF NOT EXISTS idx_answers_updated_at ON answers(updated_at);
 -- Update RLS policy to allow updates (not just inserts)
 DROP POLICY IF EXISTS "Teams can submit answers" ON answers;
 
-CREATE POLICY "Teams can submit and update answers"
-  ON answers FOR ALL
-  TO authenticated, anon
-  USING (
-    EXISTS (
-      SELECT 1 FROM teams
-      WHERE teams.id = answers.team_id
-      AND teams.uid = auth.uid()::text
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM teams
-      WHERE teams.id = answers.team_id
-      AND teams.uid = auth.uid()::text
-    )
-  );
+-- Only create policy if it doesn't already exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'answers' 
+        AND policyname = 'Teams can submit and update answers'
+    ) THEN
+        CREATE POLICY "Teams can submit and update answers"
+          ON answers FOR ALL
+          TO authenticated, anon
+          USING (
+            EXISTS (
+              SELECT 1 FROM teams
+              WHERE teams.id = answers.team_id
+              AND teams.uid = auth.uid()::text
+            )
+          )
+          WITH CHECK (
+            EXISTS (
+              SELECT 1 FROM teams
+              WHERE teams.id = answers.team_id
+              AND teams.uid = auth.uid()::text
+            )
+          );
+    END IF;
+END $$;
 
 -- Update trigger to handle both INSERT and UPDATE
 DROP TRIGGER IF EXISTS answer_updates_activity ON answers;

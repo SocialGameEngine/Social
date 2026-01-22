@@ -16,17 +16,53 @@ CREATE TABLE IF NOT EXISTS public.venue_accounts (
 ALTER TABLE venue_accounts ENABLE ROW LEVEL SECURITY;
 
 -- Basic RLS Policies
-CREATE POLICY "Users can view own venue account" ON venue_accounts
-    FOR SELECT USING (auth.uid()::text = auth_user_id);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'venue_accounts' 
+        AND policyname = 'Users can view own venue account'
+    ) THEN
+        CREATE POLICY "Users can view own venue account" ON venue_accounts
+            FOR SELECT USING (auth.uid()::text = auth_user_id);
+    END IF;
+END $$;
 
-CREATE POLICY "Users can insert own venue account" ON venue_accounts
-    FOR INSERT WITH CHECK (auth.uid()::text = auth_user_id);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'venue_accounts' 
+        AND policyname = 'Users can insert own venue account'
+    ) THEN
+        CREATE POLICY "Users can insert own venue account" ON venue_accounts
+            FOR INSERT WITH CHECK (auth.uid()::text = auth_user_id);
+    END IF;
+END $$;
 
-CREATE POLICY "Users can update own venue account" ON venue_accounts
-    FOR UPDATE USING (auth.uid()::text = auth_user_id);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'venue_accounts' 
+        AND policyname = 'Users can update own venue account'
+    ) THEN
+        CREATE POLICY "Users can update own venue account" ON venue_accounts
+            FOR UPDATE USING (auth.uid()::text = auth_user_id);
+    END IF;
+END $$;
 
-CREATE POLICY "Service role full access" ON venue_accounts
-    FOR ALL USING (role() = 'service_role');
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'venue_accounts' 
+        AND policyname = 'Service role full access'
+    ) THEN
+        CREATE POLICY "Service role full access" ON venue_accounts
+            FOR ALL USING (auth.role() = 'service_role');
+    END IF;
+END $$;
 
 -- Performance indexes
 CREATE INDEX IF NOT EXISTS idx_venue_accounts_auth_user_id ON venue_accounts(auth_user_id);

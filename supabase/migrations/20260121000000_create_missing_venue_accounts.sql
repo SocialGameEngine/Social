@@ -31,16 +31,43 @@ ALTER TABLE venue_staff ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for venue_accounts
 -- Users can view their own venue account
-CREATE POLICY "Users can view own venue account" ON venue_accounts
-    FOR SELECT USING (auth.uid()::text = auth_user_id);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'venue_accounts' 
+        AND policyname = 'Users can view own venue account'
+    ) THEN
+        CREATE POLICY "Users can view own venue account" ON venue_accounts
+            FOR SELECT USING (auth.uid()::text = auth_user_id);
+    END IF;
+END $$;
 
 -- Users can insert their own venue account
-CREATE POLICY "Users can insert own venue account" ON venue_accounts
-    FOR INSERT WITH CHECK (auth.uid()::text = auth_user_id);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'venue_accounts' 
+        AND policyname = 'Users can insert own venue account'
+    ) THEN
+        CREATE POLICY "Users can insert own venue account" ON venue_accounts
+            FOR INSERT WITH CHECK (auth.uid()::text = auth_user_id);
+    END IF;
+END $$;
 
 -- Users can update their own venue account
-CREATE POLICY "Users can update own venue account" ON venue_accounts
-    FOR UPDATE USING (auth.uid()::text = auth_user_id);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'venue_accounts' 
+        AND policyname = 'Users can update own venue account'
+    ) THEN
+        CREATE POLICY "Users can update own venue account" ON venue_accounts
+            FOR UPDATE USING (auth.uid()::text = auth_user_id);
+    END IF;
+END $$;
 
 -- RLS Policies for venue_staff
 -- Venue accounts can view their own staff assignments
@@ -54,11 +81,29 @@ CREATE POLICY "Venue accounts can view own staff assignments" ON venue_staff
     );
 
 -- Service role can do everything (for edge functions)
-CREATE POLICY "Service role full access to venue_accounts" ON venue_accounts
-    FOR ALL USING (role() = 'service_role');
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'venue_accounts' 
+        AND policyname = 'Service role full access to venue_accounts'
+    ) THEN
+        CREATE POLICY "Service role full access to venue_accounts" ON venue_accounts
+            FOR ALL USING (auth.role() = 'service_role');
+    END IF;
+END $$;
 
-CREATE POLICY "Service role full access to venue_staff" ON venue_staff
-    FOR ALL USING (role() = 'service_role');
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'venue_staff' 
+        AND policyname = 'Service role full access to venue_staff'
+    ) THEN
+        CREATE POLICY "Service role full access to venue_staff" ON venue_staff
+            FOR ALL USING (auth.role() = 'service_role');
+    END IF;
+END $$;
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_venue_accounts_auth_user_id ON venue_accounts(auth_user_id);

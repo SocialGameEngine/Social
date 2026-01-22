@@ -14,7 +14,7 @@ export function VenueAuthPage() {
     message: string;
     type: "success" | "error";
   } | null>(null);
-  const { signIn } = useAuth();
+  const { signIn, refreshVenueAccount } = useAuth();
   const navigate = useNavigate();
 
   // Auto-dismiss notifications after 3 seconds
@@ -33,14 +33,22 @@ export function VenueAuthPage() {
       // Sign in with Supabase auth
       await signIn(email, password);
       
-      // Ensure venue account exists and is active
-      const response = await ensureVenueAccountProfile({
-        fullName: email, // Use email as full name for venue accounts
-      });
-
-      const venueAccount = response?.venueAccount;
+      // Wait a moment for auth state to settle
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      if (!venueAccount?.is_active) {
+      // Try to load venue account from database
+      const venueAccount = await refreshVenueAccount();
+      
+      // If no venue account exists, try to create one
+      if (!venueAccount) {
+        const response = await ensureVenueAccountProfile({
+          fullName: email,
+        });
+        
+        if (!response?.venueAccount?.is_active) {
+          throw new Error("Venue account is not active. Please contact your Söcial representative.");
+        }
+      } else if (!venueAccount.isActive) {
         throw new Error("Venue account is not active. Please contact your Söcial representative.");
       }
 
