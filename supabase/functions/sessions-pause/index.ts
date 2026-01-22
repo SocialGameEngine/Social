@@ -18,7 +18,7 @@ async function handlePauseSession(req: Request, uid: string, supabase: any): Pro
   const now = new Date().toISOString();
   let endsAt = session.ends_at;
   let pausedAt = session.paused_at;
-  let remainingMsAtPause = session.total_paused_ms || 0; // Rename: this will store remaining time when paused
+  let remainingMsAtPause = session.total_paused_ms || 0; // Rename: this will store remaining time when pause
 
   // Get the correct timer duration based on current phase
   let timerDuration = session.settings?.answerSecs || 90;
@@ -51,6 +51,7 @@ async function handlePauseSession(req: Request, uid: string, supabase: any): Pro
   // Update session using atomic stored procedure
   // This ensures all fields update in a single transaction
   // preventing intermediate states from being sent to real-time subscriptions
+
   const { data: updatedSession, error: updateError } = await supabase
     .rpc('pause_session_atomic', {
       p_session_id: sessionId,
@@ -61,7 +62,9 @@ async function handlePauseSession(req: Request, uid: string, supabase: any): Pro
     })
     .single();
 
-  if (updateError) throw updateError;
+  if (updateError) {
+    throw updateError;
+  }
 
   return corsResponse({ session: updatedSession as Session });
 }

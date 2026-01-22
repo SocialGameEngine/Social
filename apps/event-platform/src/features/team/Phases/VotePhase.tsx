@@ -56,6 +56,7 @@ export function VotePhase({
     activeGroup?.prompt ??
     roundGroups[activeGroupIndex]?.prompt ??
     null;
+
   const groupLabel = totalGroups
     ? `Group ${activeGroupIndex + 1} of ${totalGroups}`
     : "No groups";
@@ -82,7 +83,9 @@ export function VotePhase({
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span className="text-sm text-cyan-300">Loading...</span>
+            <span className="text-sm text-cyan-300">
+              {session?.paused ? "Game Paused" : "Loading..."}
+            </span>
           </div>
         )}
         <p className={`text-xs font-medium sm:text-sm ${!isDark ? 'text-slate-600' : 'text-slate-400'}`}>

@@ -25,10 +25,17 @@ export function useVoteCalculations({
   roundSummaries,
 }: UseVoteCalculationsProps) {
   const voteSummaryActive = useMemo(() => {
-    if (session?.status !== "vote" || !session?.endsAt) return false;
+    // Game state should depend on session status and pause flag, not timer
+    if (session?.status !== "vote") return false;
+    if (session?.paused) return false; // Don't show vote summary when paused
+    
+    // For vote phase, show summary after voting period ends OR if timer is complete
+    if (!session?.endsAt) return true; // If no timer, show summary immediately
     const endsAtTime = new Date(session.endsAt).getTime();
-    return now >= endsAtTime;
-  }, [session?.status, session?.endsAt, now]);
+    const isActive = now >= endsAtTime;
+    
+    return isActive;
+  }, [session?.status, session?.paused, session?.endsAt, now]);
 
   const activeGroupWinnerIds = useMemo(() => {
     if (!activeGroup) return new Set<string>();
