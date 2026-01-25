@@ -1,0 +1,501 @@
+﻿{
+    "vibes":  {
+                  "Bardify":  [
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Ale at the Green Griffin 2",
+                                      "genre":  "Folk",
+                                      "file":  "Ale_at_the_Green_Griffin 2.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Ale at the Green Griffin",
+                                      "genre":  "Folk",
+                                      "file":  "Ale_at_the_Green_Griffin.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Ale \u0026 Riddles 2",
+                                      "genre":  "Folk, Jazz, Ambient",
+                                      "file":  "Ale_Riddles 2.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Ale \u0026 Riddles",
+                                      "genre":  "Folk, Jazz, Ambient",
+                                      "file":  "Ale_Riddles.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Courtyard Funk Procession 2",
+                                      "genre":  "Folk, Funk",
+                                      "file":  "Courtyard_Funk_Procession 2.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Courtyard Funk Procession",
+                                      "genre":  "Folk, Funk",
+                                      "file":  "Courtyard_Funk_Procession.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Embers in the Oak Hall 2",
+                                      "genre":  "Folk",
+                                      "file":  "Embers_in_the_Oak_Hall 2.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Embers in the Oak Hall",
+                                      "genre":  "Folk",
+                                      "file":  "Embers_in_the_Oak_Hall.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Mead Hall Thunder 2",
+                                      "genre":  "Folk",
+                                      "file":  "Mead_Hall_Thunder 2.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Mead Hall Thunder",
+                                      "genre":  "Folk",
+                                      "file":  "Mead_Hall_Thunder.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Michelangelo's Coffee Break",
+                                      "genre":  "Folk",
+                                      "file":  "Michelangelos_Coffee_Break.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Rowdy Quiz Night Reel 2",
+                                      "genre":  "Folk",
+                                      "file":  "Rowdy_Quiz_Night_Reel 2.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Rowdy Quiz Night Reel",
+                                      "genre":  "Folk",
+                                      "file":  "Rowdy_Quiz_Night_Reel.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Salty Quiz Night Jig 2",
+                                      "genre":  "Folk",
+                                      "file":  "Salty_Quiz_Night_Jig 2.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Salty Quiz Night Jig",
+                                      "genre":  "Folk",
+                                      "file":  "Salty_Quiz_Night_Jig.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Tavern of the Tides 2",
+                                      "genre":  "Folk",
+                                      "file":  "Tavern_of_the_Tides 2.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Tavern of the Tides",
+                                      "genre":  "Folk",
+                                      "file":  "Tavern_of_the_Tides.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Village Green Revelry 2",
+                                      "genre":  "Folk",
+                                      "file":  "Village_Green_Revelry 2.mp3"
+                                  },
+                                  {
+                                      "artist":  "Söcial",
+                                      "title":  "Village Green Revelry",
+                                      "genre":  "Folk",
+                                      "file":  "Village_Green_Revelry.mp3"
+                                  }
+                              ],
+                  "Noir":  [
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Fog In The Back Room 2",
+                                   "genre":  "Jazz, Hip Hop",
+                                   "file":  "Fog_In_The_Back_Room 2.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Fog In The Back Room",
+                                   "genre":  "Jazz, Hip Hop",
+                                   "file":  "Fog_In_The_Back_Room.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Midnight Alley Clues 2",
+                                   "genre":  "Jazz, Hip Hop",
+                                   "file":  "Midnight_Alley_Clues 2.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Midnight Alley Clues",
+                                   "genre":  "Jazz, Hip Hop",
+                                   "file":  "Midnight_Alley_Clues.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Midnight Casefile 2",
+                                   "genre":  "Jazz, Blues, Vintage",
+                                   "file":  "Midnight_Casefile 2.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Midnight Casefile",
+                                   "genre":  "Jazz, Blues, Vintage",
+                                   "file":  "Midnight_Casefile.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Midnight Case File",
+                                   "genre":  "Jazz",
+                                   "file":  "Midnight_Case_File.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Midnight Clues",
+                                   "genre":  "Jazz, Soundtrack, Vintage, Hip Hop",
+                                   "file":  "Midnight_Clues.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Midnight Footsteps 2",
+                                   "genre":  "Jazz, Blues",
+                                   "file":  "Midnight_Footsteps 2.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Midnight Footsteps",
+                                   "genre":  "Jazz, Blues",
+                                   "file":  "Midnight_Footsteps.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Midnight Quiz Noir 2",
+                                   "genre":  "Jazz",
+                                   "file":  "Midnight_Quiz_Noir 2.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Midnight Quiz Noir",
+                                   "genre":  "Jazz",
+                                   "file":  "Midnight_Quiz_Noir.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Rain on the Basement Steps 2",
+                                   "genre":  "Jazz, Blues",
+                                   "file":  "Rain_on_the_Basement_Steps 2.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Rain on the Basement Steps",
+                                   "genre":  "Jazz, Blues",
+                                   "file":  "Rain_on_the_Basement_Steps.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Shadowed Corners 2",
+                                   "genre":  "Jazz, Hip Hop",
+                                   "file":  "Shadowed_Corners 2.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Shadowed Corners",
+                                   "genre":  "Jazz, Hip Hop",
+                                   "file":  "Shadowed_Corners.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Smoke On The Bar Tab",
+                                   "genre":  "Jazz",
+                                   "file":  "Smoke_On_The_Bar_Tab.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Smoke Under The Streetlamp 2",
+                                   "genre":  "Jazz, Soundtrack",
+                                   "file":  "Smoke_Under_The_Streetlamp 2.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Smoke Under The Streetlamp",
+                                   "genre":  "Jazz, Soundtrack",
+                                   "file":  "Smoke_Under_The_Streetlamp.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Smolder in the Corner 2",
+                                   "genre":  "Cool Jazz, Lounge, Ballad",
+                                   "file":  "Smolder_in_the_Corner 2.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Smolder in the Corner",
+                                   "genre":  "Cool Jazz, Lounge, Ballad",
+                                   "file":  "Smolder_in_the_Corner.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Velvet Alibi",
+                                   "genre":  "Jazz, Lounge, Hip Hop",
+                                   "file":  "Velvet_Alibi.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Velvet Clue",
+                                   "genre":  "Jazz, Vintage, Hip Hop",
+                                   "file":  "Velvet_Clue.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Velvet Questions 2",
+                                   "genre":  "Jazz, Soundtrack",
+                                   "file":  "Velvet_Questions 2.mp3"
+                               },
+                               {
+                                   "artist":  "Söcial",
+                                   "title":  "Velvet Questions",
+                                   "genre":  "Jazz, Soundtrack",
+                                   "file":  "Velvet_Questions.mp3"
+                               }
+                           ],
+                  "Time Traveler Beats":  [
+                                              {
+                                                  "artist":  "Söcial",
+                                                  "title":  "Baroque Starship Overture",
+                                                  "genre":  "House",
+                                                  "file":  "Baroque_Starship_Overture.mp3"
+                                              },
+                                              {
+                                                  "artist":  "Söcial",
+                                                  "title":  "Crusader Campfire Riddims 2",
+                                                  "genre":  "Folk, Reggae",
+                                                  "file":  "Crusader_Campfire_Riddims 2.mp3"
+                                              },
+                                              {
+                                                  "artist":  "Söcial",
+                                                  "title":  "Crusader Campfire Riddims",
+                                                  "genre":  "Folk, Reggae",
+                                                  "file":  "Crusader_Campfire_Riddims.mp3"
+                                              },
+                                              {
+                                                  "artist":  "Söcial",
+                                                  "title":  "Gregorian Dancefloor Chant 2",
+                                                  "genre":  "Folk",
+                                                  "file":  "Gregorian_Dancefloor_Chant 2.mp3"
+                                              },
+                                              {
+                                                  "artist":  "Söcial",
+                                                  "title":  "Gregorian Dancefloor Chant",
+                                                  "genre":  "Folk",
+                                                  "file":  "Gregorian_Dancefloor_Chant.mp3"
+                                              },
+                                              {
+                                                  "artist":  "Söcial",
+                                                  "title":  "Knight Shift Showdown 2",
+                                                  "genre":  "Folk, Hip Hop",
+                                                  "file":  "Knight_Shift_Showdown 2.mp3"
+                                              },
+                                              {
+                                                  "artist":  "Söcial",
+                                                  "title":  "Knight Shift Showdown",
+                                                  "genre":  "Folk, Hip Hop",
+                                                  "file":  "Knight_Shift_Showdown.mp3"
+                                              },
+                                              {
+                                                  "artist":  "Söcial",
+                                                  "title":  "Harpsichord at T-Minus Zero",
+                                                  "genre":  "House",
+                                                  "file":  "Minus_Zero.mp3"
+                                              },
+                                              {
+                                                  "artist":  "Söcial",
+                                                  "title":  "Neural Legion at the Bar 2",
+                                                  "genre":  "Trap, Soundtrack",
+                                                  "file":  "Neural_Legion_at_the_Bar 2.mp3"
+                                              },
+                                              {
+                                                  "artist":  "Söcial",
+                                                  "title":  "Neural Legion at the Bar",
+                                                  "genre":  "Trap, Soundtrack",
+                                                  "file":  "Neural_Legion_at_the_Bar.mp3"
+                                              },
+                                              {
+                                                  "artist":  "Söcial",
+                                                  "title":  "Pitchforks On The Dancefloor 2",
+                                                  "genre":  "Disco, Folk",
+                                                  "file":  "Pitchforks_On_The_Dancefloor 2.mp3"
+                                              },
+                                              {
+                                                  "artist":  "Söcial",
+                                                  "title":  "Pitchforks On The Dancefloor",
+                                                  "genre":  "Disco, Folk",
+                                                  "file":  "Pitchforks_On_The_Dancefloor.mp3"
+                                              },
+                                              {
+                                                  "artist":  "Söcial",
+                                                  "title":  "Renaissance Pit Stop",
+                                                  "genre":  "Folk",
+                                                  "file":  "Renaissance_Pit_Stop.mp3"
+                                              }
+                                          ],
+                  "Felonious Funk":  [
+                                         {
+                                             "artist":  "Söcial",
+                                             "title":  "Back Table Braggin\u0027 2",
+                                             "genre":  "Hip Hop",
+                                             "file":  "Back_Table_Braggin 2.mp3"
+                                         },
+                                         {
+                                             "artist":  "Söcial",
+                                             "title":  "Back Table Braggin\u0027",
+                                             "genre":  "Hip Hop",
+                                             "file":  "Back_Table_Braggin.mp3"
+                                         },
+                                         {
+                                             "artist":  "Söcial",
+                                             "title":  "Regulator's Round 2",
+                                             "genre":  "Funk",
+                                             "file":  "Regulators_Round 2.mp3"
+                                         },
+                                         {
+                                             "artist":  "Söcial",
+                                             "title":  "Regulator's Round",
+                                             "genre":  "Funk",
+                                             "file":  "Regulators_Round.mp3"
+                                         },
+                                         {
+                                             "artist":  "Söcial",
+                                             "title":  "Sunset Quiz Cruise 2",
+                                             "genre":  "Funk, Hip Hop",
+                                             "file":  "Sunset_Quiz_Cruise 2.mp3"
+                                         },
+                                         {
+                                             "artist":  "Söcial",
+                                             "title":  "Sunset Quiz Cruise",
+                                             "genre":  "Funk, Hip Hop",
+                                             "file":  "Sunset_Quiz_Cruise.mp3"
+                                         }
+                                     ],
+                  "Literally Multicultural":  [
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Ancient Laser Chant",
+                                                      "genre":  "Folk",
+                                                      "file":  "Ancient_Laser_Chant.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Anime Andaluz",
+                                                      "genre":  "Trap, Hip Hop, Pop",
+                                                      "file":  "Anime_Andaluz.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Compás Over 9000",
+                                                      "genre":  "Trap, Rock, Hip Hop",
+                                                      "file":  "Comps_Over_9000.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Flamenca Fractals 2",
+                                                      "genre":  "Rock, Pop",
+                                                      "file":  "Flamenca_Fractals 2.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Flamenca Fractals",
+                                                      "genre":  "Rock, Pop",
+                                                      "file":  "Flamenca_Fractals.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Geneva Grime",
+                                                      "genre":  "Trap, Folk",
+                                                      "file":  "Geneva_Grime.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Gundam Wing España",
+                                                      "genre":  "Trap, Rock, Hip Hop",
+                                                      "file":  "Gundam_Wing_Espaa.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Kilted Bass Night 2",
+                                                      "genre":  "Drum \u0026 Bass",
+                                                      "file":  "Kilted_Bass_Night 2.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Kilted Bass Night",
+                                                      "genre":  "Folk",
+                                                      "file":  "Nile_Light_Ritual.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Ouzo On Repeat 2",
+                                                      "genre":  "Synthwave",
+                                                      "file":  "Ouzo_On_Repeat 2.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Ouzo On Repeat",
+                                                      "genre":  "Synthwave",
+                                                      "file":  "Ouzo_On_Repeat.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Shibuya Palmas",
+                                                      "genre":  "Trap, Hip Hop, Pop",
+                                                      "file":  "Shibuya_Palmas.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Spice \u0026 Smoke 2",
+                                                      "genre":  "Funk",
+                                                      "file":  "Spice_Smoke 2.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Spice \u0026 Smoke",
+                                                      "genre":  "Funk",
+                                                      "file":  "Spice_Smoke.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Steppe Heat at the Quiz Night 2",
+                                                      "genre":  "Folk, Reggae, Ambient",
+                                                      "file":  "Steppe_Heat_at_the_Quiz_Night 2.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Steppe Heat at the Quiz Night",
+                                                      "genre":  "Folk, Reggae, Ambient",
+                                                      "file":  "Steppe_Heat_at_the_Quiz_Night.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Swiss Trap Theory",
+                                                      "genre":  "Trap, Folk",
+                                                      "file":  "Swiss_Trap_Theory.mp3"
+                                                  },
+                                                  {
+                                                      "artist":  "Söcial",
+                                                      "title":  "Tapas y Tangentes",
+                                                      "genre":  "Rock, Pop",
+                                                      "file":  "Tapas_y_Tangentes.mp3"
+                                                  }
+                                              ]
+              }
+}
+

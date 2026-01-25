@@ -1,0 +1,112 @@
+Metadata for: Literally_Multicultural-Neon_Yard_Vibes-63bf3d84-7ae9-4cbb-b9e7-93f132bfc9f3.mp3
+Generated: 2026-01-14T03:04:27.872Z
+
+--- Track Information ---
+Title: Kingston × Lagos × Akihabara
+Artist: ProgressiveDarkstep727
+Year: 2026
+
+--- Musical Information ---
+
+--- Creation Details ---
+Prompt: Instrumental-only track blending Jamaican dancehall bounce with Afrobeat percussion and bright Tokyo-anime synth leads. Mid-tempo groove driven by syncopated kick, offbeat skank chords, rubbery bass, and sharp percussion layers. Hooky chiptune-style topline weaves in and out, with occasional filtered drops and riser effects. Energy arcs from chilled intro into a playful, head-bobbing mid-section, then a slightly more intense final loop before a quick, satisfying fade., dancehall, afrobeat, anime
+
+--- Lyrics ---
+[Instrumental]
+
+Cover Art URL: https://cdn2.suno.ai/image_63bf3d84-7ae9-4cbb-b9e7-93f132bfc9f3.jpeg
+
+--- Raw API Response ---
+{
+  "status": "complete",
+  "title": "Kingston × Lagos × Akihabara",
+  "play_count": 6,
+  "upvote_count": 0,
+  "allow_comments": true,
+  "id": "63bf3d84-7ae9-4cbb-b9e7-93f132bfc9f3",
+  "entity_type": "song_schema",
+  "video_url": "",
+  "audio_url": "https://cdn1.suno.ai/63bf3d84-7ae9-4cbb-b9e7-93f132bfc9f3.mp3",
+  "image_url": "https://cdn2.suno.ai/image_63bf3d84-7ae9-4cbb-b9e7-93f132bfc9f3.jpeg",
+  "image_large_url": "https://cdn2.suno.ai/image_large_63bf3d84-7ae9-4cbb-b9e7-93f132bfc9f3.jpeg",
+  "major_model_version": "v5",
+  "model_name": "chirp-crow",
+  "metadata": {
+    "tags": "Instrumental-only track blending Jamaican dancehall bounce with Afrobeat percussion and bright Tokyo-anime synth leads. Mid-tempo groove driven by syncopated kick, offbeat skank chords, rubbery bass, and sharp percussion layers. Hooky chiptune-style topline weaves in and out, with occasional filtered drops and riser effects. Energy arcs from chilled intro into a playful, head-bobbing mid-section, then a slightly more intense final loop before a quick, satisfying fade., dancehall, afrobeat, anime",
+    "prompt": "[Instrumental]",
+    "gpt_description_prompt": "Pub trivia background music\n\n\"Jamaican dancehall\tTokyo anime studio\tAfrobeat\"",
+    "type": "gen",
+    "duration": 172.56,
+    "refund_credits": false,
+    "stream": true,
+    "make_instrumental": true,
+    "can_remix": true,
+    "is_remix": false,
+    "priority": 10,
+    "has_stem": false,
+    "video_is_stale": true,
+    "uses_latest_model": true,
+    "model_badges": {
+      "songcard": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        }
+      },
+      "songrow": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "FD429C1A",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "FD429C40",
+          "border_color": "00000000"
+        }
+      }
+    }
+  },
+  "is_liked": false,
+  "user_id": "1b76a5c6-812a-4eb9-86e8-fce5e58a8cac",
+  "display_name": "ProgressiveDarkstep727",
+  "handle": "progressivedarkstep727",
+  "is_handle_updated": false,
+  "avatar_image_url": "https://cdn1.suno.ai/defaultBlue.webp",
+  "is_trashed": false,
+  "created_at": "2026-01-12T09:07:34.704Z",
+  "is_public": false,
+  "reaction": {
+    "play_count": 4,
+    "skip_count": 0,
+    "flagged": false,
+    "clip": "63bf3d84-7ae9-4cbb-b9e7-93f132bfc9f3",
+    "updated_at": "2026-01-12T19:13:56.741Z"
+  },
+  "is_following_creator": false,
+  "project": {
+    "id": "7d22458b-be7a-4223-8fb7-247de9b5faf3",
+    "name": "Literally Multicultural",
+    "description": "Literally Multicultural",
+    "is_trashed": false,
+    "is_public": false
+  },
+  "ownership": {
+    "ownership_reason": "subscribed"
+  },
+  "explicit": false,
+  "comment_count": 0,
+  "flag_count": 0,
+  "display_tags": "dancehall, afrobeat, anime",
+  "is_contest_clip": false,
+  "has_hook": false,
+  "batch_index": 0
+}

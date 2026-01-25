@@ -1,0 +1,668 @@
+{
+    "tracks":  [
+                   {
+                       "file":  "Ale_at_the_Green_Griffin 2.mp3",
+                       "title":  "Ale at the Green Griffin 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Bardify-Ale_at_the_Green_Griffin-60fa5221-bdfe-43e7-964b-5ec082f055b3.mp3"
+                   },
+                   {
+                       "file":  "Ale_at_the_Green_Griffin.mp3",
+                       "title":  "Ale at the Green Griffin",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Bardify-Ale_at_the_Green_Griffin-2f1ddb57-0460-4018-b9e6-cc3987d6248a.mp3"
+                   },
+                   {
+                       "file":  "Ale_Riddles 2.mp3",
+                       "title":  "Ale \u0026 Riddles 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk, Jazz, Ambient",
+                       "description":  "Extracted from: Metadata for: Bardify-Ale_\u0026_Riddles-a9f8ff63-bafd-4e53-8e53-8c1252ba3a49.mp3"
+                   },
+                   {
+                       "file":  "Ale_Riddles.mp3",
+                       "title":  "Ale \u0026 Riddles",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk, Jazz, Ambient",
+                       "description":  "Extracted from: Metadata for: Bardify-Ale_\u0026_Riddles-828c665b-7409-408e-8333-b4baa267e1a8.mp3"
+                   },
+                   {
+                       "file":  "Ancient_Laser_Chant.mp3",
+                       "title":  "Ancient Laser Chant",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Ancient_Laser_Chant-d4242239-5ac3-4f56-af12-d5be749c8bb8.mp3"
+                   },
+                   {
+                       "file":  "Anime_Andaluz.mp3",
+                       "title":  "Anime Andaluz",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Trap, Hip Hop, Pop",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Midnight_Quiz_Showdown-0cb1c0d9-dca5-457d-9240-7dc1d9310668.mp3"
+                   },
+                   {
+                       "file":  "Back_Table_Braggin 2.mp3",
+                       "title":  "Back Table Braggin\u0027 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Felonious Funk",
+                       "genre":  "Hip Hop",
+                       "description":  "Extracted from: Metadata for: Felonious_Funk-Back_Table_Braggin\u0027-a665a1f6-7391-4443-993c-f55525701e4d.mp3"
+                   },
+                   {
+                       "file":  "Back_Table_Braggin.mp3",
+                       "title":  "Back Table Braggin\u0027",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Felonious Funk",
+                       "genre":  "Hip Hop",
+                       "description":  "Extracted from: Metadata for: Felonious_Funk-Back_Table_Braggin\u0027-3ae6c2b9-c60a-445c-b796-678a9e0f7b4d.mp3"
+                   },
+                   {
+                       "file":  "Baroque_Starship_Overture.mp3",
+                       "title":  "Baroque Starship Overture",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Time Traveler Beats",
+                       "genre":  "House",
+                       "description":  "Extracted from: Metadata for: Time_Traveler_Beats-Baroque_Starship_Overture-4d31408d-d140-4a0e-a2da-4cd95090d556.mp3"
+                   },
+                   {
+                       "file":  "Comps_Over_9000.mp3",
+                       "title":  "CompÃ¡s Over 9000",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Trap, Rock, Hip Hop",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Saffron_Quiz_Night-d53e03d8-af8e-4469-9452-40a850ba7b3a.mp3"
+                   },
+                   {
+                       "file":  "Courtyard_Funk_Procession 2.mp3",
+                       "title":  "Courtyard Funk Procession 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk, Funk",
+                       "description":  "Extracted from: Metadata for: Bardify-Courtyard_Funk_Procession-d346aefd-d3b1-442d-8397-a5ef0af9d26d.mp3"
+                   },
+                   {
+                       "file":  "Courtyard_Funk_Procession.mp3",
+                       "title":  "Courtyard Funk Procession",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk, Funk",
+                       "description":  "Extracted from: Metadata for: Bardify-Courtyard_Funk_Procession-62a3d691-8400-4837-a5cb-93bd497b1399.mp3"
+                   },
+                   {
+                       "file":  "Crusader_Campfire_Riddims 2.mp3",
+                       "title":  "Crusader Campfire Riddims 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Time Traveler Beats",
+                       "genre":  "Folk, Reggae",
+                       "description":  "Extracted from: Metadata for: Time_Traveler_Beats-Crusader_Campfire_Riddims-56f85658-d67f-47f5-913f-fd662b473931.mp3"
+                   },
+                   {
+                       "file":  "Crusader_Campfire_Riddims.mp3",
+                       "title":  "Crusader Campfire Riddims",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Time Traveler Beats",
+                       "genre":  "Folk, Reggae",
+                       "description":  "Extracted from: Metadata for: Time_Traveler_Beats-Crusader_Campfire_Riddims-16d7b696-35cc-4185-a6d7-3061c4692264.mp3"
+                   },
+                   {
+                       "file":  "Embers_in_the_Oak_Hall 2.mp3",
+                       "title":  "Embers in the Oak Hall 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Bardify-Embers_in_the_Oak_Hall-9a7808a3-dd50-401e-b04c-f7a6cae58d96.mp3"
+                   },
+                   {
+                       "file":  "Embers_in_the_Oak_Hall.mp3",
+                       "title":  "Embers in the Oak Hall",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Bardify-Embers_in_the_Oak_Hall-93f37a29-4565-4d46-ad03-2af603db164d.mp3"
+                   },
+                   {
+                       "file":  "Flamenca_Fractals 2.mp3",
+                       "title":  "Flamenca Fractals 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Rock, Pop",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Flamenca_Fractals-e7e5083e-f4f7-4099-b4e6-76400b015332.mp3"
+                   },
+                   {
+                       "file":  "Flamenca_Fractals.mp3",
+                       "title":  "Flamenca Fractals",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Rock, Pop",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Flamenca_Fractals-9ca1b534-3891-4898-a287-6b82d453d96c.mp3"
+                   },
+                   {
+                       "file":  "Fog_In_The_Back_Room 2.mp3",
+                       "title":  "Fog In The Back Room 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Hip Hop",
+                       "description":  "Extracted from: Metadata for: Noir-Fog_In_The_Back_Room-dac59e76-d541-4123-9d15-b8162ddcd83e.mp3"
+                   },
+                   {
+                       "file":  "Fog_In_The_Back_Room.mp3",
+                       "title":  "Fog In The Back Room",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Hip Hop",
+                       "description":  "Extracted from: Metadata for: Noir-Fog_In_The_Back_Room-c706bbe4-d384-4363-9611-58c2821e2ef8.mp3"
+                   },
+                   {
+                       "file":  "Geneva_Grime.mp3",
+                       "title":  "Geneva Grime",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Trap, Folk",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Swiss_Alp_Drill-534b32c9-24fe-485e-919e-b56a7fcf639d.mp3"
+                   },
+                   {
+                       "file":  "Gregorian_Dancefloor_Chant 2.mp3",
+                       "title":  "Gregorian Dancefloor Chant 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Time Traveler Beats",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Time_Traveler_Beats-Gregorian_Dancefloor_Chant-feacf6fb-0cc8-4b52-bfd3-6616dd666f47.mp3"
+                   },
+                   {
+                       "file":  "Gregorian_Dancefloor_Chant.mp3",
+                       "title":  "Gregorian Dancefloor Chant",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Time Traveler Beats",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Time_Traveler_Beats-Gregorian_Dancefloor_Chant-12788b09-8007-4ff0-90d2-0bf49aae7441.mp3"
+                   },
+                   {
+                       "file":  "Gundam_Wing_Espaa.mp3",
+                       "title":  "Gundam Wing EspaÃ±a",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Trap, Rock, Hip Hop",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Saffron_Quiz_Night-23815017-2411-41d5-99d7-ef16280d0c0a.mp3"
+                   },
+                   {
+                       "file":  "Kilted_Bass_Night 2.mp3",
+                       "title":  "Kilted Bass Night 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Drum \u0026 Bass",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Kilted_Bass_Night-f591bbe2-d136-4a95-9280-e9e6501c6be8.mp3"
+                   },
+                   {
+                       "file":  "Kilted_Bass_Night.mp3",
+                       "title":  "Kilted Bass Night",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Drum \u0026 Bass",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Kilted_Bass_Night-c3197da0-9c91-4dbf-9326-ddb7e1fe3f95.mp3"
+                   },
+                   {
+                       "file":  "Kingston_Lagos_Akihabara.mp3",
+                       "title":  "Kingston Ã— Lagos Ã— Akihabara",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Reggae, Chiptune",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Neon_Yard_Vibes-63bf3d84-7ae9-4cbb-b9e7-93f132bfc9f3.mp3"
+                   },
+                   {
+                       "file":  "Knight_Shift_Showdown 2.mp3",
+                       "title":  "Knight Shift Showdown 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Time Traveler Beats",
+                       "genre":  "Folk, Hip Hop",
+                       "description":  "Extracted from: Metadata for: Time_Traveler_Beats-Knight_Shift_Showdown-ffe052b0-3fd0-4f61-a091-293e638a9b32.mp3"
+                   },
+                   {
+                       "file":  "Knight_Shift_Showdown.mp3",
+                       "title":  "Knight Shift Showdown",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Time Traveler Beats",
+                       "genre":  "Folk, Hip Hop",
+                       "description":  "Extracted from: Metadata for: Time_Traveler_Beats-Knight_Shift_Showdown-9186eddc-6396-47ef-88e9-c7329544f40d.mp3"
+                   },
+                   {
+                       "file":  "Mead_Hall_Thunder 2.mp3",
+                       "title":  "Mead Hall Thunder 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Bardify-Mead_Hall_Thunder-674a56cf-f470-4ec2-b9c0-b321208446e1.mp3"
+                   },
+                   {
+                       "file":  "Mead_Hall_Thunder.mp3",
+                       "title":  "Mead Hall Thunder",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Bardify-Mead_Hall_Thunder-0c291189-4e20-433b-8db7-ddc645be9a18.mp3"
+                   },
+                   {
+                       "file":  "Michelangelos_Coffee_Break.mp3",
+                       "title":  "Michelangeloâ€™s Coffee Break",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Bardify-Michelangeloâ€™s_Coffee_Break-28a08f34-d127-4f7e-8f88-6625f0ff9067.mp3"
+                   },
+                   {
+                       "file":  "Midnight_Alley_Clues 2.mp3",
+                       "title":  "Midnight Alley Clues 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Hip Hop",
+                       "description":  "Extracted from: Metadata for: Noir-Midnight_Alley_Clues-1d8672f9-5b6a-4b44-8b05-e79d153de667.mp3"
+                   },
+                   {
+                       "file":  "Midnight_Alley_Clues.mp3",
+                       "title":  "Midnight Alley Clues",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Hip Hop",
+                       "description":  "Extracted from: Metadata for: Noir-Midnight_Alley_Clues-15e5326b-e7f0-4464-a96d-c90922526c4d.mp3"
+                   },
+                   {
+                       "file":  "Midnight_Casefile 2.mp3",
+                       "title":  "Midnight Casefile 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Blues, Vintage",
+                       "description":  "Extracted from: Metadata for: Noir-Midnight_Casefile-b30d0d14-4bd6-41c4-af26-c3d7277b7939.mp3"
+                   },
+                   {
+                       "file":  "Midnight_Casefile.mp3",
+                       "title":  "Midnight Casefile",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Blues, Vintage",
+                       "description":  "Extracted from: Metadata for: Noir-Midnight_Casefile-846a89c4-f9d6-40a9-b21e-c8e1babaf1a2.mp3"
+                   },
+                   {
+                       "file":  "Midnight_Case_File.mp3",
+                       "title":  "Midnight Case File",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz",
+                       "description":  "Extracted from: Metadata for: Noir-Midnight_Case_File-6350c37c-f436-40e4-b4b0-ba737d616494.mp3"
+                   },
+                   {
+                       "file":  "Midnight_Clues.mp3",
+                       "title":  "Midnight Clues",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Soundtrack, Vintage, Hip Hop",
+                       "description":  "Extracted from: Metadata for: Noir-Midnight_Clues-afb65330-fde0-47ca-ac68-910e2c503530.mp3"
+                   },
+                   {
+                       "file":  "Midnight_Footsteps 2.mp3",
+                       "title":  "Midnight Footsteps 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Blues",
+                       "description":  "Extracted from: Metadata for: Noir-Midnight_Footsteps-af70d3ba-9fc0-4ee7-a6eb-463fdca37e9e.mp3"
+                   },
+                   {
+                       "file":  "Midnight_Footsteps.mp3",
+                       "title":  "Midnight Footsteps",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Blues",
+                       "description":  "Extracted from: Metadata for: Noir-Midnight_Footsteps-8f83d69b-b605-4022-991e-1353b2dd27b7.mp3"
+                   },
+                   {
+                       "file":  "Midnight_Quiz_Noir 2.mp3",
+                       "title":  "Midnight Quiz Noir 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz",
+                       "description":  "Extracted from: Metadata for: Noir-Midnight_Quiz_Noir-c0224596-b8b8-432a-8fa5-e9adee1bcc6b.mp3"
+                   },
+                   {
+                       "file":  "Midnight_Quiz_Noir.mp3",
+                       "title":  "Midnight Quiz Noir",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz",
+                       "description":  "Extracted from: Metadata for: Noir-Midnight_Quiz_Noir-06698382-64f2-43a4-b3ad-be1abf3fe084.mp3"
+                   },
+                   {
+                       "file":  "Minus_Zero.mp3",
+                       "title":  "Harpsichord at T-Minus Zero",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Time Traveler Beats",
+                       "genre":  "House",
+                       "description":  "Extracted from: Metadata for: Time_Traveler_Beats-Harpsichord_at_T-Minus_Zero-9dcaf4a7-1831-41ca-817a-b963a7f18ae2.mp3"
+                   },
+                   {
+                       "file":  "Neural_Legion_at_the_Bar 2.mp3",
+                       "title":  "Neural Legion at the Bar 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Time Traveler Beats",
+                       "genre":  "Trap, Soundtrack",
+                       "description":  "Extracted from: Metadata for: Time_Traveler_Beats-Neural_Legion_at_the_Bar-6c6ba63f-87f0-4462-aed6-29deccd44a0e.mp3"
+                   },
+                   {
+                       "file":  "Neural_Legion_at_the_Bar.mp3",
+                       "title":  "Neural Legion at the Bar",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Time Traveler Beats",
+                       "genre":  "Trap, Soundtrack",
+                       "description":  "Extracted from: Metadata for: Time_Traveler_Beats-Neural_Legion_at_the_Bar-080805e4-42f4-4272-95f9-56c0f5d6743e.mp3"
+                   },
+                   {
+                       "file":  "Nile_Light_Ritual.mp3",
+                       "title":  "Nile Light Ritual",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Nile_Light_Ritual-ebb73373-6c63-479e-8320-5288c1d3dedb.mp3"
+                   },
+                   {
+                       "file":  "Ouzo_On_Repeat 2.mp3",
+                       "title":  "Ouzo On Repeat 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Synthwave",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Ouzo_On_Repeat-88fa1b8c-e7ff-431b-abc7-cf37facec089.mp3"
+                   },
+                   {
+                       "file":  "Ouzo_On_Repeat.mp3",
+                       "title":  "Ouzo On Repeat",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Synthwave",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Ouzo_On_Repeat-2d8b2d63-2297-43ff-9628-4f26b7dede63.mp3"
+                   },
+                   {
+                       "file":  "Pitchforks_On_The_Dancefloor 2.mp3",
+                       "title":  "Pitchforks On The Dancefloor 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Time Traveler Beats",
+                       "genre":  "Disco, Folk",
+                       "description":  "Extracted from: Metadata for: Time_Traveler_Beats-Pitchforks_On_The_Dancefloor-e484c8f9-fd75-4dc4-b54b-8a31efac3605.mp3"
+                   },
+                   {
+                       "file":  "Pitchforks_On_The_Dancefloor.mp3",
+                       "title":  "Pitchforks On The Dancefloor",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Time Traveler Beats",
+                       "genre":  "Disco, Folk",
+                       "description":  "Extracted from: Metadata for: Time_Traveler_Beats-Pitchforks_On_The_Dancefloor-98387ac8-5af4-4b3a-b4ef-f6430c4cdec9.mp3"
+                   },
+                   {
+                       "file":  "Rain_on_the_Basement_Steps 2.mp3",
+                       "title":  "Rain on the Basement Steps 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Blues",
+                       "description":  "Extracted from: Metadata for: Noir-Rain_on_the_Basement_Steps-170060ff-477c-447b-a714-ad8c9c488270.mp3"
+                   },
+                   {
+                       "file":  "Rain_on_the_Basement_Steps.mp3",
+                       "title":  "Rain on the Basement Steps",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Blues",
+                       "description":  "Extracted from: Metadata for: Noir-Rain_on_the_Basement_Steps-02f2b3d6-b762-4a76-9bf6-a2ecceb5ceda.mp3"
+                   },
+                   {
+                       "file":  "Regulators_Round 2.mp3",
+                       "title":  "Regulatorâ€™s Round 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Felonious Funk",
+                       "genre":  "Funk",
+                       "description":  "Extracted from: Metadata for: Felonious_Funk-Regulatorâ€™s_Round-41d50504-7105-4bd7-9001-ee857ae1e1c3.mp3"
+                   },
+                   {
+                       "file":  "Regulators_Round.mp3",
+                       "title":  "Regulatorâ€™s Round",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Felonious Funk",
+                       "genre":  "Funk",
+                       "description":  "Extracted from: Metadata for: Felonious_Funk-Regulatorâ€™s_Round-0dd1f69d-ec84-46be-bb05-fed2a67572f7.mp3"
+                   },
+                   {
+                       "file":  "Renaissance_Pit_Stop.mp3",
+                       "title":  "Renaissance Pit Stop",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Time Traveler Beats",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Time_Traveler_Beats-Renaissance_Pit_Stop-15e2d41f-bebe-40af-93ec-95914cfab58e.mp3"
+                   },
+                   {
+                       "file":  "Rowdy_Quiz_Night_Reel 2.mp3",
+                       "title":  "Rowdy Quiz Night Reel 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Bardify-Rowdy_Quiz_Night_Reel-f6f57165-dccd-4d39-9dd5-11104a44c657.mp3"
+                   },
+                   {
+                       "file":  "Rowdy_Quiz_Night_Reel.mp3",
+                       "title":  "Rowdy Quiz Night Reel",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Bardify-Rowdy_Quiz_Night_Reel-5a0166e9-aa72-417d-a8b4-011d184c319b.mp3"
+                   },
+                   {
+                       "file":  "Salty_Quiz_Night_Jig 2.mp3",
+                       "title":  "Salty Quiz Night Jig 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Bardify-Salty_Quiz_Night_Jig-f2372028-056f-4fda-8fdc-e988d5da22f2.mp3"
+                   },
+                   {
+                       "file":  "Salty_Quiz_Night_Jig.mp3",
+                       "title":  "Salty Quiz Night Jig",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Bardify-Salty_Quiz_Night_Jig-a7f158a1-4841-4b68-a1bb-a26d5efe0823.mp3"
+                   },
+                   {
+                       "file":  "Shadowed_Corners 2.mp3",
+                       "title":  "Shadowed Corners 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Hip Hop",
+                       "description":  "Extracted from: Metadata for: Noir-Shadowed_Corners-517543cb-2b70-4f49-b7e0-e772b0cbc563.mp3"
+                   },
+                   {
+                       "file":  "Shadowed_Corners.mp3",
+                       "title":  "Shadowed Corners",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Hip Hop",
+                       "description":  "Extracted from: Metadata for: Noir-Shadowed_Corners-06b50dc5-6932-4894-8767-c9539a3f31b2.mp3"
+                   },
+                   {
+                       "file":  "Shibuya_Palmas.mp3",
+                       "title":  "Shibuya Palmas",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Trap, Hip Hop, Pop",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Midnight_Quiz_Showdown-d3b77718-f629-4e9c-ac26-24c2177b6e4c.mp3"
+                   },
+                   {
+                       "file":  "Smoke_On_The_Bar_Tab.mp3",
+                       "title":  "Smoke On The Bar Tab",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz",
+                       "description":  "Extracted from: Metadata for: Noir-Smoke_On_The_Bar_Tab-408087df-4f75-45a1-bd30-24b5f55c99d5.mp3"
+                   },
+                   {
+                       "file":  "Smoke_Under_The_Streetlamp 2.mp3",
+                       "title":  "Smoke Under The Streetlamp 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Soundtrack",
+                       "description":  "Extracted from: Metadata for: Noir-Smoke_Under_The_Streetlamp-769302f8-b34f-43b2-aef3-ac42d9e99d63.mp3"
+                   },
+                   {
+                       "file":  "Smoke_Under_The_Streetlamp.mp3",
+                       "title":  "Smoke Under The Streetlamp",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Soundtrack",
+                       "description":  "Extracted from: Metadata for: Noir-Smoke_Under_The_Streetlamp-504b6cdb-0968-4dfa-bdc6-336a4a8b002e.mp3"
+                   },
+                   {
+                       "file":  "Smolder_in_the_Corner 2.mp3",
+                       "title":  "Smolder in the Corner 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Cool Jazz, Lounge, Ballad",
+                       "description":  "Extracted from: Metadata for: Noir-Smolder_in_the_Corner-f2f21e30-4524-46ce-acd2-0d58b459bced.mp3"
+                   },
+                   {
+                       "file":  "Smolder_in_the_Corner.mp3",
+                       "title":  "Smolder in the Corner",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Cool Jazz, Lounge, Ballad",
+                       "description":  "Extracted from: Metadata for: Noir-Smolder_in_the_Corner-bc979662-0bdd-4459-b0cc-582f4a188845.mp3"
+                   },
+                   {
+                       "file":  "Spice_Smoke 2.mp3",
+                       "title":  "Spice \u0026 Smoke 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Funk",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Spice_\u0026_Smoke-ecb21402-d804-43bd-87b2-0da57ea7cd37.mp3"
+                   },
+                   {
+                       "file":  "Spice_Smoke.mp3",
+                       "title":  "Spice \u0026 Smoke",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Funk",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Spice_\u0026_Smoke-e53af377-f367-4f02-a056-89b7af2b53c8.mp3"
+                   },
+                   {
+                       "file":  "Steppe_Heat_at_the_Quiz_Night 2.mp3",
+                       "title":  "Steppe Heat at the Quiz Night 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Folk, Reggae, Ambient",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Steppe_Heat_at_the_Quiz_Night-4622629f-5c8e-4ccf-b20a-248f61c7597d.mp3"
+                   },
+                   {
+                       "file":  "Steppe_Heat_at_the_Quiz_Night.mp3",
+                       "title":  "Steppe Heat at the Quiz Night",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Folk, Reggae, Ambient",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Steppe_Heat_at_the_Quiz_Night-2eb94440-9458-4e46-b797-25fec5e620de.mp3"
+                   },
+                   {
+                       "file":  "Sunset_Quiz_Cruise 2.mp3",
+                       "title":  "Sunset Quiz Cruise 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Felonious Funk",
+                       "genre":  "Funk, Hip Hop",
+                       "description":  "Extracted from: Metadata for: Felonious_Funk-Sunset_Quiz_Cruise-99ec9dd8-2c89-4775-9081-51e05d720db5.mp3"
+                   },
+                   {
+                       "file":  "Sunset_Quiz_Cruise.mp3",
+                       "title":  "Sunset Quiz Cruise",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Felonious Funk",
+                       "genre":  "Funk, Hip Hop",
+                       "description":  "Extracted from: Metadata for: Felonious_Funk-Sunset_Quiz_Cruise-439598f3-8fc4-4475-a961-aaf1ce583b91.mp3"
+                   },
+                   {
+                       "file":  "Swiss_Trap_Theory.mp3",
+                       "title":  "Swiss Trap Theory",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Trap, Folk",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Swiss_Alp_Drill-092254fb-3074-42c7-b01a-b3b8fbacaedb.mp3"
+                   },
+                   {
+                       "file":  "Tapas_y_Tangentes.mp3",
+                       "title":  "Tapas y Tangentes",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Literally Multicultural",
+                       "genre":  "Rock, Pop",
+                       "description":  "Extracted from: Metadata for: Literally_Multicultural-Tapas_y_Tangentes-d300fc91-0afc-4a68-88d4-3c8d5345538e.mp3"
+                   },
+                   {
+                       "file":  "Tavern_of_the_Tides 2.mp3",
+                       "title":  "Tavern of the Tides 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Bardify-Tavern_of_the_Tides-cc370d6d-3cda-43b9-904c-1eb53b9cb839.mp3"
+                   },
+                   {
+                       "file":  "Tavern_of_the_Tides.mp3",
+                       "title":  "Tavern of the Tides",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Bardify-Tavern_of_the_Tides-48eb9fc0-0910-4731-98a6-b73295a31bf3.mp3"
+                   },
+                   {
+                       "file":  "Velvet_Alibi.mp3",
+                       "title":  "Velvet Alibi",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Lounge, Hip Hop",
+                       "description":  "Extracted from: Metadata for: Noir-Velvet_Alibi-59a1925d-de96-427e-a351-26616078318a.mp3"
+                   },
+                   {
+                       "file":  "Velvet_Clue.mp3",
+                       "title":  "Velvet Clue",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Vintage, Hip Hop",
+                       "description":  "Extracted from: Metadata for: Noir-Velvet_Clue-c3939b6f-e208-45c7-88bf-0370bf11a28d.mp3"
+                   },
+                   {
+                       "file":  "Velvet_Questions 2.mp3",
+                       "title":  "Velvet Questions 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Soundtrack",
+                       "description":  "Extracted from: Metadata for: Noir-Velvet_Questions-fa23700f-2d33-45e6-8ce8-bec61e0871fe.mp3"
+                   },
+                   {
+                       "file":  "Velvet_Questions.mp3",
+                       "title":  "Velvet Questions",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Noir",
+                       "genre":  "Jazz, Soundtrack",
+                       "description":  "Extracted from: Metadata for: Noir-Velvet_Questions-094dc1a1-1180-436f-bf20-96da1f5c5694.mp3"
+                   },
+                   {
+                       "file":  "Village_Green_Revelry 2.mp3",
+                       "title":  "Village Green Revelry 2",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Bardify-Village_Green_Revelry-815cd0b2-b435-4a1d-9b5a-725f63bfc259.mp3"
+                   },
+                   {
+                       "file":  "Village_Green_Revelry.mp3",
+                       "title":  "Village Green Revelry",
+                       "artist":  "Su00f6cial",
+                       "primaryVibe":  "Bardify",
+                       "genre":  "Folk",
+                       "description":  "Extracted from: Metadata for: Bardify-Village_Green_Revelry-64169ade-a92f-4d98-83d7-fda30ab52545.mp3"
+                   }
+               ]
+}

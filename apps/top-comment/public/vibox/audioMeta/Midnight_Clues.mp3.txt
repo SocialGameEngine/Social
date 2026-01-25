@@ -1,0 +1,111 @@
+Metadata for: Noir-Midnight_Clues-afb65330-fde0-47ca-ac68-910e2c503530.mp3
+Generated: 2026-01-13T07:37:59.328Z
+
+--- Track Information ---
+Title: Midnight Clues
+Artist: ProgressiveDarkstep727
+Year: 2026
+
+--- Musical Information ---
+
+--- Creation Details ---
+Prompt: jazz, Smoky noir jazz with brushed drums, moody tenor sax taking the lead over warm vintage piano voicings in a slow swing. Upright bass walks softly, creating a relaxed but mysterious detective-club vibe. Occasional vibraphone flourishes and muted trumpet fills weave in; mix sits comfortably under conversation while still feeling cinematic and alive., slow, saxophone, moody, beats
+
+--- Lyrics ---
+[Instrumental]
+
+Cover Art URL: https://cdn2.suno.ai/image_afb65330-fde0-47ca-ac68-910e2c503530.jpeg
+
+--- Raw API Response ---
+{
+  "status": "complete",
+  "title": "Midnight Clues",
+  "play_count": 7,
+  "upvote_count": 0,
+  "allow_comments": true,
+  "id": "afb65330-fde0-47ca-ac68-910e2c503530",
+  "entity_type": "song_schema",
+  "video_url": "",
+  "audio_url": "https://cdn1.suno.ai/afb65330-fde0-47ca-ac68-910e2c503530.mp3",
+  "image_url": "https://cdn2.suno.ai/image_afb65330-fde0-47ca-ac68-910e2c503530.jpeg",
+  "image_large_url": "https://cdn2.suno.ai/image_large_afb65330-fde0-47ca-ac68-910e2c503530.jpeg",
+  "major_model_version": "v5",
+  "model_name": "chirp-crow",
+  "metadata": {
+    "tags": "jazz, Smoky noir jazz with brushed drums, moody tenor sax taking the lead over warm vintage piano voicings in a slow swing. Upright bass walks softly, creating a relaxed but mysterious detective-club vibe. Occasional vibraphone flourishes and muted trumpet fills weave in; mix sits comfortably under conversation while still feeling cinematic and alive., slow, saxophone, moody, beats",
+    "prompt": "[Instrumental]",
+    "gpt_description_prompt": "Pub trivia background music\n\n\"Noir Moody saxophone over rain-slick streets, vintage piano chords, slow jazz beats, detective vibe, major key\"",
+    "type": "gen",
+    "duration": 239.84,
+    "refund_credits": false,
+    "stream": true,
+    "make_instrumental": true,
+    "can_remix": true,
+    "is_remix": false,
+    "priority": 10,
+    "has_stem": false,
+    "uses_latest_model": true,
+    "model_badges": {
+      "songcard": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        }
+      },
+      "songrow": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "FD429C1A",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "FD429C40",
+          "border_color": "00000000"
+        }
+      }
+    }
+  },
+  "is_liked": false,
+  "user_id": "1b76a5c6-812a-4eb9-86e8-fce5e58a8cac",
+  "display_name": "ProgressiveDarkstep727",
+  "handle": "progressivedarkstep727",
+  "is_handle_updated": false,
+  "avatar_image_url": "https://cdn1.suno.ai/defaultBlue.webp",
+  "is_trashed": false,
+  "created_at": "2026-01-12T09:59:53.957Z",
+  "is_public": false,
+  "reaction": {
+    "play_count": 1,
+    "skip_count": 0,
+    "flagged": false,
+    "clip": "afb65330-fde0-47ca-ac68-910e2c503530",
+    "updated_at": "2026-01-12T10:00:49.335Z"
+  },
+  "is_following_creator": false,
+  "project": {
+    "id": "7e308186-7298-4282-ad51-5ed6813614da",
+    "name": "Noir",
+    "description": "Noir",
+    "is_trashed": false,
+    "is_public": false
+  },
+  "ownership": {
+    "ownership_reason": "subscribed"
+  },
+  "explicit": false,
+  "comment_count": 0,
+  "flag_count": 0,
+  "display_tags": "jazz",
+  "is_contest_clip": false,
+  "has_hook": false,
+  "batch_index": 1
+}

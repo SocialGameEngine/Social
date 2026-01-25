@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-**Social** is a host-less, browser-based gaming platform for bars. One staff member controls the games (Top Comment + VIBox) from a venue device (laptop/tablet connected to TV), while players join from their phones via QR code.
+**Social** is a modular, browser-based gaming platform for bars built on a game engine architecture. The system supports multiple game modes including Top Comment (event and solo) and VIBox jukebox. One staff member controls event games from a venue device while players join via QR code, with real-time state management and team-based gameplay.
 
 This document describes the end-to-end game flow for a Social night in a bar.
 
@@ -11,19 +11,39 @@ This document describes the end-to-end game flow for a Social night in a bar.
 ## 2. Roles
 
 **Venue Staff (Host/Bartender)**
-- Starts and controls game sessions on the venue device
-- Advances rounds and prompts (taps "Next")
-- Makes announcements (celebrates winners, reminds players to order drinks)
+- Creates and manages game sessions via the game engine interface
+- Controls phase transitions and game pacing
+- Can pause/resume sessions with time tracking
+- Manages team roster and can remove teams if needed
+- Makes announcements and celebrates winners
+- Accesses real-time analytics and revenue tracking
 
 **Players / Patrons**
 - Join via QR code or short URL on their phones
-- Form teams, submit answers/votes, compete
+- Form teams using unique 4-digit team codes
+- First team member automatically becomes captain
+- Captains submit team answers and manage team composition
+- Team members vote on responses and participate in gameplay
+- Can select categories for bonus rounds (Jeopardy mode)
 - Pay $1.50–$2.00 per play/song
+- Can play solo mode outside of events
+
+**Team Captains**
+- Auto-assigned to first player joining team
+- Submit answers on behalf of team
+- Can transfer captain role to other team members
+- Responsible for team coordination during gameplay
 
 **Social System**
-- Manages sessions, rounds, scoring, real-time state
-- Tracks engagement metrics and aggregates analytics for venue dashboard
+- Game engine manages sessions, phases, scoring, and real-time state
+- Supports multiple game modes (event/patron) and game types
+- **Team System**: Manages team codes, captain assignment, and member roles
+- **Real-time Collaboration**: Team members coordinate via shared devices
+- **Session Management**: Teams isolated per game session with unique codes
+- Tracks engagement metrics and comprehensive analytics
+- Manages VIBox queue system and track metadata
 - Handles payments via Helcim/Stripe
+- Provides pause/resume functionality with time tracking
 
 ---
 
@@ -34,11 +54,14 @@ This document describes the end-to-end game flow for a Social night in a bar.
    - Connects device to bar TV/projector (HDMI or AirPlay)
 
 2. **Select game configuration**
-   - Choose game: "Top Comment Night" or "VIBox Jukebox" or "Both"
-   - Set parameters:
+   - Choose game mode: "Top Comment (Event)" or "Top Comment (Solo)" or "VIBox Jukebox"
+   - Set game parameters:
+     - Game mode: "classic" or "jeopardy"
      - Number of rounds (typically 3–5)
-     - Tone/difficulty (bar-friendly, rated G)
-     - Sponsored rounds (if applicable)
+     - Phase timing: answerSecs, voteSecs, resultsSecs (default: 60/30/15)
+     - Maximum teams (2–24)
+     - Selected categories (for Jeopardy mode)
+   - Optional: Enable pause functionality and sponsor rounds
 
 3. **Display lobby screen**
    - TV shows:
@@ -55,15 +78,82 @@ This document describes the end-to-end game flow for a Social night in a bar.
    - Player scans QR code or enters short URL
    - Social PWA opens in mobile browser (no app, no login)
 
-2. **Create or join a team**
-   - Player creates new team or joins existing team at table
-   - Team chooses name (e.g., "The Roasters", "Bar Flies")
-   - Optional: Team chooses emoji/avatar
+2. **Team Code System**
+   - Venue device generates 20 unique 4-digit team codes per session
+   - Codes are globally unique across all sessions
+   - Staff can pre-assign codes or let system auto-assign
+   - TV displays available codes or QR code for joining
 
-3. **Ready state**
-   - Staff sees live join count on venue device
+3. **Create or join a team**
+   - **Create Team**: Player enters unique team code from venue device
+     - Code is assigned to team permanently for session
+     - First player becomes team captain automatically
+     - Team chooses name (e.g., "The Roasters", "Bar Flies")
+     - Optional: Team selects mascot/avatar
+   - **Join Team**: Player enters existing team code
+     - Joins as team member (not captain)
+     - Can join multiple teams per device if needed
+   - **Captain Assignment**: Automatic via database trigger
+     - First member to join team gets `is_captain = true`
+     - Captain can submit answers and manage team
+     - Captain role can be transferred via `transfer_captain()` function
+
+4. **Team Member Management**
+   - **Multi-device support**: Players can use different devices
+   - **Unique constraints**: `(team_id, user_id, device_id)` prevents duplicates
+   - **Activity tracking**: `last_active` timestamp updates on interactions
+   - **Session isolation**: Teams belong to specific game sessions
+
+5. **Ready state**
+   - Staff sees live team count on venue device
    - TV lobby updates: "5 teams joined! Ready to start?"
    - Staff taps "Start" when ready
+
+---
+
+## 4.1 Team System Architecture
+
+### Database Tables
+
+**teams**
+- `id` (UUID): Primary key
+- `session_id` (UUID): Links to game session
+- `name` (VARCHAR): Team display name
+- `team_code` (VARCHAR(4)): Unique 4-digit join code
+- `captain_id` (UUID): References team captain
+- `created_at` (TIMESTAMP): Team creation time
+
+**team_codes**
+- `id` (UUID): Primary key
+- `code` (VARCHAR(4)): Unique 4-digit code
+- `session_id` (UUID): Session this code belongs to
+- `team_id` (UUID, nullable): Assigned team when used
+- `created_at` (TIMESTAMP): Code generation time
+- `assigned_at` (TIMESTAMP, nullable): When code was assigned
+- `is_used` (BOOLEAN): Usage status
+
+**team_members**
+- `id` (UUID): Primary key
+- `team_id` (UUID): Team membership
+- `user_id` (UUID): Player user ID
+- `device_id` (VARCHAR): Device identifier
+- `joined_at` (TIMESTAMP): Join timestamp
+- `last_active` (TIMESTAMP): Last activity
+- `is_captain` (BOOLEAN): Captain status
+
+### Key Functions
+
+- `generate_team_codes(session_uuid, num_codes)`: Creates unique codes for session
+- `assign_team_code(team_uuid)`: Assigns available code to team
+- `transfer_captain(team_id, new_captain_id)`: Changes team captain
+- Auto-triggers: Captain assignment, code assignment on team creation
+
+### Security & Permissions
+
+- **Row Level Security (RLS)** enabled on all tables
+- Team members can view their own teams only
+- Captains can manage team member roles
+- Service role has full access for system operations
 
 ---
 
@@ -71,38 +161,42 @@ This document describes the end-to-end game flow for a Social night in a bar.
 
 ### Round Structure
 
-1. **Round intro**
-   - TV displays: "Round 1: Icebreakers"
+1. **Phase: Lobby**
+   - TV displays: "Round 1: Icebreakers" or category selection for Jeopardy mode
+   - Teams see round info and prepare for competition
    - Optional sponsor branding
 
-2. **Prompt display**
-   - Staff taps "Next" on venue device
+2. **Phase: Category Selection (Jeopardy mode only)**
+   - Staff taps "Next" to advance to category selection
+   - TV displays category grid with point values
+   - Selecting team chooses category for bonus points/multiplier
+   - Timer counts down (categorySelectSecs setting)
+
+3. **Phase: Answer**
+   - Staff taps "Next" to reveal prompt
    - TV displays comedy prompt (e.g., "Finish this: The worst thing to say at a bar is...")
    - Players see same prompt on their phones
+   - Team members discuss and captain submits response
+   - Timer counts down (answerSecs setting, default 60 seconds)
+   - Late submissions allowed but marked
 
-3. **Player response phase (60–90 seconds)**
-   - Teams discuss at their table
-   - One team member submits a creative "roast" response via phone
-   - Timer counts down on TV and phones
-   - Late submissions marked but still allowed
-
-4. **Locking answers**
+4. **Phase: Vote**
    - Timer expires or staff taps "Next"
-   - All submissions freeze
-
-5. **Reveal & voting**
    - TV displays all responses (anonymized or by team name)
    - Players vote on funniest response (emoji voting: 😂 👍 ❤️)
+   - Timer counts down (voteSecs setting, default 30 seconds)
    - Staff may highlight top responses
 
-6. **Score update**
-   - System calculates votes
-   - Top team for round gets points
+5. **Phase: Results**
+   - System calculates votes and assigns points
+   - TV displays round results with winners
    - Mini leaderboard appears on TV
+   - Timer counts down (resultsSecs setting, default 15 seconds)
 
-7. **Advance**
+6. **Advance**
    - Staff taps "Next"
-   - Steps 2–7 repeat for each prompt
+   - Process repeats for each round/group
+   - Game engine manages phase transitions automatically
 
 ### After Round
 - TV displays round summary + leaderboard

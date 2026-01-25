@@ -1,0 +1,111 @@
+Metadata for: Noir-Velvet_Questions-fa23700f-2d33-45e6-8ce8-bec61e0871fe.mp3
+Generated: 2026-01-13T07:38:52.517Z
+
+--- Track Information ---
+Title: Velvet Questions
+Artist: ProgressiveDarkstep727
+Year: 2026
+
+--- Musical Information ---
+
+--- Creation Details ---
+Prompt: jazz, Smoky cinematic jazz with a sly, creeping bass line, brushed kit, and noir piano chords. Female vocals glide in low and close, like a secret in your ear, with muted trumpet replies in the gaps. The groove stays soft but coiled, tension building through subtle string swells and chromatic moves; choruses bloom with stacked whispers and reverb tails that hang in the air. Perfect under dialogue, but strong enough to feel like a character in the room.
+
+--- Lyrics ---
+[Instrumental]
+
+Cover Art URL: https://cdn2.suno.ai/image_fa23700f-2d33-45e6-8ce8-bec61e0871fe.jpeg
+
+--- Raw API Response ---
+{
+  "status": "complete",
+  "title": "Velvet Questions",
+  "play_count": 2,
+  "upvote_count": 0,
+  "allow_comments": true,
+  "id": "fa23700f-2d33-45e6-8ce8-bec61e0871fe",
+  "entity_type": "song_schema",
+  "video_url": "",
+  "audio_url": "https://cdn1.suno.ai/fa23700f-2d33-45e6-8ce8-bec61e0871fe.mp3",
+  "image_url": "https://cdn2.suno.ai/image_fa23700f-2d33-45e6-8ce8-bec61e0871fe.jpeg",
+  "image_large_url": "https://cdn2.suno.ai/image_large_fa23700f-2d33-45e6-8ce8-bec61e0871fe.jpeg",
+  "major_model_version": "v5",
+  "model_name": "chirp-crow",
+  "metadata": {
+    "tags": "jazz, Smoky cinematic jazz with a sly, creeping bass line, brushed kit, and noir piano chords. Female vocals glide in low and close, like a secret in your ear, with muted trumpet replies in the gaps. The groove stays soft but coiled, tension building through subtle string swells and chromatic moves; choruses bloom with stacked whispers and reverb tails that hang in the air. Perfect under dialogue, but strong enough to feel like a character in the room.",
+    "prompt": "[Instrumental]",
+    "gpt_description_prompt": "pub trivia background music\n\ncinematic jazz, tension, femme fatale",
+    "type": "gen",
+    "duration": 169.84,
+    "refund_credits": false,
+    "stream": true,
+    "make_instrumental": false,
+    "can_remix": true,
+    "is_remix": false,
+    "priority": 10,
+    "has_stem": false,
+    "uses_latest_model": true,
+    "model_badges": {
+      "songcard": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        }
+      },
+      "songrow": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "FD429C1A",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "FD429C40",
+          "border_color": "00000000"
+        }
+      }
+    }
+  },
+  "is_liked": false,
+  "user_id": "1b76a5c6-812a-4eb9-86e8-fce5e58a8cac",
+  "display_name": "ProgressiveDarkstep727",
+  "handle": "progressivedarkstep727",
+  "is_handle_updated": false,
+  "avatar_image_url": "https://cdn1.suno.ai/defaultBlue.webp",
+  "is_trashed": false,
+  "created_at": "2026-01-11T02:58:34.663Z",
+  "is_public": false,
+  "reaction": {
+    "play_count": 1,
+    "skip_count": 0,
+    "flagged": false,
+    "clip": "fa23700f-2d33-45e6-8ce8-bec61e0871fe",
+    "updated_at": "2026-01-11T06:22:20.805Z"
+  },
+  "is_following_creator": false,
+  "project": {
+    "id": "7e308186-7298-4282-ad51-5ed6813614da",
+    "name": "Noir",
+    "description": "Noir",
+    "is_trashed": false,
+    "is_public": false
+  },
+  "ownership": {
+    "ownership_reason": "subscribed"
+  },
+  "explicit": false,
+  "comment_count": 0,
+  "flag_count": 0,
+  "display_tags": "jazz",
+  "is_contest_clip": false,
+  "has_hook": false,
+  "batch_index": 0
+}

@@ -1,0 +1,111 @@
+Metadata for: Bardify-Courtyard_Funk_Procession-d346aefd-d3b1-442d-8397-a5ef0af9d26d.mp3
+Generated: 2026-01-14T03:13:18.365Z
+
+--- Track Information ---
+Title: Courtyard Funk Procession
+Artist: ProgressiveDarkstep727
+Year: 2026
+
+--- Musical Information ---
+
+--- Creation Details ---
+Prompt: funk, Playful medieval-funk groove with plucky lute, upright bass, and tight, dry drums; clav and harpsichord stabs trade riffs with a muted brass section. Mid-tempo bounce keeps chatter audible, with a looping, memorable bass line and call-and-response horn hooks. Occasional hand percussion and crowd-shout samples swell into brief, danceable breaks before settling back into an easy, quiz-night pocket., medieval
+
+--- Lyrics ---
+[Instrumental]
+
+Cover Art URL: https://cdn2.suno.ai/image_d346aefd-d3b1-442d-8397-a5ef0af9d26d.jpeg
+
+--- Raw API Response ---
+{
+  "status": "complete",
+  "title": "Courtyard Funk Procession",
+  "play_count": 5,
+  "upvote_count": 0,
+  "allow_comments": true,
+  "id": "d346aefd-d3b1-442d-8397-a5ef0af9d26d",
+  "entity_type": "song_schema",
+  "video_url": "",
+  "audio_url": "https://cdn1.suno.ai/d346aefd-d3b1-442d-8397-a5ef0af9d26d.mp3",
+  "image_url": "https://cdn2.suno.ai/image_d346aefd-d3b1-442d-8397-a5ef0af9d26d.jpeg",
+  "image_large_url": "https://cdn2.suno.ai/image_large_d346aefd-d3b1-442d-8397-a5ef0af9d26d.jpeg",
+  "major_model_version": "v5",
+  "model_name": "chirp-crow",
+  "metadata": {
+    "tags": "funk, Playful medieval-funk groove with plucky lute, upright bass, and tight, dry drums; clav and harpsichord stabs trade riffs with a muted brass section. Mid-tempo bounce keeps chatter audible, with a looping, memorable bass line and call-and-response horn hooks. Occasional hand percussion and crowd-shout samples swell into brief, danceable breaks before settling back into an easy, quiz-night pocket., medieval",
+    "prompt": "[Instrumental]",
+    "gpt_description_prompt": "Pub trivia background music\n\n\"Medieval Castle Courtyard Funk\"",
+    "type": "gen",
+    "duration": 134.4,
+    "refund_credits": false,
+    "stream": true,
+    "make_instrumental": true,
+    "can_remix": true,
+    "is_remix": false,
+    "priority": 10,
+    "has_stem": false,
+    "uses_latest_model": true,
+    "model_badges": {
+      "songcard": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        }
+      },
+      "songrow": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "FD429C1A",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "FD429C40",
+          "border_color": "00000000"
+        }
+      }
+    }
+  },
+  "is_liked": false,
+  "user_id": "1b76a5c6-812a-4eb9-86e8-fce5e58a8cac",
+  "display_name": "ProgressiveDarkstep727",
+  "handle": "progressivedarkstep727",
+  "is_handle_updated": false,
+  "avatar_image_url": "https://cdn1.suno.ai/defaultBlue.webp",
+  "is_trashed": false,
+  "created_at": "2026-01-12T08:47:21.469Z",
+  "is_public": false,
+  "reaction": {
+    "play_count": 5,
+    "skip_count": 0,
+    "flagged": false,
+    "clip": "d346aefd-d3b1-442d-8397-a5ef0af9d26d",
+    "updated_at": "2026-01-12T19:42:56.116Z"
+  },
+  "is_following_creator": false,
+  "project": {
+    "id": "d6b57991-cb71-41b5-8cb9-8d4e6dba939b",
+    "name": "Bardify",
+    "description": "Bardify",
+    "is_trashed": false,
+    "is_public": false
+  },
+  "ownership": {
+    "ownership_reason": "subscribed"
+  },
+  "explicit": false,
+  "comment_count": 0,
+  "flag_count": 0,
+  "display_tags": "funk, medieval",
+  "is_contest_clip": false,
+  "has_hook": false,
+  "batch_index": 1
+}

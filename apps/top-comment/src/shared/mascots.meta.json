@@ -1,0 +1,9 @@
+[
+
+    { "id": 1, "name": "Martini", "path": "/mascots/martini.png" },
+  { "id": 2, "name": "Jager", "path": "/mascots/jager.png" },
+  { "id": 3, "name": "Mimosa", "path": "/mascots/mimosa.png" },
+  { "id": 4, "name": "Stout", "path": "/mascots/stout.png" },
+  { "id": 5, "name": "Whiskey", "path": "/mascots/whiskey.png" },
+  { "id": 6, "name": "Caesar", "path": "/mascots/caesar.png" }
+]

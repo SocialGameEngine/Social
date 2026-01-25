@@ -1,0 +1,111 @@
+Metadata for: Time_Traveler_Beats-Neural_Legion_at_the_Bar-6c6ba63f-87f0-4462-aed6-29deccd44a0e.mp3
+Generated: 2026-01-14T03:12:00.291Z
+
+--- Track Information ---
+Title: Neural Legion at the Bar
+Artist: ProgressiveDarkstep727
+Year: 2026
+
+--- Musical Information ---
+
+--- Creation Details ---
+Prompt: Mid-tempo electro with a cheeky cinematic edge; plucky arps and pulsing bass lay a hypnotic grid while lightly distorted synth-brass nods to “imperial fanfare.” Tight, dry drums keep a steady quiz-night bounce; subtle crowd ambience and coin clinks tucked low in the mix. Occasional filtered risers and tom fills between questions, but overall restrained so it stays behind the chatter., drill
+
+--- Lyrics ---
+[Instrumental]
+
+Cover Art URL: https://cdn2.suno.ai/image_6c6ba63f-87f0-4462-aed6-29deccd44a0e.jpeg
+
+--- Raw API Response ---
+{
+  "status": "complete",
+  "title": "Neural Legion at the Bar",
+  "play_count": 4,
+  "upvote_count": 0,
+  "allow_comments": true,
+  "id": "6c6ba63f-87f0-4462-aed6-29deccd44a0e",
+  "entity_type": "song_schema",
+  "video_url": "",
+  "audio_url": "https://cdn1.suno.ai/6c6ba63f-87f0-4462-aed6-29deccd44a0e.mp3",
+  "image_url": "https://cdn2.suno.ai/image_6c6ba63f-87f0-4462-aed6-29deccd44a0e.jpeg",
+  "image_large_url": "https://cdn2.suno.ai/image_large_6c6ba63f-87f0-4462-aed6-29deccd44a0e.jpeg",
+  "major_model_version": "v5",
+  "model_name": "chirp-crow",
+  "metadata": {
+    "tags": "Mid-tempo electro with a cheeky cinematic edge; plucky arps and pulsing bass lay a hypnotic grid while lightly distorted synth-brass nods to “imperial fanfare.” Tight, dry drums keep a steady quiz-night bounce; subtle crowd ambience and coin clinks tucked low in the mix. Occasional filtered risers and tom fills between questions, but overall restrained so it stays behind the chatter., drill",
+    "prompt": "[Instrumental]",
+    "gpt_description_prompt": "Pub trivia background music\n\n\"Roman Empire Neural Drill\"",
+    "type": "gen",
+    "duration": 204.92,
+    "refund_credits": false,
+    "stream": true,
+    "make_instrumental": true,
+    "can_remix": true,
+    "is_remix": false,
+    "priority": 10,
+    "has_stem": false,
+    "uses_latest_model": true,
+    "model_badges": {
+      "songcard": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        }
+      },
+      "songrow": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "FD429C1A",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "FD429C40",
+          "border_color": "00000000"
+        }
+      }
+    }
+  },
+  "is_liked": false,
+  "user_id": "1b76a5c6-812a-4eb9-86e8-fce5e58a8cac",
+  "display_name": "ProgressiveDarkstep727",
+  "handle": "progressivedarkstep727",
+  "is_handle_updated": false,
+  "avatar_image_url": "https://cdn1.suno.ai/defaultBlue.webp",
+  "is_trashed": false,
+  "created_at": "2026-01-12T08:41:57.175Z",
+  "is_public": false,
+  "reaction": {
+    "play_count": 3,
+    "skip_count": 0,
+    "flagged": false,
+    "clip": "6c6ba63f-87f0-4462-aed6-29deccd44a0e",
+    "updated_at": "2026-01-12T09:49:31.814Z"
+  },
+  "is_following_creator": false,
+  "project": {
+    "id": "ce17fde0-80f3-46d0-b07b-a7d3d39f4029",
+    "name": "Time Traveler Beats",
+    "description": "",
+    "is_trashed": false,
+    "is_public": false
+  },
+  "ownership": {
+    "ownership_reason": "subscribed"
+  },
+  "explicit": false,
+  "comment_count": 0,
+  "flag_count": 0,
+  "display_tags": "electro, drill",
+  "is_contest_clip": false,
+  "has_hook": false,
+  "batch_index": 0
+}

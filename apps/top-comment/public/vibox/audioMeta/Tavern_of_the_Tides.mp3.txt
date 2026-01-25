@@ -1,0 +1,111 @@
+Metadata for: Bardify-Tavern_of_the_Tides-48eb9fc0-0910-4731-98a6-b73295a31bf3.mp3
+Generated: 2026-01-14T03:14:20.228Z
+
+--- Track Information ---
+Title: Tavern of the Tides
+Artist: ProgressiveDarkstep727
+Year: 2026
+
+--- Musical Information ---
+
+--- Creation Details ---
+Prompt: Rowdy sea shanty instrumental, swung at a brisk barroom tempo. Stomping boots, handclaps, and thudding floor toms under wheezing accordion, penny whistle, and raucous gang “hey!”s. Occasional fiddle flourishes answer the main melody. Arrangement loops in tight 8-bar phrases, perfect for pub trivia chatter, with big sing-along hooks hinted by the band but left wordless., shanty, accordion
+
+--- Lyrics ---
+[Instrumental]
+
+Cover Art URL: https://cdn2.suno.ai/image_48eb9fc0-0910-4731-98a6-b73295a31bf3.jpeg
+
+--- Raw API Response ---
+{
+  "status": "complete",
+  "title": "Tavern of the Tides",
+  "play_count": 1,
+  "upvote_count": 0,
+  "allow_comments": true,
+  "id": "48eb9fc0-0910-4731-98a6-b73295a31bf3",
+  "entity_type": "song_schema",
+  "video_url": "",
+  "audio_url": "https://cdn1.suno.ai/48eb9fc0-0910-4731-98a6-b73295a31bf3.mp3",
+  "image_url": "https://cdn2.suno.ai/image_48eb9fc0-0910-4731-98a6-b73295a31bf3.jpeg",
+  "image_large_url": "https://cdn2.suno.ai/image_large_48eb9fc0-0910-4731-98a6-b73295a31bf3.jpeg",
+  "major_model_version": "v5",
+  "model_name": "chirp-crow",
+  "metadata": {
+    "tags": "Rowdy sea shanty instrumental, swung at a brisk barroom tempo. Stomping boots, handclaps, and thudding floor toms under wheezing accordion, penny whistle, and raucous gang “hey!”s. Occasional fiddle flourishes answer the main melody. Arrangement loops in tight 8-bar phrases, perfect for pub trivia chatter, with big sing-along hooks hinted by the band but left wordless., shanty, accordion",
+    "prompt": "[Instrumental]",
+    "gpt_description_prompt": "pub trivia background music\n\nsea shanty, accordion, pirate crew",
+    "type": "gen",
+    "duration": 135.64,
+    "refund_credits": false,
+    "stream": true,
+    "make_instrumental": false,
+    "can_remix": true,
+    "is_remix": false,
+    "priority": 10,
+    "has_stem": false,
+    "uses_latest_model": true,
+    "model_badges": {
+      "songcard": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        }
+      },
+      "songrow": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "FD429C1A",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "FD429C40",
+          "border_color": "00000000"
+        }
+      }
+    }
+  },
+  "is_liked": false,
+  "user_id": "1b76a5c6-812a-4eb9-86e8-fce5e58a8cac",
+  "display_name": "ProgressiveDarkstep727",
+  "handle": "progressivedarkstep727",
+  "is_handle_updated": false,
+  "avatar_image_url": "https://cdn1.suno.ai/defaultBlue.webp",
+  "is_trashed": false,
+  "created_at": "2026-01-11T02:54:02.745Z",
+  "is_public": false,
+  "reaction": {
+    "play_count": 1,
+    "skip_count": 0,
+    "flagged": false,
+    "clip": "48eb9fc0-0910-4731-98a6-b73295a31bf3",
+    "updated_at": "2026-01-12T23:55:58.458Z"
+  },
+  "is_following_creator": false,
+  "project": {
+    "id": "d6b57991-cb71-41b5-8cb9-8d4e6dba939b",
+    "name": "Bardify",
+    "description": "Bardify",
+    "is_trashed": false,
+    "is_public": false
+  },
+  "ownership": {
+    "ownership_reason": "subscribed"
+  },
+  "explicit": false,
+  "comment_count": 0,
+  "flag_count": 0,
+  "display_tags": "sea shanty",
+  "is_contest_clip": false,
+  "has_hook": false,
+  "batch_index": 0
+}

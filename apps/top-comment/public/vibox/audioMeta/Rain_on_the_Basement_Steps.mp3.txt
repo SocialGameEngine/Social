@@ -1,0 +1,111 @@
+Metadata for: Noir-Rain_on_the_Basement_Steps-02f2b3d6-b762-4a76-9bf6-a2ecceb5ceda.mp3
+Generated: 2026-01-13T07:38:55.899Z
+
+--- Track Information ---
+Title: Rain on the Basement Steps
+Artist: ProgressiveDarkstep727
+Year: 2026
+
+--- Musical Information ---
+
+--- Creation Details ---
+Prompt: jazz, Smoky jazz-noir piano trio at a lazy medium swing. Upright bass walks with soft brushes on the kit; piano leans on moody extended chords and bluesy voicings. Melody weaves like late-night small-talk, leaving plenty of space so conversations can sit on top. Occasional dim-club swells, but the energy stays background and unhurried throughout.
+
+--- Lyrics ---
+[Instrumental]
+
+Cover Art URL: https://cdn2.suno.ai/image_02f2b3d6-b762-4a76-9bf6-a2ecceb5ceda.jpeg
+
+--- Raw API Response ---
+{
+  "status": "complete",
+  "title": "Rain on the Basement Steps",
+  "play_count": 3,
+  "upvote_count": 0,
+  "allow_comments": true,
+  "id": "02f2b3d6-b762-4a76-9bf6-a2ecceb5ceda",
+  "entity_type": "song_schema",
+  "video_url": "",
+  "audio_url": "https://cdn1.suno.ai/02f2b3d6-b762-4a76-9bf6-a2ecceb5ceda.mp3",
+  "image_url": "https://cdn2.suno.ai/image_02f2b3d6-b762-4a76-9bf6-a2ecceb5ceda.jpeg",
+  "image_large_url": "https://cdn2.suno.ai/image_large_02f2b3d6-b762-4a76-9bf6-a2ecceb5ceda.jpeg",
+  "major_model_version": "v5",
+  "model_name": "chirp-crow",
+  "metadata": {
+    "tags": "jazz, Smoky jazz-noir piano trio at a lazy medium swing. Upright bass walks with soft brushes on the kit; piano leans on moody extended chords and bluesy voicings. Melody weaves like late-night small-talk, leaving plenty of space so conversations can sit on top. Occasional dim-club swells, but the energy stays background and unhurried throughout.",
+    "prompt": "[Instrumental]",
+    "gpt_description_prompt": "pub trivia background music\n\njazz noir, piano trio, rainy night",
+    "type": "gen",
+    "duration": 183.24,
+    "refund_credits": false,
+    "stream": true,
+    "make_instrumental": false,
+    "can_remix": true,
+    "is_remix": false,
+    "priority": 10,
+    "has_stem": false,
+    "uses_latest_model": true,
+    "model_badges": {
+      "songcard": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        }
+      },
+      "songrow": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "FD429C1A",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "FD429C40",
+          "border_color": "00000000"
+        }
+      }
+    }
+  },
+  "is_liked": false,
+  "user_id": "1b76a5c6-812a-4eb9-86e8-fce5e58a8cac",
+  "display_name": "ProgressiveDarkstep727",
+  "handle": "progressivedarkstep727",
+  "is_handle_updated": false,
+  "avatar_image_url": "https://cdn1.suno.ai/defaultBlue.webp",
+  "is_trashed": false,
+  "created_at": "2026-01-11T02:58:31.439Z",
+  "is_public": false,
+  "reaction": {
+    "play_count": 2,
+    "skip_count": 0,
+    "flagged": false,
+    "clip": "02f2b3d6-b762-4a76-9bf6-a2ecceb5ceda",
+    "updated_at": "2026-01-11T10:04:32.522Z"
+  },
+  "is_following_creator": false,
+  "project": {
+    "id": "7e308186-7298-4282-ad51-5ed6813614da",
+    "name": "Noir",
+    "description": "Noir",
+    "is_trashed": false,
+    "is_public": false
+  },
+  "ownership": {
+    "ownership_reason": "subscribed"
+  },
+  "explicit": false,
+  "comment_count": 0,
+  "flag_count": 0,
+  "display_tags": "jazz, jazz-noir",
+  "is_contest_clip": false,
+  "has_hook": false,
+  "batch_index": 1
+}

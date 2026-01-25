@@ -1,0 +1,111 @@
+Metadata for: Literally_Multicultural-Flamenca_Fractals-e7e5083e-f4f7-4099-b4e6-76400b015332.mp3
+Generated: 2026-01-14T03:04:10.956Z
+
+--- Track Information ---
+Title: Flamenca Fractals
+Artist: ProgressiveDarkstep727
+Year: 2026
+
+--- Musical Information ---
+
+--- Creation Details ---
+Prompt: rock, Upbeat flamenco trio feel at bar-friendly volume: bright nylon guitar with crisp rasgueos and quick melodic runs, hand percussion with palms, knuckles and light cajón, plus woody bass for bounce. The original J‑pop math rock complexity is reimagined through tight rhythmic accents, occasional unison hits, and playful call‑and‑response claps. Keep it looping-friendly, with clear A/B sections so it can sit under crowd chatter without fighting conversation., math rock, j-pop
+
+--- Lyrics ---
+[Instrumental]
+
+Cover Art URL: https://cdn2.suno.ai/image_e7e5083e-f4f7-4099-b4e6-76400b015332.jpeg
+
+--- Raw API Response ---
+{
+  "status": "complete",
+  "title": "Flamenca Fractals",
+  "play_count": 6,
+  "upvote_count": 0,
+  "allow_comments": true,
+  "id": "e7e5083e-f4f7-4099-b4e6-76400b015332",
+  "entity_type": "song_schema",
+  "video_url": "",
+  "audio_url": "https://cdn1.suno.ai/e7e5083e-f4f7-4099-b4e6-76400b015332.mp3",
+  "image_url": "https://cdn2.suno.ai/image_e7e5083e-f4f7-4099-b4e6-76400b015332.jpeg",
+  "image_large_url": "https://cdn2.suno.ai/image_large_e7e5083e-f4f7-4099-b4e6-76400b015332.jpeg",
+  "major_model_version": "v5",
+  "model_name": "chirp-crow",
+  "metadata": {
+    "tags": "rock, Upbeat flamenco trio feel at bar-friendly volume: bright nylon guitar with crisp rasgueos and quick melodic runs, hand percussion with palms, knuckles and light cajón, plus woody bass for bounce. The original J‑pop math rock complexity is reimagined through tight rhythmic accents, occasional unison hits, and playful call‑and‑response claps. Keep it looping-friendly, with clear A/B sections so it can sit under crowd chatter without fighting conversation., math rock, j-pop",
+    "prompt": "[Instrumental]",
+    "gpt_description_prompt": "Pub trivia background music\n\n\"Ethnically spanish flamenca cover of a  J-pop math rock song\"",
+    "type": "gen",
+    "duration": 216.32,
+    "refund_credits": false,
+    "stream": true,
+    "make_instrumental": true,
+    "can_remix": true,
+    "is_remix": false,
+    "priority": 10,
+    "has_stem": false,
+    "uses_latest_model": true,
+    "model_badges": {
+      "songcard": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        }
+      },
+      "songrow": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "FD429C1A",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "FD429C40",
+          "border_color": "00000000"
+        }
+      }
+    }
+  },
+  "is_liked": false,
+  "user_id": "1b76a5c6-812a-4eb9-86e8-fce5e58a8cac",
+  "display_name": "ProgressiveDarkstep727",
+  "handle": "progressivedarkstep727",
+  "is_handle_updated": false,
+  "avatar_image_url": "https://cdn1.suno.ai/defaultBlue.webp",
+  "is_trashed": false,
+  "created_at": "2026-01-12T09:15:56.541Z",
+  "is_public": false,
+  "reaction": {
+    "play_count": 3,
+    "skip_count": 0,
+    "flagged": false,
+    "clip": "e7e5083e-f4f7-4099-b4e6-76400b015332",
+    "updated_at": "2026-01-12T19:10:34.942Z"
+  },
+  "is_following_creator": false,
+  "project": {
+    "id": "7d22458b-be7a-4223-8fb7-247de9b5faf3",
+    "name": "Literally Multicultural",
+    "description": "Literally Multicultural",
+    "is_trashed": false,
+    "is_public": false
+  },
+  "ownership": {
+    "ownership_reason": "subscribed"
+  },
+  "explicit": false,
+  "comment_count": 0,
+  "flag_count": 0,
+  "display_tags": "rock, math rock, j-pop",
+  "is_contest_clip": false,
+  "has_hook": false,
+  "batch_index": 1
+}

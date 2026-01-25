@@ -1,0 +1,111 @@
+Metadata for: Literally_Multicultural-Ouzo_On_Repeat-88fa1b8c-e7ff-431b-abc7-cf37facec089.mp3
+Generated: 2026-01-14T03:04:34.157Z
+
+--- Track Information ---
+Title: Ouzo On Repeat
+Artist: ProgressiveDarkstep727
+Year: 2026
+
+--- Musical Information ---
+
+--- Creation Details ---
+Prompt: Sun-faded Greek taverna vaporwave BGM: hazy synth pads, soft nylon-string guitar licks, rubbery bass, and lazy drum machine grooves around 90 BPM. Tape-warped bouzouki samples drift in and out with chorus and reverb; occasional retro keyboard leads echo old tourist-bar melodies. Keep it loopable and light so people can talk over it, with subtle rises at quiz reveal moments and a warm, nostalgic summer-night glow., vaporwave
+
+--- Lyrics ---
+[Instrumental]
+
+Cover Art URL: https://cdn2.suno.ai/image_88fa1b8c-e7ff-431b-abc7-cf37facec089.jpeg
+
+--- Raw API Response ---
+{
+  "status": "complete",
+  "title": "Ouzo On Repeat",
+  "play_count": 3,
+  "upvote_count": 0,
+  "allow_comments": true,
+  "id": "88fa1b8c-e7ff-431b-abc7-cf37facec089",
+  "entity_type": "song_schema",
+  "video_url": "",
+  "audio_url": "https://cdn1.suno.ai/88fa1b8c-e7ff-431b-abc7-cf37facec089.mp3",
+  "image_url": "https://cdn2.suno.ai/image_88fa1b8c-e7ff-431b-abc7-cf37facec089.jpeg",
+  "image_large_url": "https://cdn2.suno.ai/image_large_88fa1b8c-e7ff-431b-abc7-cf37facec089.jpeg",
+  "major_model_version": "v5",
+  "model_name": "chirp-crow",
+  "metadata": {
+    "tags": "Sun-faded Greek taverna vaporwave BGM: hazy synth pads, soft nylon-string guitar licks, rubbery bass, and lazy drum machine grooves around 90 BPM. Tape-warped bouzouki samples drift in and out with chorus and reverb; occasional retro keyboard leads echo old tourist-bar melodies. Keep it loopable and light so people can talk over it, with subtle rises at quiz reveal moments and a warm, nostalgic summer-night glow., vaporwave",
+    "prompt": "[Instrumental]",
+    "gpt_description_prompt": "Pub trivia background music\n\n\"Greek Taverna Vaporwave\"",
+    "type": "gen",
+    "duration": 259.2,
+    "refund_credits": false,
+    "stream": true,
+    "make_instrumental": true,
+    "can_remix": true,
+    "is_remix": false,
+    "priority": 10,
+    "has_stem": false,
+    "uses_latest_model": true,
+    "model_badges": {
+      "songcard": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        }
+      },
+      "songrow": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "FD429C1A",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "FD429C40",
+          "border_color": "00000000"
+        }
+      }
+    }
+  },
+  "is_liked": false,
+  "user_id": "1b76a5c6-812a-4eb9-86e8-fce5e58a8cac",
+  "display_name": "ProgressiveDarkstep727",
+  "handle": "progressivedarkstep727",
+  "is_handle_updated": false,
+  "avatar_image_url": "https://cdn1.suno.ai/defaultBlue.webp",
+  "is_trashed": false,
+  "created_at": "2026-01-12T08:59:32.136Z",
+  "is_public": false,
+  "reaction": {
+    "play_count": 2,
+    "skip_count": 0,
+    "flagged": false,
+    "clip": "88fa1b8c-e7ff-431b-abc7-cf37facec089",
+    "updated_at": "2026-01-12T19:13:24.705Z"
+  },
+  "is_following_creator": false,
+  "project": {
+    "id": "7d22458b-be7a-4223-8fb7-247de9b5faf3",
+    "name": "Literally Multicultural",
+    "description": "Literally Multicultural",
+    "is_trashed": false,
+    "is_public": false
+  },
+  "ownership": {
+    "ownership_reason": "subscribed"
+  },
+  "explicit": false,
+  "comment_count": 0,
+  "flag_count": 0,
+  "display_tags": "vaporwave",
+  "is_contest_clip": false,
+  "has_hook": false,
+  "batch_index": 0
+}

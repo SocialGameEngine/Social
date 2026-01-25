@@ -1,0 +1,111 @@
+Metadata for: Noir-Smoke_Under_The_Streetlamp-769302f8-b34f-43b2-aef3-ac42d9e99d63.mp3
+Generated: 2026-01-13T07:38:07.433Z
+
+--- Track Information ---
+Title: Smoke Under The Streetlamp
+Artist: ProgressiveDarkstep727
+Year: 2026
+
+--- Musical Information ---
+
+--- Creation Details ---
+Prompt: Moody noir score with brushed jazz kit, upright bass walking slow, and a haunting clarinet carrying the main motif. Vinyl crackle and room noise sit high in the mix for an old detective-film feel. Sparse piano stabs and muted horn swells build subtle suspense, then drop back to leave space for the clarinet to circle a smoky, memorable theme., clarinet, soundtrack
+
+--- Lyrics ---
+[Instrumental]
+
+Cover Art URL: https://cdn2.suno.ai/image_769302f8-b34f-43b2-aef3-ac42d9e99d63.jpeg
+
+--- Raw API Response ---
+{
+  "status": "complete",
+  "title": "Smoke Under The Streetlamp",
+  "play_count": 4,
+  "upvote_count": 0,
+  "allow_comments": true,
+  "id": "769302f8-b34f-43b2-aef3-ac42d9e99d63",
+  "entity_type": "song_schema",
+  "video_url": "",
+  "audio_url": "https://cdn1.suno.ai/769302f8-b34f-43b2-aef3-ac42d9e99d63.mp3",
+  "image_url": "https://cdn2.suno.ai/image_769302f8-b34f-43b2-aef3-ac42d9e99d63.jpeg",
+  "image_large_url": "https://cdn2.suno.ai/image_large_769302f8-b34f-43b2-aef3-ac42d9e99d63.jpeg",
+  "major_model_version": "v5",
+  "model_name": "chirp-crow",
+  "metadata": {
+    "tags": "Moody noir score with brushed jazz kit, upright bass walking slow, and a haunting clarinet carrying the main motif. Vinyl crackle and room noise sit high in the mix for an old detective-film feel. Sparse piano stabs and muted horn swells build subtle suspense, then drop back to leave space for the clarinet to circle a smoky, memorable theme., clarinet, soundtrack",
+    "prompt": "[Instrumental]",
+    "gpt_description_prompt": "Pub trivia background music\n\n\"Noir Haunting clarinet melody, vinyl crackle, suspenseful private eye soundtrack\"",
+    "type": "gen",
+    "duration": 145.24,
+    "refund_credits": false,
+    "stream": true,
+    "make_instrumental": true,
+    "can_remix": true,
+    "is_remix": false,
+    "priority": 10,
+    "has_stem": false,
+    "uses_latest_model": true,
+    "model_badges": {
+      "songcard": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        }
+      },
+      "songrow": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "FD429C1A",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "FD429C40",
+          "border_color": "00000000"
+        }
+      }
+    }
+  },
+  "is_liked": false,
+  "user_id": "1b76a5c6-812a-4eb9-86e8-fce5e58a8cac",
+  "display_name": "ProgressiveDarkstep727",
+  "handle": "progressivedarkstep727",
+  "is_handle_updated": false,
+  "avatar_image_url": "https://cdn1.suno.ai/defaultBlue.webp",
+  "is_trashed": false,
+  "created_at": "2026-01-12T09:58:23.432Z",
+  "is_public": false,
+  "reaction": {
+    "play_count": 2,
+    "skip_count": 0,
+    "flagged": false,
+    "clip": "769302f8-b34f-43b2-aef3-ac42d9e99d63",
+    "updated_at": "2026-01-13T06:31:24.948Z"
+  },
+  "is_following_creator": false,
+  "project": {
+    "id": "7e308186-7298-4282-ad51-5ed6813614da",
+    "name": "Noir",
+    "description": "Noir",
+    "is_trashed": false,
+    "is_public": false
+  },
+  "ownership": {
+    "ownership_reason": "subscribed"
+  },
+  "explicit": false,
+  "comment_count": 0,
+  "flag_count": 0,
+  "display_tags": "jazz, soundtrack",
+  "is_contest_clip": false,
+  "has_hook": false,
+  "batch_index": 0
+}

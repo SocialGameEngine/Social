@@ -1,0 +1,111 @@
+Metadata for: Bardify-Salty_Quiz_Night_Jig-f2372028-056f-4fda-8fdc-e988d5da22f2.mp3
+Generated: 2026-01-14T03:13:29.815Z
+
+--- Track Information ---
+Title: Salty Quiz Night Jig
+Artist: ProgressiveDarkstep727
+Year: 2026
+
+--- Musical Information ---
+
+--- Creation Details ---
+Prompt: Rowdy pub jig for background use, 110 BPM. Bright concertina carries the main reel, doubled by fiddle; stomping boots and brushed snare keep time. Upright bass thumps simple roots, with occasional whistle fills. Energy stays bouncy but not overpowering, looping-friendly with clear A/B sections and seamless repeat points.
+
+--- Lyrics ---
+[Instrumental]
+
+Cover Art URL: https://cdn2.suno.ai/image_f2372028-056f-4fda-8fdc-e988d5da22f2.jpeg
+
+--- Raw API Response ---
+{
+  "status": "complete",
+  "title": "Salty Quiz Night Jig",
+  "play_count": 5,
+  "upvote_count": 0,
+  "allow_comments": true,
+  "id": "f2372028-056f-4fda-8fdc-e988d5da22f2",
+  "entity_type": "song_schema",
+  "video_url": "",
+  "audio_url": "https://cdn1.suno.ai/f2372028-056f-4fda-8fdc-e988d5da22f2.mp3",
+  "image_url": "https://cdn2.suno.ai/image_f2372028-056f-4fda-8fdc-e988d5da22f2.jpeg",
+  "image_large_url": "https://cdn2.suno.ai/image_large_f2372028-056f-4fda-8fdc-e988d5da22f2.jpeg",
+  "major_model_version": "v5",
+  "model_name": "chirp-crow",
+  "metadata": {
+    "tags": "Rowdy pub jig for background use, 110 BPM. Bright concertina carries the main reel, doubled by fiddle; stomping boots and brushed snare keep time. Upright bass thumps simple roots, with occasional whistle fills. Energy stays bouncy but not overpowering, looping-friendly with clear A/B sections and seamless repeat points.",
+    "prompt": "[Instrumental]",
+    "gpt_description_prompt": "pub trivia background music\n\npirate jig, concertina, sailors' tune",
+    "type": "gen",
+    "duration": 146.8,
+    "refund_credits": false,
+    "stream": true,
+    "make_instrumental": false,
+    "can_remix": true,
+    "is_remix": false,
+    "priority": 10,
+    "has_stem": false,
+    "uses_latest_model": true,
+    "model_badges": {
+      "songcard": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        }
+      },
+      "songrow": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "FD429C1A",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "FD429C40",
+          "border_color": "00000000"
+        }
+      }
+    }
+  },
+  "is_liked": false,
+  "user_id": "1b76a5c6-812a-4eb9-86e8-fce5e58a8cac",
+  "display_name": "ProgressiveDarkstep727",
+  "handle": "progressivedarkstep727",
+  "is_handle_updated": false,
+  "avatar_image_url": "https://cdn1.suno.ai/defaultBlue.webp",
+  "is_trashed": false,
+  "created_at": "2026-01-11T02:54:29.797Z",
+  "is_public": false,
+  "reaction": {
+    "play_count": 5,
+    "skip_count": 0,
+    "flagged": false,
+    "clip": "f2372028-056f-4fda-8fdc-e988d5da22f2",
+    "updated_at": "2026-01-12T23:24:31.377Z"
+  },
+  "is_following_creator": false,
+  "project": {
+    "id": "d6b57991-cb71-41b5-8cb9-8d4e6dba939b",
+    "name": "Bardify",
+    "description": "Bardify",
+    "is_trashed": false,
+    "is_public": false
+  },
+  "ownership": {
+    "ownership_reason": "subscribed"
+  },
+  "explicit": false,
+  "comment_count": 0,
+  "flag_count": 0,
+  "display_tags": "folk, Celtic",
+  "is_contest_clip": false,
+  "has_hook": false,
+  "batch_index": 1
+}

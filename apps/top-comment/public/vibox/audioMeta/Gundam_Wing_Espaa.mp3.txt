@@ -1,0 +1,112 @@
+Metadata for: Literally_Multicultural-Saffron_Quiz_Night-23815017-2411-41d5-99d7-ef16280d0c0a.mp3
+Generated: 2026-01-14T03:04:25.262Z
+
+--- Track Information ---
+Title: Gundam Wing España
+Artist: ProgressiveDarkstep727
+Year: 2026
+
+--- Musical Information ---
+
+--- Creation Details ---
+Prompt: rap, Hybrid J-rock flamenco-trap instrumental: bright nylon guitar runs over distorted power chords, crisp palmas, and a bouncy 808-style low end. Upbeat, bar-friendly energy that loops easily—tight 4-bar motifs, occasional half-time drops, and flashy guitar fills. Big tom builds into chorus-style sections with syncopated claps and crowd chants in the background, leaving plenty of midrange space for conversation., j-rock, flamenco
+
+--- Lyrics ---
+[Instrumental]
+
+Cover Art URL: https://cdn2.suno.ai/image_23815017-2411-41d5-99d7-ef16280d0c0a.jpeg
+
+--- Raw API Response ---
+{
+  "status": "complete",
+  "title": "Gundam Wing España",
+  "play_count": 4,
+  "upvote_count": 0,
+  "allow_comments": true,
+  "id": "23815017-2411-41d5-99d7-ef16280d0c0a",
+  "entity_type": "song_schema",
+  "video_url": "",
+  "audio_url": "https://cdn1.suno.ai/23815017-2411-41d5-99d7-ef16280d0c0a.mp3",
+  "image_url": "https://cdn2.suno.ai/image_23815017-2411-41d5-99d7-ef16280d0c0a.jpeg",
+  "image_large_url": "https://cdn2.suno.ai/image_large_23815017-2411-41d5-99d7-ef16280d0c0a.jpeg",
+  "major_model_version": "v5",
+  "model_name": "chirp-crow",
+  "metadata": {
+    "tags": "rap, Hybrid J-rock flamenco-trap instrumental: bright nylon guitar runs over distorted power chords, crisp palmas, and a bouncy 808-style low end. Upbeat, bar-friendly energy that loops easily—tight 4-bar motifs, occasional half-time drops, and flashy guitar fills. Big tom builds into chorus-style sections with syncopated claps and crowd chants in the background, leaving plenty of midrange space for conversation., j-rock, flamenco",
+    "prompt": "[Instrumental]",
+    "gpt_description_prompt": "Pub trivia background music\n\n\"J-rock Flamenco trap\"",
+    "type": "gen",
+    "duration": 174.2,
+    "refund_credits": false,
+    "stream": true,
+    "make_instrumental": true,
+    "can_remix": true,
+    "is_remix": false,
+    "priority": 10,
+    "has_stem": false,
+    "video_is_stale": true,
+    "uses_latest_model": true,
+    "model_badges": {
+      "songcard": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        }
+      },
+      "songrow": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "FD429C1A",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "FD429C40",
+          "border_color": "00000000"
+        }
+      }
+    }
+  },
+  "is_liked": false,
+  "user_id": "1b76a5c6-812a-4eb9-86e8-fce5e58a8cac",
+  "display_name": "ProgressiveDarkstep727",
+  "handle": "progressivedarkstep727",
+  "is_handle_updated": false,
+  "avatar_image_url": "https://cdn1.suno.ai/defaultBlue.webp",
+  "is_trashed": false,
+  "created_at": "2026-01-12T09:10:01.673Z",
+  "is_public": false,
+  "reaction": {
+    "play_count": 2,
+    "skip_count": 0,
+    "flagged": false,
+    "clip": "23815017-2411-41d5-99d7-ef16280d0c0a",
+    "updated_at": "2026-01-12T09:12:55.548Z"
+  },
+  "is_following_creator": false,
+  "project": {
+    "id": "7d22458b-be7a-4223-8fb7-247de9b5faf3",
+    "name": "Literally Multicultural",
+    "description": "Literally Multicultural",
+    "is_trashed": false,
+    "is_public": false
+  },
+  "ownership": {
+    "ownership_reason": "subscribed"
+  },
+  "explicit": false,
+  "comment_count": 0,
+  "flag_count": 0,
+  "display_tags": "rap, j-rock, flamenco",
+  "is_contest_clip": false,
+  "has_hook": false,
+  "batch_index": 0
+}
