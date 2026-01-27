@@ -96,6 +96,7 @@ export function useVenueWall(venueKey?: string): UseVenueWallResult {
         group_id: 'demo-group',
         masked: false,         // Updated: is_moderated → masked
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
       setAnswers(prev => [mockAnswer, ...prev]);
@@ -111,4 +112,6 @@ export function useVenueWall(venueKey?: string): UseVenueWallResult {
     loading,
   };
 }
+
+
 

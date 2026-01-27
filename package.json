@@ -16,7 +16,6 @@
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {
-    "supabase": "^2.70.5",
     "turbo": "^2.7.1",
     "typescript": "^5.9.3"
   },
