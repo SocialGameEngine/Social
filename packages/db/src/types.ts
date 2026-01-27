@@ -8,7 +8,7 @@ export type {
   Answer,
   Vote,
   Venue,
-  FeedUser,
-  FeedPost,
-  FeedLike,
+  User,
+  FeedComment,
+  FeedCommentLike,
 } from './client';
