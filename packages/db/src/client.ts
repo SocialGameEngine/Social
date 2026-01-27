@@ -59,7 +59,7 @@ export type Answer = Tables['answers']['Row'];  // Updated: submissions → answ
 export type Vote = Tables['votes']['Row'];
 export type Venue = Tables['venues']['Row'];
 // export type EventRound = Tables['event_rounds']['Row'];  // Removed: table doesn't exist
-export type FeedUser = Tables['feed_users']['Row'];
-export type FeedPost = Tables['feed_posts']['Row'];
-export type FeedLike = Tables['feed_likes']['Row'];
+export type User = Tables['users']['Row'];
+export type FeedComment = Tables['feed_comments']['Row'];
+export type FeedCommentLike = Tables['feed_comment_likes']['Row'];
 
