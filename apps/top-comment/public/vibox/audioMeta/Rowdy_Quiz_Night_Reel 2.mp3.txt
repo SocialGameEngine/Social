@@ -1,0 +1,111 @@
+Metadata for: Bardify-Rowdy_Quiz_Night_Reel-f6f57165-dccd-4d39-9dd5-11104a44c657.mp3
+Generated: 2026-01-14T03:13:59.090Z
+
+--- Track Information ---
+Title: Rowdy Quiz Night Reel
+Artist: ProgressiveDarkstep727
+Year: 2026
+
+--- Musical Information ---
+
+--- Creation Details ---
+Prompt: folk, Lively Celtic folk session energy; bodhrán driving a steady, toe-tapping groove under bright fiddle and tin whistle. Guitar and bouzouki chop tight rhythms; occasional unison riffs punctuate the ends of phrases. Crowd claps and chant-like backing vocals swell around the hook, capturing a packed pub at peak trivia round., celtic
+
+--- Lyrics ---
+[Instrumental]
+
+Cover Art URL: https://cdn2.suno.ai/image_f6f57165-dccd-4d39-9dd5-11104a44c657.jpeg
+
+--- Raw API Response ---
+{
+  "status": "complete",
+  "title": "Rowdy Quiz Night Reel",
+  "play_count": 2,
+  "upvote_count": 0,
+  "allow_comments": true,
+  "id": "f6f57165-dccd-4d39-9dd5-11104a44c657",
+  "entity_type": "song_schema",
+  "video_url": "",
+  "audio_url": "https://cdn1.suno.ai/f6f57165-dccd-4d39-9dd5-11104a44c657.mp3",
+  "image_url": "https://cdn2.suno.ai/image_f6f57165-dccd-4d39-9dd5-11104a44c657.jpeg",
+  "image_large_url": "https://cdn2.suno.ai/image_large_f6f57165-dccd-4d39-9dd5-11104a44c657.jpeg",
+  "major_model_version": "v5",
+  "model_name": "chirp-crow",
+  "metadata": {
+    "tags": "folk, Lively Celtic folk session energy; bodhrán driving a steady, toe-tapping groove under bright fiddle and tin whistle. Guitar and bouzouki chop tight rhythms; occasional unison riffs punctuate the ends of phrases. Crowd claps and chant-like backing vocals swell around the hook, capturing a packed pub at peak trivia round., celtic",
+    "prompt": "[Instrumental]",
+    "gpt_description_prompt": "pub trivia background music\n\nCeltic folk, bodhran drums, rowdy pub",
+    "type": "gen",
+    "duration": 157.2,
+    "refund_credits": false,
+    "stream": true,
+    "make_instrumental": false,
+    "can_remix": true,
+    "is_remix": false,
+    "priority": 10,
+    "has_stem": false,
+    "uses_latest_model": true,
+    "model_badges": {
+      "songcard": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        }
+      },
+      "songrow": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "FD429C1A",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "FD429C40",
+          "border_color": "00000000"
+        }
+      }
+    }
+  },
+  "is_liked": false,
+  "user_id": "1b76a5c6-812a-4eb9-86e8-fce5e58a8cac",
+  "display_name": "ProgressiveDarkstep727",
+  "handle": "progressivedarkstep727",
+  "is_handle_updated": false,
+  "avatar_image_url": "https://cdn1.suno.ai/defaultBlue.webp",
+  "is_trashed": false,
+  "created_at": "2026-01-11T02:54:11.681Z",
+  "is_public": false,
+  "reaction": {
+    "play_count": 2,
+    "skip_count": 0,
+    "flagged": false,
+    "clip": "f6f57165-dccd-4d39-9dd5-11104a44c657",
+    "updated_at": "2026-01-12T23:44:04.842Z"
+  },
+  "is_following_creator": false,
+  "project": {
+    "id": "d6b57991-cb71-41b5-8cb9-8d4e6dba939b",
+    "name": "Bardify",
+    "description": "Bardify",
+    "is_trashed": false,
+    "is_public": false
+  },
+  "ownership": {
+    "ownership_reason": "subscribed"
+  },
+  "explicit": false,
+  "comment_count": 0,
+  "flag_count": 0,
+  "display_tags": "folk, celtic",
+  "is_contest_clip": false,
+  "has_hook": false,
+  "batch_index": 1
+}

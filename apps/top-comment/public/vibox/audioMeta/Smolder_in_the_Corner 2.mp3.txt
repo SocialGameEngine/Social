@@ -1,0 +1,111 @@
+Metadata for: Noir-Smolder_in_the_Corner-f2f21e30-4524-46ce-acd2-0d58b459bced.mp3
+Generated: 2026-01-13T07:38:43.624Z
+
+--- Track Information ---
+Title: Smolder in the Corner
+Artist: ProgressiveDarkstep727
+Year: 2026
+
+--- Musical Information ---
+
+--- Creation Details ---
+Prompt: jazz, Smoky cool jazz ballad as intimate bar BGM: soft brushed kit, walking upright bass, distant muted trumpet phrases and close-mic’d piano voicings. Slow sway at lounge tempo, melancholic but warm; melody drifts in and out so it can sit under pub chatter. Occasional hushed sax fills and gentle cymbal swells give a late-night, cigarette-haze mood., ballad, cool jazz
+
+--- Lyrics ---
+[Instrumental]
+
+Cover Art URL: https://cdn2.suno.ai/image_f2f21e30-4524-46ce-acd2-0d58b459bced.jpeg
+
+--- Raw API Response ---
+{
+  "status": "complete",
+  "title": "Smolder in the Corner",
+  "play_count": 5,
+  "upvote_count": 0,
+  "allow_comments": true,
+  "id": "f2f21e30-4524-46ce-acd2-0d58b459bced",
+  "entity_type": "song_schema",
+  "video_url": "",
+  "audio_url": "https://cdn1.suno.ai/f2f21e30-4524-46ce-acd2-0d58b459bced.mp3",
+  "image_url": "https://cdn2.suno.ai/image_f2f21e30-4524-46ce-acd2-0d58b459bced.jpeg",
+  "image_large_url": "https://cdn2.suno.ai/image_large_f2f21e30-4524-46ce-acd2-0d58b459bced.jpeg",
+  "major_model_version": "v5",
+  "model_name": "chirp-crow",
+  "metadata": {
+    "tags": "jazz, Smoky cool jazz ballad as intimate bar BGM: soft brushed kit, walking upright bass, distant muted trumpet phrases and close-mic’d piano voicings. Slow sway at lounge tempo, melancholic but warm; melody drifts in and out so it can sit under pub chatter. Occasional hushed sax fills and gentle cymbal swells give a late-night, cigarette-haze mood., ballad, cool jazz",
+    "prompt": "[Instrumental]",
+    "gpt_description_prompt": "pub trivia background music\n\ncool jazz ballad, melancholic, cigarette smoke",
+    "type": "gen",
+    "duration": 216.68,
+    "refund_credits": false,
+    "stream": true,
+    "make_instrumental": false,
+    "can_remix": true,
+    "is_remix": false,
+    "priority": 10,
+    "has_stem": false,
+    "uses_latest_model": true,
+    "model_badges": {
+      "songcard": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        }
+      },
+      "songrow": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "FD429C1A",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "FD429C40",
+          "border_color": "00000000"
+        }
+      }
+    }
+  },
+  "is_liked": false,
+  "user_id": "1b76a5c6-812a-4eb9-86e8-fce5e58a8cac",
+  "display_name": "ProgressiveDarkstep727",
+  "handle": "progressivedarkstep727",
+  "is_handle_updated": false,
+  "avatar_image_url": "https://cdn1.suno.ai/defaultBlue.webp",
+  "is_trashed": false,
+  "created_at": "2026-01-11T02:58:43.065Z",
+  "is_public": false,
+  "reaction": {
+    "play_count": 2,
+    "skip_count": 0,
+    "flagged": false,
+    "clip": "f2f21e30-4524-46ce-acd2-0d58b459bced",
+    "updated_at": "2026-01-11T10:04:30.568Z"
+  },
+  "is_following_creator": false,
+  "project": {
+    "id": "7e308186-7298-4282-ad51-5ed6813614da",
+    "name": "Noir",
+    "description": "Noir",
+    "is_trashed": false,
+    "is_public": false
+  },
+  "ownership": {
+    "ownership_reason": "subscribed"
+  },
+  "explicit": false,
+  "comment_count": 0,
+  "flag_count": 0,
+  "display_tags": "jazz, cool jazz, ballad",
+  "is_contest_clip": false,
+  "has_hook": false,
+  "batch_index": 0
+}

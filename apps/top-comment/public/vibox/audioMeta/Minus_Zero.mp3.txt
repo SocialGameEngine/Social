@@ -1,0 +1,112 @@
+Metadata for: Time_Traveler_Beats-Harpsichord_at_T-Minus_Zero-9dcaf4a7-1831-41ca-817a-b963a7f18ae2.mp3
+Generated: 2026-01-14T03:11:49.662Z
+
+--- Track Information ---
+Title: Harpsichord at T-Minus Zero
+Artist: ProgressiveDarkstep727
+Year: 2026
+
+--- Musical Information ---
+
+--- Creation Details ---
+Prompt: Cathedral-sized synths over staccato harpsichord arpeggios and swelling strings; four-on-the-floor kick drives a spacious techno groove while choirs and brass hits punctuate the downbeats. Energy glides in waves—regal and grand but never overwhelming—perfect as an epic yet unobtrusive pub trivia backdrop, with evolving motifs instead of big drops., techno, baroque, opera
+
+--- Lyrics ---
+[Instrumental]
+
+Cover Art URL: https://cdn2.suno.ai/image_9dcaf4a7-1831-41ca-817a-b963a7f18ae2.jpeg
+
+--- Raw API Response ---
+{
+  "status": "complete",
+  "title": "Harpsichord at T-Minus Zero",
+  "play_count": 4,
+  "upvote_count": 0,
+  "allow_comments": true,
+  "id": "9dcaf4a7-1831-41ca-817a-b963a7f18ae2",
+  "entity_type": "song_schema",
+  "video_url": "",
+  "audio_url": "https://cdn1.suno.ai/9dcaf4a7-1831-41ca-817a-b963a7f18ae2.mp3",
+  "image_url": "https://cdn2.suno.ai/image_9dcaf4a7-1831-41ca-817a-b963a7f18ae2.jpeg",
+  "image_large_url": "https://cdn2.suno.ai/image_large_9dcaf4a7-1831-41ca-817a-b963a7f18ae2.jpeg",
+  "major_model_version": "v5",
+  "model_name": "chirp-crow",
+  "metadata": {
+    "tags": "Cathedral-sized synths over staccato harpsichord arpeggios and swelling strings; four-on-the-floor kick drives a spacious techno groove while choirs and brass hits punctuate the downbeats. Energy glides in waves—regal and grand but never overwhelming—perfect as an epic yet unobtrusive pub trivia backdrop, with evolving motifs instead of big drops., techno, baroque, opera",
+    "prompt": "[Instrumental]",
+    "gpt_description_prompt": "Pub trivia background music\n\n\"Baroque Space Opera Techno\"",
+    "type": "gen",
+    "duration": 196.32,
+    "refund_credits": false,
+    "stream": true,
+    "make_instrumental": true,
+    "can_remix": true,
+    "is_remix": false,
+    "priority": 10,
+    "has_stem": false,
+    "video_is_stale": true,
+    "uses_latest_model": true,
+    "model_badges": {
+      "songcard": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "0000004D",
+          "border_color": "00000000"
+        }
+      },
+      "songrow": {
+        "display_name": "v5",
+        "light": {
+          "text_color": "FD429C",
+          "background_color": "FD429C1A",
+          "border_color": "00000000"
+        },
+        "dark": {
+          "text_color": "FD429C",
+          "background_color": "FD429C40",
+          "border_color": "00000000"
+        }
+      }
+    }
+  },
+  "is_liked": false,
+  "user_id": "1b76a5c6-812a-4eb9-86e8-fce5e58a8cac",
+  "display_name": "ProgressiveDarkstep727",
+  "handle": "progressivedarkstep727",
+  "is_handle_updated": false,
+  "avatar_image_url": "https://cdn1.suno.ai/defaultBlue.webp",
+  "is_trashed": false,
+  "created_at": "2026-01-12T08:44:00.821Z",
+  "is_public": false,
+  "reaction": {
+    "play_count": 3,
+    "skip_count": 0,
+    "flagged": false,
+    "clip": "9dcaf4a7-1831-41ca-817a-b963a7f18ae2",
+    "updated_at": "2026-01-12T09:41:19.467Z"
+  },
+  "is_following_creator": false,
+  "project": {
+    "id": "ce17fde0-80f3-46d0-b07b-a7d3d39f4029",
+    "name": "Time Traveler Beats",
+    "description": "",
+    "is_trashed": false,
+    "is_public": false
+  },
+  "ownership": {
+    "ownership_reason": "subscribed"
+  },
+  "explicit": false,
+  "comment_count": 0,
+  "flag_count": 0,
+  "display_tags": "techno, baroque, opera",
+  "is_contest_clip": false,
+  "has_hook": false,
+  "batch_index": 1
+}
