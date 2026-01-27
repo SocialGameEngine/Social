@@ -10,6 +10,8 @@ interface SessionTimerProps {
   showProgressBar?: boolean;
   variant?: "brand" | "neutral";
   isDark?: boolean;
+  position?: "fixed" | "inline";
+  showCriticalBar?: boolean;
 }
 
 export function SessionTimer({
@@ -18,9 +20,11 @@ export function SessionTimer({
   paused = false,
   label,
   size = "lg",
-  showProgressBar = true,
+  showProgressBar = false,
   variant = "brand",
   isDark = false,
+  position = "fixed",
+  showCriticalBar = true,
 }: SessionTimerProps) {
 
   return (
@@ -31,6 +35,8 @@ export function SessionTimer({
         size={size}
         isDark={isDark}
         paused={paused}
+        position={position}
+        showCriticalBar={showCriticalBar}
       />
       {showProgressBar && (
         <ProgressBar

@@ -57,6 +57,30 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.style.setProperty('--color-player-border', theme.colors.player.border);
     root.style.setProperty('--color-player-progress', theme.colors.player.progress);
 
+    // Chaos theme colors
+    root.style.setProperty('--chaos-bg-radial-1', theme.colors.chaos.background.radial1);
+    root.style.setProperty('--chaos-bg-radial-2', theme.colors.chaos.background.radial2);
+    root.style.setProperty('--chaos-bg-base', theme.colors.chaos.background.base);
+    root.style.setProperty('--chaos-orb-gradient', theme.colors.chaos.orb.gradient);
+    root.style.setProperty('--chaos-orb-blur', theme.colors.chaos.orb.blur);
+    root.style.setProperty('--chaos-prompt-gradient', theme.colors.chaos.prompt.gradient);
+    root.style.setProperty('--chaos-prompt-shadow', theme.colors.chaos.prompt.shadow);
+    root.style.setProperty('--chaos-prompt-rotation', theme.colors.chaos.prompt.rotation);
+    root.style.setProperty('--chaos-answer-bg', theme.colors.chaos.answer.background);
+    root.style.setProperty('--chaos-answer-glow', theme.colors.chaos.answer.glow);
+    root.style.setProperty('--chaos-answer-text', theme.colors.chaos.answer.text);
+    root.style.setProperty('--chaos-reaction-bg', theme.colors.chaos.reaction.background);
+    root.style.setProperty('--chaos-reaction-shadow', theme.colors.chaos.reaction.shadow);
+    root.style.setProperty('--chaos-cta-gradient', theme.colors.chaos.cta.gradient);
+    root.style.setProperty('--chaos-cta-shadow', theme.colors.chaos.cta.shadow);
+    root.style.setProperty('--chaos-cta-text', theme.colors.chaos.cta.text);
+    root.style.setProperty('--chaos-success-bg', theme.colors.chaos.success.background);
+    root.style.setProperty('--chaos-success-text', theme.colors.chaos.success.text);
+    root.style.setProperty('--chaos-success-muted', theme.colors.chaos.success.muted);
+    root.style.setProperty('--chaos-menu-bg', theme.colors.chaos.menu.background);
+    root.style.setProperty('--chaos-menu-border', theme.colors.chaos.menu.border);
+    root.style.setProperty('--chaos-menu-shadow', theme.colors.chaos.menu.shadow);
+
     // Set color-scheme for native browser elements
     root.style.colorScheme = 'dark';
 

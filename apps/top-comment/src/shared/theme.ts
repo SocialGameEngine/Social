@@ -75,6 +75,46 @@ export interface ThemeColors {
     border: string;
     progress: string;
   };
+  chaos: {
+    background: {
+      radial1: string;
+      radial2: string;
+      base: string;
+    };
+    orb: {
+      gradient: string;
+      blur: string;
+    };
+    prompt: {
+      gradient: string;
+      shadow: string;
+      rotation: string;
+    };
+    answer: {
+      background: string;
+      glow: string;
+      text: string;
+    };
+    reaction: {
+      background: string;
+      shadow: string;
+    };
+    cta: {
+      gradient: string;
+      shadow: string;
+      text: string;
+    };
+    success: {
+      background: string;
+      text: string;
+      muted: string;
+    };
+    menu: {
+      background: string;
+      border: string;
+      shadow: string;
+    };
+  };
 }
 
 export interface Theme {
@@ -139,6 +179,46 @@ export const darkTheme: Theme = {
       background: '#111827',   // gray-900
       border: '#374151',       // gray-700
       progress: '#6b7280',      // gray-500
+    },
+    chaos: {
+      background: {
+        radial1: '#ff00ff66',
+        radial2: '#00e5ff55',
+        base: '#05050b',
+      },
+      orb: {
+        gradient: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(255,0,255,0.4) 45%, rgba(0,229,255,0.3) 70%, transparent 75%)',
+        blur: '6px',
+      },
+      prompt: {
+        gradient: 'linear-gradient(135deg, #ff5cff, #ffb300)',
+        shadow: '0 16px 0 #000, 0 30px 50px rgba(0,0,0,0.4)',
+        rotation: '-2deg',
+      },
+      answer: {
+        background: '#0f0f1c',
+        glow: 'inset 0 0 0 2px #ff5cff55',
+        text: '#ffffff',
+      },
+      reaction: {
+        background: '#1c1c2f',
+        shadow: '0 4px 0 #000',
+      },
+      cta: {
+        gradient: 'linear-gradient(135deg, #00e5ff, #ff5cff)',
+        shadow: '0 10px 30px #ff5cff88',
+        text: '#000000',
+      },
+      success: {
+        background: '#22c55e',
+        text: '#22c55e',
+        muted: '#86efac',
+      },
+      menu: {
+        background: 'rgba(15, 15, 28, 0.75)',
+        border: 'rgba(255, 255, 255, 0.1)',
+        shadow: '0 -10px 40px rgba(0, 0, 0, 0.6)',
+      },
     },
   },
 };

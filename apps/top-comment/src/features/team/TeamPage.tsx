@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Card, Modal } from "@social/ui";
+import { Button, Card, Modal, SessionTimer } from "@social/ui";
 import { useToast } from "../../shared/hooks";
 import { VIBoxButton } from "../../shared/components/vibox/VIBoxButton";
 import { BackgroundAnimation } from "../../components/BackgroundAnimation";
+import { UserProfile } from "../../components/UserProfile";
 import { HowToPlayModal } from "../howToPlay/HowToPlayModal";
 import { VIBoxJukebox } from "../../shared/components/vibox/VIBoxJukebox";
 import { transformRoundSummariesForUI, transformLeaderboardForUI } from "../../application";
@@ -31,6 +32,7 @@ export function TeamPage() {
   const { teamSession, setTeamSession, clearTeamSession } = useTeamSession();
   const { setCurrentPhase } = useCurrentPhase();
   const { isDark } = useTheme();
+  const [showAccountModal, setShowAccountModal] = useState(false);
 
   const teamState = useTeamState(teamSession);
   const {
@@ -511,18 +513,38 @@ export function TeamPage() {
   }
 
   
+  const bottomPaddingClass = session ? "pb-28 sm:pb-10" : "pb-10";
   const mainClassName = showBackground
-    ? "relative z-10 flex min-h-screen items-center justify-center px-3 py-10 sm:px-4"
-    : `relative min-h-screen px-4 py-8 ${!isDark ? 'bg-amber-50' : 'bg-slate-950'}`;
+    ? `relative z-10 flex min-h-screen items-center justify-center px-3 py-10 sm:px-4 ${bottomPaddingClass}`
+    : `relative min-h-screen px-4 py-8 ${bottomPaddingClass} ${!isDark ? 'bg-amber-50' : 'bg-slate-950'}`;
 
   const contentWrapperClassName = showBackground
-    ? "relative z-10 mx-auto flex w-[88vw] max-w-sm flex-col gap-4 sm:w-full sm:max-w-lg sm:gap-6"
+    ? "chaos-stack mx-auto flex w-[92vw] max-w-[440px] flex-col gap-4 sm:w-full sm:max-w-[520px] sm:gap-6"
     : "mx-auto flex w-full max-w-lg flex-col gap-6";
 
   return (
     <>
-      <BackgroundAnimation show={showBackground} />
-      <div className="pointer-events-auto fixed right-4 top-4 z-50 flex flex-col gap-2">
+      {session ? (
+        <div className="fixed left-5 top-5 z-50">
+          <button
+            type="button"
+            onClick={effectsHandleLeave}
+            className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 transition-colors hover:text-red-400"
+          >
+            ✕ BAIL
+          </button>
+        </div>
+      ) : null}
+      {showBackground ? (
+        <div className="chaos-orbs" aria-hidden="true">
+          <div className="chaos-orb" style={{ left: '10%' }} />
+          <div className="chaos-orb" style={{ left: '70%', animationDuration: '18s' }} />
+          <div className="chaos-orb" style={{ left: '40%', animationDuration: '22s' }} />
+        </div>
+      ) : (
+        <BackgroundAnimation show={showBackground} />
+      )}
+      <div className="pointer-events-auto fixed right-4 top-4 z-50 hidden flex-col gap-2 sm:flex">
         <VIBoxButton
           onClick={() => setShowVIBoxModal(true)}
           variant="team"
@@ -556,12 +578,46 @@ export function TeamPage() {
 
           {null}
 
-          {session ? (
-            <Button variant="ghost" onClick={effectsHandleLeave} fullWidth>
-              Leave session
-            </Button>
-          ) : null}
         </div>
+
+        {session ? (
+          <nav className="chaos-bottom-nav sm:hidden">
+            <div className="chaos-nav-item">
+              <SessionTimer
+                endTime={session.endsAt}
+                totalSeconds={totalSeconds}
+                paused={session.paused}
+                size="sm"
+                position="inline"
+                isDark={isDark}
+              />
+              <span className="chaos-nav-label">Time</span>
+            </div>
+            <button
+              type="button"
+              className="chaos-nav-item"
+              onClick={() => setShowAccountModal(true)}
+            >
+              <div className="text-xl">👤</div>
+              <span className="chaos-nav-label">Account</span>
+            </button>
+            <div className="flex-none -mt-10 px-2">
+              <VIBoxButton
+                onClick={() => setShowVIBoxModal(true)}
+                variant="team"
+                size="lg"
+              />
+            </div>
+            <button
+              type="button"
+              className="chaos-nav-item"
+              onClick={handleOpenHowToPlay}
+            >
+              <div className="text-xl">❓</div>
+              <span className="chaos-nav-label">Help</span>
+            </button>
+          </nav>
+        ) : null}
 
         {/* Selfie Modal */}
         {showSelfieModal && (
@@ -727,6 +783,19 @@ export function TeamPage() {
           <p className={`text-sm ${!isDark ? 'text-slate-700' : 'text-slate-300'}`}>
             The host has ended the session early. Check out the leaderboard and take a selfie with your score!
           </p>
+        </Modal>
+        <Modal
+          open={showAccountModal}
+          isDark={isDark}
+          onClose={() => setShowAccountModal(false)}
+          title="Account"
+          footer={
+            <Button onClick={() => setShowAccountModal(false)} fullWidth>
+              Close
+            </Button>
+          }
+        >
+          <UserProfile className="flex-col items-start gap-2" />
         </Modal>
       </main>
 

@@ -1,4 +1,4 @@
-import { Card, Button, SessionTimer, ProgressBar } from "@social/ui";
+import { Button, SessionTimer } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 import { clsx } from "clsx";
 import type { Session, RoundGroup, Answer } from "../../../shared/types";
@@ -55,22 +55,16 @@ export function AnswerPhase({
   const { data: promptLibrary } = usePromptLibrary(session.promptLibraryId || 'classic');
 
   return (
-    <Card className="space-y-3 p-3 sm:space-y-5 sm:p-5" isDark={isDark}>
-      <div className="space-y-2 text-center">
-        <div className="rounded-2xl px-3 py-2 shadow-2xl text-xs font-semibold bg-slate-800 text-cyan-100">
-          <SessionTimer
-            endTime={session.endsAt}
-            totalSeconds={totalSeconds}
-            paused={session.paused}
-            label="Time left"
-            size="sm"
-            showProgressBar={false}
-            isDark={isDark}
-          />
-        </div>
-        <div className="rounded-full p-0.5 shadow-inner bg-slate-700/80 shadow-slate-600">
-          <ProgressBar endTime={session.endsAt} totalSeconds={totalSeconds} paused={session.paused} />
-        </div>
+    <div className="space-y-3 p-3 sm:space-y- sm:p-5">
+      <div className="hidden sm:block">
+        <SessionTimer
+          endTime={session.endsAt}
+          totalSeconds={totalSeconds}
+          paused={session.paused}
+          label="Time left"
+          size="sm"
+          isDark={isDark}
+        />
       </div>
       {promptLibrary && (
         <div className="text-center">
@@ -86,9 +80,9 @@ export function AnswerPhase({
       {myAnswer ? (
         <div className="space-y-3 sm:space-y-4">
           {/* Keep showing the prompt even after submission */}
-          <div className="rounded-3xl px-3 py-3 text-center sm:px-4 sm:py-4 shadow-xl border-2 bg-gradient-to-br from-cyan-900/40 to-blue-900/40 border-cyan-400/50 text-cyan-100">
+          <div className="chaos-prompt-card px-3 py-3 text-center sm:px-4 sm:py-4 shadow-xl border-2 border-black/80">
             {currentPrompt ? (
-              <p className="text-2xl font-black tracking-tight drop-shadow-lg sm:text-3xl text-pink-300">
+              <p className="text-2xl font-black tracking-tight drop-shadow-lg sm:text-3xl text-black">
                 {currentPrompt}
               </p>
             ) : (
@@ -104,67 +98,50 @@ export function AnswerPhase({
             )}
           </div>
           
-          <div className="relative rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-center border-2 shadow-xl backdrop-blur-sm"
-               style={{
-                 background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(34, 197, 94, 0.1))',
-                 borderColor: '#22c55e',
-                 boxShadow: '0 0 30px rgba(34, 197, 94, 0.3), inset 0 1px 1px rgba(34, 197, 94, 0.2)'
-               }}>
+          <div className="space-y-3 text-center sm:space-y-4 relative">
             {/* Success indicator */}
-            <div className="absolute -top-2 -right-2 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center"
-                 style={{ backgroundColor: '#22c55e' }}>
+            <div className="chaos-success-dot absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full sm:h-8 sm:w-8">
               <svg className="w-3 h-3 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
             
-            <p className="text-xs sm:text-sm font-bold mb-2 sm:mb-3"
-               style={{ color: '#22c55e' }}>
+            <p className="chaos-success-text mb-2 text-xs font-bold sm:mb-3 sm:text-sm">
               ✓ Answer submitted!
             </p>
-            <div className="bg-black/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-2 sm:mb-3 border border-green-500/20">
-              <p className="text-base sm:text-lg font-medium text-white leading-relaxed">{myAnswer.text}</p>
+            <div className="chaos-answer-pill rounded-2xl p-3 sm:p-4 mb-2 sm:mb-3 border border-black/70">
+              <p className="text-base sm:text-lg font-medium leading-relaxed">{myAnswer.text}</p>
             </div>
             {myAnswer.updatedAt && myAnswer.updatedAt !== myAnswer.createdAt && (
-              <p className="text-[10px] sm:text-xs opacity-80"
-                 style={{ color: '#86efac' }}>
+              <p className="chaos-success-muted text-[10px] opacity-80 sm:text-xs">
                 Updated {new Date(myAnswer.updatedAt).toLocaleTimeString()}
               </p>
             )}
           </div>
           
-          <div className="rounded-2xl sm:rounded-3xl p-4 sm:p-5 border-2 shadow-lg backdrop-blur-sm"
-               style={{
-                 background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.6))',
-                 borderColor: 'rgba(6, 182, 212, 0.4)',
-                 boxShadow: 'inset 0 1px 1px rgba(138, 43, 226, 0.2), 0 10px 22px rgba(0, 0, 0, 0.6)'
-               }}>
+          <div className="space-y-3 sm:space-y-4">
             <div className="flex items-center justify-center mb-3 sm:mb-4">
-              <div className="w-4 h-0.5 sm:w-6 mr-2 sm:mr-3" style={{ backgroundColor: '#06b6d4' }}></div>
-              <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider"
-                 style={{ color: '#06b6d4' }}>
+              <div className="w-4 h-0.5 sm:w-6 mr-2 sm:mr-3 bg-cyan-300"></div>
+              <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-cyan-200">
                 Update Your Answer
               </p>
-              <div className="w-4 h-0.5 sm:w-6 ml-2 sm:ml-3" style={{ backgroundColor: '#06b6d4' }}></div>
+              <div className="w-4 h-0.5 sm:w-6 ml-2 sm:ml-3 bg-cyan-300"></div>
             </div>
             <div className="space-y-3 sm:space-y-4">
-              <textarea
-                className="min-h-[80px] sm:min-h-[90px] w-full rounded-xl sm:rounded-2xl border border-cyan-400/30 px-3 sm:px-4 py-2 sm:py-3 text-sm leading-relaxed placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/20 transition-all"
-                placeholder="Type your updated answer here..."
-                value={answerText.slice(0, CHAR_LIMIT)}
-                maxLength={CHAR_LIMIT}
-                onChange={(event) =>
-                  setAnswerText(event.target.value.slice(0, CHAR_LIMIT))
-                }
-                aria-label="Updated answer"
-                style={{
-                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                  color: '#ffffff',
-                  backdropFilter: 'blur(10px)'
-                }}
-              />
+              <div className="chaos-answer-pill rounded-2xl px-3 sm:px-4 py-2 sm:py-3 border border-black/70">
+                <textarea
+                  className="min-h-[80px] sm:min-h-[90px] w-full bg-transparent text-sm leading-relaxed placeholder:text-slate-400 focus:outline-none sm:text-base"
+                  placeholder="Type your updated answer here..."
+                  value={answerText.slice(0, CHAR_LIMIT)}
+                  maxLength={CHAR_LIMIT}
+                  onChange={(event) =>
+                    setAnswerText(event.target.value.slice(0, CHAR_LIMIT))
+                  }
+                  aria-label="Updated answer"
+                />
+              </div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-[11px]" style={{ color: '#06b6d4' }}>
+                <span className="text-[10px] sm:text-[11px] text-cyan-200">
                   {answerText.length}/{CHAR_LIMIT}
                 </span>
                 {answerText === myAnswer.text && (
@@ -180,7 +157,7 @@ export function AnswerPhase({
                 fullWidth
                 size="sm"
                 variant="secondary"
-                className="border-cyan-400/30 hover:border-cyan-400/50 text-xs sm:text-sm"
+                className="chaos-cta-button font-black text-xs sm:text-sm"
               >
                 {isSubmittingAnswer ? (
                   <span className="flex items-center">
@@ -204,10 +181,10 @@ export function AnswerPhase({
         </div>
       ) : (
         <>
-          <div className="space-y-2 sm:space-y-3">
-            <div className="rounded-3xl px-3 py-3 text-center sm:px-4 sm:py-4 shadow-xl border-2 bg-gradient-to-br from-cyan-900/40 to-blue-900/40 border-cyan-400/50 text-cyan-100">
+          <div className="space-y-4 sm:space-y-4">
+            <div className="chaos-prompt-card px-3 py-3 text-center sm:px-4 sm:py-4 shadow-xl border-2 border-black/80">
               {currentPrompt ? (
-                <p className="text-2xl font-black tracking-tight drop-shadow-lg sm:text-3xl text-pink-300">
+                <p className="text-2xl font-black tracking-tight drop-shadow-lg sm:text-3xl text-black">
                   {currentPrompt}
                 </p>
               ) : (
@@ -222,8 +199,21 @@ export function AnswerPhase({
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-between text-[11px] sm:text-xs text-brand-primary">
-              <span>Type your answer below</span>
+            
+            <div className="chaos-answer-pill rounded-3xl px-3 py-3 sm:px-5 sm:py-4 border border-black/70">
+              <textarea
+                className="min-h-[90px] w-full bg-transparent text-sm leading-relaxed placeholder:text-slate-400 focus:outline-none sm:min-h-[140px] sm:text-base"
+                placeholder="Type your best response"
+                value={answerText.slice(0, CHAR_LIMIT)}
+                maxLength={CHAR_LIMIT}
+                onChange={(event) =>
+                  setAnswerText(event.target.value.slice(0, CHAR_LIMIT))
+                }
+                aria-label="Your answer"
+              />
+            </div>
+
+            <div className="flex items-center justify-end text-[11px] sm:text-xs text-brand-primary">
               <span
                 className={clsx(
                   limitReached && 'text-rose-400 font-bold text-sm sm:text-base',
@@ -232,16 +222,6 @@ export function AnswerPhase({
                 {characterCount}/{CHAR_LIMIT}
               </span>
             </div>
-            <textarea
-              className="matte-input min-h-[90px] w-full rounded-3xl border border-white/40 bg-transparent px-3 py-3 text-sm leading-relaxed placeholder:text-slate-500 focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-light sm:min-h-[140px] sm:px-5 sm:py-4 sm:text-base"
-              placeholder="Type your best response"
-              value={answerText.slice(0, CHAR_LIMIT)}
-              maxLength={CHAR_LIMIT}
-              onChange={(event) =>
-                setAnswerText(event.target.value.slice(0, CHAR_LIMIT))
-              }
-              aria-label="Your answer"
-            />
           </div>
           <Button
             onClick={handleSubmitAnswer}
@@ -249,11 +229,12 @@ export function AnswerPhase({
             isLoading={isSubmittingAnswer}
             fullWidth
             size="sm"
+            className="chaos-cta-button font-black text-xs sm:text-sm"
           >
             Submit answer
           </Button>
         </>
       )}
-    </Card>
+    </div>
   );
 }
