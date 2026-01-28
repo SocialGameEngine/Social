@@ -1,8 +1,9 @@
 # Executive Summary – Social Game Engine
 
 **Team:** Social Game Engine (4 UVic Co-Founders)
-**Date:** December 2025
+**Date:** January 2026
 **Target:** $44k MRR from 59 Victoria venues by Week 12
+**Status:** MVP validated with 35-player pilot event, 7 venues secured
 
 ---
 
@@ -11,49 +12,55 @@
 Bars rely on weekly programming to drive traffic, increase dwell time, and create repeat visits. Trivia and game nights are proven levers—industry studies show successful events can lift midweek revenue by 20–65% and draw 30–50+ players staying 2+ hours.
 
 **The Challenge:**
-- Professional trivia hosts cost $200–$300/night and don't scale (four venues = $3,200+ monthly cost)
+- Professional hosts cost $200–300/night and don't scale (four venues = $3,200+ monthly cost)
 - Consumer games (Jackbox, quiz apps) fail in loud, high-turnover bar environments
 - Most bars lack analytics to measure ROI on entertainment programming
 - **Market gap:** $40B+ US bar industry, 650,000+ venues, 20–40% from events—but no scalable solution exists
 
 **Our Validation:**
 Christie's Carriage House Pub pilot: **35 players, 2-hour engagement, immediate pricing interest** (November 2025)
+**Pipeline:** 7 additional venues actively pursuing pilots
 
 ---
 
 ## 2. The Solution: Social
 
-**Social** is a B2B SaaS platform ($299/month) powering **two host-less bar games** via QR codes.
+**Social** is a B2B SaaS platform ($299/month) powering **three host-less bar games** via QR codes.
 
-### **Top Comment** (Week 1)
+### **Top Comment** (Week 1) ✅
 - Twitter-parody social voting game
 - QR join → anonymous team → submit creative answers → vote on favorites → live leaderboards
 - **$1.50 per play**
 - Engagement: 40 plays/night = $60 venue revenue
 
-### **VIBox** (Week 4)
+### **VIBox** (Week 4) ✅
 - AI jukebox powered by Suno API
 - QR join → vibe picker (chill/hype/party) → AI generates track → plays to venue speakers
 - **$2.00 per song** (covers Suno cost)
 - Engagement: 20 songs/night = $40 venue revenue
 
-### **Key Benefits:**
-✅ **Host-less:** One bartender, one button—no professional entertainer needed
-✅ **Fast onboarding:** Players join in <10 seconds (no apps, no accounts)
-✅ **Revenue clear:** Venues keep 100% of patron spending
-✅ **Scalable:** Shared Turborepo monorepo enables rapid feature launches
-✅ **Measurable:** Venue dashboard tracks engagement, revenue, dwell time (15–25% lift validated)
+### **Jeopardy Mode** (Week 8) 🚧
+- Strategic category selection game
+- 6×7 grid with point values and multipliers
+- **$1.50 per game**
+- Engagement: 15 games/night = $22.50 venue revenue
+
+### **Enhanced Value Proposition:**
+- **Total venue revenue**: $122.50/night = ~$1,005/month
+- **Venue ROI**: 3.3x return on $299 subscription
+- **Multiple engagement vectors** for different patron preferences
 
 ---
 
 ## 3. Key Resources & Metrics
 
 ### **Resources:**
-- Real-time social voting platform (React/TypeScript + Supabase realtime)
-- Two games ready to launch
+- Real-time social gaming platform (React/TypeScript + Supabase realtime)
+- **Three games**: Top Comment (✅), VIBox (✅), Jeopardy Mode (🚧)
 - Analytics dashboard with ROI tracking
-- 7 pilot venues secured (including Christie's validation)
+- **7 pilot venues secured** (including Christie's validation)
 - 4 co-founders, 140 hrs/week capacity
+- **Proven execution**: MVP built and deployed in real bars
 
 ### **Success Metrics:**
 - **Player onboarding:** <10 seconds (QR join)
@@ -61,19 +68,20 @@ Christie's Carriage House Pub pilot: **35 players, 2-hour engagement, immediate 
 - **Trial conversion:** 70% (library lock-in)
 - **Demo-to-trial:** 80%+
 - **Engagement:** 100% round completion
+- **Revenue per venue**: $1,005/month potential (3.3x ROI)
 
 ---
 
 ## 4. Unique Value Proposition
 
 **For Venue Owners:**
-"Host-less social games that deliver 15–25% dwell time increases, measurable engagement analytics, and weekly programming that runs itself after 5-minute setup. Validated with 35 players staying 2 hours at pilot events."
+"Three host-less social games delivering $1,005/month in patron revenue for $299/month subscription. Validated with 35 players staying 2 hours at pilot events."
 
 **For Patrons:**
-"Join instantly with your phone—no app, no login, no pressure. Submit creative answers, vote on favorites, compete on live leaderboards with strangers who become friends."
+"Join instantly with your phone—no app, no login, no pressure. Multiple game experiences: social voting, AI jukebox, strategic gameplay with strangers who become friends."
 
 **For Bar Staff:**
-"Run a game with one button. Incentivized via tips ($45/shift potential). No training needed—players love it."
+"Run three different games with one button. Incentivized via tips ($45/shift potential). No training needed—players love it."
 
 ---
 

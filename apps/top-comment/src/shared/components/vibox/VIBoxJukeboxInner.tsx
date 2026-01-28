@@ -3,7 +3,6 @@ import { Modal } from "@social/ui";
 import { useVIBoxTheme } from "./ThemeProvider";
 import { supabase } from "../../../supabase/client";
 import type { ViboxQueueItem, ViboxQueueInsert, Track, TrackMetadata, VibeHierarchy } from "../../types/vibox";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 import { viboxApi } from "../../api/vibox";
 import {
   PlayIcon,
@@ -48,13 +47,11 @@ export function VIBoxJukeboxInner({
   const [vibeHierarchy, setVibeHierarchy] = useState<VibeHierarchy | null>(null);
   const [trackMetadata, setTrackMetadata] = useState<Map<string, TrackMetadata>>(new Map());
   const [expandedPrimaryVibes, setExpandedPrimaryVibes] = useState<Set<string>>(new Set());
-  const [expandedSecondaryVibes, setExpandedSecondaryVibes] = useState<Set<string>>(new Set());
-  const [selectedPrimaryVibe, setSelectedPrimaryVibe] = useState<string | null>(null);
+    const [selectedPrimaryVibe, setSelectedPrimaryVibe] = useState<string | null>(null);
   const [expandedPlayer, setExpandedPlayer] = useState(false);
   const [viewMode, setViewMode] = useState<'vibes' | 'all'>('vibes');
   const [queue, setQueue] = useState<ViboxQueueItem[]>([]);
-  const [isQueueLoading, setIsQueueLoading] = useState(false);
-  const [currentTrackInfo, setCurrentTrackInfo] = useState<{
+    const [currentTrackInfo, setCurrentTrackInfo] = useState<{
     track_id: string;
     track_title: string;
     track_artist: string;
@@ -69,16 +66,14 @@ export function VIBoxJukeboxInner({
   } | null>(null);
   
   // Use voting context
-  const { voteCounts, userVotes, handleVote, getVoteCount, getUserVote } = useVoting();
+  const { handleVote, getVoteCount, getUserVote } = useVoting();
   const [windowWidth, setWindowWidth] = useState(0);
   const [bottomPlayerHeight, setBottomPlayerHeight] = useState(0);
   const bottomPlayerExtraLeeway = 64;
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomPlayerRef = useRef<HTMLDivElement>(null);
-  const queueChannelRef = useRef<RealtimeChannel | null>(null);
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
+  
 
   
   // Window resize effect for responsive layout
@@ -136,14 +131,15 @@ export function VIBoxJukeboxInner({
           schema: 'public',
           table: 'vibox_queue',
         },
-        (payload) => {
+        () => {
           // Immediate fetch for realtime events
           fetchQueue();
         }
       )
       .subscribe((status, err) => {
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          // Handle realtime connection errors silently
+          // Handle realtime connection errors
+          log.error('Queue subscription error', { status, error: err });
         }
       });
 
@@ -199,7 +195,7 @@ export function VIBoxJukeboxInner({
           log.info('Loading audio files', { count: audioFiles.length });
           
           const preloadedTracks: Track[] = audioFiles.map((filename: string) => {
-            const metadata = metadataMap.get(filename);
+            const metadata = trackMetadata.get(filename);
             // Use metadata title if available, otherwise fall back to cleaned filename
             const displayTitle = metadata?.title || filename.replace(/\.[^/.]+$/, "").replace(/_/g, ' ');
 
@@ -303,22 +299,7 @@ export function VIBoxJukeboxInner({
     processFiles(files);
   };
 
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    if (!allowUploads) return;
-    
-    event.preventDefault();
-    const files = event.dataTransfer.files;
-    if (files.length > 0) {
-      processFiles(files);
-    }
-  };
-
-  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    if (!allowUploads) return;
-    
-    event.preventDefault();
-  };
-
+  
   const processFiles = (files: FileList) => {
     const audioFiles = Array.from(files).filter(file => 
       file.type.startsWith('audio/') || file.name.toLowerCase().endsWith('.mp3')
@@ -551,8 +532,7 @@ export function VIBoxJukeboxInner({
   // Disable body scrolling when modal is open
   useEffect(() => {
     if (isOpen) {
-      // Save original body style
-      const originalStyle = window.getComputedStyle(document.body);
+      // Save original overflow style
       const originalOverflow = document.body.style.overflow;
       
       // Disable scrolling
@@ -629,64 +609,7 @@ export function VIBoxJukeboxInner({
     return () => clearInterval(interval);
   }, [isOpen, mode, currentTrackInfo, isPlaying]);
 
-  // Listen for votes from other users
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const channel = supabase
-      .channel('vibox-votes')
-      .on('broadcast', { event: 'track_vote' }, (payload) => {
-        const vote = payload.payload as {
-          track_id: string;
-          vote_type: 'up' | 'down' | null;
-          session_id: string;
-        };
-        
-        if (!vote) return;
-        
-        const sessionId = getSessionId();
-        const isOwnVote = vote.session_id === sessionId;
-        
-        setTrackVotes(prev => {
-          const currentVotes = prev.get(vote.track_id) || { upvotes: 0, downvotes: 0 };
-          const newVotes = { ...currentVotes };
-          
-          if (vote.vote_type === 'up') {
-            newVotes.upvotes = currentVotes.upvotes + 1;
-            if (!isOwnVote) {
-              // Don't update userVote for other users' votes
-            } else {
-              newVotes.userVote = 'up';
-            }
-          } else if (vote.vote_type === 'down') {
-            newVotes.downvotes = currentVotes.downvotes + 1;
-            if (!isOwnVote) {
-              // Don't update userVote for other users' votes
-            } else {
-              newVotes.userVote = 'down';
-            }
-          } else {
-            // Vote removal - need to determine which vote was removed
-            if (currentVotes.userVote === 'up') {
-              newVotes.upvotes = currentVotes.upvotes - 1;
-            } else if (currentVotes.userVote === 'down') {
-              newVotes.downvotes = currentVotes.downvotes - 1;
-            }
-            if (isOwnVote) {
-              delete newVotes.userVote;
-            }
-          }
-          
-          return new Map(prev).set(vote.track_id, newVotes);
-        });
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [isOpen]);
-
+  
   // Helper function to check if vibe contains current track
   const isVibeActive = (primaryVibe: string, secondaryVibe?: string) => {
     if (!currentTrack) return false;
@@ -816,10 +739,57 @@ export function VIBoxJukeboxInner({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getModalTitle = () => {
-    return mode === "team" ? "🎵 VIBox Jukebox - Team View" : "🎵 VIBox Jukebox";
+  const handleVolumeChange = (clientX: number, targetElement: HTMLElement) => {
+    const rect = targetElement.getBoundingClientRect();
+    const clickX = clientX - rect.left;
+    const width = rect.width;
+    const percentage = Math.max(0, Math.min(1, clickX / width));
+    setVolume(percentage);
   };
 
+  const handleVolumeMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Initial volume change
+    handleVolumeChange(e.clientX, e.currentTarget);
+    
+    // Setup drag listeners
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      handleVolumeChange(moveEvent.clientX, e.currentTarget);
+    };
+    
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, []);
+
+  const handleVolumeTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Initial volume change
+    handleVolumeChange(e.touches[0].clientX, e.currentTarget);
+    
+    // Setup drag listeners
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      handleVolumeChange(moveEvent.touches[0].clientX, e.currentTarget);
+    };
+    
+    const handleTouchEnd = () => {
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+    
+    document.addEventListener('touchmove', handleTouchMove);
+    document.addEventListener('touchend', handleTouchEnd);
+  }, []);
+
+  
   return (
     <>
       <audio ref={audioRef} />
@@ -1494,12 +1464,23 @@ export function VIBoxJukeboxInner({
                 </div>
               )}
               {allowUploads && (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="px-2 py-1 text-[var(--color-vibox-text-primary)] text-xs rounded-full hover:bg-[var(--color-vibox-add-button-hover)] transition-colors"
-                >
-                  + Add
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-2 py-1 text-[var(--color-vibox-text-primary)] text-xs rounded-full hover:bg-[var(--color-vibox-add-button-hover)] transition-colors"
+                  >
+                    + Add
+                  </button>
+                  {mode === "host" && tracks.some(t => !t.isPreloaded) && (
+                    <button
+                      onClick={clearAll}
+                      className="px-2 py-1 text-red-500 text-xs rounded-full hover:bg-red-500/10 transition-colors"
+                      title="Clear all uploaded tracks"
+                    >
+                      Clear All
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -1729,6 +1710,16 @@ export function VIBoxJukeboxInner({
                             </svg>
                             <span>{getVoteCount(track.id)?.net_votes || 0}</span>
                           </div>
+                          {/* Remove track button for uploaded tracks */}
+                          {allowUploads && !track.isPreloaded && (
+                            <button
+                              onClick={() => removeTrack(track.id)}
+                              className="vibox-button [--tw-text-opacity:1] text-red-500 hover:[--tw-text-opacity:0.8] transition-opacity p-1"
+                              title="Remove track"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1764,12 +1755,18 @@ export function VIBoxJukeboxInner({
                   {/* Queue Section - Always Visible in Expanded Player */}
                   <div>
                     {mode === "host" && queue.length > 0 && (
-                      <div className="flex justify-end mb-3">
+                      <div className="flex justify-end gap-3 mb-3">
                         <button
                           onClick={() => playNextInQueue()}
                           className="text-sm [--tw-text-opacity:0.8] text-[var(--color-text-primary)] opacity-80 hover:opacity-100 transition-opacity"
                         >
                           Play Next
+                        </button>
+                        <button
+                          onClick={clearQueue}
+                          className="text-sm [--tw-text-opacity:0.8] text-red-500 opacity-80 hover:opacity-100 transition-opacity"
+                        >
+                          Clear Queue
                         </button>
                       </div>
                     )}
@@ -1932,6 +1929,28 @@ export function VIBoxJukeboxInner({
                     <div className={`flex justify-between text-xs mt-1 [--tw-text-opacity:0.8] text-[var(--color-text-secondary)]`}>
                       <span>{formatTime(currentTime)}</span>
                       <span>{formatTime(audioRef.current?.duration || currentTrackInfo?.track_duration || 0)}</span>
+                    </div>
+                  </div>
+
+                  {/* Volume Control */}
+                  <div className="mb-4">
+                    <div className="flex items-center gap-3">
+                      <svg className="w-5 h-5 [--tw-text-opacity:0.8] text-[var(--color-text-secondary)]" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                      </svg>
+                      <div 
+                        className="flex-1 h-2 bg-[var(--color-vibox-progress-track)] rounded-full cursor-pointer"
+                        onMouseDown={handleVolumeMouseDown}
+                        onTouchStart={handleVolumeTouchStart}
+                      >
+                        <div 
+                          className="h-full rounded-full transition-all [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)]"
+                          style={{ width: `${volume * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-xs [--tw-text-opacity:0.8] text-[var(--color-text-secondary)] w-10 text-right">
+                        {Math.round(volume * 100)}%
+                      </span>
                     </div>
                   </div>
 

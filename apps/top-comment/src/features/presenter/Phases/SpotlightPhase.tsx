@@ -1,4 +1,4 @@
-import { Timer, ProgressBar, Card } from "@social/ui";
+import { SessionTimer, ProgressBar, Card } from "@social/ui";
 
 interface SpotlightPhaseProps {
   sessionEndsAt: string | undefined;
@@ -8,9 +8,10 @@ export function SpotlightPhase({ sessionEndsAt }: SpotlightPhaseProps) {
   return (
     <Card className="flex flex-col items-center justify-center space-y-8">
       <h2 className="text-7xl font-black text-slate-900">Spotlight</h2>
-      <Timer
+      <SessionTimer
         endTime={sessionEndsAt}
-        variant="light"
+        variant="neutral"
+        totalSeconds={30}
         size="lg"
         label="Time"
       />

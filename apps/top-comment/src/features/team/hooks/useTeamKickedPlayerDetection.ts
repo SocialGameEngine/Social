@@ -3,7 +3,7 @@ import { getBannedFromSessions } from '../utils/teamConstants';
 import type { Session, Team } from '../../../shared/types';
 
 interface UseTeamKickedPlayerDetectionProps {
-  session: Session;
+  session: Session | null;
   teamSession: { sessionId: string; code: string; teamName: string } | null;
   sessionSnapshotReady: boolean;
   currentTeam: Team | null;
@@ -35,6 +35,9 @@ export function useTeamKickedPlayerDetection({
 
   // Detect when player is kicked (currentTeam becomes null while session exists and other teams are still present)
   useEffect(() => {
+    // Early return if no session - nothing to detect
+    if (!session) return;
+
     // Clear any pending timeout if conditions change
     if (kickDetectionTimeoutRef.current) {
       clearTimeout(kickDetectionTimeoutRef.current);

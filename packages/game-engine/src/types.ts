@@ -3,10 +3,6 @@
  * Database-agnostic types for the modular game engine
  */
 
-import type { Database } from '@social/db';
-
-type Tables = Database['public']['Tables'];
-
 // Game registry and identification
 export type GameId = string;
 export type GameMode = 'event' | 'patron';

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Card, Button, useToast } from "@social/ui";
+import { Card, Button } from "@social/ui";
+import { useToast } from "../../../shared/hooks";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 import { getMascotById } from "../../../shared/mascots";
 import type { Team } from "../../../shared/types";

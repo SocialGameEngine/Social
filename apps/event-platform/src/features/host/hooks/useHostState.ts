@@ -29,8 +29,7 @@ export function useHostState(storedSessionId: string | null) {
   const [isPausingSession, setIsPausingSession] = useState(false);
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
   const [kickingTeamId, setKickingTeamId] = useState<string | null>(null);
-  const [banningTeamId, setBanningTeamId] = useState<string | null>(null);
-  
+    
   const sessionRef = useRef<Session | null>(null);
   const isPerformingActionRef = useRef(false);
 
@@ -69,8 +68,6 @@ export function useHostState(storedSessionId: string | null) {
     setShowEndSessionModal,
     kickingTeamId,
     setKickingTeamId,
-    banningTeamId,
-    setBanningTeamId,
     sessionRef,
     isPerformingActionRef,
   };

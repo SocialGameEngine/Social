@@ -1,11 +1,12 @@
 import { Timer } from "./Timer";
 import { ProgressBar } from "./ProgressBar";
+import type { ReactNode } from "react";
 
 interface SessionTimerProps {
   endTime?: string;
   totalSeconds: number;
   paused?: boolean;
-  label?: string;
+  label?: ReactNode;
   size?: "sm" | "md" | "lg";
   showProgressBar?: boolean;
   variant?: "brand" | "neutral";

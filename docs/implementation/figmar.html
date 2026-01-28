@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Album View</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .font-avenir-demi-bold {
+            font-family: 'Avenir Next', 'Helvetica', sans-serif;
+            font-weight: 600;
+        }
+        .font-avenir-medium {
+            font-family: 'Avenir Next', 'Helvetica', sans-serif;
+            font-weight: 500;
+        }
+        .font-avenir-regular {
+            font-family: 'Avenir Next', 'Helvetica', sans-serif;
+            font-weight: 400;
+        }
+    </style>
+</head>
+<body class="m-0 p-0">
+    <div class="bg-gradient-to-b from-[rgba(198,50,36,1)] via-[rgba(100,29,23,1)] via-[rgba(39,21,19,1)] to-[rgba(18,18,18,1)] w-full min-w-[428px] min-h-[926px] relative">
+        <!-- Status Bar -->
+        <div class="absolute w-[calc(100%-2px)] top-0 left-px h-11 flex items-center justify-between px-6">
+            <div class="text-white text-sm font-medium">1:20</div>
+            <div class="flex items-center gap-1">
+                <div class="w-4 h-3 bg-white rounded-sm"></div>
+                <div class="w-4 h-3 bg-white rounded-sm"></div>
+                <div class="w-4 h-3 bg-white rounded-sm"></div>
+                <div class="w-1 h-3 bg-white rounded-sm"></div>
+            </div>
+        </div>
+
+        <!-- Back Button -->
+        <div class="absolute top-[53px] left-3.5 w-4 h-4 flex items-center justify-center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" opacity="0.7">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+        </div>
+
+        <!-- Album Cover -->
+        <div class="absolute top-[83px] left-[90px] w-[234px] h-[236px] bg-gray-800 rounded-lg flex items-center justify-center">
+            <span class="text-gray-600">Album Cover</span>
+        </div>
+
+        <!-- Album Title -->
+        <div class="absolute top-[359px] left-1 w-[199px] font-avenir-demi-bold font-bold text-white text-[25px] text-center">
+            1(Remastered)
+        </div>
+
+        <!-- Artist Info -->
+        <div class="absolute top-[400px] left-1 w-[415px] h-[139px]">
+            <div class="absolute top-[46px] left-[46px] w-[79px] font-avenir-demi-bold font-bold text-white text-sm text-center">
+                The Beatles
+            </div>
+            <div class="absolute top-[77px] left-[18px] w-10 font-avenir-medium font-medium text-[#b3b3b3] text-[13px] text-center">
+                Album
+            </div>
+            <div class="absolute top-[77px] left-[69px] w-10 font-avenir-medium font-medium text-[#b3b3b3] text-[13px] text-center">
+                2000
+            </div>
+            <div class="absolute top-[85px] left-16 w-[3px] h-[3px] bg-[#c4c4c4] rounded-full"></div>
+            
+            <!-- Play Button -->
+            <div class="absolute w-[13.49%] h-[40.29%] top-[41.01%] left-[82.17%] bg-[#1db954] rounded-[28px] flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                    <path d="M8 5v14l11-7z"/>
+                </svg>
+            </div>
+
+            <!-- Menu Dots -->
+            <div class="absolute top-[75px] left-[361px] w-[5px] h-5 bg-black rounded-full"></div>
+            <div class="absolute top-[75px] left-[372px] w-[5px] h-5 bg-black rounded-full"></div>
+        </div>
+
+        <!-- Song List -->
+        <!-- Song 1 -->
+        <div class="absolute top-[505px] left-2.5 w-[406px] h-[58px]">
+            <div class="absolute top-[5px] left-2 w-[263px] font-avenir-medium font-medium text-white text-[17px] text-center">
+                Love Me Do - Mono / Remastered
+            </div>
+            <div class="absolute top-7 left-[17px] w-24 font-avenir-medium font-medium text-[#b3b3b3] text-sm text-center">
+                The Beatles
+            </div>
+            <div class="absolute rounded-[6.5px] h-[13px] left-[9px] w-[13px] top-[30px] bg-gray-600"></div>
+            <div class="absolute w-[6.65%] h-[46.55%] top-[27.59%] left-[91.38%] flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                    <circle cx="12" cy="12" r="1"/>
+                    <circle cx="12" cy="5" r="1"/>
+                    <circle cx="12" cy="19" r="1"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Song 2 -->
+        <div class="absolute top-[574px] left-3.5 w-[402px] h-14">
+            <div class="absolute top-[3px] left-[19px] w-[280px] font-avenir-medium font-medium text-[#1ed760] text-[17px] text-center tracking-[-0.51px] leading-7 whitespace-nowrap">
+                From Me to You - Mono / Remastered
+            </div>
+            <div class="absolute top-7 left-[11px] w-24 font-avenir-medium font-medium text-[#b3b3b3] text-sm text-center">
+                The Beatles
+            </div>
+            <div class="absolute rounded-[6.5px] h-[13px] left-1 w-[13px] top-[31px] bg-gray-600"></div>
+            <div class="absolute w-[6.72%] h-[50.00%] top-[25.00%] left-[91.04%] flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                    <circle cx="12" cy="12" r="1"/>
+                    <circle cx="12" cy="5" r="1"/>
+                    <circle cx="12" cy="19" r="1"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Song 3 -->
+        <div class="absolute top-[636px] left-3 w-[404px] h-[58px]">
+            <div class="absolute top-1.5 left-1 w-[284px] font-avenir-medium font-medium text-white text-[17px] text-center">
+                She Loves You - Mono / Remastered
+            </div>
+            <div class="absolute top-7 left-[13px] w-24 font-avenir-medium font-medium text-[#b3b3b3] text-sm text-center">
+                The Beatles
+            </div>
+            <div class="absolute h-[13px] rounded-[6.5px] left-1.5 w-[13px] top-[31px] bg-gray-600"></div>
+            <div class="absolute w-[6.68%] h-[48.28%] top-[34.48%] left-[91.34%] flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                    <circle cx="12" cy="12" r="1"/>
+                    <circle cx="12" cy="5" r="1"/>
+                    <circle cx="12" cy="19" r="1"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Song 4 -->
+        <div class="absolute top-[705px] left-3.5 w-[402px] h-[62px]">
+            <div class="absolute top-1.5 left-[3px] w-[359px] font-avenir-medium font-medium text-white text-[17px] text-center">
+                I Want To Hold Your Hand - Remastered 2015
+            </div>
+            <div class="absolute top-7 left-[13px] w-24 font-avenir-medium font-medium text-[#b3b3b3] text-sm text-center">
+                The Beatles
+            </div>
+            <div class="absolute h-[13px] rounded-[6.5px] left-1.5 w-[13px] top-[31px] bg-gray-600"></div>
+            <div class="absolute w-[6.72%] h-[43.55%] top-[27.42%] left-[91.29%] flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                    <circle cx="12" cy="12" r="1"/>
+                    <circle cx="12" cy="5" r="1"/>
+                    <circle cx="12" cy="19" r="1"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Now Playing Bar -->
+        <div class="absolute top-[773px] left-2.5 w-[413px] h-[67px] bg-black bg-opacity-80 rounded-lg">
+            <div class="absolute top-3.5 left-[9px] w-[37px] h-[37px] bg-gray-700 rounded flex items-center justify-center">
+                <span class="text-gray-500 text-xs">Cover</span>
+            </div>
+            <div class="absolute top-[9px] left-[57px] w-[280px] font-avenir-demi-bold font-bold text-white text-[13.5px] tracking-[-0.41px] leading-7 whitespace-nowrap">
+                From Me to You - Mono / Remastered
+            </div>
+            <div class="absolute top-9 left-[67px] w-16 font-avenir-regular font-normal text-[#17b54e] text-[10.5px] text-center">
+                BEATSPILL+
+            </div>
+            <div class="absolute w-[96.85%] h-[4.48%] top-[89.55%] left-[2.18%] bg-[#702e3cad] rounded"></div>
+            <div class="absolute top-[60px] left-[9px] w-[213px] h-[3px] bg-gray-600 rounded"></div>
+            <div class="absolute top-6 left-[368px] w-[5px] h-5 bg-white rounded-full"></div>
+            <div class="absolute top-6 left-[379px] w-[5px] h-5 bg-white rounded-full"></div>
+            
+            <!-- Bluetooth Icons -->
+            <div class="absolute top-[28.36%] left-[77.97%] w-[7.02%] h-[43.28%] flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                    <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/>
+                </svg>
+            </div>
+            <div class="absolute top-[52.24%] left-[12.83%] w-[3.63%] h-[22.39%] flex items-center justify-center">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="white">
+                    <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="absolute top-[850px] left-[29px] w-[379px] h-16">
+            <div class="absolute top-[59px] left-[110px] w-[151px] h-[5px] bg-green-500 rounded"></div>
+            
+            <div class="absolute top-[25px] left-[156px] w-[59px] font-avenir-regular font-normal text-neutral-200 text-[13px] text-center whitespace-nowrap">
+                Search
+            </div>
+            <div class="absolute top-[25px] left-[293px] w-[86px] font-avenir-regular font-normal text-neutral-200 text-[13px] text-center whitespace-nowrap">
+                Your Library
+            </div>
+            <div class="absolute top-[25px] left-1 w-[50px] font-avenir-regular font-normal text-neutral-200 text-[13px] text-center whitespace-nowrap">
+                Home
+            </div>
+            
+            <!-- Icons -->
+            <div class="absolute top-[4.69%] left-[45.38%] w-[5.28%] h-[31.25%] flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#777777">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                </svg>
+            </div>
+            <div class="absolute top-px left-[325px] w-[22px] h-[22px] flex items-center justify-center">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#777777" stroke-width="2">
+                    <path d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </div>
+            <div class="absolute top-[3px] left-5 w-[22px] h-[22px] flex items-center justify-center">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="#777777">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

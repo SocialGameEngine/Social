@@ -14,4 +14,4 @@ export {
   transformRoundSummariesForUI,
   transformLeaderboardSimple 
 } from './utils/transformers';
-export type { LeaderboardTeam, RoundSummary } from './utils/transformers';
+export type { LeaderboardPlayer, RoundSummary } from './utils/transformers';

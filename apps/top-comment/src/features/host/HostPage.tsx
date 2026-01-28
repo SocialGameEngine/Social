@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button, QRCodeBlock, Card, Modal, useToast } from "@social/ui";
+import { Button, QRCodeBlock, Card, Modal } from "@social/ui";
+import { useToast } from "../../shared/hooks";
 import { VIBoxButton } from "../../shared/components/vibox/VIBoxButton";
 import { useAuth } from "../../shared/providers/AuthContext";
 import { useCurrentPhase } from "../../shared/providers/CurrentPhaseContext";
@@ -50,7 +51,7 @@ import type {
 
 export function HostPage() {
   const { user, loading: authLoading, isVenueAccount, venueAccountLoading, refreshVenueAccount } = useAuth();
-  const { addToast } = useToast();
+  const { toast } = useToast();
   const { isDark } = useTheme(); 
   const {
     sessionId: storedSessionId,
@@ -200,8 +201,7 @@ export function HostPage() {
     setAnalytics,
     setShowPromptLibraryModal,
     setHostGroupVotes,
-    toast: addToast,
-    players,
+    toast,
   });
 
   const inviteLink = useInviteLink(session);
@@ -221,7 +221,7 @@ export function HostPage() {
     user,
     authLoading,
     isVenueAccount,
-    toast: addToast,
+    toast,
     setCreateErrors,
     isCreating, // Added this prop
     setIsCreating,
@@ -243,7 +243,7 @@ export function HostPage() {
     user,
     authLoading,
     isVenueAccount,
-    toast: addToast,
+    toast,
     setCreateErrors,
     isUpdating: isUpdatingSession,
     setIsUpdating: setIsUpdatingSession,
@@ -263,7 +263,7 @@ export function HostPage() {
     players,
     isPerformingAction,
     triggerPerformingAction,
-    toast: addToast,
+    toast,
     setShowCreateModal,
   });
 
@@ -271,7 +271,7 @@ export function HostPage() {
     session,
     isEndingSession,
     setIsEndingSession,
-    toast: addToast,
+    toast,
     setAnalytics,
     setHostGroupVotes,
   });
@@ -282,19 +282,19 @@ export function HostPage() {
 
   const kickPlayerHandler = handleKickPlayer({
     session,
-    toast: addToast,
+    toast,
     setKickingPlayerId,
     refresh: gameState.refresh,
   });
 
   const banPlayerHandler = handleBanPlayer({
     session,
-    toast: addToast,
+    toast,
     setBanningPlayerId,
     refresh: gameState.refresh,
   });
 
-  const copyLinkHandler = handleCopyLink({ toast: addToast });
+  const copyLinkHandler = handleCopyLink({ toast: toast });
 
   const handlePauseToggle = useCallback(async () => {
     if (!session || isPausingSession) return;
@@ -305,19 +305,19 @@ export function HostPage() {
         sessionId: session.id,
         pause: !session.paused
       });
-      addToast({
+      toast({
         title: session.paused ? "Session resumed" : "Session paused",
         variant: "success"
       });
     } catch (error: unknown) {
-      addToast({
+      toast({
         title: getErrorMessage(error, "Failed to pause/resume session"),
         variant: "error"
       });
     } finally {
       setIsPausingSession(false);
     }
-  }, [session, isPausingSession, addToast]);
+  }, [session, isPausingSession, toast]);
 
   const handleReturnHome = useCallback(() => {
     clearHostSession();
@@ -347,13 +347,13 @@ export function HostPage() {
       setIsUpdatingPromptLibrary(true);
       setPromptLibrary({ sessionId: session.id, promptLibraryId: libraryId })
         .then(() => {
-          addToast({
+          toast({
             title: "Prompt library updated! New prompts will be used next round.",
             variant: "success"
           });
         })
         .catch((error: unknown) => {
-          addToast({
+          toast({
             title: getErrorMessage(error, "Could not update prompts. Please try again."),
             variant: "error"
           });
@@ -362,14 +362,14 @@ export function HostPage() {
           setIsUpdatingPromptLibrary(false);
         });
     },
-    [session, isUpdatingPromptLibrary, addToast],
+    [session, isUpdatingPromptLibrary, toast],
   );
 
   const hostVoteHandler = handleHostVote({
     session,
     activeGroup,
     activeGroupVote,
-    toast: addToast,
+    toast,
     setIsSubmittingVote,
     setHostGroupVotes,
     isSubmittingVote,
@@ -381,12 +381,12 @@ export function HostPage() {
     }
 
     if (authLoading || venueAccountLoading) {
-      addToast({ title: "Checking your venue access...", variant: "info" });
+      toast({ title: "Checking your venue access...", variant: "info" });
     } else {
       setShowVenueAuthPrompt(true);
     }
     return false;
-  }, [addToast, authLoading, venueAccountLoading, canCreateSession]);
+  }, [toast, authLoading, venueAccountLoading, canCreateSession]);
 
   const handleOpenCreateModal = useCallback(() => {
     if (!requireVenueAccount()) {
@@ -433,7 +433,7 @@ export function HostPage() {
         .single();
 
       if (error || !sessionData) {
-        addToast({ title: 'Session not found', description: 'Please check the session ID and try again', variant: 'error' });
+        toast({ title: 'Session not found', description: 'Please check the session ID and try again', variant: 'error' });
         setIsJoiningSession(false);
         return;
       }
@@ -442,13 +442,13 @@ export function HostPage() {
       setSessionId(joinSessionId);
       setHostSession({ sessionId: joinSessionId, code: sessionData.code });
       setShowJoinModal(false);
-      addToast({ title: 'Joined session successfully', variant: 'success' });
+      toast({ title: 'Joined session successfully', variant: 'success' });
     } catch (error) {
-      addToast({ title: getErrorMessage(error, 'Failed to join session'), variant: 'error' });
+      toast({ title: getErrorMessage(error, 'Failed to join session'), variant: 'error' });
     } finally {
       setIsJoiningSession(false);
     }
-  }, [addToast, setSessionId, setHostSession]);
+  }, [toast, setSessionId, setHostSession]);
 
   // Handler for selecting/swapping categories
   const handleCategoryClick = useCallback(async (index: number) => {
@@ -492,13 +492,13 @@ export function HostPage() {
         .eq('id', session.id);
       
       if (error) throw error;
-      addToast({ title: 'Categories swapped', variant: 'success' });
+      toast({ title: 'Categories swapped', variant: 'success' });
       setSelectedCategoryIndices([]); // Clear selection after swap
     } catch (error) {
-      addToast({ title: getErrorMessage(error, 'Failed to swap categories'), variant: 'error' });
+      toast({ title: getErrorMessage(error, 'Failed to swap categories'), variant: 'error' });
       setSelectedCategoryIndices([]); // Clear selection on error
     }
-  }, [session, addToast, selectedCategoryIndices]);
+  }, [session, toast, selectedCategoryIndices]);
 
   // Handler for updating categories
   const handleUpdateCategories = useCallback(async () => {
@@ -560,15 +560,15 @@ export function HostPage() {
         .eq('id', session.id);
       
       if (error) throw error;
-      addToast({ title: 'Categories updated', variant: 'success' });
+      toast({ title: 'Categories updated', variant: 'success' });
       setShowCategoryModal(false);
       setSelectedCategoryIndices([]); // Clear any swap selections
     } catch (error) {
-      addToast({ title: getErrorMessage(error, 'Failed to update categories'), variant: 'error' });
+      toast({ title: getErrorMessage(error, 'Failed to update categories'), variant: 'error' });
     } finally {
       setIsUpdatingCategories(false);
     }
-  }, [session, newCategories, addToast]);
+  }, [session, newCategories, toast]);
 
   // Handler for changing game mode
   const handleChangeGameMode = useCallback(async (newMode: "classic" | "jeopardy") => {
@@ -593,11 +593,11 @@ export function HostPage() {
         .eq('id', session.id);
       
       if (error) throw error;
-      addToast({ title: `Switched to ${newMode === "classic" ? "Classic" : "Jeopardy"} mode`, variant: 'success' });
+      toast({ title: `Switched to ${newMode === "classic" ? "Classic" : "Jeopardy"} mode`, variant: 'success' });
     } catch (error) {
-      addToast({ title: getErrorMessage(error, 'Failed to change game mode'), variant: 'error' });
+      toast({ title: getErrorMessage(error, 'Failed to change game mode'), variant: 'error' });
     }
-  }, [session, addToast]);
+  }, [session, toast]);
 
   const promptLibraryCard =
     session && session.status === "lobby" ? (
@@ -1117,7 +1117,7 @@ export function HostPage() {
                           </Button>
                           <Button
                             variant="ghost"
-                            onClick={() => banPlayerHandler(player.id)}
+                            onClick={() => banPlayerHandler(player.id, player.uid || "")}
                             className="text-sm text-rose-600"
                             disabled={kickingPlayerId !== null || banningPlayerId !== null}
                             isLoading={banningPlayerId === player.id}
@@ -1301,13 +1301,13 @@ export function HostPage() {
         sessionId={sessionId}
         isOpen={showBannedPlayersModal}
         onClose={() => setShowBannedPlayersModal(false)}
-        toast={addToast}
+        toast={toast}
       />
       
       <VIBoxJukebox
         isOpen={showVIBoxModal}
         onClose={() => setShowVIBoxModal(false)}
-        toast={addToast}
+        toast={toast}
         mode="host"
         allowUploads={true}
       />

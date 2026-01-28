@@ -1,0 +1,1852 @@
+{
+    "tracks":  [
+                   {
+                       "file":  "Aetherial Dreams.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Aetherial Melody.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bouncy",
+                       "genre":  "House"
+                   },
+                   {
+                       "file":  "Asphalt Journey.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Driving",
+                       "genre":  "Rock"
+                   },
+                   {
+                       "file":  "Back Pocket Brag.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Smooth",
+                       "genre":  "R\u0026B"
+                   },
+                   {
+                       "file":  "Back Table Flex.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Hip Hop"
+                   },
+                   {
+                       "file":  "Back Table Groove.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Hip Hop"
+                   },
+                   {
+                       "file":  "Backroom Flex.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Hip Hop"
+                   },
+                   {
+                       "file":  "Backstage Beat.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "House"
+                   },
+                   {
+                       "file":  "Beating Heart.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Aggressive",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Bouncing Spirits.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Funk"
+                   },
+                   {
+                       "file":  "Breeze Soul.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Synthwave"
+                   },
+                   {
+                       "file":  "Brilliant Love.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Buccaneer Adventure.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Buzzer Breakthrough.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Buzzer Breeze.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Synthwave"
+                   },
+                   {
+                       "file":  "Canopy Circuits.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Dreamy",
+                       "genre":  "Drum \u0026 Bass"
+                   },
+                   {
+                       "file":  "Carnival of the Weird.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Castle Quiz Night.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Celestial Crystals.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Celestial Drift.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Celestial Glow.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Celestial Melody.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Chiptune"
+                   },
+                   {
+                       "file":  "Celestial Waltz.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Celtic Bouncy.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Cheerful Folk.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bouncy",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Cheerful Tune.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Chill",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Chill Lounge.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Driving",
+                       "genre":  "Synthwave"
+                   },
+                   {
+                       "file":  "Clockwork Mermaid Waltz.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Cocktail Ambient.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Colorful Joy.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Chiptune"
+                   },
+                   {
+                       "file":  "Cool Jazz.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Cosmic Dust.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Atmospheric",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Cosmic Voyage.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Hyperpop"
+                   },
+                   {
+                       "file":  "Cozy Blues.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Driving",
+                       "genre":  "Rock"
+                   },
+                   {
+                       "file":  "Cozy Folk.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Cozy Trivia Swing.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Laid Back",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Cozy Winter Lounge.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Warm \u0026 Cozy",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Crimson Beat.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Smooth",
+                       "genre":  "R\u0026B"
+                   },
+                   {
+                       "file":  "Crystal Cascade.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Crystal Dreams.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Upbeat",
+                       "genre":  "House"
+                   },
+                   {
+                       "file":  "Crystal Heartbeat.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Crystal Journey.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Crystal Love Swing.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Laid Back",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Crystal Love.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Crystal Melody.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Lo-Fi Chill",
+                       "genre":  "Lo-Fi"
+                   },
+                   {
+                       "file":  "Crystal Moon.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Crystal Music.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Dreamy",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Crystal Nights.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Rock"
+                   },
+                   {
+                       "file":  "Crystal Song.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Crystal Soul.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Crystal Stars.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Lo-Fi"
+                   },
+                   {
+                       "file":  "Crystal Sun.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Atmospheric",
+                       "genre":  "Ambient"
+                   },
+                   {
+                       "file":  "Crystal Voice.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Dreamy",
+                       "genre":  "Ambient"
+                   },
+                   {
+                       "file":  "Cyber Folk Hearth.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Rock"
+                   },
+                   {
+                       "file":  "Cyber Ninja Melody.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Cyber Samurai Ballad.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Cyber Wizard Ninja.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Digital Echo.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bouncy",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Digital Warmth.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Dream Journey.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Rock"
+                   },
+                   {
+                       "file":  "Dream Token Loops.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Dreams Golden.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Dreamy Pastel Quiz Night.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Atmospheric",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Dusty Vinyl.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Lo-Fi"
+                   },
+                   {
+                       "file":  "Dwarf Tavern Jam.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Driving",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Dwarf Tavern Rock.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Driving",
+                       "genre":  "Rock"
+                   },
+                   {
+                       "file":  "Dwarf Tavern Throwdown.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Driving",
+                       "genre":  "Rock"
+                   },
+                   {
+                       "file":  "Echo Chamber.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Electric Café.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Electric Quiz Night.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Hip Hop"
+                   },
+                   {
+                       "file":  "Electric Storm.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Funk"
+                   },
+                   {
+                       "file":  "Electronic Current.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bouncy",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Electronic Tavern.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Empty Glass.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Enchanted Heart.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Eternal Beauty.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bouncy",
+                       "genre":  "Lo-Fi"
+                   },
+                   {
+                       "file":  "Ethereal Flight.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Ethereal Melody.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Hip Hop"
+                   },
+                   {
+                       "file":  "Ethereal Nights.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Reggae"
+                   },
+                   {
+                       "file":  "Ethereal Song.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Fast Funk.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Funk"
+                   },
+                   {
+                       "file":  "Fast Jazz.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Forest Circuits.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Upbeat",
+                       "genre":  "Drum \u0026 Bass"
+                   },
+                   {
+                       "file":  "Fragmented Glassware.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Ambient"
+                   },
+                   {
+                       "file":  "Funk Celebration.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Funk"
+                   },
+                   {
+                       "file":  "Funk Night.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Funk"
+                   },
+                   {
+                       "file":  "Funk Piano.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Funky Bouncy.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Funk"
+                   },
+                   {
+                       "file":  "Funky Bright.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Disco"
+                   },
+                   {
+                       "file":  "Funky Down.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Disco"
+                   },
+                   {
+                       "file":  "Funky Funky.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Disco"
+                   },
+                   {
+                       "file":  "Funky Playful.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Funky Warm.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Funk"
+                   },
+                   {
+                       "file":  "Futuristic Quiz Night.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Driving",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Game Night.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Rock"
+                   },
+                   {
+                       "file":  "Gentle Descent.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Funk"
+                   },
+                   {
+                       "file":  "Gentle Folk.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Rock"
+                   },
+                   {
+                       "file":  "Gentle Quiz Night.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Glitch Folk for Quiz Night.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Glitchy Pub Puzzle.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Funk"
+                   },
+                   {
+                       "file":  "Goblin Quest Adventure.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Hyperpop"
+                   },
+                   {
+                       "file":  "Goblin Quest.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Hyperpop"
+                   },
+                   {
+                       "file":  "Golden Harmony.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Hyperpop"
+                   },
+                   {
+                       "file":  "Golden Soul Hyperdrive.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Golden Spectrum.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Smooth",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Hearty Dwarf Tavern Jam.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Driving",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Hyperpop Ninja Jam.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Hyperpop"
+                   },
+                   {
+                       "file":  "Hyperpunk Minstrel Jam.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Hyperpop"
+                   },
+                   {
+                       "file":  "Hyperpunk Minstrel Quiz Jam.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Hyperpop"
+                   },
+                   {
+                       "file":  "Hypnotic Quiz Drift.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Joyful Glow.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Joyful Heart.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Joyful Hearts.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bouncy",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Joyful Journey.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Joyful Light.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Chiptune"
+                   },
+                   {
+                       "file":  "Joyful Love.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Joyful Melody.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bouncy",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Joyful Moon.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Dreamy",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Joyful Music.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Joyful Nights.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Joyful Rainbow.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Joyful Soul.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Hyperpop"
+                   },
+                   {
+                       "file":  "Joyful Sun.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Joyful Tune.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "K-Pop Hyperdrive.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Low-Key Quiz Night.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Lo-Fi"
+                   },
+                   {
+                       "file":  "Luminous Flight.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bouncy",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Luminous Heart.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Lunar Dance.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Lunar Dreamscape.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Lunar Enchantment.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Lunar Flight.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Lunar Joy.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Reggae"
+                   },
+                   {
+                       "file":  "Magic Hour.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Magical Melody Song.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Mango Lime Trivia.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Reggae"
+                   },
+                   {
+                       "file":  "Mid-tempo Funk.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Funk"
+                   },
+                   {
+                       "file":  "Mid-tempo Soul.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Midnight City.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Midnight Flight.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Midnight Guitar.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Midnight Jazz.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Warm \u0026 Cozy",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Midnight Joy.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Midnight Quiz Fever.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Disco"
+                   },
+                   {
+                       "file":  "Midnight Quiz Groove.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Soul"
+                   },
+                   {
+                       "file":  "Midnight Reverie.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Motown Playful.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Soul"
+                   },
+                   {
+                       "file":  "Musical Happiness Song.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Synthwave"
+                   },
+                   {
+                       "file":  "Mystic Groove.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bouncy",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Mystic Village Quiz Night.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Dreamy",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Neon Disco Night.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Disco"
+                   },
+                   {
+                       "file":  "Neon Dreams.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Neon Hearth.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Rock"
+                   },
+                   {
+                       "file":  "Neon Love.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Synthwave"
+                   },
+                   {
+                       "file":  "Neon Nights.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Synthwave"
+                   },
+                   {
+                       "file":  "Neon Path.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "House"
+                   },
+                   {
+                       "file":  "Neon Quiz Night.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Neon Quiz Rush.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "House"
+                   },
+                   {
+                       "file":  "Neon Rainbow Dreams.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Synthwave"
+                   },
+                   {
+                       "file":  "Neon Rush.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "House"
+                   },
+                   {
+                       "file":  "Neon Snow.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Synthwave"
+                   },
+                   {
+                       "file":  "Neon Sparkle.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Driving",
+                       "genre":  "Synthwave"
+                   },
+                   {
+                       "file":  "Neon Timber Shuffle.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Rock"
+                   },
+                   {
+                       "file":  "Night Cloudwalk.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Lo-Fi Chill",
+                       "genre":  "Lo-Fi"
+                   },
+                   {
+                       "file":  "Night Glow.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Night of Questions.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Soul"
+                   },
+                   {
+                       "file":  "Night Quiz.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Obsidian Keep.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Path of Beauty.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Peaceful Soul Melody.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Prism Beam.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Mellow",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Prism Dance.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bouncy",
+                       "genre":  "Reggae"
+                   },
+                   {
+                       "file":  "Pub Night Mumbles.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Lo-Fi Chill",
+                       "genre":  "Hip Hop"
+                   },
+                   {
+                       "file":  "Pub Quiz Cloud Drift.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Dreamy",
+                       "genre":  "Ambient"
+                   },
+                   {
+                       "file":  "Pub Quiz Pressure.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Aggressive",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Quantum Quiz Lab.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Quiet Quiz Pulse.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Upbeat",
+                       "genre":  "House"
+                   },
+                   {
+                       "file":  "Quiz Bright.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Radiant Beam.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Ambient"
+                   },
+                   {
+                       "file":  "Radiant Journey.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Radiant Love Song.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Driving",
+                       "genre":  "R\u0026B"
+                   },
+                   {
+                       "file":  "Radiant Rainbow Light.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bouncy",
+                       "genre":  "Reggae"
+                   },
+                   {
+                       "file":  "Radiant Sun Light.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Rock"
+                   },
+                   {
+                       "file":  "Rainbow Bright Light.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Reggae"
+                   },
+                   {
+                       "file":  "Rainbow Floating Light.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Rhythm Dreams.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Rhythm River.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Synthwave"
+                   },
+                   {
+                       "file":  "Rose Garden.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Scroll-Stopping Pub Quiz Loop.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Serene Heart.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bouncy",
+                       "genre":  "House"
+                   },
+                   {
+                       "file":  "Shadow Dance.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Shadow Quiz Showdown.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Rock"
+                   },
+                   {
+                       "file":  "Silken Strings.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Silver Moonbeam Light.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Hyperpop"
+                   },
+                   {
+                       "file":  "Skull Island Quiz Night.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Aggressive",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Sky Journey.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Dreamy",
+                       "genre":  "Drum \u0026 Bass"
+                   },
+                   {
+                       "file":  "Skyward Journey.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Ambient"
+                   },
+                   {
+                       "file":  "Slapstick Ninja Polka.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Soft Glow Between Questions.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bouncy",
+                       "genre":  "Lo-Fi"
+                   },
+                   {
+                       "file":  "Solar Brilliance.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Solar Dreamscape.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Solar Flare.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Solar Flight.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Upbeat",
+                       "genre":  "Hip Hop"
+                   },
+                   {
+                       "file":  "Solar Radiance.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Aggressive",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Soul Bass Song.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Soul Dancing Song.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Upbeat",
+                       "genre":  "House"
+                   },
+                   {
+                       "file":  "Soul Happy Song.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Upbeat",
+                       "genre":  "Reggae"
+                   },
+                   {
+                       "file":  "Soul Magical.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Driving",
+                       "genre":  "R\u0026B"
+                   },
+                   {
+                       "file":  "Soul Sparkling.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Driving",
+                       "genre":  "Synthwave"
+                   },
+                   {
+                       "file":  "Soulful Playful.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Soul"
+                   },
+                   {
+                       "file":  "Sparkling Days.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Trap"
+                   },
+                   {
+                       "file":  "Sparkling Heart.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Disco"
+                   },
+                   {
+                       "file":  "Sparkling Journey.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Atmospheric",
+                       "genre":  "Ambient"
+                   },
+                   {
+                       "file":  "Sparkling Light.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bouncy",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Sparkling Melody.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Lo-Fi"
+                   },
+                   {
+                       "file":  "Sparkling Moon.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Upbeat",
+                       "genre":  "House"
+                   },
+                   {
+                       "file":  "Sparkling Music.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Lo-Fi Chill",
+                       "genre":  "Hip Hop"
+                   },
+                   {
+                       "file":  "Sparkling Nights.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Sparkling Song.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Dreamy",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Spirit Waltz.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Chill",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Spiritual Dreams.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Spiritual Journey.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Stardust Shimmer.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Ambient"
+                   },
+                   {
+                       "file":  "Stardust.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Upbeat",
+                       "genre":  "Hip Hop"
+                   },
+                   {
+                       "file":  "Starlight Serenade.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Reggae"
+                   },
+                   {
+                       "file":  "Starlight Sparkle.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Stellar Dreams.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Upbeat",
+                       "genre":  "Reggae"
+                   },
+                   {
+                       "file":  "Still Waters.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Warm \u0026 Cozy",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Subway Quiz Nights.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Sun Dreaming.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Rock"
+                   },
+                   {
+                       "file":  "Sun Happy.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Sun Magical.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Smooth",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Sun on Every Side.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Sun Radiant.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Warm \u0026 Cozy",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Sunrise Boulevard.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Electronic"
+                   },
+                   {
+                       "file":  "Sunrise Quiz Show.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Chiptune"
+                   },
+                   {
+                       "file":  "Tavern Circuits.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Tavern Treasures.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "The Dancing Heart.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Funk"
+                   },
+                   {
+                       "file":  "The Dancing Sun.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Driving",
+                       "genre":  "Synthwave"
+                   },
+                   {
+                       "file":  "The Dreaming Song.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Epic",
+                       "secondaryVibe":  "Epic",
+                       "genre":  "Rock"
+                   },
+                   {
+                       "file":  "The Flying Dreams.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Chill",
+                       "secondaryVibe":  "Mellow",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "The Flying Love.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Chiptune"
+                   },
+                   {
+                       "file":  "The Peaceful Heart.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "House"
+                   },
+                   {
+                       "file":  "The Radiant Song.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Hip Hop"
+                   },
+                   {
+                       "file":  "Tipsy Treasures at Table Three.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Tranquil Beam.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Smooth",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Triple Shot Brain Rot.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Hyperpop"
+                   },
+                   {
+                       "file":  "Trivia Dojo Charge.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Epic",
+                       "secondaryVibe":  "Epic",
+                       "genre":  "Rock"
+                   },
+                   {
+                       "file":  "Trivia Night Neon.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Trivia Night Shuffle.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "House"
+                   },
+                   {
+                       "file":  "Trivia Tavern Buccaneers.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Troll Tavern Teasers.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Playful",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Urban Pulse.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "High Energy",
+                       "genre":  "Funk"
+                   },
+                   {
+                       "file":  "Velvet Bassline.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Smooth",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "Velvet Jazz.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Velvet Lounge.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bouncy",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Velvet Quiz Night.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Viral Quiz Loop.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Energetic",
+                       "secondaryVibe":  "Chaotic",
+                       "genre":  "Pop"
+                   },
+                   {
+                       "file":  "Warm Soul.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Groovy",
+                       "secondaryVibe":  "Groovy",
+                       "genre":  "Jazz"
+                   },
+                   {
+                       "file":  "Waves On The Plaza.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Reggae"
+                   },
+                   {
+                       "file":  "Whispers of Time.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Chiptune"
+                   },
+                   {
+                       "file":  "Wood \u0026 Wi-Fi.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Folk"
+                   },
+                   {
+                       "file":  "World Rhythm.mp3",
+                       "artist":  "SÃ¶cial",
+                       "primaryVibe":  "Upbeat",
+                       "secondaryVibe":  "Bright \u0026 Bubbly",
+                       "genre":  "Pop"
+                   }
+               ]
+}

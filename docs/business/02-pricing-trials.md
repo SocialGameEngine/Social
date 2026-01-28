@@ -5,7 +5,7 @@
 | Tier | Price/Month (CAD) | Features | Target |
 |------|------------------|----------|--------|
 | **Freemium** | $0 (14 days) | Top Comment, 100 scans/month | Pilot conversion |
-| **Pro** | **$299** | Top Comment + VIBox, 5k scans, custom QR | 59 Victoria venues |
+| **Pro** | **$299** | Top Comment + VIBox + Jeopardy, 5k scans, custom QR | 59 Victoria venues |
 | **Enterprise** | Custom ($999+) | 3+ games, API, white-label, 50k scans | Bar chains |
 
 ## Free Trial Mechanics
@@ -14,12 +14,14 @@
 - Venue pays Social: **$0** during trial
 - Venue keeps: **100% of patron revenue**
 - All generated songs stored as venue's library
-- Full access to Top Comment + VIBox games
+- Full access to Top Comment + VIBox + Jeopardy games
+- **Enhanced analytics**: Real-time ROI tracking during trial
 
 **Post-Trial Conversion (Library Lock-In):**
 - **Upgrade to $299/month:** Retain entire song library + continue generating new songs
 - **Don't upgrade:** Playback blocked, library access revoked ("Upgrade to keep your X songs" messaging)
 - **Conversion target:** 70% trial → paid (tracked via dashboard)
+- **Trial revenue boost**: Average $1,400 patron revenue during 14-day trial
 
 ## Patron Pricing & Revenue Split
 
@@ -31,13 +33,22 @@
 - Per song: **$2.00** CAD (Suno API cost: ~$2/generation)
 - Expected per venue/night: 20 songs = **$40**
 
+**Jeopardy Mode:**
+- Per game: **$1.50** CAD
+- Expected per venue/night: 15 games = **$22.50**
+
 **Server Tips (Venue Staff):**
 - Venue staff can accept tips through Helcim
 - Social gets: 40% of tips
 - Venue staff gets: 60% of tips
 - Expected per shift: **$45** (street team incentive)
 
-**Total Venue Revenue/Night:** ~$100 patron spend + $45 server tips = **$750/month potential** per venue
+**Total Venue Revenue/Night:** ~$122.50 patron spend + $45 server tips = **~$1,005/month potential** per venue
+
+**Revenue Split Economics:**
+- **Venue ROI:** Pays $299/month → makes $1,005+ in patron revenue (3.3x return)
+- **Social Revenue:** $299 subscription + 40% of tips (~$200/month total)
+- **Staff Incentive:** $45/shift in tips drives adoption and retention
 
 ## Co-Founder Commission Structure
 
