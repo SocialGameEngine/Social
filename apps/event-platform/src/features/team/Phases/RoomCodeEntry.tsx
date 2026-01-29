@@ -8,7 +8,7 @@ interface RoomCodeEntryProps {
   toast: (options: { title: string; description?: string; variant: "success" | "error" }) => void;
 }
 
-export function RoomCodeEntry({ onSuccess, toast }: RoomCodeEntryProps) {
+export function RoomCodeEntry({ onSuccess }: RoomCodeEntryProps) {
   const { isDark } = useTheme();
   const [roomCode, setRoomCode] = useState("");
   const [isValidating, setIsValidating] = useState(false);

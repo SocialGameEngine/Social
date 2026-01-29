@@ -37,7 +37,7 @@ export const useRealtimeQueue = (): UseRealtimeQueueReturn => {
           schema: 'public',
           table: 'vibox_queue',
         },
-        (payload) => {
+        () => {
           // Immediate fetch for realtime events
           fetchQueue();
         }

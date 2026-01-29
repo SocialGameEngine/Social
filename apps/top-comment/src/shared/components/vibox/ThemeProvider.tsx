@@ -1,35 +1,24 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useRef } from 'react';
 import { vibboxThemeCSS } from './theme';
 
 interface VIBoxThemeContextType {
   isDark: boolean;
-  toggleTheme: () => void;
-  theme: typeof vibboxThemeCSS.light;
+  theme: typeof vibboxThemeCSS.dark;
 }
 
 const VIBoxThemeContext = createContext<VIBoxThemeContextType | undefined>(undefined);
 
 interface VIBoxThemeProviderProps {
   children: React.ReactNode;
-  defaultDark?: boolean;
 }
 
 export const VIBoxThemeProvider = ({
   children,
-  defaultDark = false,
 }: VIBoxThemeProviderProps) => {
-  const [isDark, setIsDark] = useState(defaultDark);
+  const isDark = true;
   const viboxContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    setIsDark(defaultDark);
-  }, [defaultDark]);
-
-  const toggleTheme = () => {
-    setIsDark(prev => !prev);
-  };
-
-  const theme = isDark ? vibboxThemeCSS.dark : vibboxThemeCSS.light;
+  const theme = vibboxThemeCSS.dark;
 
   useEffect(() => {
     const root = typeof document !== 'undefined' ? document.documentElement : null;
@@ -64,7 +53,6 @@ export const VIBoxThemeProvider = ({
 
   const value = {
     isDark,
-    toggleTheme,
     theme,
   };
 
@@ -85,68 +73,15 @@ export const useVIBoxTheme = (): VIBoxThemeContextType => {
   return context;
 };
 
-// Hook for detecting app theme from localStorage (syncs with main app)
-export const useAppTheme = (): boolean => {
-  const [isAppDark, setIsAppDark] = useState(false);
-
-  useEffect(() => {
-    // Check localStorage for app theme (same as main ThemeProvider)
-    const checkTheme = () => {
-      const stored = localStorage.getItem('app-theme');
-      
-      // Check system preference as fallback
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      
-      // Use stored theme if available, otherwise use system preference
-      let isDark: boolean;
-      if (stored === 'light') {
-        isDark = false;
-      } else if (stored === 'dark') {
-        isDark = true;
-      } else {
-        // No stored preference, use system preference
-        isDark = systemPrefersDark;
-      }
-      
-      setIsAppDark(isDark);
-    };
-
-    // Initial check
-    checkTheme();
-
-    // Listen for storage changes (in case theme is changed in another tab)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'app-theme') {
-        checkTheme();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also check periodically for local changes (slower polling)
-    const interval = setInterval(checkTheme, 1000); // Changed from 100ms to 1000ms (1 second)
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
-    };
-  }, []);
-
-  return isAppDark;
-};
 
 // Enhanced provider that syncs with main app theme
 export const VIBoxThemeProviderWithSystem = ({
   children,
-  followApp = true,
 }: {
   children: React.ReactNode;
-  followApp?: boolean;
 }) => {
-  const appDark = useAppTheme();
-  
   return (
-    <VIBoxThemeProvider defaultDark={followApp ? appDark : false}>
+    <VIBoxThemeProvider>
       {children}
     </VIBoxThemeProvider>
   );

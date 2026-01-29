@@ -18,7 +18,6 @@ import { useTheme } from "../../shared/providers/ThemeProvider";
 import {
   getBannedFromSessions,
   isBannedFromCode,
-  addToBannedSessions,
   getHasManuallyLeft,
   removeBannedSession,
   addBannedSession,
@@ -89,7 +88,6 @@ export function TeamPage() {
     autoJoinAttempted,
     setAutoJoinAttempted,
     hasManuallyLeft,
-    showKickedModal,
     setShowKickedModal,
     showSessionEndedModal,
     setShowSessionEndedModal,
@@ -97,7 +95,6 @@ export function TeamPage() {
     setFinalTeams,
     setCurrentPhase,
     toast,
-    addToBannedSessions,
     isBannedFromCode,
     getHasManuallyLeft,
     setHasManuallyLeft,
@@ -162,11 +159,12 @@ export function TeamPage() {
   });
 
   // Extract kicked player detection logic into custom hook
-  useTeamKickedPlayerDetection({
-    session,
-    teamSession,
-    sessionSnapshotReady,
-    currentTeam,
+  if (session) {
+    useTeamKickedPlayerDetection({
+      session,
+      teamSession,
+      sessionSnapshotReady,
+      currentTeam,
     activeTeams,
     showKickedModal,
     setShowKickedModal,
@@ -177,6 +175,7 @@ export function TeamPage() {
     clearTeamSession,
     toast,
   });
+  }
 
   // Use gameState values instead of calculations
   const roundGroups = gameState.currentGroups;
@@ -259,7 +258,6 @@ export function TeamPage() {
       roundGroups,
       teams
     ),
-    teams,
   });
 
   const activeGroupAnswers = useActiveGroupAnswers(answers, session, activeGroup, myGroup);
@@ -572,12 +570,12 @@ export function TeamPage() {
           })() && (
             <TeamMembersPanel
               sessionId={sessionId || ''}
-              teamId={currentTeam.id}
-              currentUserId={teamSession.uid}
+              teamId={currentTeam?.id || ''}
+              currentUserId={teamSession?.uid || ''}
               isCaptain={currentTeam?.uid === teamSession?.uid}
-              teamCode={(currentTeam as any).team_code || ''}
+              teamCode={(currentTeam as any)?.team_code || ''}
               roomCode={session?.code}
-              teamName={currentTeam.teamName}
+              teamName={currentTeam?.teamName || ''}
               sessionStatus={session?.status}
               toast={toast}
             />

@@ -17,7 +17,6 @@ export function TeamCodeEntry({
   sessionCode,
   onTeamSelect,
   onBack,
-  toast,
 }: TeamCodeEntryProps) {
   const { isDark } = useTheme();
   const [teamCode, setTeamCode] = useState("");

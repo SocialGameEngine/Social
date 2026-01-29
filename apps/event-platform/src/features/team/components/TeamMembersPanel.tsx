@@ -30,7 +30,6 @@ export function TeamMembersPanel({
   currentUserId,
   isCaptain,
   teamCode,
-  roomCode,
   teamName,
   sessionStatus,
   toast
@@ -80,10 +79,10 @@ export function TeamMembersPanel({
         .order('joined_at', { ascending: true });
       
       if (error) throw error;
-      setMembers(data || []);
+      setMembers((data || []) as TeamMember[]);
 
       // Also fetch the team code from team_codes table
-      const { data: codeData, error: codeError } = await (supabase as any)
+      const { data: codeData } = await (supabase as any)
         .from('team_codes')
         .select('code')
         .eq('team_id', teamId)

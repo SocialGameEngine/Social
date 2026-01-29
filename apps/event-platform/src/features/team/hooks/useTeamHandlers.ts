@@ -29,8 +29,6 @@ interface UseTeamHandlersProps {
 export function useTeamHandlers({
   sessionId,
   session,
-  joinForm,
-  setJoinForm,
   setJoinErrors,
   setIsJoining,
   setSessionId,
@@ -160,7 +158,6 @@ export function useTeamHandlers({
     }
 
     setIsSubmittingAnswer(true);
-    const isUpdating = !!myAnswer;
     
     try {
       const response = await submitAnswer({

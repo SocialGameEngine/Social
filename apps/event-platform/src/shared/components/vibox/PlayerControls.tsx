@@ -15,7 +15,6 @@ interface PlayerControlsProps {
 
 export const PlayerControls: React.FC<PlayerControlsProps> = ({
   isPlaying,
-  isDark,
   tracks,
   onTogglePlayPause,
   onPlayNext,

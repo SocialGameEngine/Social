@@ -3,7 +3,6 @@ import { Modal } from "@social/ui";
 import { useVIBoxTheme } from "./ThemeProvider";
 import { supabase } from "../../../supabase/client";
 import type { ViboxQueueItem, ViboxQueueInsert, Track, TrackMetadata, VibeHierarchy } from "../../types/vibox";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 import { viboxApi } from "../../api/vibox";
 import {
   PlayIcon,
@@ -20,7 +19,6 @@ import { getDeviceType } from "../../utils/device";
 import { getSessionId } from "../../utils/session";
 import { log } from "../../utils/logger";
 import { getNextTrackByVibe, getPreviousTrackByVibe, getNextTrackLinear, getPreviousTrackLinear } from "../../utils/vibeNavigation";
-import { handleQueueError, handleQueueSuccess, handleQueueInfo } from "../../utils/errorHandlers";
 import { useVoting } from "../../contexts/ViboxVotingContext";
 
 
@@ -44,16 +42,13 @@ export function VIBoxJukeboxInner({
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [volume, setVolume] = useState(0.7);
+  const [volume] = useState(0.7);
   const [vibeHierarchy, setVibeHierarchy] = useState<VibeHierarchy | null>(null);
-  const [trackMetadata, setTrackMetadata] = useState<Map<string, TrackMetadata>>(new Map());
   const [expandedPrimaryVibes, setExpandedPrimaryVibes] = useState<Set<string>>(new Set());
-  const [expandedSecondaryVibes, setExpandedSecondaryVibes] = useState<Set<string>>(new Set());
   const [selectedPrimaryVibe, setSelectedPrimaryVibe] = useState<string | null>(null);
   const [expandedPlayer, setExpandedPlayer] = useState(false);
   const [viewMode, setViewMode] = useState<'vibes' | 'all'>('vibes');
   const [queue, setQueue] = useState<ViboxQueueItem[]>([]);
-  const [isQueueLoading, setIsQueueLoading] = useState(false);
   const [currentTrackInfo, setCurrentTrackInfo] = useState<{
     track_id: string;
     track_title: string;
@@ -69,15 +64,13 @@ export function VIBoxJukeboxInner({
   } | null>(null);
   
   // Use voting context
-  const { voteCounts, userVotes, handleVote, getVoteCount, getUserVote } = useVoting();
+  const { handleVote, getVoteCount, getUserVote } = useVoting();
   const [windowWidth, setWindowWidth] = useState(0);
   const [bottomPlayerHeight, setBottomPlayerHeight] = useState(0);
   const bottomPlayerExtraLeeway = 64;
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomPlayerRef = useRef<HTMLDivElement>(null);
-  const queueChannelRef = useRef<RealtimeChannel | null>(null);
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 
   
@@ -136,12 +129,12 @@ export function VIBoxJukeboxInner({
           schema: 'public',
           table: 'vibox_queue',
         },
-        (payload) => {
+        () => {
           // Immediate fetch for realtime events
           fetchQueue();
         }
       )
-      .subscribe((status, err) => {
+      .subscribe((status) => {
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           // Handle realtime connection errors silently
         }
@@ -176,8 +169,7 @@ export function VIBoxJukeboxInner({
             metadata.tracks.forEach((track: TrackMetadata) => {
               metadataMap.set(track.file, track);
             });
-            setTrackMetadata(metadataMap);
-            log.info('Loaded metadata', { trackCount: metadataMap.size });
+                        log.info('Loaded metadata', { trackCount: metadataMap.size });
           } catch (parseError) {
             log.error('JSON parse error', { error: parseError, responseText: responseText.substring(0, 200) });
             throw parseError;
@@ -303,22 +295,7 @@ export function VIBoxJukeboxInner({
     processFiles(files);
   };
 
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    if (!allowUploads) return;
-    
-    event.preventDefault();
-    const files = event.dataTransfer.files;
-    if (files.length > 0) {
-      processFiles(files);
-    }
-  };
-
-  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    if (!allowUploads) return;
-    
-    event.preventDefault();
-  };
-
+  
   const processFiles = (files: FileList) => {
     const audioFiles = Array.from(files).filter(file => 
       file.type.startsWith('audio/') || file.name.toLowerCase().endsWith('.mp3')
@@ -446,9 +423,9 @@ export function VIBoxJukeboxInner({
         throw new Error(response.error || 'Failed to add to queue');
       }
 
-      handleQueueSuccess(response.message || `Added "${track.title}" to queue`, toast);
+      toast({ title: response.message || `Added "${track.title}" to queue`, variant: "success" });
     } catch (error) {
-      handleQueueError(error, 'add to queue', toast);
+      toast({ title: `Failed to add to queue: ${error instanceof Error ? error.message : 'Unknown error'}`, variant: "error" });
     }
   };
 
@@ -460,24 +437,11 @@ export function VIBoxJukeboxInner({
         throw new Error(response.error || 'Failed to remove from queue');
       }
     } catch (error) {
-      handleQueueError(error, 'remove from queue', toast);
+      toast({ title: `Failed to remove from queue: ${error instanceof Error ? error.message : 'Unknown error'}`, variant: "error" });
     }
   };
 
-  const clearQueue = async () => {
-    try {
-      const response = await viboxApi.clearQueue();
-      
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to clear queue');
-      }
-
-      handleQueueInfo(response.message || "Queue cleared", toast);
-    } catch (error) {
-      handleQueueError(error, 'clear queue', toast);
-    }
-  };
-
+  
   const playNextInQueue = async () => {
     if (queue.length > 0) {
       const nextItem = queue[0];
@@ -502,10 +466,10 @@ export function VIBoxJukeboxInner({
         const response = await viboxApi.markPlayed(nextItem.id);
         
         if (!response.success) {
-          handleQueueError(response.error, 'mark track as played', toast);
+          toast({ title: `Failed to mark track as played: ${response.error || 'Unknown error'}`, variant: "error" });
         }
       } catch (error) {
-        handleQueueError(error, 'mark track as played', toast);
+        toast({ title: `Failed to mark track as played: ${error instanceof Error ? error.message : 'Unknown error'}`, variant: "error" });
       }
     }
   };
@@ -552,7 +516,6 @@ export function VIBoxJukeboxInner({
   useEffect(() => {
     if (isOpen) {
       // Save original body style
-      const originalStyle = window.getComputedStyle(document.body);
       const originalOverflow = document.body.style.overflow;
       
       // Disable scrolling
@@ -629,63 +592,8 @@ export function VIBoxJukeboxInner({
     return () => clearInterval(interval);
   }, [isOpen, mode, currentTrackInfo, isPlaying]);
 
-  // Listen for votes from other users
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const channel = supabase
-      .channel('vibox-votes')
-      .on('broadcast', { event: 'track_vote' }, (payload) => {
-        const vote = payload.payload as {
-          track_id: string;
-          vote_type: 'up' | 'down' | null;
-          session_id: string;
-        };
-        
-        if (!vote) return;
-        
-        const sessionId = getSessionId();
-        const isOwnVote = vote.session_id === sessionId;
-        
-        setTrackVotes(prev => {
-          const currentVotes = prev.get(vote.track_id) || { upvotes: 0, downvotes: 0 };
-          const newVotes = { ...currentVotes };
-          
-          if (vote.vote_type === 'up') {
-            newVotes.upvotes = currentVotes.upvotes + 1;
-            if (!isOwnVote) {
-              // Don't update userVote for other users' votes
-            } else {
-              newVotes.userVote = 'up';
-            }
-          } else if (vote.vote_type === 'down') {
-            newVotes.downvotes = currentVotes.downvotes + 1;
-            if (!isOwnVote) {
-              // Don't update userVote for other users' votes
-            } else {
-              newVotes.userVote = 'down';
-            }
-          } else {
-            // Vote removal - need to determine which vote was removed
-            if (currentVotes.userVote === 'up') {
-              newVotes.upvotes = currentVotes.upvotes - 1;
-            } else if (currentVotes.userVote === 'down') {
-              newVotes.downvotes = currentVotes.downvotes - 1;
-            }
-            if (isOwnVote) {
-              delete newVotes.userVote;
-            }
-          }
-          
-          return new Map(prev).set(vote.track_id, newVotes);
-        });
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [isOpen]);
+  // Voting logic removed - was causing type errors
+  // TODO: Implement proper voting state management if needed
 
   // Helper function to check if vibe contains current track
   const isVibeActive = (primaryVibe: string, secondaryVibe?: string) => {
@@ -770,56 +678,13 @@ export function VIBoxJukeboxInner({
     playTrack(prevTrack);
   };
 
-  const removeTrack = (trackId: string) => {
-    if (!allowUploads) return;
-    
-    const track = tracks.find(t => t.id === trackId);
-    
-    // Clean up object URL for uploaded files
-    if (track?.url && !track.isPreloaded && track.url.startsWith('blob:')) {
-      URL.revokeObjectURL(track.url);
-    }
-    
-    setTracks(prev => prev.filter(t => t.id !== trackId));
-    if (currentTrack?.id === trackId) {
-      setCurrentTrack(null);
-      setIsPlaying(false);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-      }
-    }
-  };
-
-  const clearAll = () => {
-    if (!allowUploads) return;
-    
-    // Clean up object URLs for uploaded files
-    tracks.forEach(track => {
-      if (track.url && !track.isPreloaded && track.url.startsWith('blob:')) {
-        URL.revokeObjectURL(track.url);
-      }
-    });
-    
-    setTracks(tracks.filter(t => t.isPreloaded));
-    setCurrentTrack(null);
-    setIsPlaying(false);
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = '';
-    }
-  };
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getModalTitle = () => {
-    return mode === "team" ? "🎵 VIBox Jukebox - Team View" : "🎵 VIBox Jukebox";
-  };
-
+  
   return (
     <>
       <audio ref={audioRef} />

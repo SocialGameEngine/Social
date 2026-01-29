@@ -95,7 +95,6 @@ export function useTeamPhaseRenderer({
   scoreboardRef,
   roundSummaries,
   votes,
-  answers,
 }: UseTeamPhaseRendererProps) {
   return useMemo(() => {
     if (!session) return null;
