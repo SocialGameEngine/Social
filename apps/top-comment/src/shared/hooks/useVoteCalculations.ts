@@ -2,9 +2,9 @@ import { useMemo } from "react";
 import type { Session, RoundGroup, Answer, RoundSummary } from "../../domain/types/domain.types";
 
 interface UseVoteCalculationsProps {
-  session: Session;
+  session: Session | null;
   now: number;
-  activeGroup: RoundGroup;
+  activeGroup: RoundGroup | null;
   activeGroupAnswers: Answer[];
   voteCounts: Map<string, number>;
   myAnswer?: Answer;

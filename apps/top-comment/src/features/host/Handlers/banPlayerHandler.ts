@@ -10,14 +10,14 @@ interface BanPlayerDeps {
 }
 
 export const handleBanPlayer =
-  (deps: BanPlayerDeps) => async (playerId: string) => {
+  (deps: BanPlayerDeps) => async (playerId: string, userId: string) => {
     const { session, toast, setBanningPlayerId, refresh } = deps;
 
     if (!session) return;
 
     setBanningPlayerId(playerId);
     try {
-      await banPlayer({ sessionId: session.id, teamId: playerId });
+      await banPlayer({ sessionId: session.id, teamId: playerId, userId });
       
       if (refresh) {
         setTimeout(refresh, 100);

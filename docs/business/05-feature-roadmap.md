@@ -1,6 +1,6 @@
 # Feature Roadmap – Social Game Engine
 
-## Phase 1: MVP Launch (Weeks 1–4)
+## Phase 1: MVP Launch (Weeks 1–4) ✅
 
 **Goal:** Deploy Top Comment to 3 real bars with working monetization
 
@@ -19,18 +19,27 @@
 - Venue QR generation + admin panel
 - Basic analytics: scans/day, revenue/day
 
-## Phase 2: Scale & Trial Engine (Weeks 5–8)
+**Status:** ✅ **COMPLETE** - Successfully launched at Christie's with 35 players
+
+## Phase 2: Scale & Trial Engine (Weeks 5–8) ✅/🚧
 
 **Goal:** Add VIBox, implement trial-to-paid conversion mechanics
 
-### VIBox (AI Jukebox)
+### VIBox (AI Jukebox) ✅
 - QR scan → vibe picker (chill/hype/party)
 - Suno API integration for AI track generation
 - Queue display on TVs + skip voting
 - $2.00 per play, venue keeps patron revenue
-- No persistent history (alpha)
+- Library lock-in for trial conversion
 
-### Trial Conversion Mechanics
+### Jeopardy Mode (Strategic Gameplay) 🚧
+- 6×7 category grid with host/team selection
+- Point values (100-700) and 2x multipliers
+- Strategic category depletion mechanics
+- Enhanced scoring and analytics
+- $1.50 per play with higher engagement
+
+### Trial Conversion Mechanics ✅
 - 14-day trial window with countdown
 - Library lock-in: "Upgrade to keep your X songs"
 - Playback disabled post-trial if not upgraded
@@ -42,7 +51,7 @@
 - Per-game: completion rates, drop-off points
 - Repeat player detection (where supported)
 
-## Phase 3: Growth & Optimization (Weeks 9–12)
+## Phase 3: Growth & Optimization (Weeks 9–12) 📋
 
 **Goal:** Validate $44k MRR target with 59 venues
 
@@ -51,17 +60,25 @@
 - Multi-game aggregation
 - Suggested pricing based on usage
 - Sponsor round analytics
+- Dwell time tracking and reporting
 
 ### Payment & Upgrade Mechanics
 - Frictionless Stripe conversion
 - Email/SMS trial expiration reminders
 - Enterprise plan onboarding (chains)
-- Bulk QR generation
+- Bulk QR generation for venues
 
 ### Content Updates
 - Weekly Top Comment prompts
 - Themed VIBox libraries (seasonal)
 - Sponsored rounds (brewery integration)
+- Jeopardy category packs
+
+### Sales & Conversion Tools
+- Automated trial follow-up sequences
+- Performance-based pricing recommendations
+- Venue comparison analytics
+- Churn prediction and prevention
 
 ## Phase 4: Scale Foundations (Weeks 13+)
 
@@ -84,18 +101,37 @@
 
 ## Success Metrics by Phase
 
-| Phase | KPI | Target |
-|-------|-----|--------|
-| **Phase 1** | Top Comment live in 3 bars | ✅ Weeks 1–4 |
-| **Phase 2** | VIBox launch + trial engine | ✅ Weeks 5–8 |
-| **Phase 3** | 10 venue pilots, 70% trial-to-paid | ✅ Weeks 9–12 |
-| **Phase 4** | 59 venues, $44k MRR, <5% churn | ✅ Week 12+ |
+| Phase | KPI | Target | Status |
+|-------|-----|--------|--------|
+| **Phase 1** | Top Comment live in 3 bars | ✅ Weeks 1–4 | **COMPLETE** |
+| **Phase 2** | VIBox launch + trial engine | ✅ Weeks 5–8 | **VIBox COMPLETE, Jeopardy IN PROGRESS** |
+| **Phase 3** | 10 venue pilots, 70% trial-to-paid | 📋 Weeks 9–12 | **PLANNED** |
+| **Phase 4** | 59 venues, $44k MRR, <5% churn | 📋 Week 12+ | **PLANNED** |
+
+## Current Status Summary
+
+### ✅ Completed
+- **Top Comment MVP**: Successfully deployed with 35-player validation
+- **VIBox Alpha**: AI jukebox with Suno integration
+- **Trial Engine**: 14-day trial with library lock-in mechanics
+- **Core Infrastructure**: Turborepo, Supabase, real-time subscriptions
+
+### 🚧 In Progress
+- **Jeopardy Mode**: Category grid and strategic gameplay
+- **Venue Dashboard**: Enhanced analytics and ROI tracking
+- **Sales Pipeline**: 7 pilot venues secured
+
+### 📋 Planned
+- **Enterprise Features**: Multi-venue management, API access
+- **Advanced Analytics**: Dwell time tracking, churn prediction
+- **Content Marketplace**: Creator submissions and revenue sharing
 
 ## Technical Debt & Polish
 
 **Ongoing (Parallel to Phases):**
-- Reduce OpenAI moderation latency
+- Reduce OpenAI moderation latency (target: <500ms)
 - Optimize Supabase queries for real-time leaderboards
 - Improve error handling + graceful degradation
-- Mobile responsiveness testing
-- Accessibility (WCAG 2.1)
+- Mobile responsiveness testing across all games
+- Accessibility (WCAG 2.1) compliance
+- Performance optimization for high-concurrency venues

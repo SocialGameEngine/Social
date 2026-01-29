@@ -4,7 +4,7 @@ import type { Session, Team } from "../../../shared/types";
 
 interface LobbyPhaseProps {
   session: Session;
-  presenterHeading: string;
+  presenterHeading: string | null;
   groupStatusLabel: string;
   totalSeconds: number;
   players: Team[];

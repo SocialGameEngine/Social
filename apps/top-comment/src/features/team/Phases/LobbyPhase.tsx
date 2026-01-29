@@ -1,8 +1,6 @@
 import { Card } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 import { DrinkTank } from "../../../components/DrinkTank";
-import { useTeamSession } from "../useTeamSession";
-import { useAuth } from "../../../shared/providers/AuthContext";
 import type { Team } from "../../../shared/types";
 
 
@@ -12,19 +10,6 @@ interface LobbyPhaseProps {
 
 export function LobbyPhase({ teams }: LobbyPhaseProps) {
   const { isDark } = useTheme();
-  const { teamSession } = useTeamSession();
-  const { user } = useAuth();
-  
-  // Find the current player's record
-  const currentTeam = teams.find(team => {
-    if (teamSession?.teamId && team.id === teamSession.teamId) {
-      return true;
-    }
-    if (user?.id) {
-      return team.uid === user.id;
-    }
-    return false;
-  });
   
   return (
     <>

@@ -16,7 +16,6 @@ interface UseHostEffectsProps {
   setShowPromptLibraryModal: (show: boolean) => void;
   setHostGroupVotes: (votes: Record<string, string>) => void;
   toast: (options: { title: string; variant: "success" | "error" }) => void;
-  players: any[];
 }
 
 export function useHostEffects({
@@ -33,7 +32,6 @@ export function useHostEffects({
   setShowPromptLibraryModal,
   setHostGroupVotes,
   toast,
-  players,
 }: UseHostEffectsProps) {
   // Set sessionRef.current to latest session for auto advance actions
   useEffect(() => {

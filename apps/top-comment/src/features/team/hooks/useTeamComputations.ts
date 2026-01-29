@@ -47,7 +47,6 @@ export function useTeamComputations({
   votes,
   myAnswer,
   roundSummaries,
-  teams,
 }: UseTeamComputationsProps) {
   // Basic derived state computations
   const showingJoinScreen = useMemo(() => {

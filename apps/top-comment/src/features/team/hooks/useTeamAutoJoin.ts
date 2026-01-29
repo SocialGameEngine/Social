@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { joinSchema } from "../../../shared/schemas";
 import { joinSession } from "../../session/sessionService";
-import { formatCode } from "../../../shared/constants";
 import { DUPLICATE_TEAM_NAME_MESSAGE, HAS_MANUALLY_LEFT_KEY } from "../utils/teamConstants";
 
 interface UseTeamAutoJoinProps {

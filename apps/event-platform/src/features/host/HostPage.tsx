@@ -40,7 +40,6 @@ import {
   handleKickTeam,
   handlePrimaryAction,
 } from "./Handlers";
-import { handleBanTeam } from "./Handlers/banPlayerHandler";
 import { PromptLibrarySelector } from "./components/PromptLibrarySelector";
 import { BannedTeamsManager } from "./components/BannedTeamsManager";
 import { TeamsManager } from "./components/TeamsManager";
@@ -110,8 +109,6 @@ export function HostPage() {
     setShowEndSessionModal,
     kickingTeamId,
     setKickingTeamId,
-    banningTeamId,
-    setBanningTeamId,
     sessionRef,
     isPerformingActionRef,
   } = hostState;
@@ -296,13 +293,7 @@ export function HostPage() {
     refresh: gameState.refresh,
   });
 
-  const banTeamHandler = handleBanTeam({
-    session,
-    toast: addToast,
-    setBanningTeamId,
-    refresh: gameState.refresh,
-  });
-
+  
   const copyLinkHandler = handleCopyLink({ toast: addToast });
 
   const handlePauseToggle = useCallback(async () => {
@@ -1127,19 +1118,10 @@ export function HostPage() {
                             variant="ghost"
                             onClick={() => kickTeamHandler(team.id)}
                             className="text-sm text-orange-600"
-                            disabled={kickingTeamId !== null || banningTeamId !== null}
+                            disabled={kickingTeamId !== null}
                             isLoading={kickingTeamId === team.id}
                           >
                             {kickingTeamId === team.id ? "Kicking..." : "Kick"}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            onClick={() => banTeamHandler(team.id)}
-                            className="text-sm text-rose-600"
-                            disabled={kickingTeamId !== null || banningTeamId !== null}
-                            isLoading={banningTeamId === team.id}
-                          >
-                            {banningTeamId === team.id ? "Banning..." : "Ban"}
                           </Button>
                         </div>
                       ) : null}

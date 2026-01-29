@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd ../.. && pnpm turbo run build --filter=@social/event-platform",
+  "buildCommand": "cd ../.. && pnpm turbo run build --filter=@social/top-comment",
   "outputDirectory": "dist",
   "framework": "vite",
   "installCommand": "pnpm install",

@@ -8,16 +8,24 @@
 - Calculation: Number of paying venues × $299
 - Example: 10 venues = $2,990 MRR
 - Tracked weekly and reported to team
+- **Target**: $44k MRR by Week 12 (59 venues)
 
 **ARR (Annual Recurring Revenue)**
 - Calculation: MRR × 12
 - Example: 10 venues = $35,880 ARR
+- **Target**: $528k ARR at scale
 
 **Patron Revenue**
 - Top Comment: $1.50 per play
 - VIBox: $2.00 per play (covers Suno cost)
+- Jeopardy Mode: $1.50 per game
 - Venue keeps 100% during trial
 - Venue keeps 100% in paid plan
+
+**Enhanced Revenue Potential:**
+- Total per venue/night: $122.50 (3 games combined)
+- Monthly potential: ~$1,005 per venue
+- **ROI**: 3.3x return on $299 subscription
 
 **Server Tips Revenue**
 - Helcim tip tracking per shift
@@ -52,6 +60,13 @@
 - `songsThisTrial` - Songs generated during trial window
 - `revenueThisTrial` - Revenue during trial window
 - `topCommentPlays` - Total Top Comment games played
+- `jeopardyGamesThisMonth` - Total Jeopardy games played
+- `dwellTimeIncrease` - Average patron stay duration increase (15-25% validated)
+
+**Game-Specific Metrics:**
+- **Top Comment**: Plays per night, average answer time, voting participation
+- **VIBox**: Songs generated, skip rate, vibe preferences
+- **Jeopardy Mode**: Games played, category selection patterns, strategic play indicators
 
 **City-Level Stats:**
 - Total active venues
@@ -59,6 +74,7 @@
 - Average revenue per venue per month
 - Trial conversion rate trend
 - Churn rate trend
+- Game popularity distribution
 
 ### Growth Metrics
 
@@ -82,19 +98,22 @@
 
 ### Trial Period Revenue (14 days)
 
-Assuming **40 Top Comment plays + 20 VIBox plays per night**:
+Assuming **40 Top Comment plays + 20 VIBox songs + 15 Jeopardy games per night**:
 
 - Top Comment: 40 × $1.50 × 14 days = **$840**
 - VIBox: 20 × $2.00 × 14 days = **$560**
-- **Total trial revenue: ~$1,400 patron spend**
+- Jeopardy: 15 × $1.50 × 14 days = **$315**
+- **Total trial revenue: ~$1,715 patron spend**
 
 ### Post-Upgrade Monthly (Pro Plan)
 
 - Venue subscription: **$299** (paid by venue to Social)
-- Patron revenue: 40-50 scans/plays per night = ~**$750/month**
+- Patron revenue: 75+ scans/plays per night = ~**$1,005/month**
 - Server tips: ~**$45/shift** (Social gets 40% = ~**$200/month**)
 
-**Venue ROI:** Pays $299 to make $750+ in revenue ✅
+**Venue ROI:** Pays $299 to make $1,005+ in revenue ✅
+
+**Social Revenue per Venue:** $299 subscription + $200 tips = **$499/month**
 
 ## Dashboard KPIs
 
@@ -104,7 +123,9 @@ Assuming **40 Top Comment plays + 20 VIBox plays per night**:
 - Trial days remaining (countdown)
 - Top Comment games played
 - VIBox songs in library
+- Jeopardy games played
 - Current month revenue vs. trial revenue
+- Dwell time increase percentage
 
 ### Internal Sales Dashboard
 - All venues (active, trial, canceled)

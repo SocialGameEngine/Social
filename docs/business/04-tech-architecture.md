@@ -2,7 +2,7 @@
 
 ## System Overview
 
-**Social** powers two games—**Top Comment** (Week 1) and **VIBox** (Week 4)—through a shared Turborepo monorepo leveraging Supabase for realtime, OpenAI for moderation, and Suno for AI tracks.
+**Social** powers three games—**Top Comment** (Week 1), **VIBox** (Week 4), and **Jeopardy Mode** (Week 8)—through a shared Turborepo monorepo leveraging Supabase for realtime, OpenAI for moderation, and Suno for AI tracks.
 
 ## Turborepo Monorepo Structure
 
@@ -12,6 +12,7 @@ social/
 │   ├── web/          # playnow.social landing + admin panel
 │   ├── topcomment/   # Game 1: Twitter parody PWA
 │   ├── vibox/        # Game 2: AI jukebox PWA
+│   ├── jeopardy/     # Game 3: Category selection PWA
 │   └── dashboard/    # Venue staff analytics dashboard
 ├── packages/
 │   ├── ui/           # Shared Button, Leaderboard, QR scanner components
@@ -38,7 +39,7 @@ CREATE TABLE venues (
 CREATE TABLE games (
   id UUID PRIMARY KEY,
   venue_id UUID REFERENCES venues,
-  type TEXT CHECK (type IN ('topcomment', 'vibox')),
+  type TEXT CHECK (type IN ('topcomment', 'vibox', 'jeopardy')),
   status TEXT CHECK (status IN ('waiting', 'playing', 'voting', 'ended')),
   created_at TIMESTAMP,
   ended_at TIMESTAMP
@@ -68,7 +69,8 @@ CREATE TABLE venues_stats (
   scans_this_month INT,
   revenue_this_month DECIMAL,
   songs_this_trial INT,
-  revenue_this_trial DECIMAL
+  revenue_this_trial DECIMAL,
+  jeopardy_games_this_month INT DEFAULT 0
 );
 ```
 
@@ -95,32 +97,34 @@ Moderation: OpenAI gpt-4o-mini (~$0.001/scan)
 Scoring: Real-time calc + Supabase triggers
 ```
 
-### VIBox (AI Jukebox)
+### Jeopardy Mode (Strategic Category Selection)
 
-**Alpha Scope (Weeks 4–6):**
-- QR scan → vibe picker (chill/hype/party) → Suno API → AI track → queue
-- $2.00 per play (covers Suno cost ~$2)
-- Queue display on TVs + skip voting
-- No persistent history (alpha)
+**Alpha Scope (Weeks 7–8):**
+- QR scan → team formation → category selection grid (6×7)
+- Host/Team selects categories → strategic point values and multipliers
+- Enhanced scoring with point cards (100-700) and 2x multipliers
+- Category depletion mechanics for strategic gameplay
+- $1.50 per play, enhanced engagement and dwell time
 
 **Technical Flow:**
 ```
-vibe/custom → sunoapi.org/v1/generate → Supabase Storage
-Track metadata in Supabase (venue_id, vibe, generated_at)
-Realtime queue subscriptions for TV display
-Revenue tracking per song
+team formation → category grid selection → point revelation → answer phase → voting → scoring
+category_grid JSONB for 6×7 grid state
+real-time category availability tracking
+enhanced analytics for strategic gameplay patterns
 ```
 
 ## API Architecture
 
-### Patron PWA (Top Comment & VIBox)
+### Patron PWA (All Games)
 
 **Endpoints:**
 - `POST /api/join` → Create game session
-- `POST /api/entry` → Submit answer/vibe
+- `POST /api/entry` → Submit answer/vibe/category
 - `POST /api/vote` → Vote on entry
 - `GET /api/leaderboard` → Current scores (realtime via Supabase)
 - `POST /api/payment` → Helcim payment link
+- `GET /api/category-grid` → Jeopardy category grid state
 
 ### Venue Dashboard (Staff)
 
@@ -128,6 +132,8 @@ Revenue tracking per song
 - `GET /api/venue/:id/stats` → Scans, revenue, songs this month
 - `GET /api/venue/:id/trial-status` → Days remaining, upgrade prompt
 - `GET /api/games/:id/leaderboard` → Post-game results
+- `GET /api/venue/:id/engagement` → Dwell time analytics
+- `POST /api/venue/:id/qr` → Generate new QR codes
 
 ### Admin Panel (Internal)
 
@@ -135,6 +141,7 @@ Revenue tracking per song
 - `POST /api/admin/venue` → Create venue, generate QR
 - `GET /api/admin/trials` → All trials, usage, conversion status
 - `GET /api/admin/revenue` → City-level MRR, per-venue breakdown
+- `GET /api/admin/analytics` → Engagement metrics, churn risks
 
 ## Payment & Revenue Flow
 
