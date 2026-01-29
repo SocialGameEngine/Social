@@ -61,6 +61,10 @@ export function BackgroundAnimation({ show, className }: BackgroundAnimationProp
         )} />
       </div>
 
+      {/* Animated blurred light — soft glows that drift */}
+      <div className="bg-glow-orb" style={{ zIndex: 1 }} aria-hidden />
+      <div className="bg-glow-orb bg-glow-orb-2" style={{ zIndex: 1 }} aria-hidden />
+
       {/* 2. Bubbles — rendered AFTER background, no chance of black flash */}
       <div
         ref={containerRef}
@@ -88,6 +92,51 @@ export function BackgroundAnimation({ show, className }: BackgroundAnimationProp
           10%  { opacity: 0.9; }
           90%  { transform: translateY(-110vh) translateX(40px) rotate(15deg) scale(1.2); opacity: 0.8; }
           100% { transform: translateY(-130vh) translateX(50px) rotate(20deg) scale(1.3); opacity: 0; }
+        }
+
+        .bg-glow-orb {
+          position: fixed;
+          width: 80vmax;
+          height: 80vmax;
+          left: 50%;
+          top: 50%;
+          margin-left: -40vmax;
+          margin-top: -40vmax;
+          pointer-events: none;
+          border-radius: 50%;
+          background: radial-gradient(
+            circle at 30% 40%,
+            rgba(255, 0, 255, 0.35) 0%,
+            rgba(139, 92, 246, 0.18) 40%,
+            transparent 65%
+          );
+          filter: blur(60px);
+          animation: bg-glow-float 18s ease-in-out infinite;
+          will-change: transform;
+        }
+        .bg-glow-orb-2 {
+          background: radial-gradient(
+            circle at 70% 60%,
+            rgba(6, 182, 212, 0.3) 0%,
+            rgba(255, 0, 255, 0.12) 45%,
+            transparent 70%
+          );
+          animation-name: bg-glow-float-2;
+          animation-delay: -6s;
+          animation-duration: 22s;
+        }
+        @keyframes bg-glow-float {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          20% { transform: translate(12vw, -15vh) scale(1.1); }
+          40% { transform: translate(-15vw, -8vh) scale(0.95); }
+          60% { transform: translate(-10vw, 12vh) scale(1.05); }
+          80% { transform: translate(18vw, 10vh) scale(1.02); }
+        }
+        @keyframes bg-glow-float-2 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          25% { transform: translate(-20vw, 15vh) scale(1.08); }
+          50% { transform: translate(15vw, 18vh) scale(0.92); }
+          75% { transform: translate(10vw, -20vh) scale(1.12); }
         }
       `}</style>
     </div>

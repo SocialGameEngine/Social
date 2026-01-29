@@ -529,12 +529,7 @@ export function TeamPage() {
   return (
     <>
       <BackgroundAnimation show={showBackground} />
-      <div className="pointer-events-auto fixed right-4 top-4 z-50 flex flex-col gap-2">
-        <VIBoxButton
-          onClick={() => setShowVIBoxModal(true)}
-          variant="team"
-          size="md"
-        />
+      <div className="pointer-events-auto fixed right-4 top-20 z-50 flex flex-col gap-2 sm:right-auto sm:top-auto sm:left-4 sm:bottom-4 sm:flex-col-reverse">
         <button
           type="button"
           onClick={handleOpenHowToPlay}
@@ -555,6 +550,11 @@ export function TeamPage() {
           </svg>
           <span>How to play</span>
         </button>
+        <VIBoxButton
+          onClick={() => setShowVIBoxModal(true)}
+          variant="team"
+          size="md"
+        />
       </div>
       <main className={mainClassName}>
         <div className={contentWrapperClassName}>
