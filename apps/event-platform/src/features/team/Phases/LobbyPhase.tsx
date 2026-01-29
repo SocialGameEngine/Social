@@ -1,4 +1,3 @@
-import { Card } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 import { DrinkTank } from "../../../components/DrinkTank";
 import { TeamMembersCard } from "../components/TeamMembersCard";
@@ -55,14 +54,12 @@ export function LobbyPhase({ teams }: LobbyPhaseProps) {
   
   return (
     <>
-      <Card className="space-y-5" isDark={isDark}>
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-pink-400">You're in!</h2>
-          <p className="text-sm text-cyan-300">
-            Waiting for host to start the game.
-          </p>
-        </div>
-      </Card>
+      <div className="space-y-2 text-center">
+        <h2 className="text-2xl font-bold text-pink-400">You're in!</h2>
+        <p className="text-sm text-cyan-300">
+          Waiting for host to start the game.
+        </p>
+      </div>
 
       {/* Team members card */}
       {currentTeam && currentTeam.team_members && Array.isArray(currentTeam.team_members) && currentTeam.team_members.length > 0 ? (
