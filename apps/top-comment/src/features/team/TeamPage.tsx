@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Card, Modal, SessionTimer } from "@social/ui";
 import { useToast } from "../../shared/hooks";
 import { VIBoxButton } from "../../shared/components/vibox/VIBoxButton";
 import { BackgroundAnimation } from "../../components/BackgroundAnimation";
-import { UserProfile } from "../../components/UserProfile";
 import { HowToPlayModal } from "../howToPlay/HowToPlayModal";
 import { VIBoxJukebox } from "../../shared/components/vibox/VIBoxJukebox";
 import { transformRoundSummariesForUI, transformLeaderboardForUI } from "../../application";
@@ -32,7 +31,6 @@ export function TeamPage() {
   const { teamSession, setTeamSession, clearTeamSession } = useTeamSession();
   const { setCurrentPhase } = useCurrentPhase();
   const { isDark } = useTheme();
-  const [showAccountModal, setShowAccountModal] = useState(false);
 
   const teamState = useTeamState(teamSession);
   const {
@@ -525,11 +523,11 @@ export function TeamPage() {
   return (
     <>
       {session ? (
-        <div className="fixed left-5 top-5 z-50">
+        <div className="fixed left-4 top-5 z-50 max-w-[4.75rem] sm:max-w-none">
           <button
             type="button"
             onClick={effectsHandleLeave}
-            className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 transition-colors hover:text-red-400"
+            className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 transition-colors hover:text-red-400 whitespace-nowrap"
           >
             ✕ BAIL
           </button>
@@ -544,12 +542,7 @@ export function TeamPage() {
       ) : (
         <BackgroundAnimation show={showBackground} />
       )}
-      <div className="pointer-events-auto fixed right-4 top-4 z-50 hidden flex-col gap-2 sm:flex">
-        <VIBoxButton
-          onClick={() => setShowVIBoxModal(true)}
-          variant="team"
-          size="md"
-        />
+      <div className="pointer-events-auto fixed right-4 top-20 z-50 hidden flex-col gap-2 sm:flex sm:right-auto sm:top-auto sm:left-4 sm:bottom-4 sm:flex-col-reverse">
         <button
           type="button"
           onClick={handleOpenHowToPlay}
@@ -570,6 +563,11 @@ export function TeamPage() {
           </svg>
           <span>How to play</span>
         </button>
+        <VIBoxButton
+          onClick={() => setShowVIBoxModal(true)}
+          variant="team"
+          size="md"
+        />
       </div>
       <main className={mainClassName}>
         <div className={contentWrapperClassName}>
@@ -593,14 +591,6 @@ export function TeamPage() {
               />
               <span className="chaos-nav-label">Time</span>
             </div>
-            <button
-              type="button"
-              className="chaos-nav-item"
-              onClick={() => setShowAccountModal(true)}
-            >
-              <div className="text-xl">👤</div>
-              <span className="chaos-nav-label">Account</span>
-            </button>
             <div className="flex-none -mt-10 px-2">
               <VIBoxButton
                 onClick={() => setShowVIBoxModal(true)}
@@ -783,19 +773,6 @@ export function TeamPage() {
           <p className={`text-sm ${!isDark ? 'text-slate-700' : 'text-slate-300'}`}>
             The host has ended the session early. Check out the leaderboard and take a selfie with your score!
           </p>
-        </Modal>
-        <Modal
-          open={showAccountModal}
-          isDark={isDark}
-          onClose={() => setShowAccountModal(false)}
-          title="Account"
-          footer={
-            <Button onClick={() => setShowAccountModal(false)} fullWidth>
-              Close
-            </Button>
-          }
-        >
-          <UserProfile className="flex-col items-start gap-2" />
         </Modal>
       </main>
 
