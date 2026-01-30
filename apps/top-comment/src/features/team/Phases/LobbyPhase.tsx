@@ -8,7 +8,7 @@ interface LobbyPhaseProps {
 }
 
 export function LobbyPhase({ teams }: LobbyPhaseProps) {
-  const { isDark } = useTheme();
+  useTheme();
   
   return (
     <>
