@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Card, Modal, SessionTimer } from "@social/ui";
 import { useToast } from "../../shared/hooks";
