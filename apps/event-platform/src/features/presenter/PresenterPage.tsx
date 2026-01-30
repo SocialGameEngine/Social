@@ -83,16 +83,15 @@ export function PresenterPage() {
   const { activeGroupAnswers } = useActiveGroupData({ answers, session, activeGroup });
 
   // Use shared vote calculations hook
-  const {
-    voteSummaryActive,
-    activeGroupWinnerIds,
-  } = useVoteCalculations({
+  const voteCalculations = session && activeGroup ? useVoteCalculations({
     session,
     now,
     activeGroup,
     activeGroupAnswers,
     voteCounts,
-  });
+  }) : { voteSummaryActive: false, activeGroupWinnerIds: new Set<string>(), votesForMe: 0, myRoundPoints: 0 };
+
+  const { voteSummaryActive, activeGroupWinnerIds } = voteCalculations;
 
   // Use shared phase timer hook
   const { totalSeconds } = usePhaseTimer({ session });
@@ -118,7 +117,7 @@ export function PresenterPage() {
       case "lobby":
         return "Scan the QR to join the round";
       case "answer":
-        if (!totalGroups) return null;
+        if (!totalGroups) return "";
 
         // Show pause messages when session is paused
         if (session.paused) {
@@ -290,7 +289,7 @@ export function PresenterPage() {
           </>
         );
       default:
-        return null;
+        return "";
     }
   };
 

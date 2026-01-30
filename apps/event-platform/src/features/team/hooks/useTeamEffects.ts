@@ -1,9 +1,7 @@
 import { useEffect, useCallback } from "react";
 import type { Session, Team, SessionStatus } from "../../../shared/types";
 import { useGameState } from "../../../application";
-import { getErrorMessage } from "../../../shared/utils/errors";
-import { joinSession, leaveSession } from "../../session/sessionService";
-import { supabase } from "../../../supabase/client";
+import { leaveSession } from "../../session/sessionService";
 import { useAuth } from "../../../shared/providers/AuthContext";
 
 interface UseTeamEffectsProps {
@@ -19,7 +17,6 @@ interface UseTeamEffectsProps {
   autoJoinAttempted: boolean;
   setAutoJoinAttempted: (attempted: boolean) => void;
   hasManuallyLeft: boolean;
-  showKickedModal: boolean;
   setShowKickedModal: (show: boolean) => void;
   showSessionEndedModal: boolean;
   setShowSessionEndedModal: (show: boolean) => void;
@@ -27,7 +24,6 @@ interface UseTeamEffectsProps {
   setFinalTeams: (teams: Team[]) => void;
   setCurrentPhase: (phase: SessionStatus | null) => void;
   toast: (options: { title: string; variant: "success" | "error" | "info" }) => void;
-  addToBannedSessions: (sessionId: string, code: string) => void;
   isBannedFromCode: (code: string) => boolean;
   getHasManuallyLeft: () => boolean;
   setHasManuallyLeft: (hasLeft: boolean) => void;
@@ -37,16 +33,11 @@ export function useTeamEffects({
   sessionId,
   teamSession,
   setSessionId,
-  setTeamSession,
   clearTeamSession,
-  joinForm,
-  setJoinErrors,
-  setIsJoining,
   setJoinForm,
   autoJoinAttempted,
   setAutoJoinAttempted,
   hasManuallyLeft,
-  showKickedModal,
   setShowKickedModal,
   showSessionEndedModal,
   setShowSessionEndedModal,
@@ -54,7 +45,6 @@ export function useTeamEffects({
   setFinalTeams,
   setCurrentPhase,
   toast,
-  addToBannedSessions,
   isBannedFromCode,
   getHasManuallyLeft,
   setHasManuallyLeft,
@@ -62,8 +52,7 @@ export function useTeamEffects({
   const { user } = useAuth();
   const gameState = useGameState({ 
     sessionId: sessionId ?? undefined, 
-    userId: user?.id,
-    teamSession
+    userId: user?.id
   });
 
   // Reset joinForm when teamSession is cleared (e.g., after kick or logout)

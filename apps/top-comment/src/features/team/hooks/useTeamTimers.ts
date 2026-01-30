@@ -9,6 +9,7 @@ interface UseTeamTimersProps {
   setAnswerText: (text: string) => void;
   showSessionEndedModal: boolean;
   setShowSessionEndedModal: (show: boolean) => void;
+  isSessionEndedModalDismissed: boolean;
   setFinalSession: (session: any) => void;
   setFinalTeams: (teams: any[]) => void;
   teams: any[];
@@ -26,6 +27,7 @@ export function useTeamTimers({
   setAnswerText,
   showSessionEndedModal,
   setShowSessionEndedModal,
+  isSessionEndedModalDismissed,
   setFinalSession,
   setFinalTeams,
   teams,
@@ -74,14 +76,14 @@ export function useTeamTimers({
       // Manual advancement through phases counts as natural progression
       const endedByHost = session.endedByHost === true;
       
-      if (endedByHost && !showSessionEndedModal) {
+      if (endedByHost && !showSessionEndedModal && !isSessionEndedModalDismissed) {
         console.log("Session ended by host - showing modal");
         setShowSessionEndedModal(true);
       } else if (!endedByHost) {
         console.log("Session ended naturally - no modal");
       }
     }
-  }, [session?.status, session?.endedByHost, showSessionEndedModal, setAnswerText, setShowSessionEndedModal]);
+  }, [session?.status, session?.endedByHost, showSessionEndedModal, isSessionEndedModalDismissed, setAnswerText, setShowSessionEndedModal]);
 
   // Handle final session state
   useEffect(() => {

@@ -10,4 +10,4 @@ export { VIBoxJukebox } from './VIBoxJukebox';
 // VIBox Theme
 export { viboxTheme, vibboxThemeCSS } from './theme';
 export type { VIBoxTheme, VIBoxThemeColors } from './theme';
-export { VIBoxThemeProvider, VIBoxThemeProviderWithSystem, useVIBoxTheme, useAppTheme } from './ThemeProvider';
+export { VIBoxThemeProvider, VIBoxThemeProviderWithSystem, useVIBoxTheme } from './ThemeProvider';

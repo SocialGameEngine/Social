@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import type { Session, Team } from "../../../shared/types";
 
 const HAS_MANUALLY_LEFT_KEY = "social-has-manually-left";
+const SESSION_ENDED_MODAL_DISMISSED_KEY = "social-session-ended-modal-dismissed";
 
 /**
  * Manages all state for the TeamPage component
@@ -33,6 +34,26 @@ export function useTeamState(teamSession: { sessionId: string; code: string; tea
       return false;
     }
   });
+
+  const [isSessionEndedModalDismissed, setIsSessionEndedModalDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.sessionStorage.getItem(SESSION_ENDED_MODAL_DISMISSED_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const setDismissed = (dismissed: boolean) => {
+    setIsSessionEndedModalDismissed(dismissed);
+    if (typeof window !== "undefined") {
+      if (dismissed) {
+        window.sessionStorage.setItem(SESSION_ENDED_MODAL_DISMISSED_KEY, "true");
+      } else {
+        window.sessionStorage.removeItem(SESSION_ENDED_MODAL_DISMISSED_KEY);
+      }
+    }
+  };
   
   const [finalSession, setFinalSession] = useState<Session | null>(null);
   const [finalTeams, setFinalTeams] = useState<Team[]>([]);
@@ -77,6 +98,8 @@ export function useTeamState(teamSession: { sessionId: string; code: string; tea
     setShowKickedModal,
     showSessionEndedModal,
     setShowSessionEndedModal,
+    isSessionEndedModalDismissed,
+    setIsSessionEndedModalDismissed: setDismissed,
     showVIBoxModal,
     setShowVIBoxModal,
     now,

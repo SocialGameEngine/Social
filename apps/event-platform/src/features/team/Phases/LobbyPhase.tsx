@@ -11,7 +11,7 @@ interface LobbyPhaseProps {
 }
 
 export function LobbyPhase({ teams }: LobbyPhaseProps) {
-  const { isDark } = useTheme();
+  useTheme();
   const { teamSession } = useTeamSession();
   const { user } = useAuth();
   
@@ -65,7 +65,7 @@ export function LobbyPhase({ teams }: LobbyPhaseProps) {
       {currentTeam && currentTeam.team_members && Array.isArray(currentTeam.team_members) && currentTeam.team_members.length > 0 ? (
         <TeamMembersCard 
           key={`${currentTeam.id}-${currentTeam.team_members.length}-${currentTeam.team_members.map(m => m.id).join(',')}`}
-          teamMembers={currentTeam.team_members}
+          teamMembers={currentTeam.team_members as any[]}
           teamName={currentTeam.teamName}
         />
       ) : null}

@@ -1,11 +1,10 @@
 import { Outlet, Link } from "react-router-dom";
 import { useAuth } from "../shared/providers/AuthContext";
-import { useTheme } from "../shared/providers/ThemeProvider";
 import { useState, useEffect, useRef } from "react";
 
 export function RootLayout() {
   // Safely use hooks with error handling
-  let user, isGuest, isDark, signOut;
+  let user, isGuest, signOut;
   try {
     const authData = useAuth();
     user = authData?.user;
@@ -18,14 +17,7 @@ export function RootLayout() {
     signOut = undefined;
   }
 
-  try {
-    const themeData = useTheme();
-    isDark = themeData?.isDark ?? true;
-  } catch (error) {
-    console.warn('Theme hook error:', error);
-    isDark = true;
-  }
-
+  
   // Mobile scroll behavior - hide/show navbar
   const [isMobile, setIsMobile] = useState(false);
   const [navbarHidden, setNavbarHidden] = useState(false);

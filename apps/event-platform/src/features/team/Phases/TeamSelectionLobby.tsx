@@ -100,7 +100,9 @@ export function TeamSelectionLobby({
 
         const memberCounts = new Map();
         members?.forEach(member => {
-          memberCounts.set(member.team_id, (memberCounts.get(member.team_id) || 0) + 1);
+          if (member && 'team_id' in member) {
+            memberCounts.set(member.team_id, (memberCounts.get(member.team_id) || 0) + 1);
+          }
         });
 
         teamsMap.forEach((name, id) => {

@@ -23,7 +23,6 @@ interface UseTeamComputationsProps {
   votes: Vote[];
   myAnswer: any;
   roundSummaries: RoundSummary[];
-  teams: any[];
 }
 
 export function useTeamComputations({
@@ -47,7 +46,6 @@ export function useTeamComputations({
   votes,
   myAnswer,
   roundSummaries,
-  teams,
 }: UseTeamComputationsProps) {
   // Basic derived state computations
   const showingJoinScreen = useMemo(() => {

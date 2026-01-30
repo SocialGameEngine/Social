@@ -34,8 +34,7 @@ export function TeamsManager({ sessionId, isOpen, onClose, toast }: TeamsManager
   const { isDark } = useTheme();
   const [teams, setTeams] = useState<TeamWithMembers[]>([]);
   const [availableCodes, setAvailableCodes] = useState<any[]>([]);
-  const [allCodesData, setAllCodesData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -97,9 +96,7 @@ export function TeamsManager({ sessionId, isOpen, onClose, toast }: TeamsManager
         console.error('Team codes query error:', allCodesError);
       }
       
-      // Store all codes data for copyAllCodes function
-      setAllCodesData(allCodesData || []);
-      
+            
       // Get all teams with their codes and members (LEFT JOIN to include teams without members)
       const { data: teamsData, error: teamsError } = await supabase
         .from('teams')

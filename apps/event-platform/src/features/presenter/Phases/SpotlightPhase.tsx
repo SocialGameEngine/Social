@@ -10,7 +10,6 @@ export function SpotlightPhase({ sessionEndsAt }: SpotlightPhaseProps) {
       <h2 className="text-7xl font-black text-slate-900">Spotlight</h2>
       <Timer
         endTime={sessionEndsAt}
-        variant="light"
         size="lg"
         label="Time"
       />
