@@ -6,6 +6,7 @@ import { AuthProvider } from "../shared/providers/AuthProvider";
 import { ToastProvider, Toaster } from "@social/ui";
 import { ThemeProvider } from "../shared/providers/ThemeProvider";
 import { CurrentPhaseProvider } from "../shared/providers/CurrentPhaseContext";
+import { TTSProvider } from "../shared/providers/TTSProvider";
 
 const createQueryClient = () =>
   new QueryClient({
@@ -26,10 +27,12 @@ export function AppProviders({ children }: PropsWithChildren) {
       <ThemeProvider>
         <AuthProvider>
           <CurrentPhaseProvider>
-            <ToastProvider>
-              {children}
-              <Toaster />
-            </ToastProvider>
+            <TTSProvider>
+              <ToastProvider>
+                {children}
+                <Toaster />
+              </ToastProvider>
+            </TTSProvider>
           </CurrentPhaseProvider>
         </AuthProvider>
       </ThemeProvider>

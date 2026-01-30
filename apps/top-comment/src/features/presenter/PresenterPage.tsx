@@ -2,6 +2,7 @@ import { useParams, Link } from "react-router-dom";
 import { useMemo, useState, useEffect } from "react";
 import { Timer, Card } from "@social/ui";
 import { BackgroundAnimation } from "../../components/BackgroundAnimation";
+import { TTSControls } from "../../components/TTSControls";
 import { transformRoundSummariesForUI } from "../../application";
 import { useInviteLink, usePlayerLookup, useSessionTimers, useVoteCalculations, usePhaseTimer, useGameStateIntegration, useActiveGroupData } from "../../shared/hooks";
 import { useTheme } from "../../shared/providers/ThemeProvider";
@@ -16,6 +17,8 @@ import {
   EndedPhase,
 } from "./Phases";
 import { StatusSummaryCard } from "./Phases/StatusSummaryCard";
+import { VoiceProfileSelector } from "./components/VoiceProfileSelector";
+import { usePresenterTTS } from "./hooks/usePresenterTTS";
 import QRCodeBlock from "../../components/QRCodeBlock";
 
 export function PresenterPage() {
@@ -185,6 +188,27 @@ export function PresenterPage() {
     pauseMessageIndex,
   ]);
 
+  // Use refactored TTS hook
+  const {
+    phaseAnnouncementText,
+    promptAnnouncementText,
+    answersAnnouncementText,
+    triggerAutoHeading,
+  } = usePresenterTTS(
+    session,
+    roundGroups,
+    activeGroup,
+    activeGroupIndex,
+    activeGroupAnswers
+  );
+
+  // Trigger auto heading when it changes
+  useEffect(() => {
+    if (presenterHeading) {
+      triggerAutoHeading(presenterHeading);
+    }
+  }, [presenterHeading, triggerAutoHeading]);
+
   const groupStatusLabel = useMemo(() => {
     if (!session) return "";
     if (session.status === "vote" && totalGroups) {
@@ -322,6 +346,14 @@ export function PresenterPage() {
             <p className={`mt-2 text-sm ${!isDark ? 'text-slate-600' : 'text-cyan-300'}`}>
               {phaseSubtitle[session.status]}
             </p>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <TTSControls text={phaseAnnouncementText} label="Announce phase" showMethod={true} />
+              <TTSControls text={promptAnnouncementText} label="Read prompt" />
+              {session.status === "vote" && (
+                <TTSControls text={answersAnnouncementText} label="Read answers" />
+              )}
+            </div>
+            <VoiceProfileSelector />
           </Card>
           <div className="flex items-center gap-6">
             <div className={`flex flex-col items-center gap-2 rounded-2xl px-6 py-4 border ${!isDark ? 'bg-slate-100 border-slate-200' : 'bg-cyan-900/30 border-cyan-400/50'}`}>

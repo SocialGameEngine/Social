@@ -13,11 +13,11 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@social/ui": "workspace:*",
+    "@google-cloud/text-to-speech": "^6.4.0",
     "@social/db": "workspace:*",
     "@social/game-engine": "workspace:*",
     "@social/game-topcomment": "workspace:*",
-    "@social/game-vibox": "workspace:*",
+    "@social/ui": "workspace:*",
     "@supabase/supabase-js": "^2.47.10",
     "@tanstack/react-query": "^5.90.2",
     "clsx": "^2.1.1",
