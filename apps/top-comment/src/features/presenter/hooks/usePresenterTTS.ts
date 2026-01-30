@@ -62,15 +62,7 @@ export function usePresenterTTS(
   }, [session, activeGroupAnswers]);
 
   // 4. Auto-TTS for heading changes
-  const presenterHeading = useMemo(() => {
-    // This logic is mirrored from PresenterPage for calculation
-    // We'll pass it in or calculate it here
-    if (!session) return "";
-    // ... Simplified version for extraction or just pass it in
-    return ""; 
-  }, [session]);
-
-  // Better: Just pass the heading in
+  // Triggered manually from PresenterPage via triggerAutoHeading
   const triggerAutoHeading = (heading: string) => {
     const phrase = heading.split("\n")[0].trim();
     if (phrase && phrase !== lastPlayedHeadingRef.current) {

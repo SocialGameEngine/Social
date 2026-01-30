@@ -66,6 +66,8 @@ export function TeamPage() {
     setShowKickedModal,
     showSessionEndedModal,
     setShowSessionEndedModal,
+    isSessionEndedModalDismissed,
+    setIsSessionEndedModalDismissed,
     showVIBoxModal,
     setShowVIBoxModal,
     now,
@@ -365,6 +367,7 @@ export function TeamPage() {
     setAnswerText,
     showSessionEndedModal,
     setShowSessionEndedModal,
+    isSessionEndedModalDismissed,
     setFinalSession,
     setFinalTeams,
     teams,
@@ -757,12 +760,14 @@ export function TeamPage() {
           onClose={() => {
             // Just dismiss the modal, let user stay to view results
             setShowSessionEndedModal(false);
+            setIsSessionEndedModalDismissed(true);
           }}
           title="Session Ended Early"
           footer={
             <Button
               onClick={() => {
                 setShowSessionEndedModal(false);
+                setIsSessionEndedModalDismissed(true);
               }}
               fullWidth
             >
