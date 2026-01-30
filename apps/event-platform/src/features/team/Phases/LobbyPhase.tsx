@@ -11,7 +11,7 @@ interface LobbyPhaseProps {
 }
 
 export function LobbyPhase({ teams }: LobbyPhaseProps) {
-  const { isDark } = useTheme();
+  useTheme();
   const { teamSession } = useTeamSession();
   const { user } = useAuth();
   

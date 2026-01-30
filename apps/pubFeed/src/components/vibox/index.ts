@@ -1,1 +1,0 @@
-export { VIBoxPlayer } from './VIBoxPlayer';
