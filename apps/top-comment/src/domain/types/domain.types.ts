@@ -1,16 +1,15 @@
 // Domain types for pure business logic
 // These types represent the core domain entities without any infrastructure concerns
 
-export type SessionStatus = "lobby" | "category-select" | "answer" | "vote" | "results" | "ended";
+export type SessionStatus = "lobby" | "answer" | "vote" | "results" | "ended";
 
 export interface SessionSettings {
   answerSecs: number;
   voteSecs: number;
   resultsSecs: number;
   maxTeams: number;
-  gameMode?: "classic" | "jeopardy";
-  categorySelectSecs?: number;
-  selectedCategories?: string[]; // Array of PromptLibraryId (string union type)
+  gameMode?: "classic" | "mashup";
+  librarySetupSecs?: number; // Time for the Mashup library transition
   totalRounds?: number;
 }
 
@@ -46,11 +45,12 @@ export interface Session {
   settings: SessionSettings;
   venueName?: string;
   promptLibraryId?: string;
+  selectedLibraries?: string[];
+  currentLibraryIndex?: number;
   paused?: boolean;
   pausedAt?: string;
   totalPausedMs?: number;
   endedByHost?: boolean;
-  categoryGrid?: any; // CategoryGrid type from shared/utils/categoryGrid
 }
 
 export interface Team {

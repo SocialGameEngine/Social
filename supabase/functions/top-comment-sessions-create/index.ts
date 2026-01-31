@@ -1,16 +1,15 @@
 // Create a new game session
 import { createHandler, cleanTeamName, corsResponse, AppError, verifyVenueAccount } from "../_shared/utils.ts";
-import { getPromptLibrary, DEFAULT_PROMPTS, GROUP_SIZE, TOTAL_ROUNDS } from "../_shared/prompts.ts";
-import { generateCategoryBonuses } from "../_shared/categoryGrid.ts";
+import { getPromptLibrary, TOTAL_ROUNDS } from "../_shared/prompts.ts";
+import { requireValidMashupLibraries } from "../_shared/mashup.ts";
 import type { Session } from "../_shared/types.ts";
 
 async function handleCreateSession(req: Request, uid: string, supabase: any): Promise<Response> {
   // Verify venue account is active
   await verifyVenueAccount(uid, supabase);
-    const { venueName, promptLibraryId, gameMode, selectedCategories, totalRounds } = await req.json();
-    const cleanedVenueName = venueName ? cleanTeamName(venueName) : undefined;
-    const libraryId = promptLibraryId || 'classic';
-    const mode = gameMode || 'classic';
+  const { venueName, promptLibraryId, gameMode, selectedLibraries, totalRounds } = await req.json();
+  const cleanedVenueName = venueName ? cleanTeamName(venueName) : undefined;
+  const mode = gameMode === 'mashup' ? 'mashup' : 'classic';
     
     // Generate unique room code
     const code = await supabase.rpc('ensure_unique_code');
@@ -18,45 +17,21 @@ async function handleCreateSession(req: Request, uid: string, supabase: any): Pr
       throw new Error('Failed to generate room code');
     }
     
-    // Get prompts for this library
+  let promptDeck: string[] = [];
+  const currentLibraryIndex = 0;
+
+  const librariesToRotate =
+    mode === "mashup" ? requireValidMashupLibraries(selectedLibraries) : undefined;
+
+  const libraryId =
+    mode === "mashup"
+      ? librariesToRotate[0]
+      : (promptLibraryId || "classic");
+
+  if (mode === "classic") {
     const library = await getPromptLibrary(libraryId);
-    const promptDeck = [...library.prompts].sort(() => Math.random() - 0.5);
-    
-    // Initialize category grid for jeopardy mode
-    let categoryGrid = null;
-    if (mode === 'jeopardy') {
-      const allLibraryIds = [
-        'classic', 'bar', 'basic', 'halloween', 'selfie', 'victoria',
-        'dangerfield', 'medieval', 'anime', 'politics', 'scifi',
-        'popculture', 'cinema', 'canucks', 'bc', 'tech',
-        'internetculture', 'datingapp', 'remotework', 'adulting',
-        'groupchat', 'streaming', 'climateanxiety', 'fictionalworlds'
-      ];
-      
-      // Use host-selected categories or default to 6 (3 per card)
-      const selectedCats = selectedCategories && selectedCategories.length === 6
-        ? selectedCategories 
-        : allLibraryIds.slice(0, 6);
-      
-      // Validate all selected categories exist
-      const validCategories = selectedCats.filter((id: string) => allLibraryIds.includes(id));
-      if (validCategories.length !== 6) {
-        throw new Error('Invalid category selection: must select exactly 6 categories (3 per card)');
-      }
-      
-      categoryGrid = {
-        categories: validCategories.map((id: string) => ({
-          id,
-          usedPrompts: [],
-          promptBonuses: generateCategoryBonuses(),
-        })),
-        totalSlots: 42, // 6 categories × 7 prompts (max)
-        categoriesPerCard: 3, // Fixed: 3 categories per card
-      };
-      console.log('Creating jeopardy session with 6 categories (3 per card) and shuffled bonuses:', categoryGrid);
-    } else {
-      console.log('Creating classic session, no category grid');
-    }
+    promptDeck = [...library.prompts].sort(() => Math.random() - 0.5);
+  }
     
     // Create session
     const { data: session, error: sessionError } = await supabase
@@ -70,15 +45,15 @@ async function handleCreateSession(req: Request, uid: string, supabase: any): Pr
         prompt_deck: promptDeck,
         prompt_cursor: 0,
         prompt_library_id: libraryId,
-        category_grid: categoryGrid,
+        selected_libraries: librariesToRotate,
+        current_library_index: currentLibraryIndex,
         settings: {
           answerSecs: 90,
           voteSecs: 30,
           resultsSecs: 12,
           maxTeams: 10,
           gameMode: mode,
-          categorySelectSecs: 15,
-          selectedCategories: mode === 'jeopardy' && categoryGrid ? categoryGrid.categories.map((c: { id: string; usedPrompts: number[] }) => c.id) : undefined,
+          librarySetupSecs: 30,
           totalRounds: totalRounds || TOTAL_ROUNDS,
         },
         venue_name: cleanedVenueName,

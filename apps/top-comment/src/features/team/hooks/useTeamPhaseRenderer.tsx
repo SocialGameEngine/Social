@@ -3,7 +3,6 @@ import type { Session, Team, Answer, Vote, RoundGroup } from "../../../shared/ty
 import type { RoundSummary } from "../../../application/utils/transformers";
 import {
   LobbyPhase,
-  CategorySelectPhase,
   AnswerPhase,
   VotePhase,
   ResultsPhase,
@@ -25,8 +24,6 @@ interface UseTeamPhaseRendererProps {
   setAnswerText: (text: string) => void;
   handleSubmitAnswer: () => void;
   isSubmittingAnswer: boolean;
-  handleSelectCategory: (categoryId: string, promptIndex: number) => void;
-  isSubmittingCategorySelection: boolean;
   totalSeconds: number;
   activeGroup: RoundGroup | null;
   activeGroupIndex: number;
@@ -67,8 +64,6 @@ export function useTeamPhaseRenderer({
   setAnswerText,
   handleSubmitAnswer,
   isSubmittingAnswer,
-  handleSelectCategory,
-  isSubmittingCategorySelection,
   totalSeconds,
   activeGroup,
   activeGroupIndex,
@@ -102,16 +97,6 @@ export function useTeamPhaseRenderer({
     switch (session.status) {
       case "lobby":
         return <LobbyPhase teams={teams} />;
-      case "category-select":
-        return (
-          <CategorySelectPhase
-            session={session}
-            currentTeam={currentTeam}
-            myGroup={myGroup}
-            onSelectCategory={handleSelectCategory}
-            isSubmitting={isSubmittingCategorySelection}
-          />
-        );
       case "answer":
         return (
           <AnswerPhase
@@ -184,8 +169,6 @@ export function useTeamPhaseRenderer({
     teams,
     currentTeam,
     myGroup,
-    handleSelectCategory,
-    isSubmittingCategorySelection,
     activeGroup,
     roundGroups,
     activeGroupIndex,

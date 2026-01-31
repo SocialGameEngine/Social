@@ -16,8 +16,8 @@ interface UpdateSessionHandlersDeps {
   sessionId: string;
   onUpdated: (sessionInfo: { sessionId: string; code: string }) => void;
   setShowEditModal: React.Dispatch<React.SetStateAction<boolean>>;
-  gameMode: "classic" | "jeopardy";
-  selectedCategories: string[];
+  gameMode: "classic" | "mashup";
+  selectedLibraries: string[];
   totalRounds?: number;
 }
 
@@ -38,7 +38,7 @@ export const handleUpdateSession =
       onUpdated,
       setShowEditModal,
       gameMode,
-      selectedCategories,
+      selectedLibraries,
       totalRounds,
     } = deps;
 
@@ -81,8 +81,8 @@ export const handleUpdateSession =
         sessionId,
         venueName: parsed.data.venueName || undefined,
         gameMode,
-        selectedCategories: gameMode === "jeopardy" ? (selectedCategories as any) : undefined,
-        totalRounds: totalRounds || (gameMode === "jeopardy" ? 1 : 5),
+        selectedLibraries: gameMode === "mashup" ? selectedLibraries : undefined,
+        totalRounds: totalRounds || 5,
       });
 
       onUpdated({ sessionId: response.sessionId, code: response.code });

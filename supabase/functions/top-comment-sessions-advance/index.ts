@@ -2,6 +2,7 @@
 import { createHandler, requireString, corsResponse, AppError } from '../_shared/utils.ts';
 import { getTopCommentSession, getActiveTopCommentPlayers } from '../_shared/top-comment-utils.ts';
 import { createTeamGroups } from '../_shared/grouping.ts';
+import { getNextMashupIndex, requireValidMashupLibraries } from '../_shared/mashup.ts';
 import type { Session } from '../_shared/types.ts';
 
 async function handleAdvanceSession(req: Request, uid: string, supabase: any): Promise<Response> {
@@ -27,6 +28,11 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
     let rounds = session.rounds || [];
     const currentRound = rounds[roundIndex];
     const settings = session.settings || {};
+    const isMashupMode = settings.gameMode === 'mashup';
+    const selectedLibraries = isMashupMode
+      ? requireValidMashupLibraries(session.selected_libraries)
+      : [];
+    const currentLibraryIndex = typeof session.current_library_index === 'number' ? session.current_library_index : 0;
     
     let nextStatus = currentStatus;
     let nextRoundIndex = roundIndex;
@@ -37,58 +43,6 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
     
     // State machine for phase transitions
     switch (currentStatus) {
-      case 'category-select': {
-        console.log('Processing category-select phase');
-        // Jeopardy mode: transition from category selection to answer phase
-        const { getPromptLibrary } = await import('../_shared/prompts.ts');
-        
-        // Auto-select categories for groups that didn't choose
-        const groups = currentRound?.groups || [];
-        console.log('Groups before processing:', groups.length, groups.map((g: any) => ({ id: g.id, hasCategory: !!g.promptLibraryId })));
-        const updatedGroups = await Promise.all(groups.map(async (group: any) => {
-          let categoryId = group.promptLibraryId;
-          
-          // Auto-select if no category chosen
-          if (!categoryId && session.category_grid?.available?.length > 0) {
-            categoryId = session.category_grid.available[0];
-          }
-          
-          // Get a prompt from the selected category
-          if (categoryId) {
-            try {
-              const library = await getPromptLibrary(categoryId);
-              const randomPrompt = library.prompts[Math.floor(Math.random() * library.prompts.length)];
-              return { 
-                ...group, 
-                promptLibraryId: categoryId,
-                prompt: randomPrompt 
-              };
-            } catch (error) {
-              console.error(`Failed to load library ${categoryId}:`, error);
-              // Fallback to existing prompt
-              return { ...group, promptLibraryId: categoryId };
-            }
-          }
-          
-          return group;
-        }));
-        
-        console.log('Groups after processing:', updatedGroups.map((g: any) => ({ id: g.id, category: g.promptLibraryId, hasPrompt: !!g.prompt })));
-
-        // Update rounds with prompts (will be applied atomically later)
-        rounds = [...rounds];
-        rounds[roundIndex] = {
-          ...currentRound,
-          groups: updatedGroups,
-        };
-
-        console.log('Transitioning to answer phase');
-
-        // Set transition values (will be applied atomically)
-        nextStatus = 'answer';
-        endsAt = new Date(Date.now() + (settings.answerSecs || 90) * 1000).toISOString();
-      }
-      
       case 'answer':
         // Move to vote phase
         nextStatus = 'vote';
@@ -139,6 +93,7 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
               return {
                 id: `g${index}`,
                 prompt: existingGroup?.prompt || "What's your hot take?",
+                promptLibraryId: existingGroup?.promptLibraryId,
                 teamIds: groupTeamIds,
               };
             });
@@ -151,34 +106,11 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
             };
           }
 
-          const isJeopardyMode = settings.gameMode === 'jeopardy';
-
-          if (isJeopardyMode) {
-            // Jeopardy mode: go to category selection
-            // Select random team for each group in the next round
-            const nextRound = finalRounds[roundIndex + 1];
-            if (nextRound && nextRound.groups) {
-              finalRounds = [...finalRounds];
-              finalRounds[roundIndex + 1] = {
-                ...nextRound,
-                groups: nextRound.groups.map((group: any) => ({
-                  ...group,
-                  selectingTeamId: group.teamIds[Math.floor(Math.random() * group.teamIds.length)],
-                })),
-              };
-            }
-
-            nextStatus = 'category-select';
-            nextRoundIndex = roundIndex + 1;
-            voteGroupIndex = null;
-            endsAt = new Date(Date.now() + (settings.categorySelectSecs || 15) * 1000).toISOString();
-          } else {
-            // Classic mode: go straight to answer
-            nextStatus = 'answer';
-            nextRoundIndex = roundIndex + 1;
-            voteGroupIndex = null;
-            endsAt = new Date(Date.now() + (settings.answerSecs || 90) * 1000).toISOString();
-          }
+          // Next round always goes straight to answer
+          nextStatus = 'answer';
+          nextRoundIndex = roundIndex + 1;
+          voteGroupIndex = null;
+          endsAt = new Date(Date.now() + (settings.answerSecs || 90) * 1000).toISOString();
 
           // Store final rounds for atomic update
           rounds = finalRounds;
@@ -196,6 +128,15 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
     }
     
     // Update session atomically with all changes
+    const shouldAdvanceRotation = currentStatus === 'results' && nextStatus === 'answer';
+    const nextLibraryIndex = isMashupMode
+      ? getNextMashupIndex(selectedLibraries, currentLibraryIndex, shouldAdvanceRotation)
+      : currentLibraryIndex;
+
+    const nextPromptLibraryId = isMashupMode
+      ? selectedLibraries[nextLibraryIndex]
+      : session.prompt_library_id;
+
     const { data: updatedSession, error: updateError } = await supabase
       .from('top_comment_sessions')
       .update({
@@ -204,6 +145,8 @@ async function handleAdvanceSession(req: Request, uid: string, supabase: any): P
         round_index: nextRoundIndex,
         vote_group_index: voteGroupIndex,
         ends_at: endsAt,
+        prompt_library_id: nextPromptLibraryId,
+        current_library_index: nextLibraryIndex,
         ended_at: nextStatus === 'ended' ? new Date().toISOString() : null,
       })
       .eq('id', sessionId)

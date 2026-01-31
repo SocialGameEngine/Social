@@ -7,8 +7,7 @@ import type { Session, SessionStatus, StateMachineContext, TransitionValidation 
 export class SessionStateMachine {
   // Define valid state transitions
   private static readonly VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
-    lobby: ['category-select', 'answer', 'ended'],
-    'category-select': ['answer', 'ended'],
+    lobby: ['answer', 'ended'],
     answer: ['vote', 'ended'],
     vote: ['results', 'ended'],
     results: ['answer', 'vote', 'ended'],
@@ -245,7 +244,7 @@ export class SessionStateMachine {
    * @returns Whether the phase is timed
    */
   static isTimedPhase(phase: SessionStatus): boolean {
-    return ['category-select', 'answer', 'vote', 'results'].includes(phase);
+    return ['answer', 'vote', 'results'].includes(phase);
   }
 
   /**
@@ -256,7 +255,6 @@ export class SessionStateMachine {
   static getPhaseName(phase: SessionStatus): string {
     const names: Record<SessionStatus, string> = {
       lobby: 'Lobby',
-      'category-select': 'Category Selection',
       answer: 'Answer Phase',
       vote: 'Voting Phase',
       results: 'Results',

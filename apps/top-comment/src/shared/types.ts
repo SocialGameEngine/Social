@@ -17,15 +17,12 @@ export type {
   GameState,
 } from "../domain/types/domain.types";
 
-// Re-export CategoryGrid from utils
-export type { CategoryGrid } from "./utils/categoryGrid";
-
 // API Request/Response types (these stay in shared as they're infrastructure concerns)
 export interface CreateSessionRequest {
   venueName?: string;
   promptLibraryId?: PromptLibraryId;
-  gameMode?: "classic" | "jeopardy";
-  selectedCategories?: PromptLibraryId[];
+  gameMode?: "classic" | "mashup";
+  selectedLibraries?: PromptLibraryId[];
   totalRounds?: number;
 }
 
@@ -38,8 +35,8 @@ export interface CreateSessionResponse {
 export interface UpdateSessionRequest {
   sessionId: string;
   venueName?: string;
-  gameMode?: "classic" | "jeopardy";
-  selectedCategories?: PromptLibraryId[];
+  gameMode?: "classic" | "mashup";
+  selectedLibraries?: PromptLibraryId[];
   totalRounds?: number;
 }
 
@@ -136,15 +133,4 @@ export interface SetPromptLibraryResponse {
 export interface PauseSessionRequest {
   sessionId: string;
   pause: boolean;
-}
-
-export interface CategorySelectionRequest {
-  sessionId: string;
-  groupId: string;
-  categoryId: PromptLibraryId;
-  promptIndex: number;
-}
-
-export interface CategorySelectionResponse {
-  session: any; // Use domain Session type
 }

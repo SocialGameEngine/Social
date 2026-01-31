@@ -48,8 +48,6 @@ export function TeamPage() {
     setIsSubmittingAnswer,
     isSubmittingVote,
     setIsSubmittingVote,
-    isSubmittingCategorySelection,
-    setIsSubmittingCategorySelection,
     autoJoinAttempted,
     setAutoJoinAttempted,
     showHowToPlay,
@@ -318,7 +316,7 @@ export function TeamPage() {
   });
 
   // Extract event handlers into custom hook
-  const { handleJoin: handleJoinValues, handleSubmitAnswer, handleVote, handleSelectCategory } = useTeamHandlers({
+  const { handleJoin: handleJoinValues, handleSubmitAnswer, handleVote } = useTeamHandlers({
     sessionId,
     session,
     joinForm,
@@ -336,7 +334,6 @@ export function TeamPage() {
     myGroup,
     setIsSubmittingAnswer,
     setIsSubmittingVote,
-    setIsSubmittingCategorySelection,
     toast,
   });
 
@@ -420,8 +417,6 @@ export function TeamPage() {
     setAnswerText,
     handleSubmitAnswer,
     isSubmittingAnswer,
-    handleSelectCategory,
-    isSubmittingCategorySelection,
     totalSeconds,
     activeGroup,
     activeGroupIndex,

@@ -163,6 +163,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
     
     // Always clear local state regardless of API success
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("sidebets_host_session");
+    }
     setUser(null);
     setVenueAccount(null);
     setVenueAccountLoading(false);

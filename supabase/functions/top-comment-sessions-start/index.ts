@@ -1,83 +1,10 @@
 // Start a game session and generate first round
 import { createHandler, requireString, corsResponse, AppError, shuffleArray } from '../_shared/utils.ts';
 import { getTopCommentSession, getActiveTopCommentPlayers } from '../_shared/top-comment-utils.ts';
-import { GROUP_SIZE, TOTAL_ROUNDS } from '../_shared/prompts.ts';
+import { getPromptLibrary } from '../_shared/prompts.ts';
+import { getMashupLibraryForRound, requireValidMashupLibraries } from '../_shared/mashup.ts';
 import { createTeamGroups } from '../_shared/grouping.ts';
 import type { Session, Round, RoundGroup } from '../_shared/types.ts';
-
-/**
- * Seeded RNG for consistent random values across all clients
- */
-function seededRandom(seed: string, index: number): number {
-  let hash = 0;
-  const str = seed + index.toString();
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return Math.abs(hash) / 2147483647; // Normalize to 0-1
-}
-
-/**
- * Generate locked tiles for the grid
- * Rules:
- * - At most 1 locked tile per column
- * - Locked tiles randomly placed in rows within their column
- * - Uses seeded RNG for consistency across all clients
- */
-function generateLockedTiles(
-  sessionId: string,
-  categories: Array<{ id: string }>,
-  tilesToLock: number,
-  rows: number
-): Array<{ categoryId: string; promptIndex: number }> {
-  if (tilesToLock === 0) return [];
-  
-  const lockedTiles: Array<{ categoryId: string; promptIndex: number }> = [];
-  
-  // Determine which columns (categories) get locks
-  // For tilesToLock = 1: pick 1 column
-  // For tilesToLock = 2: pick 2 columns
-  const columnsToLock: number[] = [];
-  for (let i = 0; i < tilesToLock; i++) {
-    const rand = seededRandom(sessionId, i);
-    const columnIndex = Math.floor(rand * 3); // 0-2 for first card columns
-    if (!columnsToLock.includes(columnIndex)) {
-      columnsToLock.push(columnIndex);
-    } else {
-      // If column already selected, try next column
-      const nextColumn = (columnIndex + 1) % 3;
-      columnsToLock.push(nextColumn);
-    }
-  }
-  
-  // For each selected column, pick a random row
-  columnsToLock.forEach((columnIndex, lockIndex) => {
-    const rand = seededRandom(sessionId, 100 + lockIndex); // Different seed offset
-    const rowIndex = Math.floor(rand * rows);
-    
-    // Card 1 categories (0-2)
-    const card1CategoryId = categories[columnIndex]?.id;
-    if (card1CategoryId) {
-      lockedTiles.push({
-        categoryId: card1CategoryId,
-        promptIndex: rowIndex,
-      });
-    }
-    
-    // Card 2 categories (3-5) - mirror the lock pattern
-    const card2CategoryId = categories[columnIndex + 3]?.id;
-    if (card2CategoryId) {
-      lockedTiles.push({
-        categoryId: card2CategoryId,
-        promptIndex: rowIndex,
-      });
-    }
-  });
-  
-  return lockedTiles;
-}
 
 async function handleStartSession(req: Request, uid: string, supabase: any): Promise<Response> {
     const { sessionId } = await req.json();
@@ -104,21 +31,38 @@ async function handleStartSession(req: Request, uid: string, supabase: any): Pro
     // Shuffle teams
     const shuffledTeamIds: string[] = shuffleArray(activeTeamIds);
     
-    // Determine game mode
-    const isJeopardyMode = session.settings?.gameMode === 'jeopardy';
+  // Determine game mode
+  const isMashupMode = session.settings?.gameMode === 'mashup';
     
     // Generate rounds with groups
     const rounds: Round[] = [];
-    let promptCursor = session.prompt_cursor || 0;
-    const promptDeck = session.prompt_deck || [];
+  let promptCursor = session.prompt_cursor || 0;
+  const promptDeck = session.prompt_deck || [];
     
-    // Use session's totalRounds setting
-    // For Jeopardy mode, double the rounds to account for both cards (Card 1 and Card 2)
+  // Use session's totalRounds setting
     const baseTotalRounds = session.settings?.totalRounds;
     if (!baseTotalRounds) {
       throw new Error("totalRounds setting is required");
     }
-    const totalRounds = isJeopardyMode ? baseTotalRounds * 2 : baseTotalRounds;
+  const totalRounds = baseTotalRounds;
+
+  const selectedLibraries = isMashupMode
+    ? requireValidMashupLibraries(session.selected_libraries)
+    : [];
+  const currentLibraryIndex = typeof session.current_library_index === 'number' ? session.current_library_index : 0;
+  const libraryDecks = new Map<string, { prompts: string[]; cursor: number }>();
+
+  const getLibraryDeck = async (
+    libraryId: string,
+  ): Promise<{ prompts: string[]; cursor: number }> => {
+    const existing = libraryDecks.get(libraryId);
+    if (existing) return existing;
+    const library = await getPromptLibrary(libraryId);
+    const shuffled = shuffleArray(library.prompts);
+    const deck = { prompts: shuffled, cursor: 0 };
+    libraryDecks.set(libraryId, deck);
+    return deck;
+  };
     
     for (let i = 0; i < totalRounds; i++) {
       const groups: RoundGroup[] = [];
@@ -127,25 +71,40 @@ async function handleStartSession(req: Request, uid: string, supabase: any): Pro
       console.log(`Round ${i}: Creating groups for ${shuffledTeamIds.length} teams`);
       const teamGroups = createTeamGroups(shuffledTeamIds);
       console.log(`Round ${i}: createTeamGroups returned ${teamGroups.length} groups:`, teamGroups.map(g => g.length));
+
+      const roundLibraryId = isMashupMode
+        ? getMashupLibraryForRound(selectedLibraries, currentLibraryIndex, i).libraryId
+        : (session.prompt_library_id || 'classic');
       
       // Create RoundGroup objects for each team group
-      teamGroups.forEach((groupTeamIds, index) => {
+      for (let index = 0; index < teamGroups.length; index++) {
+        const groupTeamIds = teamGroups[index];
         const groupId = `g${index}`;
-        
-        // Get next prompt
-        if (promptCursor >= promptDeck.length) {
-          promptCursor = 0;
+
+        let prompt = "What's your hot take?";
+        if (isMashupMode) {
+          const deck = await getLibraryDeck(roundLibraryId);
+          if (deck.cursor >= deck.prompts.length) {
+            deck.cursor = 0;
+          }
+          prompt = deck.prompts[deck.cursor] || prompt;
+          deck.cursor += 1;
+        } else {
+          if (promptCursor >= promptDeck.length) {
+            promptCursor = 0;
+          }
+          prompt = promptDeck[promptCursor] || prompt;
+          promptCursor += 1;
         }
-        const prompt = promptDeck[promptCursor] || "What's your hot take?";
-        promptCursor++;
-        
+
         console.log(`Round ${i}, Group ${index}: ${groupTeamIds.length} teams`);
         groups.push({
           id: groupId,
           prompt,
           teamIds: groupTeamIds,
+          promptLibraryId: roundLibraryId,
         });
-      });
+      }
       
       console.log(`Round ${i}: Created ${groups.length} groups total`);
       rounds.push({
@@ -154,59 +113,13 @@ async function handleStartSession(req: Request, uid: string, supabase: any): Pro
       });
     }
     
-    // Determine initial phase based on game mode
-    const initialStatus = isJeopardyMode ? 'category-select' : 'answer';
+  // Determine initial phase based on game mode
+  const initialStatus = 'answer';
     
-    console.log('Starting session with mode:', session.settings?.gameMode, 'initialStatus:', initialStatus);
-    
-    // Configure dynamic grid based on numGroups × totalRounds
-    let updatedCategoryGrid = session.category_grid;
-    if (isJeopardyMode && session.category_grid && rounds.length > 0) {
-      const numGroups = rounds[0].groups.length;
-      const categoriesPerCard = 3; // Fixed: 3 categories per card
-      
-      // Calculate per card: totalActiveTiles = numGroups × baseTotalRounds (rounds per card)
-      // Since totalRounds is already doubled for Jeopardy, divide by 2 to get rounds per card
-      const roundsPerCard = totalRounds / 2;
-      const totalActiveTiles = numGroups * roundsPerCard;
-      const rows = Math.ceil(totalActiveTiles / 3);
-      const totalTilesPerCard = rows * 3;
-      const tilesToLock = totalTilesPerCard - totalActiveTiles; // 0-2
-      
-      // Generate locked tiles using seeded RNG (session ID as seed)
-      const lockedTiles = generateLockedTiles(session.id, session.category_grid.categories, tilesToLock, rows);
-      
-      updatedCategoryGrid = {
-        ...session.category_grid,
-        categoriesPerCard: categoriesPerCard,
-        promptsPerCategory: rows,
-        totalSlots: totalTilesPerCard * 2, // Both cards
-        lockedTiles: lockedTiles,
-      };
-      
-      console.log(`Dynamic grid: ${numGroups} groups × ${totalRounds} rounds = ${totalActiveTiles} active tiles per card`);
-      console.log(`Grid size: ${rows} rows × 3 cols = ${totalTilesPerCard} tiles per card (${tilesToLock} locked)`);
-      console.log(`Locked tiles:`, lockedTiles);
-    }
-    
-    // Select random team for each group in jeopardy mode
-    if (isJeopardyMode && rounds.length > 0) {
-      try {
-        rounds[0].groups = rounds[0].groups.map(group => ({
-          ...group,
-          selectingTeamId: group.teamIds[Math.floor(Math.random() * group.teamIds.length)],
-        }));
-        console.log('Selected random teams for groups:', rounds[0].groups.map(g => ({ id: g.id, selectingTeamId: g.selectingTeamId })));
-      } catch (err) {
-        console.error('Error selecting random teams:', err);
-        throw err;
-      }
-    }
+  console.log('Starting session with mode:', session.settings?.gameMode, 'initialStatus:', initialStatus);
     
     // Calculate phase end time
-    const phaseSecs = isJeopardyMode 
-      ? (session.settings?.categorySelectSecs || 15)
-      : (session.settings?.answerSecs || 90);
+  const phaseSecs = session.settings?.answerSecs || 90;
     const endsAt = new Date(Date.now() + phaseSecs * 1000).toISOString();
     
     console.log('Updating session to status:', initialStatus, 'with', rounds.length, 'rounds');
@@ -215,11 +128,12 @@ async function handleStartSession(req: Request, uid: string, supabase: any): Pro
     const { data: updatedSession, error: updateError } = await supabase
       .from('top_comment_sessions')
       .update({
-        status: initialStatus,
-        category_grid: updatedCategoryGrid,
+      status: initialStatus,
         round_index: 0,
         rounds,
-        prompt_cursor: promptCursor,
+      prompt_cursor: isMashupMode ? 0 : promptCursor,
+      prompt_library_id: isMashupMode ? selectedLibraries[currentLibraryIndex] : session.prompt_library_id,
+      current_library_index: isMashupMode ? currentLibraryIndex : null,
         started_at: new Date().toISOString(),
         ends_at: endsAt,
       })
@@ -235,6 +149,7 @@ async function handleStartSession(req: Request, uid: string, supabase: any): Pro
     console.log('Session started successfully with status:', updatedSession.status);
     
     return corsResponse({ session: updatedSession as Session });
-  }
+}
 
+// @ts-ignore - Deno global is available in Supabase Edge Functions runtime
 Deno.serve(createHandler(handleStartSession));

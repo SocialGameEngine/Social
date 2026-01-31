@@ -1,10 +1,10 @@
 // Update an existing game session's configuration (host-only)
 import { createHandler, cleanTeamName, AppError, corsResponse, verifyVenueAccount } from "../_shared/utils.ts";
 import { getPromptLibrary, TOTAL_ROUNDS } from "../_shared/prompts.ts";
-import { generateCategoryBonuses } from "../_shared/categoryGrid.ts";
+import { requireValidMashupLibraries } from "../_shared/mashup.ts";
 
 async function handleUpdateSession(req: Request, uid: string, supabase: any): Promise<Response> {
-  const { sessionId, venueName, gameMode, selectedCategories, totalRounds } = await req.json();
+  const { sessionId, venueName, gameMode, selectedLibraries, totalRounds } = await req.json();
 
   if (!sessionId || typeof sessionId !== "string") {
     throw new AppError(400, "sessionId is required", "invalid-argument");
@@ -33,62 +33,33 @@ async function handleUpdateSession(req: Request, uid: string, supabase: any): Pr
   }
 
   const cleanedVenueName = venueName ? cleanTeamName(String(venueName)) : null;
-  const mode = gameMode === "jeopardy" ? "jeopardy" : "classic";
+  const mode = gameMode === "mashup" ? "mashup" : "classic";
 
-  // Regenerate prompt deck based on current library (we keep prompt_library_id stable here)
-  const libraryId = session.prompt_library_id || "classic";
-  const library = await getPromptLibrary(libraryId);
-  const promptDeck = [...library.prompts].sort(() => Math.random() - 0.5);
+  let promptDeck: string[] = [];
+  let promptLibraryId = session.prompt_library_id || "classic";
+  let librariesToRotate: string[] | null = null;
+  let currentLibraryIndex = 0;
 
-  // Initialize category grid for jeopardy mode
-  let categoryGrid = null;
-  if (mode === "jeopardy") {
-    const allLibraryIds = [
-      "classic", "bar", "basic", "halloween", "selfie", "victoria",
-      "dangerfield", "medieval", "anime", "politics", "scifi",
-      "popculture", "cinema", "canucks", "bc", "tech",
-      "internetculture", "datingapp", "remotework", "adulting",
-      "groupchat", "streaming", "climateanxiety", "fictionalworlds",
-    ];
-
-    // Use host-selected categories or default to 6 (3 per card)
-    const selectedCats = Array.isArray(selectedCategories) && selectedCategories.length === 6
-      ? selectedCategories
-      : allLibraryIds.slice(0, 6);
-
-    // Validate all selected categories exist
-    const validCategories = selectedCats.filter((id: string) => allLibraryIds.includes(id));
-    if (validCategories.length !== 6) {
-      throw new AppError(400, "Invalid category selection: must select exactly 6 categories (3 per card)", "invalid-argument");
-    }
-
-    categoryGrid = {
-      categories: validCategories.map((id: string) => ({
-        id,
-        usedPrompts: [],
-        promptBonuses: generateCategoryBonuses(),
-      })),
-      totalSlots: 42, // 6 categories × 7 prompts (max)
-      categoriesPerCard: 3,
-    };
+  if (mode === "mashup") {
+    const libs = requireValidMashupLibraries(selectedLibraries);
+    librariesToRotate = libs;
+    promptLibraryId = libs[0];
+  } else {
+    const library = await getPromptLibrary(promptLibraryId);
+    promptDeck = [...library.prompts].sort(() => Math.random() - 0.5);
   }
 
   const existingSettings = (session.settings ?? {}) as Record<string, unknown>;
   const nextTotalRounds =
     typeof totalRounds === "number"
       ? totalRounds
-      : mode === "jeopardy"
-        ? 1
-        : TOTAL_ROUNDS;
+      : TOTAL_ROUNDS;
 
   const nextSettings = {
     ...existingSettings,
     gameMode: mode,
     totalRounds: nextTotalRounds,
-    selectedCategories:
-      mode === "jeopardy" && categoryGrid
-        ? categoryGrid.categories.map((c: { id: string }) => c.id)
-        : undefined,
+    librarySetupSecs: typeof existingSettings.librarySetupSecs === "number" ? existingSettings.librarySetupSecs : 30,
   };
 
   const { data: updatedSession, error: updateError } = await supabase
@@ -101,7 +72,9 @@ async function handleUpdateSession(req: Request, uid: string, supabase: any): Pr
       vote_group_index: null,
       prompt_deck: promptDeck,
       prompt_cursor: 0,
-      category_grid: categoryGrid,
+      prompt_library_id: promptLibraryId,
+      selected_libraries: librariesToRotate,
+      current_library_index: currentLibraryIndex,
       settings: nextSettings,
       ended_by_host: false,
       ended_at: null,
