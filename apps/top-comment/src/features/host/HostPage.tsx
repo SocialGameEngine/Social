@@ -9,7 +9,7 @@ import { useTheme } from "../../shared/providers/ThemeProvider";
 import { useHostSession } from "./useHostSession";
 import { useGameState, useSessionOrchestrator, transformRoundSummariesForUI } from "../../application";
 import { useInviteLink, usePlayerLookup, useActiveGroupAnswers } from "../../shared/hooks";
-import { useHostState, useHostComputations, useHostEffects } from "./hooks";
+import { useHostState, useHostComputations, useHostEffects, useHostRecovery } from "./hooks";
 import {
   setPromptLibrary,
   pauseSession,
@@ -112,6 +112,17 @@ export function HostPage() {
   const gameState = useGameState({ 
     sessionId: sessionId ?? undefined, 
     userId: user?.id 
+  });
+
+  useHostRecovery({
+    user,
+    authLoading,
+    isVenueAccount,
+    venueAccountLoading,
+    sessionId,
+    setSessionId,
+    setHostSession,
+    setShowCreateModal,
   });
 
   // Add session orchestrator for automatic phase advancement
