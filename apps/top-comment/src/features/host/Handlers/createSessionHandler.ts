@@ -17,8 +17,8 @@ interface CreateSessionHandlersDeps {
   setHostSession: (sessionInfo: { sessionId: string; code: string }) => void;
   setShowCreateModal: React.Dispatch<React.SetStateAction<boolean>>;
   onSessionCreated: () => void;
-  gameMode: "classic" | "jeopardy";
-  selectedCategories: string[];
+  gameMode: "classic" | "mashup";
+  selectedLibraries: string[];
   totalRounds?: number;
 }
 
@@ -40,7 +40,7 @@ export const handleCreateSession =
       setShowCreateModal,
       onSessionCreated,
       gameMode,
-      selectedCategories,
+      selectedLibraries,
       totalRounds,
     } = deps;
 
@@ -86,8 +86,8 @@ export const handleCreateSession =
       const response = await createSession({
         venueName: parsed.data.venueName || undefined,
         gameMode,
-        selectedCategories: gameMode === 'jeopardy' ? selectedCategories : undefined,
-        totalRounds: totalRounds || (gameMode === 'jeopardy' ? 1 : 5),
+        selectedLibraries: gameMode === 'mashup' ? selectedLibraries : undefined,
+        totalRounds: totalRounds || 5,
       });
       if (response) {
         setSessionId(response.sessionId);

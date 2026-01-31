@@ -13,10 +13,10 @@ export function useHostState(storedSessionId: string | null) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [isUpdatingSession, setIsUpdatingSession] = useState(false);
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
-  const [createForm, setCreateForm] = useState<{ venueName: string; gameMode: "classic" | "jeopardy"; selectedCategories: string[]; totalRounds?: number }>({ 
+  const [createForm, setCreateForm] = useState<{ venueName: string; gameMode: "classic" | "mashup"; selectedLibraries: string[]; totalRounds?: number }>({ 
     venueName: "", 
     gameMode: "classic",
-    selectedCategories: [],
+    selectedLibraries: [],
     totalRounds: 5
   });
   const [showPromptLibraryModal, setShowPromptLibraryModal] = useState(false);

@@ -15,8 +15,6 @@ import type {
   TransitionPhaseRequest,
   SetPromptLibraryRequest,
   SetPromptLibraryResponse,
-  CategorySelectionRequest,
-  CategorySelectionResponse,
   Answer,
   Team,
   Session,
@@ -77,7 +75,8 @@ function mapSession(data: any): Session | null {
     }) as SessionSettings,
     venueName: data.venue_name,
     promptLibraryId: typeof data.prompt_library_id === "string" ? data.prompt_library_id : undefined,
-    categoryGrid: data.category_grid,
+    selectedLibraries: data.selected_libraries,
+    currentLibraryIndex: data.current_library_index,
     paused: data.paused ?? false,
     pausedAt: data.paused_at,
     totalPausedMs: data.total_paused_ms ?? 0,
@@ -665,24 +664,5 @@ export const leaveSession = async (payload: { sessionId: string; teamId: string 
 
   if (error) throw error;
   if (!data) throw new Error("No response data from leave session");
-  return data;
-};
-
-export const selectCategory = async (
-  payload: CategorySelectionRequest
-): Promise<CategorySelectionResponse> => {
-  const { data, error } = await supabase.functions.invoke<CategorySelectionResponse>(
-    "top-comment-sessions-select-category",
-    { body: payload }
-  );
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  if (!data) {
-    throw new Error("No data returned from category selection");
-  }
-
   return data;
 };

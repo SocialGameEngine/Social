@@ -7,9 +7,10 @@ export interface SessionSettings {
   voteSecs: number;
   resultsSecs: number;
   maxTeams: number;
-  gameMode?: 'classic' | 'jeopardy';
+  gameMode?: 'classic' | 'jeopardy' | 'mashup';
   categorySelectSecs?: number;
   selectedCategories?: string[];
+  librarySetupSecs?: number;
 }
 
 export interface RoundGroup {
@@ -36,6 +37,8 @@ export interface Session {
   prompt_deck: string[];
   prompt_cursor: number;
   prompt_library_id: string;
+  selected_libraries?: string[];
+  current_library_index?: number;
   category_grid?: {
     categories: Array<{
       id: string;
