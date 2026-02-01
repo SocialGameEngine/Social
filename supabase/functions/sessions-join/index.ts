@@ -408,16 +408,20 @@ serve(async (req) => {
             userId: userId
           });
           
+          // Generate a device ID for unauthenticated users to track them
+          const deviceId = userId ? null : `device_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+          
           let isCaptain = false;
           if (shouldBecomeCaptain) {
-            console.log("Setting first member as captain:", userId);
+            console.log("Setting first member as captain:", userId || deviceId);
             
             // Set both captain_id and uid on the team, and update team name
+            // For unauthenticated users, use device_id or null
             const { error: captainError } = await supabase
               .from("teams")
               .update({ 
-                captain_id: userId,
-                uid: userId,  // Also set uid so team appears in filtered queries
+                captain_id: userId, // Can be null for unauthenticated users
+                uid: userId || deviceId,  // Use deviceId if userId is null
                 team_name: normalizedTeamName  // Update team name with user input
               })
               .eq("id", teamCodeData.team_id);
@@ -426,22 +430,17 @@ serve(async (req) => {
               console.error("Error setting captain:", captainError);
             } else {
               isCaptain = true;
-              console.log("Successfully set as team captain:", userId);
+              console.log("Successfully set as team captain:", userId || deviceId);
             }
           } else {
-            console.log("NOT setting as captain (shouldBecomeCaptain=false):", userId);
+            console.log("NOT setting as captain (shouldBecomeCaptain=false):", userId || deviceId);
           }
           
           // Add player as team member
-          if (!userId) {
-            console.error("Cannot add team member: userId is null");
-            throw new AppError(401, 'User authentication required', 'unauthenticated');
-          }
-          
           const memberData = {
             team_id: teamCodeData.team_id,
-            user_id: userId,
-            device_id: null,
+            user_id: userId, // Can be null for unauthenticated users
+            device_id: deviceId,
             player_name: playerName || null,
             is_captain: isCaptain,
             joined_at: new Date().toISOString()
@@ -465,12 +464,19 @@ serve(async (req) => {
           
           // Verify what was actually inserted and fix if needed
           if (!memberError) {
-            const { data: insertedMember } = await supabase
+            // Query by user_id if authenticated, otherwise by device_id
+            const query = supabase
               .from("team_members")
-              .select("id, user_id, player_name, is_captain, joined_at")
-              .eq("team_id", teamCodeData.team_id)
-              .eq("user_id", userId)
-              .single();
+              .select("id, user_id, device_id, player_name, is_captain, joined_at")
+              .eq("team_id", teamCodeData.team_id);
+            
+            if (userId) {
+              query.eq("user_id", userId);
+            } else {
+              query.eq("device_id", deviceId);
+            }
+            
+            const { data: insertedMember } = await query.single();
             
             console.log("Verification - what was actually inserted:", insertedMember);
             
@@ -548,10 +554,12 @@ serve(async (req) => {
       console.log("Joining available team:", teamToJoin);
       
       // Set this user as captain
+      // For unauthenticated users, use device_id or null
       const { error: captainError } = await supabase
         .from("teams")
         .update({ 
-          captain_id: userId,
+          captain_id: userId, // Can be null for unauthenticated users
+          uid: userId || deviceId, // Use deviceId if userId is null
           team_name: normalizedTeamName // Update team name
         })
         .eq("id", teamToJoin.id);
@@ -561,10 +569,13 @@ serve(async (req) => {
       }
       
       // Add player as team member
+      // Generate a device ID for unauthenticated users to track them
+      const deviceId = userId ? null : `device_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      
       const memberData = {
         team_id: teamToJoin.id,
-        user_id: userId,
-        device_id: null,
+        user_id: userId, // Can be null for unauthenticated users
+        device_id: deviceId,
         player_name: playerName || null,
         is_captain: true,
         joined_at: new Date().toISOString()
