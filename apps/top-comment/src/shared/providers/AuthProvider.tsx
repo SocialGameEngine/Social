@@ -3,7 +3,6 @@ import type { PropsWithChildren } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   supabase,
-  ensureAnonymousAuth,
   signInWithEmail,
   createUserWithEmail,
   signInAnonymouslyUser,
