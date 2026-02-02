@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button, Card } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 import { supabase } from "../../../supabase/client";
+import { BackgroundAnimation } from "../../../components/BackgroundAnimation";
 
 interface RoomCodeEntryProps {
   onSuccess: (sessionId: string, sessionCode: string) => void;
@@ -56,9 +57,20 @@ export function RoomCodeEntry({ onSuccess }: RoomCodeEntryProps) {
     }
   };
 
+  const showBackground = true;
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-950">
-      <Card className="w-full max-w-md" isDark={isDark}>
+    <>
+      <BackgroundAnimation show={showBackground} />
+      {showBackground && (
+        <style>{`
+          body {
+            background: transparent !important;
+          }
+        `}</style>
+      )}
+      <div className="relative min-h-screen flex items-center justify-center p-4">
+        <div className="relative z-10 w-full max-w-md">
+          <Card className="w-full" isDark={isDark}>
         <div className="space-y-6">
           <div className="text-center">
             <h1 className={`text-3xl font-black mb-2 ${isDark ? 'text-pink-400' : 'text-pink-600'}`}>
@@ -112,6 +124,8 @@ export function RoomCodeEntry({ onSuccess }: RoomCodeEntryProps) {
           </div>
         </div>
       </Card>
-    </div>
+        </div>
+      </div>
+    </>
   );
 }

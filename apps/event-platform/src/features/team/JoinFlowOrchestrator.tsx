@@ -6,6 +6,7 @@ import { TeamCodeEntry as TeamCodeForm } from "./Phases/TeamCodeEntry";
 import { JoinTeamModal } from "./components/JoinTeamModal";
 import { joinSession } from "../session/sessionService";
 import { supabase } from "../../supabase/client";
+import { useAuth } from "../../shared/providers/AuthContext";
 
 type JoinStep = "room-code" | "team-selection" | "joining";
 
@@ -20,8 +21,22 @@ export function JoinFlowOrchestrator() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [searchParams] = useSearchParams();
+  const { signInAnonymously, user } = useAuth();
   
   const [step, setStep] = useState<JoinStep>("room-code");
+  const [hasCheckedGuestAuth, setHasCheckedGuestAuth] = useState(false);
+
+  // Sign in as guest if not already signed in (for QR code joins)
+  useEffect(() => {
+    const code = searchParams.get("code");
+    if (code && code.length === 6 && !user && !hasCheckedGuestAuth) {
+      setHasCheckedGuestAuth(true);
+      signInAnonymously().catch((error) => {
+        console.error("Failed to sign in as guest:", error);
+        // Continue anyway
+      });
+    }
+  }, [searchParams, user, hasCheckedGuestAuth, signInAnonymously]);
 
   // Check for code in query parameters (from shareable links)
   useEffect(() => {

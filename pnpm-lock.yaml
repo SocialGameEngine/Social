@@ -585,19 +585,6 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
-  packages/vibox-client:
-    dependencies:
-      '@supabase/supabase-js':
-        specifier: ^2.47.10
-        version: 2.89.0
-    devDependencies:
-      '@types/node':
-        specifier: ^22.10.2
-        version: 22.19.3
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
-
 packages:
 
   '@acemir/cssom@0.9.29':

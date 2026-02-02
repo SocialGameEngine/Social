@@ -3,7 +3,6 @@ import type { PropsWithChildren } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   supabase,
-  ensureAnonymousAuth,
   signInWithEmail,
   createUserWithEmail,
   signInAnonymouslyUser,
@@ -69,25 +68,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     let cancelled = false;
 
-    // Get initial session and handle guest auth in single flow
+    // Get initial session - do NOT automatically sign in as guest
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!cancelled) {
         if (session?.user) {
           // User is already authenticated
           setUser(session.user);
-          setLoading(false);
         } else {
-          // No user - try anonymous auth
-          try {
-            const guestUser = await ensureAnonymousAuth();
-            setUser(guestUser);
-          } catch (error: any) {
-            console.error("Failed to authenticate anonymously:", error);
-            setUser(null);
-          } finally {
-            setLoading(false);
-          }
+          // No user - stay signed out (user must explicitly sign in)
+          setUser(null);
         }
+        setLoading(false);
       }
     });
 

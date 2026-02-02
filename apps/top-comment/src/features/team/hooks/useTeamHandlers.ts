@@ -154,6 +154,15 @@ export function useTeamHandlers({
       return;
     }
 
+    // Trigger haptic feedback when submitting answer
+    if ('vibrate' in navigator) {
+      try {
+        navigator.vibrate(50); // Short vibration for button click
+      } catch (error) {
+        // Vibration not supported or permission denied - silently fail
+      }
+    }
+
     setIsSubmittingAnswer(true);
     
     try {
@@ -228,6 +237,15 @@ export function useTeamHandlers({
   const handleVote = useCallback(
     async (answerId: string) => {
       if (!session || !sessionId) return;
+
+      // Trigger haptic feedback when voting
+      if ('vibrate' in navigator) {
+        try {
+          navigator.vibrate(50); // Short vibration for button click
+        } catch (error) {
+          // Vibration not supported or permission denied - silently fail
+        }
+      }
 
       setIsSubmittingVote(true);
       try {
