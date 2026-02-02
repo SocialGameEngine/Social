@@ -25,7 +25,7 @@ import {
 import { JoinForm, EndedPhase } from "./Phases";
 
 export function TeamPage() {
-  const { loading: authLoading, user } = useAuth();
+  const { loading: authLoading, user, signInAnonymously } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { teamSession, setTeamSession, clearTeamSession } = useTeamSession();
@@ -118,11 +118,21 @@ export function TeamPage() {
   const sessionSnapshotReady = !gameState.isLoading;
 
   // Extract query parameter logic into custom hook
-  useTeamQueryParams({
+  const { formattedQueryCode } = useTeamQueryParams({
     setJoinForm,
     setAutoJoinAttempted,
     hasManuallyLeft,
   });
+
+  // Sign in as guest if joining via QR code (has query code) and not already signed in
+  useEffect(() => {
+    if (formattedQueryCode && formattedQueryCode.length === 6 && !user && !authLoading) {
+      signInAnonymously().catch((error) => {
+        console.error("Failed to sign in as guest:", error);
+        // Continue anyway
+      });
+    }
+  }, [formattedQueryCode, user, authLoading, signInAnonymously]);
 
   const activeTeams = session ? teams : finalTeams;
 
@@ -531,14 +541,13 @@ export function TeamPage() {
           </button>
         </div>
       ) : null}
-      {showBackground ? (
-        <div className="chaos-orbs" aria-hidden="true">
-          <div className="chaos-orb" style={{ left: '10%' }} />
-          <div className="chaos-orb" style={{ left: '70%', animationDuration: '18s' }} />
-          <div className="chaos-orb" style={{ left: '40%', animationDuration: '22s' }} />
-        </div>
-      ) : (
-        <BackgroundAnimation show={showBackground} />
+      <BackgroundAnimation show={showBackground} />
+      {showBackground && (
+        <style>{`
+          body {
+            background: transparent !important;
+          }
+        `}</style>
       )}
       <div className="pointer-events-auto fixed right-4 top-20 z-50 hidden flex-col gap-2 sm:flex sm:right-auto sm:top-auto sm:left-4 sm:bottom-4 sm:flex-col-reverse">
         <button

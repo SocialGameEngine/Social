@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { BackgroundAnimation } from "../../components/BackgroundAnimation";
 import { Card } from "@social/ui";
 import { useAuth } from "../../shared/providers/AuthContext";
@@ -190,10 +190,25 @@ const barConfig = {
 // ============================================================================
 
 export function EntryPage() {
-  const { isGuest } = useAuth();
+  const { isGuest, signInAnonymously, user } = useAuth();
   const { isDark } = useTheme();
+  const navigate = useNavigate();
 
   const showBackground = true;
+
+  const handleJoinGameClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    // If user is not signed in, sign them in as guest first
+    if (!user) {
+      try {
+        await signInAnonymously();
+      } catch (error) {
+        console.error("Failed to sign in as guest:", error);
+        // Continue anyway - they can still try to join
+      }
+    }
+    navigate("/join");
+  };
   return (
     <>
       <BackgroundAnimation show={showBackground} />
@@ -308,8 +323,8 @@ export function EntryPage() {
                     {barConfig.buttons.startGame}
                   </span>
                 </Link>
-                <Link
-                  to="/join"
+                <button
+                  onClick={handleJoinGameClick}
                   className={`group inline-flex items-center justify-center rounded-2xl px-6 py-4 text-lg
                             font-semibold transition hover:scale-[1.02]
                             focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
@@ -321,7 +336,7 @@ export function EntryPage() {
                     </svg>
                     {barConfig.buttons.joinGame}
                   </span>
-                </Link>
+                </button>
               </div>
             </Card>
 

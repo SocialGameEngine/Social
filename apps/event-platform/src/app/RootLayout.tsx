@@ -1,8 +1,9 @@
-import { Outlet, Link } from "react-router-dom";
+import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../shared/providers/AuthContext";
 import { useState, useEffect, useRef } from "react";
 
 export function RootLayout() {
+  const navigate = useNavigate();
   // Safely use hooks with error handling
   let user, isGuest, signOut;
   try {
@@ -77,6 +78,8 @@ export function RootLayout() {
     try {
       await signOut();
       setShowAccountMenu(false);
+      // Redirect to landing page after sign out
+      navigate('/');
     } catch (error) {
       console.error('Sign out failed:', error);
     }
@@ -100,7 +103,7 @@ export function RootLayout() {
           <div className="flex-shrink-0 relative min-w-0" ref={accountMenuRef}>
             <button
               onClick={() => setShowAccountMenu(!showAccountMenu)}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-600/80 hover:bg-slate-500/80 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-slate-950"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-600/80 hover:bg-slate-500/80 hover:scale-110 hover:shadow-lg hover:shadow-cyan-400/50 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-slate-950"
               aria-label="Account menu"
               aria-expanded={showAccountMenu}
             >

@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../shared/providers/AuthContext";
 import { Button } from "./Button";
 
@@ -6,6 +7,7 @@ interface UserProfileProps {
 }
 
 export function UserProfile({ className = "" }: UserProfileProps) {
+  const navigate = useNavigate();
   const { user, isGuest, signOut } = useAuth();
 
   if (!user) return null;
@@ -13,6 +15,8 @@ export function UserProfile({ className = "" }: UserProfileProps) {
   const handleSignOut = async () => {
     try {
       await signOut();
+      // Redirect to landing page after sign out
+      navigate('/');
     } catch (error) {
       console.error("Sign out failed:", error);
     }

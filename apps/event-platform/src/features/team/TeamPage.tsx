@@ -25,7 +25,7 @@ import {
 import { JoinForm, EndedPhase } from "./Phases";
 
 export function TeamPage() {
-  const { loading: authLoading, user } = useAuth();
+  const { loading: authLoading, user, signInAnonymously } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { teamSession, setTeamSession, clearTeamSession } = useTeamSession();
@@ -116,11 +116,21 @@ export function TeamPage() {
   const sessionSnapshotReady = !gameState.isLoading;
 
   // Extract query parameter logic into custom hook
-  useTeamQueryParams({
+  const { formattedQueryCode } = useTeamQueryParams({
     setJoinForm,
     setAutoJoinAttempted,
     hasManuallyLeft,
   });
+
+  // Sign in as guest if joining via QR code (has query code) and not already signed in
+  useEffect(() => {
+    if (formattedQueryCode && formattedQueryCode.length === 6 && !user && !authLoading) {
+      signInAnonymously().catch((error) => {
+        console.error("Failed to sign in as guest:", error);
+        // Continue anyway
+      });
+    }
+  }, [formattedQueryCode, user, authLoading, signInAnonymously]);
 
   const activeTeams = session ? teams : finalTeams;
 
@@ -527,6 +537,13 @@ export function TeamPage() {
   return (
     <>
       <BackgroundAnimation show={showBackground} />
+      {showBackground && (
+        <style>{`
+          body {
+            background: transparent !important;
+          }
+        `}</style>
+      )}
       <div className="pointer-events-auto fixed right-4 top-20 z-50 flex flex-col gap-2 sm:right-auto sm:top-auto sm:left-4 sm:bottom-4 sm:flex-col-reverse">
         <button
           type="button"
