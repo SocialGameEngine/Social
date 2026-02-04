@@ -1,5 +1,6 @@
 import { getMascotById } from "../shared/mascots";
 import type { Team } from "../shared/types";
+import type { RoomMembership } from "../shared/types";
 
 // Card size for the grid (larger cards = tighter look between cards)
 const CARD_SIZE = "clamp(88px, 11vw, 148px)";
@@ -22,16 +23,38 @@ const teamCardStyles = `
 `;
 
 interface DrinkTankProps {
-  teams: Team[];
+  roomMemberships?: RoomMembership[];
+  teams?: Team[]; // Keep for backward compatibility
   className?: string;
+}
+
+/**
+ * Convert room membership to team format for DrinkTank logic
+ */
+function roomMembershipToTeam(membership: RoomMembership): Team {
+  return {
+    id: membership.id,
+    uid: membership.userId,
+    teamName: membership.playerName,
+    isHost: membership.isHost,
+    score: 0, // Not used in lobby display
+    joinedAt: membership.joinedAt,
+    lastActiveAt: membership.lastActiveAt,
+    mascotId: membership.mascotId,
+  };
 }
 
 /**
  * Renders team cards in join order: first joiner on the left, pushed right
  * as more join; when the row hits the container edge, cards wrap to the next row.
  */
-export function DrinkTank({ teams, className = "" }: DrinkTankProps) {
-  const sortedByJoin = [...teams].sort(
+export function DrinkTank({ roomMemberships, teams, className = "" }: DrinkTankProps) {
+  // Use roomMemberships if provided, fallback to teams for backward compatibility
+  const displayData = roomMemberships ? 
+    roomMemberships.map(roomMembershipToTeam) : 
+    teams || [];
+    
+  const sortedByJoin = [...displayData].sort(
     (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime()
   );
   const displayOrder = [...sortedByJoin].reverse();

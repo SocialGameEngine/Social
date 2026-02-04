@@ -96,7 +96,7 @@ export function useTeamPhaseRenderer({
 
     switch (session.status) {
       case "lobby":
-        return <LobbyPhase teams={teams} />;
+        return <LobbyPhase />;
       case "answer":
         return (
           <AnswerPhase

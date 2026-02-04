@@ -24,6 +24,21 @@ export const appRouter = createBrowserRouter([
       { path: "venue-auth", element: <VenueAuthPage /> },
       { path: "host", element: <HostPage /> },
       { path: "join", element: <JoinPage /> },
+      
+      // NEW: URL-based room route with validation
+      { 
+        path: "room/:roomCode", 
+        element: <TeamPage />,
+        loader: ({ params }) => {
+          const roomCode = params.roomCode;
+          // Basic validation: 6 characters, alphanumeric
+          if (!roomCode || !/^[A-Z0-9]{6}$/i.test(roomCode)) {
+            throw new Response("Invalid room code format", { status: 400 });
+          }
+          return { roomCode: roomCode.toUpperCase() };
+        }
+      },
+      
       { path: "play", element: <TeamPage /> },
       { path: "team", element: <TeamPage /> },
       { path: "presenter/:sessionId", element: <PresenterPage /> },

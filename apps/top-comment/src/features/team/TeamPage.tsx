@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button, Card, Modal, SessionTimer } from "@social/ui";
 import { useToast } from "../../shared/hooks";
 import { VIBoxButton } from "../../shared/components/vibox/VIBoxButton";
@@ -10,6 +10,7 @@ import { transformRoundSummariesForUI, transformLeaderboardForUI } from "../../a
 import { useActiveGroupAnswers } from "../../shared/hooks";
 import { useTeamState, useTeamEffects, useTeamPhaseRenderer, useTeamHandlers, useTeamComputations, useTeamTimers, useTeamSessionManagement, useTeamQueryParams, useTeamKickedTeamDetection, useTeamAnswerInitialization } from "./hooks";
 import { useKickDetection } from "../../hooks/useKickDetection";
+import { useRoom } from "../../hooks/useRoom";
 import { useTeamSession } from "./useTeamSession";
 import { useTeamRoom } from "./useTeamRoom";
 import { useSelfieCamera } from "./useSelfieCamera";
@@ -24,11 +25,11 @@ import {
   removeBannedSession,
   addBannedSession,
 } from "./utils/teamConstants";
-import { JoinForm, EndedPhase } from "./Phases";
-import { RoomLobbyPhase } from "./Phases/RoomLobbyPhase";
+import { JoinForm, EndedPhase, LobbyPhase } from "./Phases";
 import { roomService } from "../../services/roomService";
 
 export function TeamPage() {
+  const { roomCode } = useParams<{ roomCode: string }>();
   const { loading: authLoading, user, signInAnonymously } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -36,6 +37,32 @@ export function TeamPage() {
   const { teamRoom, setTeamRoom } = useTeamRoom();
   const { setCurrentPhase } = useCurrentPhase();
   const { isDark } = useTheme();
+
+  // NEW: Determine if we're in URL-based or state-based mode
+  const isUrlBased = !!roomCode;
+  
+  // NEW: URL-based room data fetching (only when roomCode is present)
+  const { room, isLoading: roomLoading, error: roomError } = useRoom({ 
+    roomId: undefined, // Don't use roomId for URL-based approach
+    roomCode: roomCode || undefined, 
+    autoRefresh: false // Disable auto-refresh for room lobby to prevent flickering
+  });
+  
+  // NEW: Handle URL-based room data
+  useEffect(() => {
+    if (isUrlBased && room && !teamRoom) {
+      console.log('🔍 Setting teamRoom from URL-based room data:', {
+        roomId: room.id,
+        roomCode: room.code
+      });
+      
+      setTeamRoom({
+        roomId: room.id,
+        roomCode: room.code,
+        playerName: "", // Will be set when user joins
+      });
+    }
+  }, [isUrlBased, room, teamRoom, setTeamRoom]);
 
   // Add kick detection at the TeamPage level (only once)
   useKickDetection({ roomId: teamRoom?.roomId || null });
@@ -489,8 +516,69 @@ export function TeamPage() {
     answers,
   });
 
+  // NEW: Handle invalid room codes (URL-based) - AFTER all hooks
+  if (isUrlBased && roomError) {
+    console.error('❌ Room not found for roomCode:', roomCode);
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <BackgroundAnimation show={true} />
+        <Card className="space-y-4 text-center" isDark={true}>
+          <h2 className="text-2xl font-bold text-white">Room Not Found</h2>
+          <p className="text-slate-400">
+            Room code "{roomCode?.toUpperCase()}" doesn't exist or has expired.
+          </p>
+          <div className="space-y-2">
+            <Button onClick={() => navigate("/join")} className="w-full">
+              Back to Join
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate("/team")} 
+              className="w-full"
+            >
+              Go to Team Page
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+  
+  // NEW: Loading state for URL-based navigation - AFTER all hooks
+  if (isUrlBased && roomLoading) {
+    console.log('🔄 Loading room data for roomCode:', roomCode);
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <BackgroundAnimation show={true} />
+        <Card className="space-y-4 text-center" isDark={true}>
+          <div className="space-y-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-400 mx-auto"></div>
+            <h2 className="text-2xl font-bold text-white">Loading Room...</h2>
+            <p className="text-slate-400">
+              Joining room {roomCode?.toUpperCase()}...
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // DEBUG: Log all state before rendering
+  console.log('🔍 TeamPage render state:', {
+    roomCode,
+    isUrlBased,
+    room,
+    roomLoading,
+    roomError,
+    teamRoom,
+    sessionId,
+    sessionSnapshotReady,
+    session
+  });
+
   let mainContent;
   if (endedSession && !session) {
+    console.log('🔍 Rendering EndedPhase');
     mainContent = (
       <EndedPhase
         currentTeam={currentTeam}
@@ -506,47 +594,34 @@ export function TeamPage() {
         scoreboardRef={scoreboardRef}
       />
     );
-  } else if (!sessionId && teamRoom) {
+  } else if (session && session.status === 'lobby') {
+    // Show lobby with session information
     mainContent = (
-      <RoomLobbyPhase roomCode={teamRoom.roomCode} roomId={teamRoom.roomId} onLeaveRoom={() => setTeamRoom(null)} />
-    );
-  } else if (!sessionId) {
-    mainContent = (
-      <JoinForm
-        joinForm={joinForm}
-        joinErrors={joinErrors}
-        isJoining={isJoining}
-        handleJoin={handleJoin}
-        setJoinForm={setJoinForm}
+      <LobbyPhase
+        roomCode={roomCode || teamRoom?.roomCode}
+        roomId={teamRoom?.roomId}
+        sessionId={sessionId}
+        session={session}
+        onLeaveRoom={() => setTeamRoom(null)}
       />
-    );
-  } else if (!sessionSnapshotReady) {
-    mainContent = (
-      <Card className="space-y-3 text-center" isDark={isDark}>
-        <h2 className={`text-xl font-semibold ${!isDark ? 'text-slate-900' : 'text-pink-400'}`}>Connecting...</h2>
-        <p className={`text-sm ${!isDark ? 'text-slate-600' : 'text-cyan-300'}`}>Pulling the latest game state.</p>
-      </Card>
     );
   } else if (session) {
+    // Show game content based on session phase (answer, vote, results, etc.)
     mainContent = renderGameContent;
-  } else {
-    mainContent = endedSession ? (
-      <EndedPhase
-        currentTeam={currentTeam}
-        finalLeaderboard={finalLeaderboard}
-        scrollToMyRank={scrollToMyRank}
-        selfieImage={selfieImage}
-        startSelfie={startSelfie}
-        shareSelfie={shareSelfie}
-        downloadSelfie={downloadSelfie}
-        setSelfieImage={setSelfieImage}
-        isTakingSelfie={isTakingSelfie}
-        handleLeave={effectsHandleLeave}
-        scoreboardRef={scoreboardRef}
+  } else if (roomCode || teamRoom) {
+    // Use unified LobbyPhase for pre-session states
+    mainContent = (
+      <LobbyPhase
+        roomCode={roomCode || teamRoom?.roomCode}
+        roomId={teamRoom?.roomId}
+        sessionId={sessionId}
+        session={session}
+        onLeaveRoom={() => setTeamRoom(null)}
       />
-    ) : teamRoom ? (
-      <RoomLobbyPhase roomCode={teamRoom.roomCode} roomId={teamRoom.roomId} onLeaveRoom={() => setTeamRoom(null)} />
-    ) : (
+    );
+  } else {
+    // Show JoinForm if no teamRoom and no session
+    mainContent = (
       <JoinForm
         joinForm={joinForm}
         joinErrors={joinErrors}

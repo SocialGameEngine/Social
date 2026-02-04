@@ -12,6 +12,7 @@ import { supabase } from '../supabase/client';
 
 interface UseRoomOptions {
   roomId?: string;
+  roomCode?: string;
   autoRefresh?: boolean;
   refreshInterval?: number;
 }
@@ -23,7 +24,7 @@ export function useRoom(options: UseRoomOptions = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { roomId, autoRefresh = true, refreshInterval = 5000 } = options;
+  const { roomId, roomCode, autoRefresh = true, refreshInterval = 5000 } = options;
 
   // Get my membership
   const myMembership = user ? memberships.find(m => m.userId === user.id) : null;
@@ -39,20 +40,40 @@ export function useRoom(options: UseRoomOptions = {}) {
   const isHost = myMembership?.isHost || false;
 
   // Load room data
-  const loadRoom = useCallback(async (roomId: string) => {
-    if (!roomId) return;
+  const loadRoom = useCallback(async (overrideRoomId?: string) => {
+    const targetRoomId = overrideRoomId || roomId;
+    const targetRoomCode = overrideRoomId ? undefined : roomCode;
+    
+    if (!targetRoomId && !targetRoomCode) return;
 
     try {
       setIsLoading(true);
-      const roomData = await roomService.getRoom({ roomId });
+      console.log('🔍 useRoom: Loading room', { roomId: targetRoomId, roomCode: targetRoomCode });
+      
+      let roomData;
+      if (targetRoomCode) {
+        // NEW: Load room by roomCode
+        roomData = await roomService.getRoom({ code: targetRoomCode });
+      } else if (targetRoomId) {
+        // EXISTING: Load room by roomId
+        roomData = await roomService.getRoom({ roomId: targetRoomId });
+      }
+
+      if (!roomData?.room) {
+        throw new Error(targetRoomCode ? `Room code "${targetRoomCode}" not found` : `Room ID "${targetRoomId}" not found`);
+      }
+
       setRoom(roomData.room);
+      console.log('✅ useRoom: Room loaded successfully', roomData.room);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load room');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load room';
+      setError(errorMessage);
+      console.error('❌ useRoom: Error loading room', err);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [roomId, roomCode]);
 
   // Refresh memberships
   const refreshMembers = useCallback(async () => {
@@ -96,7 +117,7 @@ export function useRoom(options: UseRoomOptions = {}) {
       
       // Update room data if we joined successfully
       if (membership.room.id === roomId) {
-        await loadRoom(roomId);
+        await loadRoom();
         await refreshMembers();
       }
       
@@ -347,23 +368,23 @@ export function useRoom(options: UseRoomOptions = {}) {
 
   // Auto-refresh effect
   useEffect(() => {
-    if (!roomId || !autoRefresh) return;
+    if ((!roomId && !roomCode) || !autoRefresh) return;
 
     const interval = setInterval(() => {
-      loadRoom(roomId);
+      loadRoom();
       refreshMembers();
     }, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [roomId, autoRefresh, refreshInterval, loadRoom, refreshMembers]);
+  }, [roomId, roomCode, autoRefresh, refreshInterval, loadRoom, refreshMembers]);
 
   // Initial load effect
   useEffect(() => {
-    if (roomId) {
-      loadRoom(roomId);
+    if (roomId || roomCode) {
+      loadRoom();
       refreshMembers();
     }
-  }, [roomId, loadRoom, refreshMembers]);
+  }, [roomId, roomCode, loadRoom, refreshMembers]);
 
   return {
     room,
