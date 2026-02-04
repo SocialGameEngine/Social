@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { getBannedFromSessions } from '../utils/teamConstants';
 import type { Session, Team } from '../../../shared/types';
 
-interface UseTeamKickedPlayerDetectionProps {
+interface UseTeamKickedTeamDetectionProps {
   session: Session | null;
   teamSession: { sessionId: string; code: string; teamName: string } | null;
   sessionSnapshotReady: boolean;
@@ -18,7 +18,7 @@ interface UseTeamKickedPlayerDetectionProps {
   toast: (options: { title: string; description?: string; variant: "success" | "error" }) => void;
 }
 
-export function useTeamKickedPlayerDetection({
+export function useTeamKickedTeamDetection({
   session,
   teamSession,
   sessionSnapshotReady,
@@ -29,11 +29,11 @@ export function useTeamKickedPlayerDetection({
   addBannedSession,
   setSessionId,
   toast,
-}: UseTeamKickedPlayerDetectionProps) {
+}: UseTeamKickedTeamDetectionProps) {
   const kickDetectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasTriggeredKickRef = useRef(false);
 
-  // Detect when player is kicked (currentTeam becomes null while session exists and other teams are still present)
+  // Detect when team is kicked (currentTeam becomes null while session exists and other teams are still present)
   useEffect(() => {
     // Early return if no session - nothing to detect
     if (!session) return;
@@ -44,7 +44,7 @@ export function useTeamKickedPlayerDetection({
       kickDetectionTimeoutRef.current = null;
     }
 
-    // Reset trigger flag if player is back in the session
+    // Reset trigger flag if team is back in the session
     if (currentTeam !== null) {
       hasTriggeredKickRef.current = false;
     }
@@ -70,7 +70,7 @@ export function useTeamKickedPlayerDetection({
           !showKickedModal &&
           !hasTriggeredKickRef.current
         ) {
-          // Player was removed - they're not in the teams list anymore but other teams exist
+          // Team was removed - they're not in the teams list anymore but other teams exist
           hasTriggeredKickRef.current = true;
           
           // Show the kicked modal

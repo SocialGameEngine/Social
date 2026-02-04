@@ -190,7 +190,7 @@ const barConfig = {
 // ============================================================================
 
 export function EntryPage() {
-  const { isGuest, signInAnonymously, user } = useAuth();
+  const { isGuest, signInAnonymously, user} = useAuth();
   const { isDark } = useTheme();
   const navigate = useNavigate();
 
@@ -207,7 +207,24 @@ export function EntryPage() {
         // Continue anyway - they can still try to join
       }
     }
+    // Navigate to join page
     navigate("/join");
+  };
+
+  const handleCreateRoomClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // If user is not signed in, sign them in as guest first
+    if (!user) {
+      try {
+        await signInAnonymously();
+      } catch (error) {
+        console.error("Failed to sign in as guest:", error);
+      }
+    }
+    
+    // Navigate to host flow
+    navigate("/host");
   };
   return (
     <>
@@ -311,8 +328,8 @@ export function EntryPage() {
                 </h2>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Link
-                  to="/host"
+                <button
+                  onClick={handleCreateRoomClick}
                   className={`group inline-flex items-center justify-center rounded-2xl px-6 py-4 text-lg font-semibold transition hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${!isDark ? barConfig.colors.buttons.startGame.light.gradient : barConfig.colors.buttons.startGame.dark.gradient} ${!isDark ? barConfig.colors.buttons.startGame.light.text : barConfig.colors.buttons.startGame.dark.text} ${!isDark ? barConfig.colors.buttons.startGame.light.shadow : barConfig.colors.buttons.startGame.dark.shadow} ${!isDark ? barConfig.colors.buttons.startGame.light.focus : barConfig.colors.buttons.startGame.dark.focus} ${!isDark ? barConfig.colors.buttons.startGame.light.hover : barConfig.colors.buttons.startGame.dark.hover}`}
                 >
                   <span className="flex items-center gap-2">
@@ -322,7 +339,7 @@ export function EntryPage() {
                     </svg>
                     {barConfig.buttons.startGame}
                   </span>
-                </Link>
+                </button>
                 <button
                   onClick={handleJoinGameClick}
                   className={`group inline-flex items-center justify-center rounded-2xl px-6 py-4 text-lg

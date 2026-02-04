@@ -8,5 +8,5 @@ export { useTeamTimers } from './useTeamTimers';
 export { useTeamAutoJoin } from './useTeamAutoJoin';
 export { useTeamSessionManagement } from './useTeamSessionManagement';
 export { useTeamQueryParams } from './useTeamQueryParams';
-export { useTeamKickedPlayerDetection } from './useTeamKickedPlayerDetection';
+export { useTeamKickedTeamDetection } from './useTeamKickedTeamDetection';
 export { useTeamAnswerInitialization } from './useTeamAnswerInitialization';

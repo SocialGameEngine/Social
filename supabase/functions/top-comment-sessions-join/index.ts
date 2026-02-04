@@ -24,12 +24,77 @@ async function handleJoinSession(req: Request, userId: string, supabase: any): P
     throw new AppError(400, "Invalid code format");
   }
 
-  console.log("Starting session lookup for code:", normalizedCode);
+  console.log("Starting join lookup for code:", normalizedCode);
+
+  let sessionId: string | null = null;
+  const { data: roomData } = await supabase
+    .from("rooms")
+    .select("id, code, status, current_session_id, settings")
+    .eq("code", normalizedCode)
+    .maybeSingle();
+
+  if (roomData) {
+    if (roomData.status === "archived") {
+      throw new AppError(403, "Room is archived");
+    }
+    if (!roomData.current_session_id) {
+      throw new AppError(404, "No active session in this room yet");
+    }
+    sessionId = roomData.current_session_id;
+
+    const { data: existingMembership } = await supabase
+      .from("room_memberships")
+      .select("*")
+      .eq("room_id", roomData.id)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (existingMembership?.is_banned) {
+      throw new AppError(403, "You are banned from this room");
+    }
+
+    if (!existingMembership) {
+      const requiresApproval = roomData.settings?.requireApproval ?? false;
+      const status = requiresApproval ? "pending" : "active";
+      const { error: membershipError } = await supabase
+        .from("room_memberships")
+        .insert({
+          room_id: roomData.id,
+          user_id: userId,
+          team_name: normalizedDisplayName,
+          is_host: false,
+          is_banned: false,
+          status,
+        });
+
+      if (membershipError) {
+        throw new AppError(500, membershipError.message || "Failed to join room");
+      }
+
+      if (requiresApproval) {
+        throw new AppError(403, "Waiting for host approval");
+      }
+    }
+  }
+
+  if (!sessionId) {
+    const { data: sessionByCode, error: sessionError } = await supabase
+      .from("top_comment_sessions")
+      .select("id")
+      .eq("code", normalizedCode)
+      .single();
+
+    if (sessionError || !sessionByCode) {
+      console.error("Session not found:", sessionError);
+      throw new AppError(404, "Session not found");
+    }
+    sessionId = sessionByCode.id;
+  }
 
   const { data: session, error: sessionError } = await supabase
     .from("top_comment_sessions")
-    .select("id, code, status, settings, ended_by_host")
-    .eq("code", normalizedCode)
+    .select("id, code, status, settings, ended_by_host, room_id")
+    .eq("id", sessionId)
     .single();
 
   if (sessionError || !session) {
@@ -38,6 +103,60 @@ async function handleJoinSession(req: Request, userId: string, supabase: any): P
   }
 
   console.log("Session found:", { id: session.id, status: session.status })
+
+  if (session.room_id) {
+    const { data: membership, error: membershipError } = await supabase
+      .from("room_memberships")
+      .select("id, is_banned, status")
+      .eq("room_id", session.room_id)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (membershipError) {
+      throw new AppError(500, membershipError.message || "Failed to verify room membership");
+    }
+
+    if (membership?.is_banned) {
+      throw new AppError(403, "You are banned from this room");
+    }
+
+    if (membership?.status === "pending") {
+      throw new AppError(403, "Waiting for host approval");
+    }
+
+    if (!membership) {
+      const { data: roomData, error: roomError } = await supabase
+        .from("rooms")
+        .select("settings")
+        .eq("id", session.room_id)
+        .single();
+
+      if (roomError) {
+        throw new AppError(500, roomError.message || "Failed to load room");
+      }
+
+      const requiresApproval = roomData?.settings?.requireApproval ?? false;
+      const status = requiresApproval ? "pending" : "active";
+      const { error: createMembershipError } = await supabase
+        .from("room_memberships")
+        .insert({
+          room_id: session.room_id,
+          user_id: userId,
+          team_name: normalizedDisplayName,
+          is_host: false,
+          is_banned: false,
+          status,
+        });
+
+      if (createMembershipError) {
+        throw new AppError(500, createMembershipError.message || "Failed to join room");
+      }
+
+      if (requiresApproval) {
+        throw new AppError(403, "Waiting for host approval");
+      }
+    }
+  }
 
   // Check if player already exists
   const { data: existingPlayer } = await supabase

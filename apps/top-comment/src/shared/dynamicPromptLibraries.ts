@@ -51,8 +51,7 @@ export async function fetchPromptLibraries(): Promise<PromptLibrary[]> {
       prompts: promptsByLibrary.get(library.id) || []
     }));
 
-    console.log(`Loaded ${result.length} prompt libraries from database`);
-    return result;
+        return result;
 
   } catch (error) {
     console.error('Failed to fetch prompt libraries from database:', error);

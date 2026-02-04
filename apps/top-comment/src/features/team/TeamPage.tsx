@@ -8,8 +8,9 @@ import { HowToPlayModal } from "../howToPlay/HowToPlayModal";
 import { VIBoxJukebox } from "../../shared/components/vibox/VIBoxJukebox";
 import { transformRoundSummariesForUI, transformLeaderboardForUI } from "../../application";
 import { useActiveGroupAnswers } from "../../shared/hooks";
-import { useTeamState, useTeamEffects, useTeamPhaseRenderer, useTeamHandlers, useTeamComputations, useTeamTimers, useTeamSessionManagement, useTeamQueryParams, useTeamKickedPlayerDetection, useTeamAnswerInitialization } from "./hooks";
+import { useTeamState, useTeamEffects, useTeamPhaseRenderer, useTeamHandlers, useTeamComputations, useTeamTimers, useTeamSessionManagement, useTeamQueryParams, useTeamKickedTeamDetection, useTeamAnswerInitialization } from "./hooks";
 import { useTeamSession } from "./useTeamSession";
+import { useTeamRoom } from "./useTeamRoom";
 import { useSelfieCamera } from "./useSelfieCamera";
 import { useAuth } from "../../shared/providers/AuthContext";
 import { useCurrentPhase } from "../../shared/providers/CurrentPhaseContext";
@@ -23,16 +24,19 @@ import {
   addBannedSession,
 } from "./utils/teamConstants";
 import { JoinForm, EndedPhase } from "./Phases";
+import { RoomLobbyPhase } from "./Phases/RoomLobbyPhase";
+import { roomService } from "../../services/roomService";
 
 export function TeamPage() {
   const { loading: authLoading, user, signInAnonymously } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { teamSession, setTeamSession, clearTeamSession } = useTeamSession();
+  const { teamRoom, setTeamRoom } = useTeamRoom();
   const { setCurrentPhase } = useCurrentPhase();
   const { isDark } = useTheme();
 
-  const teamState = useTeamState(teamSession);
+  const teamState = useTeamState(teamSession, teamRoom);
   const {
     sessionId,
     setSessionId,
@@ -78,6 +82,7 @@ export function TeamPage() {
   const { gameState: effectsGameState, handleLeave: effectsHandleLeave } = useTeamEffects({
     sessionId,
     teamSession,
+    teamRoom,
     setSessionId,
     setTeamSession,
     clearTeamSession,
@@ -106,6 +111,29 @@ export function TeamPage() {
     const interval = window.setInterval(() => setNow(Date.now()), 500);
     return () => window.clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!teamRoom?.roomCode || sessionId) return;
+    let isMounted = true;
+    const pollRoom = async () => {
+      try {
+        const roomResponse = await roomService.getRoom({ code: teamRoom.roomCode });
+        const currentSessionId = roomResponse.room.currentSessionId;
+        if (currentSessionId && isMounted) {
+          setSessionId(currentSessionId);
+        }
+      } catch (error) {
+        // Ignore room polling errors - retry on next interval
+      }
+    };
+
+    void pollRoom();
+    const interval = window.setInterval(pollRoom, 3000);
+    return () => {
+      isMounted = false;
+      window.clearInterval(interval);
+    };
+  }, [teamRoom?.roomCode, sessionId, setSessionId]);
 
   // Use the new application hooks - this replaces 4 separate hooks!
   const gameState = effectsGameState;
@@ -164,8 +192,8 @@ export function TeamPage() {
     setHasManuallyLeft,
   });
 
-  // Extract kicked player detection logic into custom hook
-  useTeamKickedPlayerDetection({
+  // Extract kicked team detection logic into custom hook
+  useTeamKickedTeamDetection({
     session,
     teamSession,
     sessionSnapshotReady,
@@ -335,6 +363,7 @@ export function TeamPage() {
     setIsJoining,
     setSessionId,
     setTeamSession,
+    setTeamRoom,
     clearTeamSession,
     setHasManuallyLeft,
     setAutoJoinAttempted,
@@ -353,7 +382,7 @@ export function TeamPage() {
     const formData = new FormData(event.currentTarget);
     const values = {
       code: String(formData.get("code") ?? ""),
-      teamName: String(formData.get("teamName") ?? ""),
+      playerName: String(formData.get("playerName") ?? ""),
     };
     void handleJoinValues(values);
   }, [handleJoinValues]);
@@ -390,10 +419,10 @@ export function TeamPage() {
   
 
   useEffect(() => {
-    if (!session && sessionId && sessionSnapshotReady) {
+    if (!session && sessionId && sessionSnapshotReady && !teamRoom) {
       effectsHandleLeave();
     }
-  }, [session, sessionId, sessionSnapshotReady, effectsHandleLeave]);
+  }, [session, sessionId, sessionSnapshotReady, teamRoom, effectsHandleLeave]);
 
   useEffect(() => {
     if (myAnswer && !answerText) return;
@@ -473,6 +502,10 @@ export function TeamPage() {
         scoreboardRef={scoreboardRef}
       />
     );
+  } else if (!sessionId && teamRoom) {
+    mainContent = (
+      <RoomLobbyPhase roomCode={teamRoom.roomCode} roomId={teamRoom.roomId} onLeaveRoom={() => setTeamRoom(null)} />
+    );
   } else if (!sessionId) {
     mainContent = (
       <JoinForm
@@ -507,6 +540,8 @@ export function TeamPage() {
         handleLeave={effectsHandleLeave}
         scoreboardRef={scoreboardRef}
       />
+    ) : teamRoom ? (
+      <RoomLobbyPhase roomCode={teamRoom.roomCode} roomId={teamRoom.roomId} onLeaveRoom={() => setTeamRoom(null)} />
     ) : (
       <JoinForm
         joinForm={joinForm}

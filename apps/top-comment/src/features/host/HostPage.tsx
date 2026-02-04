@@ -1,26 +1,18 @@
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button, QRCodeBlock, Card, Modal } from "@social/ui";
-import { useToast } from "../../shared/hooks";
-import { VIBoxButton } from "../../shared/components/vibox/VIBoxButton";
-import { useAuth } from "../../shared/providers/AuthContext";
-import { useCurrentPhase } from "../../shared/providers/CurrentPhaseContext";
-import { useTheme } from "../../shared/providers/ThemeProvider";
-import { useHostSession } from "./useHostSession";
+
+import { Button, Card, Modal, QRCodeBlock } from "@social/ui";
+
 import { useGameState, useSessionOrchestrator, transformRoundSummariesForUI } from "../../application";
-import { useInviteLink, usePlayerLookup, useActiveGroupAnswers } from "../../shared/hooks";
-import { useHostState, useHostComputations, useHostEffects, useHostRecovery } from "./hooks";
-import {
-  setPromptLibrary,
-  pauseSession,
-} from "../session/sessionService";
+import { useRoom } from "../../hooks/useRoom";
+import { VIBoxButton } from "../../shared/components/vibox/VIBoxButton";
+import { VIBoxJukebox } from "../../shared/components/vibox/VIBoxJukebox";
+import { useActiveGroupAnswers, usePlayerLookup, useToast } from "../../shared/hooks";
+import { useAuth } from "../../shared/providers/AuthContext";
+import { useTheme } from "../../shared/providers/ThemeProvider";
+import { actionLabel, getDefaultPromptLibraryId, phaseCopy } from "../../shared/constants";
 import { getErrorMessage } from "../../shared/utils/errors";
 import { supabase } from "../../supabase/client";
-import {
-  phaseCopy,
-  actionLabel,
-  getDefaultPromptLibraryId,
-} from "../../shared/constants";
 import {
   LobbyPhase,
   AnswerPhase,
@@ -30,34 +22,37 @@ import {
   CreateSessionModal,
   JoinSessionModal,
 } from "./Phases";
-import {
-  handleCopyLink,
-  handleCreateSession,
-  handleUpdateSession,
-  handleEndSession,
-  handleHostVote,
-  handleKickPlayer,
-  handlePrimaryAction,
-} from "./Handlers";
-import { handleBanPlayer } from "./Handlers/banPlayerHandler";
+import { CreateRoomModal } from "./components/CreateRoomModal";
 import { PromptLibrarySelector } from "./components/PromptLibrarySelector";
 import { BannedPlayersManager } from "./components/BannedPlayersManager";
-import { VIBoxJukebox } from "../../shared/components/vibox/VIBoxJukebox";
+import { handleCopyLink, handleCreateSession, handleUpdateSession, handleEndSession, handleHostVote, handlePrimaryAction } from "./Handlers";
+import { handleRoomKickPlayer, handleRoomBanPlayer } from "./Handlers/roomKickBanHandlers";
+import { setPromptLibrary, pauseSession } from "../session/sessionService";
+import { useHostRoom } from "./useHostRoom";
+import { useHostSession } from "./useHostSession";
+import { useHostComputations, useHostState } from "./hooks";
 import type { PromptLibraryId } from "../../shared/promptLibraries";
+import type { Room, Team } from "../../shared/types";
 
 export function HostPage() {
   const { user, loading: authLoading, isVenueAccount, venueAccountLoading, refreshVenueAccount } = useAuth();
   const { toast } = useToast();
   const { isDark } = useTheme(); 
+  const navigate = useNavigate();
+  
+  // Add room creation state
+  const [showRoomCreateModal, setShowRoomCreateModal] = useState(false);
   const {
     sessionId: storedSessionId,
     code: storedCode,
     setHostSession,
     clearHostSession,
   } = useHostSession();
-  const { setCurrentPhase } = useCurrentPhase();
-  const navigate = useNavigate();
-
+  const {
+    roomId: storedRoomId,
+    roomCode: storedRoomCode,
+    setHostRoom,
+  } = useHostRoom();
   const [showBannedPlayersModal, setShowBannedPlayersModal] = useState(false);
   const [showVIBoxModal, setShowVIBoxModal] = useState(false);
   const [showVenueAuthPrompt, setShowVenueAuthPrompt] = useState(false);
@@ -114,16 +109,17 @@ export function HostPage() {
     userId: user?.id 
   });
 
-  useHostRecovery({
-    user,
-    authLoading,
-    isVenueAccount,
-    venueAccountLoading,
-    sessionId,
-    setSessionId,
-    setHostSession,
-    setShowCreateModal,
-  });
+  // Use host recovery - DISABLED for room-based architecture
+  // useHostRecovery({
+  //   user,
+  //   authLoading,
+  //   isVenueAccount,
+  //   venueAccountLoading,
+  //   sessionId,
+  //   setSessionId,
+  //   setHostSession,
+  //   setShowCreateModal,
+  // });
 
   // Add session orchestrator for automatic phase advancement
   const orchestrator = useSessionOrchestrator({
@@ -136,7 +132,64 @@ export function HostPage() {
   const session = gameState.session;
   const players = useMemo(() => gameState.teams, [gameState.teams]);
   const answers = gameState.answers;
-  const sessionSnapshotReady = !gameState.isLoading;
+  const roomJoinCode = storedRoomCode ?? session?.code ?? storedCode ?? "";
+  const inviteLink = useMemo(() => {
+    const code = roomJoinCode;
+    if (!code) return "";
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    if (!origin) return "";
+    return `${origin}/join?code=${code}`;
+  }, [roomJoinCode]);
+
+  const { room, memberships: roomMemberships, refreshMembers } = useRoom({
+    roomId: storedRoomId ?? undefined,
+    autoRefresh: true,
+    refreshInterval: 3000,
+  });
+
+  // Sync sessionId from room if it exists but we don't have it locally
+  useEffect(() => {
+    if (room?.currentSessionId && !sessionId) {
+      setSessionId(room.currentSessionId);
+      // Use room code for consistency
+      setHostSession({ sessionId: room.currentSessionId, code: room.code });
+    }
+  }, [room, sessionId, setSessionId, setHostSession]);
+
+  const roomLobbyMembers = useMemo(() => {
+    if (!storedRoomId) return [];
+    return roomMemberships.filter((member) =>
+      !member.isHost && 
+      !member.isBanned && 
+      (member.status === "active" || member.status === "approved")
+    );
+  }, [storedRoomId, roomMemberships]);
+
+  const lobbyTeams = useMemo<Team[]>(() => {
+    if (!storedRoomId) {
+      return players;
+    }
+    return roomLobbyMembers.map((member) => ({
+      id: member.id,
+      uid: member.userId ?? null,
+      teamName: member.playerName,
+      isHost: member.isHost,
+      score: 0,
+      joinedAt: member.joinedAt,
+      lastActiveAt: member.lastActiveAt,
+      mascotId: member.mascotId,
+    }));
+  }, [session, storedRoomId, roomLobbyMembers, players]);
+
+  const lobbyPlayerCount = storedRoomId
+    ? roomLobbyMembers.length
+    : players.length;
+
+  // Handle room creation success
+  const handleRoomCreateSuccess = (newRoom: Room) => {
+    setShowRoomCreateModal(false);
+    setHostRoom({ roomId: newRoom.id, roomCode: newRoom.code });
+  };
 
   // Automatically load venue account when HostPage mounts
   useEffect(() => {
@@ -146,6 +199,15 @@ export function HostPage() {
       });
     }
   }, [user, venueAccountLoading, isVenueAccount, refreshVenueAccount]);
+
+  // Show room creation modal when there's no session and user has venue account
+  useEffect(() => {
+    if (!storedRoomId && !venueAccountLoading && isVenueAccount) {
+      setShowRoomCreateModal(true);
+    } else if (!storedRoomId && !venueAccountLoading && !isVenueAccount) {
+      setShowRoomCreateModal(false);
+    }
+  }, [storedRoomId, venueAccountLoading, isVenueAccount]);
 
   // Set sessionRef.current to latest session for auto advance actions.
   useEffect(() => {
@@ -189,24 +251,22 @@ export function HostPage() {
     activeGroup,
   });
 
-// Extract effects into custom hook
-  useHostEffects({
-    session,
-    sessionId,
-    sessionSnapshotReady,
-    sessionRef,
-    setSessionId,
-    setHostSession,
-    clearHostSession,
-    setShowCreateModal,
-    setCurrentPhase,
-    setAnalytics,
-    setShowPromptLibraryModal,
-    setHostGroupVotes,
-    toast,
-  });
-
-  const inviteLink = useInviteLink(session);
+// Extract effects into custom hook - DISABLED for room-based architecture
+  // useHostEffects({
+  //   session,
+  //   sessionId,
+  //   sessionSnapshotReady,
+  //   sessionRef,
+  //   setSessionId,
+  //   setHostSession,
+  //   clearHostSession,
+  //   setShowCreateModal,
+  //   setCurrentPhase,
+  //   setAnalytics,
+  //   setShowPromptLibraryModal,
+  //   setHostGroupVotes,
+  //   toast,
+  // });
 
   // Map player IDs to display names for lookup
   const playerLookup = usePlayerLookup(players);
@@ -236,6 +296,7 @@ export function HostPage() {
         setShowPromptLibraryModal(true);
       }
     },
+    roomId: storedRoomId,
     gameMode: createForm.gameMode,
     selectedLibraries: createForm.selectedLibraries,
     totalRounds: createForm.totalRounds,
@@ -282,18 +343,23 @@ export function HostPage() {
     setShowEndSessionModal(true);
   };
 
-  const kickPlayerHandler = handleKickPlayer({
-    session,
+  // Room-based kick/ban handlers for lobby phase
+  const roomKickPlayerHandler = handleRoomKickPlayer({
     toast,
     setKickingPlayerId,
-    refresh: gameState.refresh,
+    refresh: () => {
+      // Use the proper refresh function from useRoom hook
+      refreshMembers();
+    },
   });
 
-  const banPlayerHandler = handleBanPlayer({
-    session,
+  const roomBanPlayerHandler = handleRoomBanPlayer({
     toast,
     setBanningPlayerId,
-    refresh: gameState.refresh,
+    refresh: () => {
+      // Use the proper refresh function from useRoom hook
+      refreshMembers();
+    },
   });
 
   const copyLinkHandler = handleCopyLink({ toast: toast });
@@ -321,7 +387,7 @@ export function HostPage() {
     }
   }, [session, isPausingSession, toast]);
 
-  const handleReturnHome = useCallback(() => {
+  const handleLeaveSession = useCallback(() => {
     clearHostSession();
     setSessionId(null);
     setAnalytics(null);
@@ -329,14 +395,7 @@ export function HostPage() {
     setShowCreateModal(false);
     setShowPromptLibraryModal(false);
     setShowEndSessionModal(false);
-    navigate("/");
-  }, [
-    clearHostSession,
-    navigate,
-    setAnalytics,
-    setHostGroupVotes,
-    setSessionId,
-  ]);
+  }, [clearHostSession, setSessionId, setAnalytics, setHostGroupVotes, setShowCreateModal, setShowPromptLibraryModal, setShowEndSessionModal]);
 
   const handlePromptLibrarySelect = useCallback(
     async (libraryId: PromptLibraryId) => {
@@ -394,8 +453,27 @@ export function HostPage() {
     if (!requireVenueAccount()) {
       return;
     }
+    if (!storedRoomId) {
+      setShowRoomCreateModal(true);
+      return;
+    }
     setShowCreateModal(true);
-  }, [requireVenueAccount, setShowCreateModal]);
+  }, [requireVenueAccount, setShowCreateModal, setShowRoomCreateModal, storedRoomId]);
+
+  const handlePrimaryClick = useCallback(() => {
+    if (!session) {
+      if (!storedRoomId) {
+        if (!requireVenueAccount()) {
+          return;
+        }
+        setShowRoomCreateModal(true);
+        return;
+      }
+      handleOpenCreateModal();
+      return;
+    }
+    primaryActionHandler();
+  }, [session, storedRoomId, requireVenueAccount, setShowRoomCreateModal, handleOpenCreateModal, primaryActionHandler]);
 
   const handleOpenEditModal = useCallback(() => {
     if (!requireVenueAccount()) {
@@ -419,10 +497,10 @@ export function HostPage() {
 
   const handleCreateModalClose = useCallback(() => {
     setShowCreateModal(false);
-    if (!session) {
+    if (!session && !storedRoomId) {
       navigate("/");
     }
-  }, [setShowCreateModal, session, navigate]);
+  }, [setShowCreateModal, session, storedRoomId, navigate]);
 
   const handleJoinSession = useCallback(async (joinSessionId: string) => {
     setIsJoiningSession(true);
@@ -527,11 +605,33 @@ export function HostPage() {
 
   // Render phase-specific content
   const renderPhaseContent = () => {
-    if (!session) {
+    if (sessionId && !session) {
       return (
-        <Card className="min-h-[360px]" isDark={isDark}>
+        <Card className="min-h-[360px] flex flex-col items-center justify-center gap-4" isDark={isDark}>
+          <div className="animate-spin h-10 w-10 border-4 border-cyan-400 border-t-transparent rounded-full" />
+          <p className="text-lg text-cyan-300 animate-pulse">
+            Loading session state...
+          </p>
+        </Card>
+      );
+    }
+
+    if (!session) {
+      if (storedRoomId) {
+        return (
+          <LobbyPhase
+            inviteLink={inviteLink}
+            storedCode={roomJoinCode}
+            sessionId={null}
+            handleCopyLink={copyLinkHandler}
+            sessionCode={roomJoinCode}
+          />
+        );
+      }
+      return (
+        <Card className="min-h-[360px] flex items-center justify-center" isDark={isDark}>
           <p className="text-lg text-cyan-300">
-            Create a session to unlock the host controls.
+            Create a room to get started.
           </p>
         </Card>
       );
@@ -540,14 +640,13 @@ export function HostPage() {
     switch (session.status) {
       case "lobby":
         return (
-          <LobbyPhase
-            inviteLink={inviteLink}
-            storedCode={storedCode}
-            sessionId={sessionId}
-            handleCopyLink={copyLinkHandler}
-            sessionCode={session.code}
-            teams={players}
-          />
+            <LobbyPhase
+              inviteLink={inviteLink}
+              storedCode={roomJoinCode}
+              sessionId={sessionId}
+              handleCopyLink={copyLinkHandler}
+              sessionCode={roomJoinCode}
+            />
         );
 
       case "answer":
@@ -636,11 +735,15 @@ export function HostPage() {
             </div>
             <div>
               <h1 className="text-3xl font-black text-pink-400">
-                Host Console
+                {room?.name || "Host Console"}
               </h1>
               {session ? (
                 <p className="text-sm text-cyan-300">
                   {phaseCopy[session.status]}
+                </p>
+              ) : storedRoomId ? (
+                <p className="text-sm text-cyan-300">
+                  Room active. Waiting for players to join.
                 </p>
               ) : (
                 <p className="text-sm text-cyan-300">
@@ -654,16 +757,23 @@ export function HostPage() {
               Room code
             </span>
             <span className="text-3xl font-black tracking-widest text-pink-400">
-              {session?.code ?? storedCode ?? "---"}
+              {roomJoinCode || "---"}
             </span>
-            {session ? (
+            {storedRoomId || session ? (
               <>
                 <span className="text-xs text-cyan-400">
-                  {players.length} player{players.length === 1 ? "" : "s"} online
+                  {lobbyPlayerCount} player{lobbyPlayerCount === 1 ? "" : "s"} online
                 </span>
-                <span className="text-xs text-slate-500 font-mono">
-                  ID: {session.id.slice(0, 8)}...
-                </span>
+                {session && (
+                  <div className="mt-1 flex flex-col items-center gap-1 border-t border-cyan-400/20 pt-2 w-full">
+                    <span className="text-[10px] uppercase tracking-tighter text-cyan-500/70 font-bold">
+                      Active Session
+                    </span>
+                    <span className="text-[10px] text-pink-400/80 font-mono">
+                      {session.id.slice(0, 13)}
+                    </span>
+                  </div>
+                )}
               </>
             ) : null}
           </div>
@@ -694,23 +804,18 @@ export function HostPage() {
             {renderPhaseContent()}
             <div className="flex flex-wrap gap-3">
               <Button
-                onClick={() => {
-                  if (!session && !requireVenueAccount()) {
-                    return;
-                  }
-                  primaryActionHandler();
-                }}
+                onClick={handlePrimaryClick}
                 disabled={
                   session
                     ? isPerformingAction ||
                     isUpdatingPromptLibrary ||
-                    session.status === "ended" ||
-                    (session.status === "lobby" && players.length === 0)
+                  session.status === "ended" ||
+                  (session.status === "lobby" && lobbyPlayerCount === 0)
                   : false
                 }
                 isLoading={session ? isPerformingAction : false}
               >
-                {session ? actionLabel[session.status] : "Create game"}
+                {session ? actionLabel[session.status] : storedRoomId ? "Create session" : "Create room"}
               </Button>
               {session && session.status !== "lobby" && session.status !== "ended" && (
                 <Button
@@ -783,6 +888,8 @@ export function HostPage() {
                 <Button
                   variant="secondary"
                   onClick={handleOpenCreateModal}
+                  disabled={!!(session && session.status !== "ended")}
+                  title={session && session.status !== "ended" ? "End the current session before starting a new one." : undefined}
                 >
                   New session
                 </Button>
@@ -808,8 +915,8 @@ export function HostPage() {
                 </Button>
                 {session ? (
                   session.status === "ended" ? (
-                    <Button variant="ghost" onClick={handleReturnHome}>
-                      Return home
+                    <Button variant="ghost" onClick={handleLeaveSession}>
+                      Leave session
                     </Button>
                   ) : (
                     <Button
@@ -826,18 +933,18 @@ export function HostPage() {
           </div>
 
           <aside className="flex flex-col gap-6">
-            {session ? (
-              <QRCodeBlock value={inviteLink || ""} caption="Scan to join!" isDark={isDark} />
+            {inviteLink ? (
+              <QRCodeBlock value={inviteLink} caption="Scan to join!" isDark={isDark} />
             ) : (
               <div className="rounded-3xl p-6 text-center text-sm shadow-lg bg-slate-800 text-cyan-300 shadow-fuchsia-500/20">
-                Start a session to generate a QR code for your guests.
+                Create a room to generate a QR code for your guests.
               </div>
             )}
-            {session ? (
+            {storedRoomId || session ? (
               <div className={`space-y-4 rounded-3xl p-5 shadow-lg border-[3px] ${!isDark ? 'bg-white shadow-slate-300/40 border-slate-200' : 'bg-slate-800 shadow-fuchsia-500/20 border-slate-600'}`}>
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-pink-400">
-                    Lobby ({players.length})
+                    Lobby ({lobbyPlayerCount})
                   </h3>
                   <div className="flex items-center gap-2">
                     <Button
@@ -848,12 +955,12 @@ export function HostPage() {
                       View Banned
                     </Button>
                     <span className={`text-xs ${!isDark ? 'text-slate-500' : 'text-cyan-300'}`}>
-                      Max {session.settings.maxTeams}
+                      Max {session?.settings.maxTeams ?? 24}
                     </span>
                   </div>
                 </div>
                 <ul className="space-y-2">
-                  {players.map((player) => (
+                  {lobbyTeams.map((player) => (
                     <li
                       key={player.id}
                       className="flex items-center justify-between rounded-2xl px-4 py-3 bg-slate-700"
@@ -862,11 +969,11 @@ export function HostPage() {
                         {player.teamName}
                         {player.isHost ? " (Host)" : ""}
                       </span>
-                      {!player.isHost && session.status !== "lobby" ? (
+                      {!player.isHost ? (
                         <div className="flex gap-2">
                           <Button
                             variant="ghost"
-                            onClick={() => kickPlayerHandler(player.id, player.uid || "")}
+                            onClick={() => storedRoomId && roomKickPlayerHandler(player.id, player.uid || "", storedRoomId)}
                             className="text-sm text-orange-600"
                             disabled={kickingPlayerId !== null || banningPlayerId !== null}
                             isLoading={kickingPlayerId === player.id}
@@ -875,7 +982,7 @@ export function HostPage() {
                           </Button>
                           <Button
                             variant="ghost"
-                            onClick={() => banPlayerHandler(player.id, player.uid || "")}
+                            onClick={() => storedRoomId && roomBanPlayerHandler(player.id, player.uid || "", storedRoomId)}
                             className="text-sm text-rose-600"
                             disabled={kickingPlayerId !== null || banningPlayerId !== null}
                             isLoading={banningPlayerId === player.id}
@@ -886,7 +993,7 @@ export function HostPage() {
                       ) : null}
                     </li>
                   ))}
-                  {!players.length ? (
+                  {!lobbyTeams.length ? (
                     <li className="rounded-2xl px-4 py-3 text-sm bg-slate-700 text-cyan-300">
                       Players will appear here as they join.
                     </li>
@@ -897,6 +1004,12 @@ export function HostPage() {
           </aside>
         </section>
       </div>
+
+      <CreateRoomModal
+        isOpen={showRoomCreateModal}
+        onClose={() => setShowRoomCreateModal(false)}
+        onSuccess={handleRoomCreateSuccess}
+      />
 
       <CreateSessionModal
         open={showCreateModal}
@@ -987,7 +1100,7 @@ export function HostPage() {
       </Modal>
       
       <BannedPlayersManager
-        sessionId={sessionId}
+        roomId={storedRoomId}
         isOpen={showBannedPlayersModal}
         onClose={() => setShowBannedPlayersModal(false)}
         toast={toast}

@@ -7,13 +7,14 @@ import { useAuth } from "../../../shared/providers/AuthContext";
 interface UseTeamEffectsProps {
   sessionId: string | null;
   teamSession: { sessionId: string; code: string; teamName: string; uid?: string } | null;
+  teamRoom: { roomId: string; roomCode: string; playerName: string } | null;
   setSessionId: (id: string | null) => void;
   setTeamSession: (session: any) => void;
   clearTeamSession: () => void;
-  joinForm: { code: string; teamName: string };
+  joinForm: { code: string; playerName: string };
   setJoinErrors: (errors: Record<string, string>) => void;
   setIsJoining: (joining: boolean) => void;
-  setJoinForm: (form: { code: string; teamName: string }) => void;
+  setJoinForm: (form: { code: string; playerName: string }) => void;
   autoJoinAttempted: boolean;
   setAutoJoinAttempted: (attempted: boolean) => void;
   hasManuallyLeft: boolean;
@@ -34,6 +35,7 @@ interface UseTeamEffectsProps {
 export function useTeamEffects({
   sessionId,
   teamSession,
+  teamRoom,
   setSessionId,
   clearTeamSession,
   setJoinForm,
@@ -59,13 +61,13 @@ export function useTeamEffects({
 
   // Reset joinForm when teamSession is cleared (e.g., after kick or logout)
   useEffect(() => {
-    if (!teamSession) {
+    if (!teamSession && !teamRoom) {
       setJoinForm({
         code: "",
-        teamName: "",
+        playerName: "",
       });
     }
-  }, [teamSession, setJoinForm]);
+  }, [teamSession, teamRoom, setJoinForm]);
 
   // Auto-join logic
   useEffect(() => {
@@ -83,7 +85,7 @@ export function useTeamEffects({
     setSessionId(teamSession.sessionId);
     setJoinForm({
       code: teamSession.code,
-      teamName: teamSession.teamName,
+      playerName: teamSession.teamName,
     });
   }, [
     teamSession,
@@ -104,6 +106,10 @@ export function useTeamEffects({
     const teams = gameState.teams;
 
     if (!session) {
+      if (teamRoom) {
+        setSessionId(null);
+        return;
+      }
       if (!autoJoinAttempted) {
         toast({
           title: "Session not found. It may have expired.",
@@ -144,6 +150,7 @@ export function useTeamEffects({
     gameState.isLoading,
     gameState,
     autoJoinAttempted,
+    teamRoom,
     toast,
     clearTeamSession,
     setSessionId,
@@ -187,11 +194,21 @@ export function useTeamEffects({
     console.log("🔥 Clearing local session storage");
     clearTeamSession();
     setSessionId(null);
-    setHasManuallyLeft(true);
+    if (!teamRoom) {
+      setHasManuallyLeft(true);
+    }
     
+    if (teamRoom) {
+      toast({
+        title: "You're back in the room lobby.",
+        variant: "info",
+      });
+      return;
+    }
+
     // Show completion message
     alert("You have left the session. Redirecting to join page...");
-    
+
     // Redirect to join form
     console.log("🔥 Redirecting to join form");
     window.location.href = '/join';
@@ -201,6 +218,8 @@ export function useTeamEffects({
     clearTeamSession,
     setSessionId,
     setHasManuallyLeft,
+    teamRoom,
+    toast,
   ]);
 
   return {

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { joinSchema } from "../../../shared/schemas";
-import { joinSession } from "../../session/sessionService";
+import { roomService } from "../../../services/roomService";
+import { roomMembershipService } from "../../../services/roomMembershipService";
 import { DUPLICATE_TEAM_NAME_MESSAGE, HAS_MANUALLY_LEFT_KEY } from "../utils/teamConstants";
 
 interface UseTeamAutoJoinProps {
@@ -55,7 +56,7 @@ export function useTeamAutoJoin({
   toast,
 }: UseTeamAutoJoinProps) {
   const attemptJoin = async (
-    values: { code: string; teamName: string },
+    values: { code: string; playerName: string },
     options: {
       showFieldErrors?: boolean;
       notifySuccess?: boolean;
@@ -100,53 +101,62 @@ export function useTeamAutoJoin({
 
     setIsJoining(true);
     try {
-      const response = await joinSession({
+      // DEPRECATED: joinSession removed - using room-based approach only
+      const roomResponse = await roomService.getRoom({ code: sessionCode });
+      
+      if (!roomResponse?.room) {
+        throw new Error("Room not found");
+      }
+
+      // Join the room
+      const membership = await roomMembershipService.joinRoom({
         code: sessionCode,
-        teamName: values.teamName,
+        playerName: values.playerName,
       });
 
-      const kickedFromSessions = getKickedFromSessions();
-      if (response && kickedFromSessions.has(response.sessionId)) {
-        setSessionId(null);
-        clearTeamSession();
-        removeKickedSession(response.sessionId);
-        if (notifyError) {
-          toast({
-            title: "Cannot rejoin session",
-            description: "You were removed from this session and cannot rejoin.",
-            variant: "error",
-          });
-        }
-        return false;
-      }
-
-      if (response) {
-        removeKickedSession(response.sessionId);
-        setSessionId(response.sessionId);
+      // Handle session if room has active session
+      const joinedSessionId = roomResponse.room.currentSessionId;
+      if (joinedSessionId) {
+        setSessionId(joinedSessionId);
         setTeamSession({
-          sessionId: response.sessionId,
-          teamId: response.team.id,
-          teamName: response.team.teamName,
-          code: response.session.code,
-          uid: response.team.uid,
+          sessionId: joinedSessionId,
+          teamId: "", // Will be set when session starts
+          teamName: values.playerName,
+          code: roomResponse.room.code,
+          uid: "", // Will be set when session starts
         });
-        setJoinForm({
-          code: response.session.code,
-          teamName: response.team.teamName,
+      } else {
+        // No active session - just join room lobby
+        setSessionId(null);
+        setTeamSession({
+          sessionId: "",
+          teamId: "",
+          teamName: values.playerName,
+          code: roomResponse.room.code,
+          uid: "",
         });
+      }
 
-        if (typeof window !== "undefined") {
-          try {
-            window.sessionStorage.removeItem(HAS_MANUALLY_LEFT_KEY);
-          } catch {
-            // Ignore sessionStorage errors
-          }
-        }
+      setJoinForm({
+        code: roomResponse.room.code,
+        teamName: values.playerName,
+      });
 
-        if (notifySuccess) {
-          toast({ title: "You joined the lobby", variant: "success" });
+      if (typeof window !== "undefined") {
+        try {
+          window.sessionStorage.removeItem(HAS_MANUALLY_LEFT_KEY);
+        } catch {
+          // Ignore sessionStorage errors
         }
       }
+
+      if (notifySuccess) {
+        toast({ 
+          title: joinedSessionId ? "You joined the session!" : "You're in the room lobby", 
+          variant: "success" 
+        });
+      }
+      
       return true;
     } catch (error: unknown) {
       const duplicateTeamName = isDuplicateTeamNameError(error);
@@ -186,7 +196,7 @@ export function useTeamAutoJoin({
 
     setAutoJoinAttempted(true);
     void attemptJoin(
-      { code: formattedQueryCode, teamName: fallbackTeamName },
+      { code: formattedQueryCode, playerName: fallbackTeamName },
       { showFieldErrors: false, notifySuccess: false }
     );
   }, [

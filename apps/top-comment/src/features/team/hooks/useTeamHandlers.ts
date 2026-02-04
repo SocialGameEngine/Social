@@ -1,18 +1,22 @@
 import { useCallback } from "react";
 import type { Session, Answer, RoundGroup } from "../../../shared/types";
-import { joinSession, submitAnswer, submitVote } from "../../session/sessionService";
+import { submitAnswer, submitVote } from "../../session/sessionService";
+import { roomService } from "../../../services/roomService";
+import { roomMembershipService } from "../../../services/roomMembershipService";
 import { answerSchema, joinSchema } from "../../../shared/schemas";
-import { isBannedFromCode } from "../utils/teamConstants";
+import { isBannedFromRoom } from "../utils/teamConstants";
+import { useAuth } from "../../../shared/providers/AuthContext";
 
 interface UseTeamHandlersProps {
   sessionId: string | null;
   session: Session | null;
-  joinForm: { code: string; teamName: string };
-  setJoinForm: (form: { code: string; teamName: string }) => void;
+  joinForm: { code: string; playerName: string };
+  setJoinForm: (form: { code: string; playerName: string }) => void;
   setJoinErrors: (errors: Record<string, string>) => void;
   setIsJoining: (joining: boolean) => void;
   setSessionId: (id: string | null) => void;
   setTeamSession: (session: any) => void;
+  setTeamRoom: (room: { roomId: string; roomCode: string; playerName: string } | null) => void;
   clearTeamSession: () => void;
   setHasManuallyLeft: (hasLeft: boolean) => void;
   setAutoJoinAttempted: (attempted: boolean) => void;
@@ -32,6 +36,7 @@ export function useTeamHandlers({
   setIsJoining,
   setSessionId,
   setTeamSession,
+  setTeamRoom,
   clearTeamSession,
   setHasManuallyLeft,
   setAutoJoinAttempted,
@@ -42,15 +47,16 @@ export function useTeamHandlers({
   setIsSubmittingVote,
   toast,
 }: UseTeamHandlersProps) {
+  const { user } = useAuth();
   const handleJoin = useCallback(
-    async (values: { code: string; teamName: string }) => {
+    async (values: { code: string; playerName: string }) => {
       setIsJoining(true);
       setJoinErrors({});
 
       // Validate inputs before attempting to join
       const parsed = joinSchema.safeParse({
         code: values.code.trim().toUpperCase(),
-        teamName: values.teamName.trim(),
+        playerName: values.playerName.trim(),
       });
 
       if (!parsed.success) {
@@ -73,53 +79,131 @@ export function useTeamHandlers({
         return;
       }
 
-      // Check if player was banned from this session
-      if (isBannedFromCode(parsed.data.code)) {
-        setJoinErrors({ code: "You were banned from this session" });
-        toast({
-          title: "You were banned from this session and cannot rejoin.",
-          variant: "error",
-        });
-        setIsJoining(false);
-        return;
+      // Check if player was banned from this room
+      const roomResponse = await roomService.getRoom({ code: parsed.data.code }).catch(() => null);
+      if (roomResponse?.room && user) {
+        const isBanned = await isBannedFromRoom(roomResponse.room.id, user.id);
+        if (isBanned) {
+          setJoinErrors({ code: "You were banned from this room" });
+          toast({
+            title: "You were banned from this room and cannot rejoin.",
+            variant: "error",
+          });
+          setIsJoining(false);
+          return;
+        }
       }
 
       // Clear old team session before joining new team to prevent auto-join from restoring it
       clearTeamSession();
 
       try {
-        const response = await joinSession({
-          code: parsed.data.code,
-          teamName: parsed.data.teamName,
-        });
+        if (roomResponse?.room) {
+          // If no active session, we MUST join the room explicitly to show up in the lobby
+          if (!roomResponse.room.currentSessionId) {
+            try {
+              await roomMembershipService.joinRoom({
+                code: parsed.data.code,
+                playerName: parsed.data.playerName,
+              });
 
-        if (!response) {
-          throw new Error("Failed to join session");
+              setTeamRoom({
+                roomId: roomResponse.room.id,
+                roomCode: roomResponse.room.code,
+                playerName: parsed.data.playerName,
+                // No membershipId needed - we use UUID-based user identification
+              });
+            } catch (joinErr) {
+              // Handle already in room or other issues gracefully
+              setTeamRoom({
+                roomId: roomResponse.room.id,
+                roomCode: roomResponse.room.code,
+                playerName: parsed.data.playerName,
+              });
+            }
+
+            setSessionId(null);
+            setJoinErrors({});
+            toast({
+              title: "You're in the room lobby. Waiting for the host to start.",
+              variant: "info",
+            });
+            return;
+          } else {
+            // Even if there is a session, let's track the room info locally
+            setTeamRoom({
+              roomId: roomResponse.room.id,
+              roomCode: roomResponse.room.code,
+              playerName: parsed.data.playerName,
+            });
+          }
         }
 
-        setSessionId(response.session.id);
-        setTeamSession({
-          sessionId: response.session.id,
-          code: response.session.code,
-          teamName: response.team.teamName,
-          teamId: response.team.id,
-          uid: response.team.uid,
-        });
-        setAnswerText("");
+        // DEPRECATED: joinSession removed - using room-based approach only
+        // If we reach here, there's an active session but we should still join the room first
+        // The session-based approach is deprecated in favor of room-based architecture
+        
+        // For now, just set the session ID if we have a room with active session
+        if (roomResponse?.room?.currentSessionId) {
+          setSessionId(roomResponse.room.currentSessionId);
+          setTeamSession({
+            sessionId: roomResponse.room.currentSessionId,
+            code: roomResponse.room.code,
+            teamName: parsed.data.playerName, // Will be updated when session starts
+            teamId: "", // Will be set when session starts
+            uid: "", // Will be set when session starts
+          });
+          setAnswerText("");
 
-        // Reset hasManuallyLeft flag when user successfully joins
-        setHasManuallyLeft(false);
+          // Reset hasManuallyLeft flag when user successfully joins
+          setHasManuallyLeft(false);
+          
+          toast({
+            title: "Joined room with active session!",
+            variant: "success",
+          });
+          return;
+        }
         
-        // Note: We don't clear kicked sessions here because the check happens BEFORE join
-        // If they got past the check, they're joining a different session
-        
-        toast({
-          title: "Joined successfully!",
-          variant: "success",
-        });
+        throw new Error("Failed to join room");
       } catch (error) {
         console.error("Join session error:", error);
         const errorMessage = error instanceof Error ? error.message : "Failed to join session";
+        const normalizedError = errorMessage.toLowerCase();
+
+        if (normalizedError.includes("no active session") || normalizedError.includes("waiting for host approval")) {
+          const roomResponse = await roomService.getRoom({ code: parsed.data.code }).catch(() => null);
+          if (roomResponse?.room) {
+            try {
+              await roomMembershipService.joinRoom({
+                code: parsed.data.code,
+                playerName: parsed.data.playerName,
+              });
+
+              setTeamRoom({
+                roomId: roomResponse.room.id,
+                roomCode: roomResponse.room.code,
+                playerName: parsed.data.playerName,
+                // No membershipId needed - we use UUID-based user identification
+              });
+            } catch (joinErr) {
+              // If we're already in the room, just set the room info
+              setTeamRoom({
+                roomId: roomResponse.room.id,
+                roomCode: roomResponse.room.code,
+                playerName: parsed.data.playerName,
+              });
+            }
+            setSessionId(null);
+            setJoinErrors({});
+            toast({
+              title: "You're in the room lobby. Waiting for the host to start.",
+              variant: "info",
+            });
+            return;
+          }
+        }
+
         setJoinErrors({ form: errorMessage });
         toast({
           title: errorMessage || "Failed to join",
@@ -139,6 +223,8 @@ export function useTeamHandlers({
       setHasManuallyLeft,
       toast,
       setAutoJoinAttempted,
+      setTeamRoom,
+      user,
     ]
   );
 

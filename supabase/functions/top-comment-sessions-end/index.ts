@@ -30,6 +30,20 @@ async function handleEndSession(req: Request, uid: string, supabase: any): Promi
     
     if (updateError) throw updateError;
     
+    if (session.room_id) {
+      const { error: updateRoomError } = await supabase
+        .from('rooms')
+        .update({
+          current_session_id: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', session.room_id);
+      
+      if (updateRoomError) {
+        throw updateRoomError;
+      }
+    }
+    
     // Calculate final analytics
     const { data: teams } = await supabase
       .from('top_comment_players')

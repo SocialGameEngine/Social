@@ -66,22 +66,14 @@ export function useTeamTimers({
     if (session?.status === "ended") {
       setAnswerText("");
       
-      console.log("Session ended - checking endedByHost flag:", {
-        endedByHost: session.endedByHost,
-        status: session.status,
-        showSessionEndedModal
-      });
-      
       // Only show modal if host clicked "End Session" button
       // Manual advancement through phases counts as natural progression
       const endedByHost = session.endedByHost === true;
       
       if (endedByHost && !showSessionEndedModal && !isSessionEndedModalDismissed) {
-        console.log("Session ended by host - showing modal");
-        setShowSessionEndedModal(true);
+                setShowSessionEndedModal(true);
       } else if (!endedByHost) {
-        console.log("Session ended naturally - no modal");
-      }
+              }
     }
   }, [session?.status, session?.endedByHost, showSessionEndedModal, isSessionEndedModalDismissed, setAnswerText, setShowSessionEndedModal]);
 

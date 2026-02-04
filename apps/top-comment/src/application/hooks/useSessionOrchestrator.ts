@@ -47,12 +47,11 @@ export function useSessionOrchestrator(config: SessionOrchestratorConfig): UseSe
 
     // Don't auto-advance if session is paused
     if (currentSession.paused) {
-      console.log('Auto-advance: Session is paused, skipping');
-      return false;
+            return false;
     }
 
     try {
-      const result = await advanceSessionPhase({ sessionId });
+      const result = await advanceSessionPhase({ sessionId, targetPhase: 'next' });
       
       if (result && typeof result === 'object' && 'session' in result) {
         setLastTransitionAt(new Date().toISOString());
@@ -68,20 +67,12 @@ export function useSessionOrchestrator(config: SessionOrchestratorConfig): UseSe
   // Setup auto-advance timer
   useEffect(() => {
     if (!currentSession) {
-      console.log("Auto-advance: No session in ref");
       return;
     }
 
     const session = currentSession;
     
-    console.log("Auto-advance setup:", {
-      status: session.status,
-      endsAt: session.endsAt,
-      paused: session.paused,
-      isAutoAdvanceEnabled,
-      isTimedPhase: SessionStateMachine.isTimedPhase(session.status)
-    });
-    
+        
     // Clear existing timers
     clearTimers();
 
@@ -94,12 +85,6 @@ export function useSessionOrchestrator(config: SessionOrchestratorConfig): UseSe
         session.paused || 
         !session.endsAt || 
         !SessionStateMachine.isTimedPhase(session.status)) {
-      console.log("Auto-advance: Not setting up timer", {
-        isAutoAdvanceEnabled,
-        paused: session.paused,
-        hasEndsAt: !!session.endsAt,
-        isTimedPhase: SessionStateMachine.isTimedPhase(session.status)
-      });
       setAutoAdvanceIn(null);
       return;
     }
@@ -108,11 +93,7 @@ export function useSessionOrchestrator(config: SessionOrchestratorConfig): UseSe
     const endTime = new Date(session.endsAt).getTime();
     const remainingMs = endTime - now;
     
-    console.log("Auto-advance: Setting up timer", {
-      remainingMs,
-      remainingSeconds: Math.ceil(remainingMs / 1000)
-    });
-
+    
     // If phase already ended, try to advance immediately
     if (remainingMs <= 0) {
       const retryDelay = 1000; // Retry after 1 second
@@ -163,7 +144,7 @@ export function useSessionOrchestrator(config: SessionOrchestratorConfig): UseSe
 
     try {
       clearTimers(); // Clear any pending auto-advance
-      const result = await advanceSessionPhase({ sessionId });
+      const result = await advanceSessionPhase({ sessionId, targetPhase: 'next' });
       
       if (result && typeof result === 'object' && 'session' in result) {
         setLastTransitionAt(new Date().toISOString());

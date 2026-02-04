@@ -43,6 +43,36 @@ export function isBannedFromCode(code: string): boolean {
   return banned.has(code.toUpperCase());
 }
 
+// Room-based ban checking
+export async function isBannedFromRoom(roomId: string, userId: string): Promise<boolean> {
+  console.log('🔍 Checking if user is banned from room:', { roomId, userId });
+  
+  try {
+    const { supabase } = await import("../../../supabase/client");
+    
+    const { data, error } = await supabase
+      .from('top_comment_banned_players')
+      .select('id, display_name, created_at, room_id, user_id')
+      .eq('room_id', roomId)
+      .eq('user_id', userId)
+      .single();
+    
+    console.log('📊 Ban check result:', { data, error });
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+      console.error('Error checking room ban:', error);
+      return false;
+    }
+    
+    const isBanned = !!data;
+    console.log('✅ Ban check result:', { isBanned, banRecord: data });
+    return isBanned;
+  } catch (error) {
+    console.error('Error checking room ban:', error);
+    return false;
+  }
+}
+
 export function isDuplicateTeamNameError(error: unknown): boolean {
   if (error && typeof error === "object" && "code" in error) {
     const code = (error as { code?: unknown }).code;
