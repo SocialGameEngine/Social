@@ -6,6 +6,7 @@ import { PlayerAuthPage } from "../features/auth/PlayerAuthPage";
 import { VenueAuthPage } from "../features/auth/VenueAuthPage";
 import { HostPage } from "../features/host/HostPage";
 import { TeamPage } from "../features/team/TeamPage";
+import { JoinPage } from "../features/join/JoinPage";
 import { PresenterPage } from "../features/presenter/PresenterPage";
 import { NotFoundPage } from "../features/404/NotFoundPage";
 
@@ -22,7 +23,7 @@ export const appRouter = createBrowserRouter([
       { path: "auth", element: <PlayerAuthPage /> },
       { path: "venue-auth", element: <VenueAuthPage /> },
       { path: "host", element: <HostPage /> },
-      { path: "join", element: <TeamPage /> },
+      { path: "join", element: <JoinPage /> },
       { path: "play", element: <TeamPage /> },
       { path: "team", element: <TeamPage /> },
       { path: "presenter/:sessionId", element: <PresenterPage /> },

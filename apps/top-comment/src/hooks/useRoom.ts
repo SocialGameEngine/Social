@@ -28,13 +28,13 @@ export function useRoom(options: UseRoomOptions = {}) {
   // Get my membership
   const myMembership = user ? memberships.find(m => m.userId === user.id) : null;
 
-  // Debug myMembership calculation (only log when there are issues)
-  if (!user && memberships.length > 0) {
-    console.log('🔍 myMembership calculation: User not authenticated but memberships exist', {
-      membershipsCount: memberships.length,
-      memberships: memberships.map(m => ({ id: m.id, userId: m.userId, playerName: m.playerName }))
-    });
-  }
+  // Debug myMembership calculation
+  console.log('🔍 myMembership debug:', {
+    user: user ? { id: user.id, email: user.email } : null,
+    membershipsCount: memberships.length,
+    memberships: memberships.map(m => ({ id: m.id, userId: m.userId, playerName: m.playerName })),
+    myMembership: myMembership ? { id: myMembership.id, userId: myMembership.userId, playerName: myMembership.playerName } : null
+  });
 
   const isHost = myMembership?.isHost || false;
 

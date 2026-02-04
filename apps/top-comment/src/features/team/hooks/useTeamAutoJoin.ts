@@ -47,9 +47,6 @@ export function useTeamAutoJoin({
   setIsJoining,
   setSessionId,
   setTeamSession,
-  clearTeamSession,
-  removeKickedSession,
-  getKickedFromSessions,
   isKickedFromCode,
   isDuplicateTeamNameError,
   getErrorMessage,
@@ -109,7 +106,7 @@ export function useTeamAutoJoin({
       }
 
       // Join the room
-      const membership = await roomMembershipService.joinRoom({
+      await roomMembershipService.joinRoom({
         code: sessionCode,
         playerName: values.playerName,
       });

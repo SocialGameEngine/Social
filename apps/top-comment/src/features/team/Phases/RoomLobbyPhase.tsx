@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Card, Button } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 import { useNavigate } from "react-router-dom";
@@ -14,39 +13,7 @@ interface RoomLobbyPhaseProps {
 export function RoomLobbyPhase({ roomCode, roomId, onLeaveRoom }: RoomLobbyPhaseProps) {
   const { isDark } = useTheme();
   const navigate = useNavigate();
-  const { myMembership, memberships } = useRoom({ roomId, autoRefresh: true });
-
-  // Track if we've already established membership (fix race condition)
-  const [hasEstablishedMembership, setHasEstablishedMembership] = useState(false);
-
-  // Set membership established flag when we first see a membership
-  useEffect(() => {
-    if (myMembership && !hasEstablishedMembership) {
-      console.log('✅ Player membership established:', myMembership.id);
-      setHasEstablishedMembership(true);
-    }
-  }, [myMembership, hasEstablishedMembership]);
-
-  // Detect if player was kicked (membership deleted) or banned (is_banned=true)
-  useEffect(() => {
-    // Only check for kick if we had membership before and now don't
-    if (roomId && hasEstablishedMembership && !myMembership) {
-      console.log('🚫 Player was kicked - membership not found, redirecting to join page...');
-      // Player was removed from the room
-      onLeaveRoom();
-      navigate("/join");
-    }
-  }, [myMembership?.id, hasEstablishedMembership, roomId, onLeaveRoom, navigate]);
-
-  // Detect if player was banned (membership exists but is_banned=true)
-  useEffect(() => {
-    if (myMembership && myMembership.isBanned) {
-      console.log('🚫 Player was banned - membership is_banned=true');
-      // Player was banned from the room
-      onLeaveRoom();
-      navigate("/join");
-    }
-  }, [myMembership?.isBanned, myMembership?.id, roomId, onLeaveRoom, navigate]);
+  useRoom({ roomId, autoRefresh: true });
 
   const handleLeaveRoom = async () => {
     try {

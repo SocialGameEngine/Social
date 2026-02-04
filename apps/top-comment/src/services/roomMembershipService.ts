@@ -179,29 +179,9 @@ export async function leaveRoom(request: LeaveRoomRequest): Promise<LeaveRoomRes
 
 // Get room members
 export async function getRoomMembers(request: GetRoomMembersRequest): Promise<GetRoomMembersResponse> {
-  const { data: userData } = await supabase.auth.getUser();
+  // Remove user verification check completely to avoid 406 errors
+  // The client-side logic will handle kick detection
   
-  // Verify user is in room, but handle 406 errors gracefully
-  if (userData.user) {
-    try {
-      const { data: userMembership } = await supabase
-        .from('room_memberships')
-        .select('id')
-        .eq('room_id', request.roomId)
-        .eq('user_id', userData.user.id)
-        .single();
-
-      if (!userMembership) {
-        // User is not in room, but still return room members for host view
-        // The client-side logic will handle kick detection
-        console.log('⚠️ User not in room, but returning room members for host view');
-      }
-    } catch (verifyError) {
-      // Handle 406 errors gracefully - user might be kicked but we still need room data
-      console.log('⚠️ User verification failed, but continuing to get room members:', verifyError);
-    }
-  }
-
   const { data, error } = await supabase
     .from('room_memberships')
     .select('*')

@@ -9,6 +9,7 @@ import { VIBoxJukebox } from "../../shared/components/vibox/VIBoxJukebox";
 import { transformRoundSummariesForUI, transformLeaderboardForUI } from "../../application";
 import { useActiveGroupAnswers } from "../../shared/hooks";
 import { useTeamState, useTeamEffects, useTeamPhaseRenderer, useTeamHandlers, useTeamComputations, useTeamTimers, useTeamSessionManagement, useTeamQueryParams, useTeamKickedTeamDetection, useTeamAnswerInitialization } from "./hooks";
+import { useKickDetection } from "../../hooks/useKickDetection";
 import { useTeamSession } from "./useTeamSession";
 import { useTeamRoom } from "./useTeamRoom";
 import { useSelfieCamera } from "./useSelfieCamera";
@@ -35,6 +36,9 @@ export function TeamPage() {
   const { teamRoom, setTeamRoom } = useTeamRoom();
   const { setCurrentPhase } = useCurrentPhase();
   const { isDark } = useTheme();
+
+  // Add kick detection at the TeamPage level (only once)
+  useKickDetection({ roomId: teamRoom?.roomId || null });
 
   const teamState = useTeamState(teamSession, teamRoom);
   const {
