@@ -11,6 +11,7 @@ const initialState: RoomPageState = {
   },
   error: null,
   isLoading: false,
+  endedModals: [],
 };
 
 function roomPageReducer(state: RoomPageState, action: RoomPageAction): RoomPageState {
@@ -52,6 +53,17 @@ function roomPageReducer(state: RoomPageState, action: RoomPageAction): RoomPage
           answer: false,
           vote: false,
         },
+      };
+    case 'OPEN_ENDED_MODAL':
+      return {
+        ...state,
+        endedModals: [...state.endedModals, action.payload],
+        error: null,
+      };
+    case 'CLOSE_ENDED_MODAL':
+      return {
+        ...state,
+        endedModals: state.endedModals.filter(m => m !== action.payload),
       };
     default:
       return state;

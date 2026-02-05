@@ -23,9 +23,24 @@ export function useRoomPage(): UseRoomPageReturn {
           userId: user.id,
         });
       }
+      dispatch({ 
+        type: 'SET_ERROR', 
+        payload: { 
+          type: 'NETWORK_ERROR', 
+          message: 'Successfully left room', 
+          recoverable: true 
+        } 
+      });
       navigate('/join');
     } catch (error) {
-      console.error('Failed to leave room:', error);
+      dispatch({ 
+        type: 'SET_ERROR', 
+        payload: { 
+          type: 'NETWORK_ERROR', 
+          message: error instanceof Error ? error.message : 'Failed to leave room', 
+          recoverable: true 
+        } 
+      });
       // Still navigate even if leave fails
       navigate('/join');
     }
@@ -44,6 +59,8 @@ export function useRoomPage(): UseRoomPageReturn {
     openModal: phaseManager.openModal,
     closeModal: phaseManager.closeModal,
     markSubmitted: phaseManager.markSubmitted,
+    openEndedModal: phaseManager.openEndedModal,
+    closeEndedModal: phaseManager.closeEndedModal,
     clearError,
     handleLeaveRoom,
   };

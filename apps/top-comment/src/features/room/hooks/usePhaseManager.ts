@@ -25,12 +25,23 @@ export function usePhaseManager() {
     dispatch({ type: 'SET_SUBMISSION_STATUS', payload: { type, submitted: true } });
   }, [dispatch]);
 
+  const openEndedModal = useCallback((type: 'leaderboard' | 'selfie') => {
+    dispatch({ type: 'OPEN_ENDED_MODAL', payload: type });
+  }, [dispatch]);
+
+  const closeEndedModal = useCallback((type: 'leaderboard' | 'selfie') => {
+    dispatch({ type: 'CLOSE_ENDED_MODAL', payload: type });
+  }, [dispatch]);
+
   return {
     currentPhase,
     activeModal: state.activeModal,
     submissionStatus: state.submissionStatus,
+    endedModals: state.endedModals,
     openModal,
     closeModal,
     markSubmitted,
+    openEndedModal,
+    closeEndedModal,
   };
 }

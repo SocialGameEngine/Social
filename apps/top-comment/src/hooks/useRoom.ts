@@ -29,14 +29,6 @@ export function useRoom(options: UseRoomOptions = {}) {
   // Get my membership
   const myMembership = user ? memberships.find(m => m.userId === user.id) : null;
 
-  // Debug myMembership calculation
-  console.log('🔍 myMembership debug:', {
-    user: user ? { id: user.id, email: user.email } : null,
-    membershipsCount: memberships.length,
-    memberships: memberships.map(m => ({ id: m.id, userId: m.userId, playerName: m.playerName })),
-    myMembership: myMembership ? { id: myMembership.id, userId: myMembership.userId, playerName: myMembership.playerName } : null
-  });
-
   const isHost = myMembership?.isHost || false;
 
   // Load room data
@@ -48,7 +40,7 @@ export function useRoom(options: UseRoomOptions = {}) {
 
     try {
       setIsLoading(true);
-      console.log('🔍 useRoom: Loading room', { roomId: targetRoomId, roomCode: targetRoomCode });
+      setError(null);
       
       let roomData;
       if (targetRoomCode) {
@@ -64,7 +56,6 @@ export function useRoom(options: UseRoomOptions = {}) {
       }
 
       setRoom(roomData.room);
-      console.log('✅ useRoom: Room loaded successfully', roomData.room);
       setError(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load room';
@@ -329,20 +320,47 @@ export function useRoom(options: UseRoomOptions = {}) {
     }
   }, [room, isHost, loadRoom]);
 
+  // Real-time subscription for room data (session changes)
+  useEffect(() => {
+    const targetRoomId = room?.id || roomId;
+    if (!targetRoomId) return;
+
+    const channel = supabase
+      .channel(`room:${targetRoomId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'rooms',
+          filter: `id=eq.${targetRoomId}`,
+        },
+        () => {
+          loadRoom(); // Refresh room data when it changes
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [room?.id, roomId, loadRoom]);
+
   // Real-time subscription for room memberships
   useEffect(() => {
-    if (!roomId) return;
+    const targetRoomId = room?.id || roomId;
+    if (!targetRoomId) return;
 
     
     const channel = supabase
-      .channel(`room_memberships:${roomId}`)
+      .channel(`room_memberships:${targetRoomId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'room_memberships',
-          filter: `room_id=eq.${roomId}`,
+          filter: `room_id=eq.${targetRoomId}`,
         },
         (payload: any) => {
                     
@@ -364,7 +382,7 @@ export function useRoom(options: UseRoomOptions = {}) {
     return () => {
             supabase.removeChannel(channel);
     };
-  }, [roomId, refreshMembers]);
+  }, [room?.id, roomId, refreshMembers, user?.id]);
 
   // Auto-refresh effect
   useEffect(() => {

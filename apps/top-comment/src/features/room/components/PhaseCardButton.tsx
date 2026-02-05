@@ -25,18 +25,18 @@ export function PhaseCardButton({
   const isAction = isActionPhase(phase);
 
   const handleClick = () => {
-    if (!disabled && (isAction || phase === 'results')) {
+    if (!disabled && (isAction || phase === 'results' || phase === 'ended')) {
       onClick();
     }
   };
 
   // Get action label for left side
-  const actionLabel = phase === 'answer' ? 'Answer' : phase === 'vote' ? 'Vote' : phase === 'results' ? 'Results' : phase === 'lobby' ? 'Lobby' : 'Game';
+  const actionLabel = phase === 'answer' ? 'Answer' : phase === 'vote' ? 'Vote' : phase === 'results' ? 'Results' : phase === 'lobby' ? 'Lobby' : phase === 'ended' ? 'Results' : 'Game';
 
   return (
     <button
       onClick={handleClick}
-      disabled={disabled || (!isAction && phase !== 'results')}
+      disabled={disabled || (!isAction && phase !== 'results' && phase !== 'ended')}
       className="w-full chaos-prompt-card px-3 py-6 sm:py-8 shadow-xl border-2 border-black/80 transform transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 min-h-[100px] sm:min-h-[120px]"
       aria-label={hasSubmitted ? config.submittedText : config.buttonText}
     >
