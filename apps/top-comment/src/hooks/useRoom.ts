@@ -13,8 +13,6 @@ import { supabase } from '../supabase/client';
 interface UseRoomOptions {
   roomId?: string;
   roomCode?: string;
-  autoRefresh?: boolean;
-  refreshInterval?: number;
 }
 
 export function useRoom(options: UseRoomOptions = {}) {
@@ -24,7 +22,7 @@ export function useRoom(options: UseRoomOptions = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { roomId, roomCode, autoRefresh = true, refreshInterval = 5000 } = options;
+  const { roomId, roomCode } = options;
 
   // Get my membership
   const myMembership = user ? memberships.find(m => m.userId === user.id) : null;
@@ -32,14 +30,14 @@ export function useRoom(options: UseRoomOptions = {}) {
   const isHost = myMembership?.isHost || false;
 
   // Load room data
-  const loadRoom = useCallback(async (overrideRoomId?: string) => {
+  const loadRoom = useCallback(async (overrideRoomId?: string, silent = false) => {
     const targetRoomId = overrideRoomId || roomId;
     const targetRoomCode = overrideRoomId ? undefined : roomCode;
     
     if (!targetRoomId && !targetRoomCode) return;
 
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       setError(null);
       
       let roomData;
@@ -57,12 +55,12 @@ export function useRoom(options: UseRoomOptions = {}) {
 
       setRoom(roomData.room);
       setError(null);
+      if (!silent) setIsLoading(false);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load room';
       setError(errorMessage);
       console.error('❌ useRoom: Error loading room', err);
-    } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, [roomId, roomCode]);
 
@@ -108,7 +106,6 @@ export function useRoom(options: UseRoomOptions = {}) {
       
       // Update room data if we joined successfully
       if (membership.room.id === roomId) {
-        await loadRoom();
         await refreshMembers();
       }
       
@@ -120,7 +117,7 @@ export function useRoom(options: UseRoomOptions = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [roomId, loadRoom, refreshMembers]);
+  }, [roomId, refreshMembers]);
 
   // Leave room
   const leaveRoom = useCallback(async (): Promise<void> => {
@@ -285,7 +282,6 @@ export function useRoom(options: UseRoomOptions = {}) {
         roomId: room.id,
         sessionSettings
       });
-      await loadRoom(room.id);
       return result;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start session';
@@ -294,7 +290,7 @@ export function useRoom(options: UseRoomOptions = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [room, isHost, loadRoom]);
+  }, [room, isHost]);
 
   // End session
   const endSession = useCallback(async (): Promise<void> => {
@@ -310,7 +306,6 @@ export function useRoom(options: UseRoomOptions = {}) {
         roomId: room.id,
         sessionId: room.currentSessionId
       });
-      await loadRoom(room.id);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to end session';
       setError(errorMessage);
@@ -318,7 +313,7 @@ export function useRoom(options: UseRoomOptions = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [room, isHost, loadRoom]);
+  }, [room, isHost]);
 
   // Real-time subscription for room data (session changes)
   useEffect(() => {
@@ -336,7 +331,7 @@ export function useRoom(options: UseRoomOptions = {}) {
           filter: `id=eq.${targetRoomId}`,
         },
         () => {
-          loadRoom(); // Refresh room data when it changes
+          loadRoom(undefined, true); // Silent refresh - no loading state
         }
       )
       .subscribe();
@@ -383,18 +378,6 @@ export function useRoom(options: UseRoomOptions = {}) {
             supabase.removeChannel(channel);
     };
   }, [room?.id, roomId, refreshMembers, user?.id]);
-
-  // Auto-refresh effect
-  useEffect(() => {
-    if ((!roomId && !roomCode) || !autoRefresh) return;
-
-    const interval = setInterval(() => {
-      loadRoom();
-      refreshMembers();
-    }, refreshInterval);
-
-    return () => clearInterval(interval);
-  }, [roomId, roomCode, autoRefresh, refreshInterval, loadRoom, refreshMembers]);
 
   // Initial load effect
   useEffect(() => {

@@ -7,8 +7,14 @@ import { useRoomPage } from '../hooks/useRoomPage';
 import { useAuth } from '../../../shared/providers/AuthContext';
 import { VIBoxJukebox } from '../../../shared/components/vibox/VIBoxJukebox';
 import { BackgroundAnimation } from '../../../components/BackgroundAnimation';
-import { PhaseController } from './PhaseController';
-import { DrinkTank } from '../../../components/DrinkTank';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
+import { SessionPanel } from './layout/SessionPanel';
+import { RoomCanvas } from './layout/RoomCanvas';
+import { RoomInfoRail } from './layout/RoomInfoRail';
+import { ActivityFeedWidget } from '../widgets/ActivityFeedWidget';
+import { RoomChatWidget } from '../widgets/RoomChatWidget';
+import { PollsWidget } from '../widgets/PollsWidget';
+import { TriviaWidget } from '../widgets/TriviaWidget';
 
 // Lazy load ended modals
 const LeaderboardModal = lazy(() => import('./LeaderboardModal.tsx'));
@@ -19,6 +25,7 @@ function RoomPageContent() {
   const { user, isGuest, signOut } = useAuth();
   const navigate = useNavigate();
   const teams = useTeams(sessionId || undefined);
+  const { isMobile, isRailCollapsed, setIsRailCollapsed } = useResponsiveLayout();
   
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showVIBox, setShowVIBox] = useState(false);
@@ -58,35 +65,115 @@ function RoomPageContent() {
     }
   }, [showAccountMenu]);
 
+  const [isWidgetsExpanded, setIsWidgetsExpanded] = useState(false);
+
+  // Shared widget cards rendered in both layouts
+  const widgetCards = (
+    <>
+      <ActivityFeedWidget />
+      <RoomChatWidget />
+      <PollsWidget />
+      <TriviaWidget />
+    </>
+  );
+
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-slate-900 to-slate-800 text-white">
+    <div className="h-screen flex flex-col bg-gradient-to-b from-slate-900 to-slate-800 text-white overflow-hidden">
       <BackgroundAnimation show={true} />
-      
-      {/* Header - Hidden on mobile */}
-      <header className="hidden sm:flex items-center justify-between p-4 border-b border-slate-700/50">
-        <h1 className="text-3xl font-black tracking-tight">{room?.code}</h1>
-        <button
-          onClick={handleLeaveRoom}
-          className="px-3 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-slate-300"
-        >
-          Leave
-        </button>
-      </header>
 
-      {/* Main Content - Added pt-4 for mobile (no header), pb-28 for bottom nav */}
-      <main className="flex-1 flex flex-col items-center justify-center p-4 pt-4 sm:pt-4 pb-28 sm:pb-4 max-w-2xl mx-auto w-full">
-        {/* Phase Controller - handles all phase rendering */}
-        <PhaseController
-          session={session}
-          sessionId={sessionId}
-          memberships={memberships}
-          onOpenLeaderboard={() => openEndedModal('leaderboard')}
-          onOpenSelfie={() => openEndedModal('selfie')}
-        />
+      {isMobile ? (
+        /* ── Mobile Layout ── */
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+          {/* SessionPanel - at top, fixed height, lower z-index so widgets can overlay */}
+          <div className="shrink-0 relative z-10">
+            <SessionPanel
+              session={session}
+              sessionId={sessionId}
+              memberships={memberships}
+              onOpenLeaderboard={() => openEndedModal('leaderboard')}
+              onOpenSelfie={() => openEndedModal('selfie')}
+              isSticky={false}
+            />
+          </div>
 
-        {/* Drink Tank */}
-        <DrinkTank roomMemberships={memberships || []} />
-      </main>
+          {/* Bottom area: absolute positioned so widgets can overlay SessionPanel */}
+          <div className={`absolute bottom-0 left-0 right-0 flex flex-col z-20 transition-all duration-300 ease-out ${isWidgetsExpanded ? 'h-[80vh] bg-slate-900/95 backdrop-blur-sm' : 'h-[50vh]'}`}>
+            {/* Divider with toggle - at top of overlay area */}
+            <button
+              onClick={() => setIsWidgetsExpanded(!isWidgetsExpanded)}
+              className="relative h-1 bg-gradient-to-r from-transparent via-cyan-400/80 to-transparent shrink-0 w-full group cursor-pointer z-30"
+              aria-label={isWidgetsExpanded ? 'Collapse widgets' : 'Expand widgets'}
+            >
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                <div className={`w-7 h-7 rounded-full bg-slate-900 border border-cyan-400/40 flex items-center justify-center shadow-lg shadow-cyan-500/20 transition-transform duration-300 ${isWidgetsExpanded ? '' : 'rotate-180'}`}>
+                  <svg className="w-4 h-4 text-cyan-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </button>
+
+            {/* Widgets section - expands upward OVER SessionPanel */}
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <RoomCanvas>{widgetCards}</RoomCanvas>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* ── Desktop Layout (2-column) ── */
+        <div className="flex-1 flex min-h-0 overflow-hidden">
+          {/* Main Column */}
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            {/* Header */}
+            <header className="flex items-center justify-between p-4 border-b border-slate-700/50 order-1">
+              <h1 className="text-3xl font-black tracking-tight">{room?.code}</h1>
+              <button
+                onClick={handleLeaveRoom}
+                className="px-3 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-slate-300"
+              >
+                Leave
+              </button>
+            </header>
+
+            <div className={`flex flex-col min-h-0 overflow-hidden transition-all duration-300 ease-out order-5 z-20 ${isWidgetsExpanded ? 'max-h-[80vh]' : 'max-h-[50vh]'} flex-1`}>
+              <RoomCanvas>{widgetCards}</RoomCanvas>
+            </div>
+
+            {/* Modern gradient divider with toggle chevron */}
+            <button
+              onClick={() => setIsWidgetsExpanded(!isWidgetsExpanded)}
+              className="relative h-1 bg-gradient-to-r from-transparent via-cyan-400/80 to-transparent shrink-0 w-full group cursor-pointer order-4"
+              aria-label={isWidgetsExpanded ? 'Collapse widgets' : 'Expand widgets'}
+            >
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                <div className={`w-7 h-7 rounded-full bg-slate-900 border border-cyan-400/40 flex items-center justify-center shadow-lg shadow-cyan-500/20 transition-transform duration-300 ${isWidgetsExpanded ? '' : 'rotate-180'}`}>
+                  <svg className="w-4 h-4 text-cyan-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </button>
+
+            <div className="shrink-0">
+              <SessionPanel
+                session={session}
+                sessionId={sessionId}
+                memberships={memberships}
+                onOpenLeaderboard={() => openEndedModal('leaderboard')}
+                onOpenSelfie={() => openEndedModal('selfie')}
+              />
+            </div>
+          </div>
+
+          {/* Right Rail */}
+          <RoomInfoRail
+            memberships={memberships}
+            room={room}
+            isCollapsed={isRailCollapsed}
+            onToggle={() => setIsRailCollapsed(!isRailCollapsed)}
+          />
+        </div>
+      )}
 
       {/* Bottom Navigation Bar - Mobile only: Home, VIBox, Help, Profile */}
       <nav className="chaos-bottom-nav sm:hidden">
@@ -252,7 +339,6 @@ export function RoomPage() {
   
   const { room, memberships, isLoading: roomLoading, error: roomError } = useRoom({
     roomCode,
-    autoRefresh: false,
   });
 
   const { session } = useSession(sessionId || undefined);

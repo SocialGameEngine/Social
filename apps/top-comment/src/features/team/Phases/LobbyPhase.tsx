@@ -42,7 +42,6 @@ export function LobbyPhase({
   const { memberships, isLoading: roomLoading, error: roomError } = useRoom({ 
     roomId: roomId || undefined,
     roomCode: roomCode || undefined,
-    autoRefresh: false  // Disable auto-refresh to prevent flickering
   });
 
   // Background music (from original LobbyPhase)

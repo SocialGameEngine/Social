@@ -44,8 +44,7 @@ export function TeamPage() {
   // NEW: URL-based room data fetching (only when roomCode is present)
   const { room, isLoading: roomLoading, error: roomError } = useRoom({ 
     roomId: undefined, // Don't use roomId for URL-based approach
-    roomCode: roomCode || undefined, 
-    autoRefresh: false // Disable auto-refresh for room lobby to prevent flickering
+    roomCode: roomCode || undefined,
   });
   
   // NEW: Handle URL-based room data

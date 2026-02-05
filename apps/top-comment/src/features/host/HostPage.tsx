@@ -143,8 +143,6 @@ export function HostPage() {
 
   const { room, memberships: roomMemberships, refreshMembers } = useRoom({
     roomId: storedRoomId ?? undefined,
-    autoRefresh: true,
-    refreshInterval: 3000,
   });
 
   // Sync sessionId from room if it exists but we don't have it locally

@@ -11,7 +11,7 @@ interface UseKickDetectionProps {
  * Works across all phases, not just the lobby
  */
 export function useKickDetection({ roomId }: UseKickDetectionProps) {
-  const { myMembership } = useRoom({ roomId: roomId || undefined, autoRefresh: true });
+  const { myMembership } = useRoom({ roomId: roomId || undefined });
   const [hasEstablishedMembership, setHasEstablishedMembership] = useState(false);
   
   // Track if we've already established membership (fix race condition)
