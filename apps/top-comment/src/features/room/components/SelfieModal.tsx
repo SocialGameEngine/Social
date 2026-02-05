@@ -21,7 +21,7 @@ export function SelfieModal({
   const captureCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number | null>(null);
-  const [isTakingSelfie, setIsTakingSelfie] = useState(false);
+  const [, setIsTakingSelfie] = useState(false);
   const [selfieImage, setSelfieImage] = useState<string | null>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [restartCounter, setRestartCounter] = useState(0);

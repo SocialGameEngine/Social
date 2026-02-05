@@ -1,57 +1,37 @@
 import { lazy, Suspense, useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useRoom } from '../../../hooks/useRoom';
-import { useSession, useTeams, useAnswers } from '../../session/hooks';
+import { useSession, useTeams } from '../../session/hooks';
 import { RoomPageProvider } from '../context/RoomPageContext';
 import { useRoomPage } from '../hooks/useRoomPage';
-import { getSessionPhase } from '../utils/phaseConfig';
 import { useAuth } from '../../../shared/providers/AuthContext';
 import { VIBoxJukebox } from '../../../shared/components/vibox/VIBoxJukebox';
 import { BackgroundAnimation } from '../../../components/BackgroundAnimation';
-import { PhaseCardButton } from './PhaseCardButton';
+import { PhaseController } from './PhaseController';
 import { DrinkTank } from '../../../components/DrinkTank';
 
-// Lazy load modals for performance
-const AnswerModal = lazy(() => import('./AnswerModal.tsx'));
-const VoteModal = lazy(() => import('./VoteModal.tsx'));
+// Lazy load ended modals
 const LeaderboardModal = lazy(() => import('./LeaderboardModal.tsx'));
 const SelfieModal = lazy(() => import('./SelfieModal.tsx'));
 
 function RoomPageContent() {
-  const { room, memberships, session, sessionId, state, openModal, closeModal, markSubmitted, openEndedModal, closeEndedModal, handleLeaveRoom } = useRoomPage();
+  const { room, memberships, session, sessionId, state, openEndedModal, closeEndedModal, handleLeaveRoom } = useRoomPage();
   const { user, isGuest, signOut } = useAuth();
   const navigate = useNavigate();
-  const currentPhase = getSessionPhase(session);
   const teams = useTeams(sessionId || undefined);
-  const answers = useAnswers(sessionId || undefined, session?.roundIndex);
   
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showVIBox, setShowVIBox] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
 
-  // Clear ended modals when new session starts
+  // Clear ended modals when leaving ended phase
   useEffect(() => {
-    if (currentPhase !== 'ended') {
-      // Close all ended modals when leaving ended phase
+    if (session?.status !== 'ended') {
       state.endedModals.forEach(modal => {
         closeEndedModal(modal);
       });
     }
-  }, [currentPhase, state.endedModals, closeEndedModal]);
-
-  const handleOpenEndedModal = useCallback((modalType: 'leaderboard' | 'selfie') => {
-    openEndedModal(modalType);
-  }, [openEndedModal]);
-
-  const handleAnswerSubmit = useCallback(() => {
-    markSubmitted('answer');
-    closeModal();
-  }, [markSubmitted, closeModal]);
-
-  const handleVoteSubmit = useCallback(() => {
-    markSubmitted('vote');
-    closeModal();
-  }, [markSubmitted, closeModal]);
+  }, [session?.status, state.endedModals, closeEndedModal]);
 
   const handleSignOut = useCallback(async () => {
     if (!signOut) return;
@@ -95,49 +75,14 @@ function RoomPageContent() {
 
       {/* Main Content - Added pt-4 for mobile (no header), pb-28 for bottom nav */}
       <main className="flex-1 flex flex-col items-center justify-center p-4 pt-4 sm:pt-4 pb-28 sm:pb-4 max-w-2xl mx-auto w-full">
-        {/* Phase Status - Render multiple buttons for 'ended' phase */}
-        <div className="w-full mb-8 space-y-4">
-          {currentPhase === 'ended' ? (
-            // Array of phase buttons for ended phase
-            <>
-              <PhaseCardButton
-                phase="ended"
-                hasSubmitted={false}
-                onClick={() => handleOpenEndedModal('leaderboard')}
-                disabled={false}
-                prompt="View Final Results"
-              />
-              <PhaseCardButton
-                phase="ended"
-                hasSubmitted={false}
-                onClick={() => handleOpenEndedModal('selfie')}
-                disabled={false}
-                prompt="Take a Selfie"
-              />
-            </>
-          ) : (
-            // Single phase button for other phases
-            <PhaseCardButton
-              phase={currentPhase}
-              hasSubmitted={
-                currentPhase === 'answer' 
-                  ? state.submissionStatus.answer 
-                  : currentPhase === 'vote' 
-                    ? state.submissionStatus.vote 
-                    : false
-              }
-              onClick={() => {
-                if (currentPhase === 'answer' || currentPhase === 'vote') {
-                  openModal(currentPhase);
-                }
-              }}
-              disabled={currentPhase === 'lobby'}
-              endsAt={session?.endsAt}
-              paused={session?.paused}
-              prompt={session?.rounds?.[session?.roundIndex || 0]?.groups?.[0]?.prompt || ''}
-            />
-          )}
-        </div>
+        {/* Phase Controller - handles all phase rendering */}
+        <PhaseController
+          session={session}
+          sessionId={sessionId}
+          memberships={memberships}
+          onOpenLeaderboard={() => openEndedModal('leaderboard')}
+          onOpenSelfie={() => openEndedModal('selfie')}
+        />
 
         {/* Drink Tank */}
         <DrinkTank roomMemberships={memberships || []} />
@@ -262,35 +207,8 @@ function RoomPageContent() {
         </div>
       </nav>
 
-      {/* Modals */}
+      {/* Ended Phase Modals */}
       <Suspense fallback={null}>
-        {state.activeModal === 'answer' && sessionId && (
-          <AnswerModal
-            isOpen={true}
-            onClose={closeModal}
-            sessionId={sessionId}
-            roundIndex={session?.roundIndex || 0}
-            prompt={session?.rounds?.[session?.roundIndex || 0]?.groups?.[0]?.prompt || ''}
-            onSubmit={handleAnswerSubmit}
-            endsAt={session?.endsAt}
-            paused={session?.paused}
-          />
-        )}
-        {state.activeModal === 'vote' && sessionId && (
-          <VoteModal
-            isOpen={true}
-            onClose={closeModal}
-            sessionId={sessionId}
-            roundIndex={session?.roundIndex || 0}
-            answers={answers}
-            teams={teams}
-            onSubmit={handleVoteSubmit}
-            prompt={session?.rounds?.[session?.roundIndex || 0]?.groups?.[0]?.prompt || ''}
-            endsAt={session?.endsAt}
-            paused={session?.paused}
-          />
-        )}
-        {/* Ended Phase Modals */}
         {state.endedModals.includes('leaderboard') && (
           <LeaderboardModal
             isOpen={true}
