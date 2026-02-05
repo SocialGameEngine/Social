@@ -87,13 +87,14 @@ export function RootLayout() {
 
   return (
     <div className="min-h-[100svh] bg-transparent text-slate-900">
-      {/* Navbar - Fixed positioning, hides on mobile scroll */}
+      {/* Navbar - Fixed positioning, hidden on mobile */}
       <nav className={`
         fixed top-0 left-0 right-0 z-50 h-16
         transition-transform duration-200 will-change-transform
         ${isMobile && navbarHidden ? '-translate-y-full' : 'translate-y-0'}
         backdrop-blur-md bg-slate-900/40 border-b border-slate-700/50
         shadow-lg shadow-black/10
+        hidden md:block
       `}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16 gap-2">
           {/* Reserved space for bail so account sits right beside it on mobile */}
