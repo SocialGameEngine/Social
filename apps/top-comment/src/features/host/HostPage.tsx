@@ -25,6 +25,7 @@ import {
 import { CreateRoomModal } from "./components/CreateRoomModal";
 import { PromptLibrarySelector } from "./components/PromptLibrarySelector";
 import { BannedPlayersManager } from "./components/BannedPlayersManager";
+import { HostInteractionManager } from "./components/HostInteractionManager";
 import { handleCopyLink, handleCreateSession, handleUpdateSession, handleEndSession, handleHostVote, handlePrimaryAction } from "./Handlers";
 import { handleRoomKickPlayer, handleRoomBanPlayer } from "./Handlers/roomKickBanHandlers";
 import { setPromptLibrary, pauseSession } from "../session/sessionService";
@@ -617,13 +618,21 @@ export function HostPage() {
     if (!session) {
       if (storedRoomId) {
         return (
-          <LobbyPhase
-            inviteLink={inviteLink}
-            storedCode={roomJoinCode}
-            sessionId={null}
-            handleCopyLink={copyLinkHandler}
-            sessionCode={roomJoinCode}
-          />
+          <div className="space-y-6">
+            <LobbyPhase
+              inviteLink={inviteLink}
+              storedCode={roomJoinCode}
+              sessionId={null}
+              handleCopyLink={copyLinkHandler}
+              sessionCode={roomJoinCode}
+            />
+            {room && (
+              <HostInteractionManager
+                room={{ id: room.id, code: room.code }}
+                memberships={roomMemberships}
+              />
+            )}
+          </div>
         );
       }
       return (
@@ -638,6 +647,7 @@ export function HostPage() {
     switch (session.status) {
       case "lobby":
         return (
+          <div className="space-y-6">
             <LobbyPhase
               inviteLink={inviteLink}
               storedCode={roomJoinCode}
@@ -645,6 +655,13 @@ export function HostPage() {
               handleCopyLink={copyLinkHandler}
               sessionCode={roomJoinCode}
             />
+            {room && (
+              <HostInteractionManager
+                room={{ id: room.id, code: room.code }}
+                memberships={roomMemberships}
+              />
+            )}
+          </div>
         );
 
       case "answer":

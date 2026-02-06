@@ -224,6 +224,15 @@ a {
     animation: chaos-slam 180ms cubic-bezier(.34,1.56,.64,1);
 }
 
+.chaos-interaction-card {
+    background: linear-gradient(135deg, #00ff88, #0099ff);
+    border-radius: 28px;
+    box-shadow: 0 16px 0 #000;
+    color: #000;
+    transform: rotate(-1deg);
+    animation: chaos-slam 180ms cubic-bezier(.34,1.56,.64,1);
+}
+
 .chaos-answer-pill {
     background: var(--chaos-answer-bg, #0f0f1c);
     box-shadow: var(--chaos-answer-glow, inset 0 0 0 2px #ff5cff55);

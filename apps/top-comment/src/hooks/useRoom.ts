@@ -66,17 +66,17 @@ export function useRoom(options: UseRoomOptions = {}) {
 
   // Refresh memberships
   const refreshMembers = useCallback(async () => {
-    if (!roomId) return;
+    const targetRoomId = roomId || room?.id;
+    if (!targetRoomId) return;
 
-        
     try {
-      const membershipsData = await roomMembershipService.getRoomMembers({ roomId });
-            setMemberships(membershipsData.members);
+      const membershipsData = await roomMembershipService.getRoomMembers({ roomId: targetRoomId });
+      setMemberships(membershipsData.members);
     } catch (err) {
       console.error('❌ refreshMembers error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load members');
     }
-  }, [roomId]);
+  }, [roomId, room?.id]);
 
   // Create room
   const createRoom = useCallback(async (request: CreateRoomRequest): Promise<Room> => {

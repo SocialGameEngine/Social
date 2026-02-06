@@ -15,6 +15,7 @@ import { ActivityFeedWidget } from '../widgets/ActivityFeedWidget';
 import { RoomChatWidget } from '../widgets/RoomChatWidget';
 import { PollsWidget } from '../widgets/PollsWidget';
 import { TriviaWidget } from '../widgets/TriviaWidget';
+import { InteractionSection } from './interactions';
 
 // Lazy load ended modals
 const LeaderboardModal = lazy(() => import('./LeaderboardModal.tsx'));
@@ -100,6 +101,12 @@ function RoomPageContent() {
               onOpenModal={openModal}
               isSticky={false}
             />
+            {/* Async Interactions - below session panel */}
+            <InteractionSection
+              room={room}
+              memberships={memberships}
+              hasActiveSession={!!session && session.status !== 'ended'}
+            />
           </div>
 
           {/* Bottom area: absolute positioned so widgets can overlay SessionPanel */}
@@ -168,6 +175,12 @@ function RoomPageContent() {
                 onOpenLeaderboard={() => openEndedModal('leaderboard')}
                 onOpenSelfie={() => openEndedModal('selfie')}
                 onOpenModal={openModal}
+              />
+              {/* Async Interactions - below session panel */}
+              <InteractionSection
+                room={room}
+                memberships={memberships}
+                hasActiveSession={!!session && session.status !== 'ended'}
               />
             </div>
           </div>

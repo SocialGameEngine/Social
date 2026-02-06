@@ -19,6 +19,12 @@ import type {
   RoomMembership, 
   RoomAnalytics
 } from "../domain/types/room.types";
+import type {
+  InteractionType,
+  InteractionStatus,
+  Interaction,
+  InteractionResponse,
+} from "../domain/types/interaction.types";
 
 // Re-export core domain types as single source of truth
 export type {
@@ -43,6 +49,14 @@ export type {
   RoomSettings, 
   RoomMembership, 
   RoomAnalytics
+};
+
+// Re-export interaction domain types
+export type {
+  InteractionType,
+  InteractionStatus,
+  Interaction,
+  InteractionResponse,
 };
 
 // Team member type for sessions

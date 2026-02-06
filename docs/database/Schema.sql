@@ -388,6 +388,35 @@ CREATE TABLE public.vibox_queue (
   updated_at timestamp without time zone DEFAULT now(),
   CONSTRAINT vibox_queue_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.interactions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  room_id uuid NOT NULL,
+  created_by uuid NOT NULL,
+  type text NOT NULL DEFAULT 'prompt'
+    CHECK (type IN ('prompt')),
+  status text NOT NULL DEFAULT 'active'
+    CHECK (status IN ('active', 'closed')),
+  question text NOT NULL,
+  description text,
+  settings jsonb DEFAULT '{}'::jsonb,
+  response_count integer DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  closed_at timestamptz,
+  CONSTRAINT interactions_pkey PRIMARY KEY (id),
+  CONSTRAINT interactions_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.rooms(id) ON DELETE CASCADE,
+  CONSTRAINT interactions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
+);
+CREATE TABLE public.responses (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  interaction_id uuid NOT NULL,
+  membership_id uuid NOT NULL,
+  text text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT responses_pkey PRIMARY KEY (id),
+  CONSTRAINT responses_interaction_id_fkey FOREIGN KEY (interaction_id) REFERENCES public.interactions(id) ON DELETE CASCADE,
+  CONSTRAINT responses_membership_id_fkey FOREIGN KEY (membership_id) REFERENCES public.room_memberships(id),
+  CONSTRAINT responses_unique_per_interaction UNIQUE (interaction_id, membership_id)
+);
 CREATE TABLE public.votes (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   session_id uuid NOT NULL,
