@@ -19,9 +19,11 @@ import { TriviaWidget } from '../widgets/TriviaWidget';
 // Lazy load ended modals
 const LeaderboardModal = lazy(() => import('./LeaderboardModal.tsx'));
 const SelfieModal = lazy(() => import('./SelfieModal.tsx'));
+const AnswerModal = lazy(() => import('./AnswerModal.tsx'));
+const VoteModal = lazy(() => import('./VoteModal.tsx'));
 
 function RoomPageContent() {
-  const { room, memberships, session, sessionId, state, openEndedModal, closeEndedModal, handleLeaveRoom } = useRoomPage();
+  const { room, memberships, session, sessionId, state, openModal, closeModal, markSubmitted, openEndedModal, closeEndedModal, handleLeaveRoom } = useRoomPage();
   const { user, isGuest, signOut } = useAuth();
   const navigate = useNavigate();
   const teams = useTeams(sessionId || undefined);
@@ -29,6 +31,7 @@ function RoomPageContent() {
   
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showVIBox, setShowVIBox] = useState(false);
+  const [isWidgetsExpanded, setIsWidgetsExpanded] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
 
   // Clear ended modals when leaving ended phase
@@ -65,7 +68,9 @@ function RoomPageContent() {
     }
   }, [showAccountMenu]);
 
-  const [isWidgetsExpanded, setIsWidgetsExpanded] = useState(false);
+  // Configure which modals should hide the bottom navbar
+  const modalsThatHideNav: Array<'leaderboard' | 'selfie'> = ['selfie']; // Add 'leaderboard' or others as needed
+  const shouldHideBottomNav = modalsThatHideNav.some(modal => state.endedModals.includes(modal));
 
   // Shared widget cards rendered in both layouts
   const widgetCards = (
@@ -92,12 +97,13 @@ function RoomPageContent() {
               memberships={memberships}
               onOpenLeaderboard={() => openEndedModal('leaderboard')}
               onOpenSelfie={() => openEndedModal('selfie')}
+              onOpenModal={openModal}
               isSticky={false}
             />
           </div>
 
           {/* Bottom area: absolute positioned so widgets can overlay SessionPanel */}
-          <div className={`absolute bottom-0 left-0 right-0 flex flex-col z-20 transition-all duration-300 ease-out ${isWidgetsExpanded ? 'h-[80vh] bg-slate-900/95 backdrop-blur-sm' : 'h-[50vh]'}`}>
+          <div className={`absolute bottom-0 left-0 right-0 flex flex-col z-10 transition-all duration-300 ease-out ${isWidgetsExpanded ? 'h-[80vh] bg-slate-900/95 backdrop-blur-sm' : 'h-[50vh]'}`}>
             {/* Divider with toggle - at top of overlay area */}
             <button
               onClick={() => setIsWidgetsExpanded(!isWidgetsExpanded)}
@@ -135,7 +141,7 @@ function RoomPageContent() {
               </button>
             </header>
 
-            <div className={`flex flex-col min-h-0 overflow-hidden transition-all duration-300 ease-out order-5 z-20 ${isWidgetsExpanded ? 'max-h-[80vh]' : 'max-h-[50vh]'} flex-1`}>
+            <div className={`flex flex-col min-h-0 overflow-hidden transition-all duration-300 ease-out order-5 z-10 ${isWidgetsExpanded ? 'max-h-[80vh]' : 'max-h-[50vh]'} flex-1`}>
               <RoomCanvas>{widgetCards}</RoomCanvas>
             </div>
 
@@ -161,6 +167,7 @@ function RoomPageContent() {
                 memberships={memberships}
                 onOpenLeaderboard={() => openEndedModal('leaderboard')}
                 onOpenSelfie={() => openEndedModal('selfie')}
+                onOpenModal={openModal}
               />
             </div>
           </div>
@@ -176,7 +183,7 @@ function RoomPageContent() {
       )}
 
       {/* Bottom Navigation Bar - Mobile only: Home, VIBox, Help, Profile */}
-      <nav className="chaos-bottom-nav sm:hidden">
+      <nav className={`chaos-bottom-nav sm:hidden ${shouldHideBottomNav ? 'hidden' : ''}`}>
         <button
           type="button"
           className="chaos-nav-item"
@@ -318,6 +325,42 @@ function RoomPageContent() {
             currentTeam={teams.find(t => t.uid === user?.id)}
             finalLeaderboard={teams.map((t, i) => ({ ...t, rank: i + 1 }))}
             venueName={session?.venueName}
+          />
+        )}
+
+        {/* Answer Modal */}
+        {state.activeModal === 'answer' && session && sessionId && (
+          <AnswerModal
+            isOpen={true}
+            onClose={() => closeModal()}
+            sessionId={sessionId}
+            roundIndex={session.roundIndex || 0}
+            prompt={session.rounds?.[session.roundIndex || 0]?.groups?.[0]?.prompt || ''}
+            onSubmit={() => {
+              markSubmitted('answer');
+              closeModal();
+            }}
+            endsAt={session.endsAt}
+            paused={session.paused}
+          />
+        )}
+
+        {/* Vote Modal */}
+        {state.activeModal === 'vote' && session && sessionId && (
+          <VoteModal
+            isOpen={true}
+            onClose={() => closeModal()}
+            sessionId={sessionId}
+            roundIndex={session.roundIndex || 0}
+            answers={[]} // Will be populated via hook inside modal or passed from parent
+            teams={teams}
+            onSubmit={() => {
+              markSubmitted('vote');
+              closeModal();
+            }}
+            prompt={session.rounds?.[session.roundIndex || 0]?.groups?.[0]?.prompt || ''}
+            endsAt={session.endsAt}
+            paused={session.paused}
           />
         )}
       </Suspense>

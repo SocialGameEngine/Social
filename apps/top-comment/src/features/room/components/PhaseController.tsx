@@ -13,6 +13,7 @@ interface PhaseControllerProps {
   memberships: RoomMembership[] | null;
   onOpenLeaderboard: () => void;
   onOpenSelfie: () => void;
+  onOpenModal?: (type: 'answer' | 'vote') => void;
 }
 
 export function PhaseController({
@@ -21,6 +22,7 @@ export function PhaseController({
   memberships,
   onOpenLeaderboard,
   onOpenSelfie,
+  onOpenModal,
 }: PhaseControllerProps) {
   const phase = getSessionPhase(session);
   const { submissions, markSubmitted } = useSubmissions(session?.id || null, phase);
@@ -38,6 +40,7 @@ export function PhaseController({
           memberships={memberships}
           hasSubmitted={submissions.answer}
           onSubmit={() => markSubmitted('answer')}
+          onOpenModal={onOpenModal}
         />
       );
 
@@ -50,6 +53,7 @@ export function PhaseController({
           memberships={memberships}
           hasSubmitted={submissions.vote}
           onSubmit={() => markSubmitted('vote')}
+          onOpenModal={onOpenModal}
         />
       );
 

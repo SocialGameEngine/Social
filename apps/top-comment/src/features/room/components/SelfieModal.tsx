@@ -114,12 +114,12 @@ export function SelfieModal({
       
       let stream;
       try {
-        // Try to get a resolution closer to 3:4 aspect ratio
+        // Try to get a resolution closer to 4:5 aspect ratio
         stream = await navigator.mediaDevices.getUserMedia({ 
           video: { 
             facingMode: 'user',
             width: { ideal: 1080 },
-            height: { ideal: 1440 }
+            height: { ideal: 1350 }
           },
           audio: false 
         });
@@ -145,9 +145,9 @@ export function SelfieModal({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Capture at 9:16 to match preview - crop camera feed
+    // Capture at 4:5 to match preview - crop camera feed
     const outputWidth = 1080;
-    const outputHeight = 1920;
+    const outputHeight = 1350;
     
     canvas.width = outputWidth;
     canvas.height = outputHeight;
@@ -163,7 +163,7 @@ export function SelfieModal({
     let sourceWidth = videoWidth;
     let sourceHeight = videoHeight;
     
-    // Crop video to match 9:16 output
+    // Crop video to match 4:5 output
     if (videoAspect > outputAspect) {
       // Video is wider - crop sides
       sourceWidth = videoHeight * outputAspect;
@@ -299,7 +299,7 @@ export function SelfieModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
       <div className="relative w-full h-full sm:h-auto sm:max-w-md sm:mx-4 sm:rounded-2xl rounded-none mx-0 bg-slate-900 shadow-2xl overflow-hidden border-0 sm:border border-slate-700">
         <div className="p-0 sm:p-6 space-y-0 sm:space-y-4 h-full">
@@ -335,7 +335,7 @@ export function SelfieModal({
             </div>
           ) : cameraStream ? (
             <div className="relative h-full flex flex-col bg-black">
-              <div className="relative w-full" style={{ aspectRatio: '9/16' }}>
+              <div className="relative w-full" style={{ aspectRatio: '4/5' }}>
                 <video
                   ref={videoRef}
                   autoPlay
@@ -364,6 +364,47 @@ export function SelfieModal({
                 >
                   <div className="w-14 h-14 rounded-full bg-white" />
                 </button>
+              </div>
+              {/* Overlay Style Selector - fills dead space */}
+              <div className="flex-1 flex flex-col justify-center px-4 py-4">
+                <p className="text-xs text-slate-400 uppercase tracking-wider mb-3 text-center">Overlay Style</p>
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                  {/* Classic Style */}
+                  <button className="flex-shrink-0 flex flex-col items-center gap-2 group">
+                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 border-2 border-white shadow-lg flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <span className="text-white text-xs font-bold">#1</span>
+                    </div>
+                    <span className="text-xs text-slate-300">Classic</span>
+                  </button>
+                  {/* Neon Style */}
+                  <button className="flex-shrink-0 flex flex-col items-center gap-2 group">
+                    <div className="w-16 h-16 rounded-xl bg-black border-2 border-pink-400 shadow-[0_0_10px_rgba(244,114,182,0.5)] flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <span className="text-pink-400 text-xs font-bold">#1</span>
+                    </div>
+                    <span className="text-xs text-slate-300">Neon</span>
+                  </button>
+                  {/* Minimal Style */}
+                  <button className="flex-shrink-0 flex flex-col items-center gap-2 group">
+                    <div className="w-16 h-16 rounded-xl bg-white/10 border border-white/30 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <span className="text-white text-xs font-light">1st</span>
+                    </div>
+                    <span className="text-xs text-slate-300">Minimal</span>
+                  </button>
+                  {/* Gold Style */}
+                  <button className="flex-shrink-0 flex flex-col items-center gap-2 group">
+                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-600 border-2 border-yellow-200 shadow-lg flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <span className="text-white text-xs font-bold">#1</span>
+                    </div>
+                    <span className="text-xs text-slate-300">Gold</span>
+                  </button>
+                  {/* Retro Style */}
+                  <button className="flex-shrink-0 flex flex-col items-center gap-2 group">
+                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 border-2 border-orange-200 shadow-lg flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <span className="text-white text-xs font-bold">#1</span>
+                    </div>
+                    <span className="text-xs text-slate-300">Retro</span>
+                  </button>
+                </div>
               </div>
             </div>
           ) : (

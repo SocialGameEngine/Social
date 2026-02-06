@@ -7,6 +7,7 @@ interface SessionPanelProps {
   memberships: RoomMembership[] | null;
   onOpenLeaderboard: () => void;
   onOpenSelfie: () => void;
+  onOpenModal?: (type: 'answer' | 'vote') => void;
   isSticky?: boolean;
 }
 
@@ -16,6 +17,7 @@ export function SessionPanel({
   memberships,
   onOpenLeaderboard,
   onOpenSelfie,
+  onOpenModal,
   isSticky = false,
 }: SessionPanelProps) {
   return (
@@ -31,6 +33,7 @@ export function SessionPanel({
           memberships={memberships}
           onOpenLeaderboard={onOpenLeaderboard}
           onOpenSelfie={onOpenSelfie}
+          onOpenModal={onOpenModal}
         />
       </div>
     </div>
