@@ -40,10 +40,9 @@ body {
     margin: 0;
     padding: 0;
     width: 100%;
-    height: 100vh;
-    height: 100svh;
-    height: 100dvh;
-    overflow: hidden;
+    min-height: 100vh;
+    min-height: 100svh;
+    min-height: 100dvh;
     background:
       radial-gradient(circle at 20% 10%, var(--chaos-bg-radial-1, #ff00ff66), transparent 35%),
       radial-gradient(circle at 80% 80%, var(--chaos-bg-radial-2, #00e5ff55), transparent 40%),

@@ -1138,6 +1138,50 @@ export function HostPage() {
           credentials to sign in before creating a game.
         </p>
       </Modal>
+      {/* Bottom Navigation Bar - Mobile only */}
+      <nav className="chaos-bottom-nav sm:hidden">
+        <button
+          type="button"
+          className="chaos-nav-item"
+          onClick={() => navigate('/')}
+        >
+          <div className="text-2xl">🏠</div>
+          <span className="chaos-nav-label">Home</span>
+        </button>
+        <button
+          type="button"
+          className="chaos-nav-item"
+          onClick={() => setShowVIBoxModal(true)}
+        >
+          <div className="text-2xl">🎵</div>
+          <span className="chaos-nav-label">VIBox</span>
+        </button>
+        <button
+          type="button"
+          className="chaos-nav-item"
+          onClick={() => window.open('/help', '_blank')}
+        >
+          <div className="text-xl">❓</div>
+          <span className="chaos-nav-label">Help</span>
+        </button>
+        <button
+          type="button"
+          className="chaos-nav-item"
+          onClick={() => navigate('/profile')}
+        >
+          <div className="text-2xl">
+            {user ? (
+              <span className="text-sm font-semibold">
+                {(user.user_metadata?.display_name?.[0] || user.email?.[0] || "U").toUpperCase()}
+              </span>
+            ) : (
+              '👤'
+            )}
+          </div>
+          <span className="chaos-nav-label">Profile</span>
+        </button>
+      </nav>
+
     </main>
   );
 }
