@@ -1485,12 +1485,9 @@ export function VIBoxJukeboxInner({
             </div>
           </div>
 
-          {/* Main Content */}
+          {/* Main Content - Scrollable */}
           <div className="flex-1 overflow-y-auto min-h-0">
-            <div
-              className="px-4 sm:px-6 max-w-screen-md mx-auto w-full"
-              style={{ paddingBottom: bottomPlayerHeight ? bottomPlayerHeight + bottomPlayerExtraLeeway : undefined }}
-            >
+            <div className="px-4 sm:px-6 max-w-screen-md mx-auto w-full">
               <div className="flex flex-col gap-2">
 
             {/* Track List */}
@@ -1726,6 +1723,106 @@ export function VIBoxJukeboxInner({
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Bottom Player Bar - Right under the track list */}
+            <div ref={bottomPlayerRef} className={`mt-4 bg-[var(--color-player-background)]/85 backdrop-blur-2xl rounded-xl ${expandedPlayer ? 'hidden' : ''}`}>
+              {(currentTrack || currentTrackInfo) ? (
+                <div className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => setExpandedPlayer(true)}>
+                      <div className="flex items-center justify-center w-10 h-10 group hover:scale-105 transition-transform">
+                        <div className="flex items-center svg-glow-primary">
+                          <ChevronUpIcon className="w-8 h-8 mr-1 text-[var(--color-button-primary)]" />
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round" className="[--tw-text-opacity:0.8] text-[var(--color-button-primary)]">
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                            <line x1="3" y1="14" x2="21" y2="14" />
+                            <line x1="3" y1="18" x2="15" y2="18" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium truncate [--tw-text-opacity:1] text-[var(--color-text-primary)]`}>
+                          {currentTrack?.title || currentTrackInfo?.track_title || 'Unknown Track'}
+                        </p>
+                        <p className={`text-xs truncate [--tw-text-opacity:0.8] text-[var(--color-text-secondary)]`}>
+                          {currentTrack?.artist || currentTrackInfo?.track_artist || 'Unknown Artist'}
+                        </p>
+                      </div>
+                    </div>
+                    {mode === "host" && (
+                      <button
+                        onClick={togglePlayPause}
+                        className="player-control vibox-button hover:scale-105 transition-transform [--tw-text-opacity:1] text-[var(--color-button-primary)] flex-shrink-0 svg-glow-primary"
+                      >
+                        {isPlaying ? (
+                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <rect x="6" y="4" width="4" height="16" />
+                            <rect x="14" y="4" width="4" height="16" />
+                          </svg>
+                        ) : (
+                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => setExpandedPlayer(true)}>
+                      <div className="flex items-center justify-center w-10 h-10 group hover:scale-105 transition-transform">
+                        <div className="flex items-center svg-glow-primary">
+                          <ChevronUpIcon className="w-8 h-8 mr-1 text-[var(--color-button-primary)]" />
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round" className="[--tw-text-opacity:0.8] text-[var(--color-button-primary)]">
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                            <line x1="3" y1="14" x2="21" y2="14" />
+                            <line x1="3" y1="18" x2="15" y2="18" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium truncate [--tw-text-opacity:0.6] text-[var(--color-text-secondary)]`}>No track playing</p>
+                      </div>
+                    </div>
+                    <button
+                      className={`hover:scale-105 transition-transform [--tw-text-opacity:0.5] text-[var(--color-button-primary)] flex-shrink-0`}
+                      disabled
+                    >
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Progress Bar */}
+              <div 
+                className={`w-full h-2 bg-[var(--color-vibox-progress-track)] relative ${
+                  mode === "host" ? "cursor-pointer" : "cursor-default"
+                }`}
+                onMouseDown={mode === "host" ? handleProgressMouseDown : undefined}
+                onTouchStart={mode === "host" ? handleProgressTouchStart : undefined}
+              >
+                {((currentTrack || currentTrackInfo) && (
+                  <div 
+                    className="h-full [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)] absolute top-0 left-0 transition-all"
+                    style={{ width: `${(currentTime / (audioRef.current?.duration || currentTrackInfo?.track_duration || 1)) * 100}%` }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Footer - Right under the player */}
+            <div className={`py-3 flex items-center justify-center`}>
+              <span className="[--tw-text-opacity:0.6] text-[var(--color-text-secondary)] text-xs">
+                VIBox powered by Söcial
+              </span>
             </div>
               </div>
             </div>
@@ -1994,122 +2091,14 @@ export function VIBoxJukeboxInner({
                   </div>
                   </div>
                 </div>
-                {/* Bottom Navigation Bar */}
+                {/* Bottom Navigation Bar - Simple footer */}
                 <div className={`bg-[var(--color-player-background)]/85 backdrop-blur-2xl pb-[env(safe-area-inset-bottom)]`}>
-                  <div className={`h-16 flex items-center justify-end px-4`}>
+                  <div className={`py-3 flex items-center justify-center px-4`}>
                     <span className="[--tw-text-opacity:0.6] text-[var(--color-text-secondary)] text-xs">
                       VIBox powered by Söcial
                     </span>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Player Bar - Always Visible */}
-          <div ref={bottomPlayerRef} className={`absolute bottom-0 left-0 right-0 bg-[var(--color-player-background)]/85 backdrop-blur-2xl`}>
-            {/* Now Playing Mini Bar */}
-            <div className={expandedPlayer ? 'hidden' : 'block'}>
-            {(currentTrack || currentTrackInfo) ? (
-              <div className="px-4 py-3">
-                {/* Track Info and Play Button - Horizontal Layout */}
-                <div className="flex items-center gap-3 px-4">
-                  <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => setExpandedPlayer(true)}>
-                    {/* Expand Queue Button */ }
-                    <div className="flex items-center justify-center w-10 h-10 group hover:scale-105 transition-transform">
-                      <div className="flex items-center svg-glow-primary">
-                        <ChevronUpIcon className="w-8 h-8 mr-1 text-[var(--color-button-primary)]" />
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round" className="[--tw-text-opacity:0.8] text-[var(--color-button-primary)]">
-                          <line x1="3" y1="6" x2="21" y2="6" />
-                          <line x1="3" y1="10" x2="21" y2="10" />
-                          <line x1="3" y1="14" x2="21" y2="14" />
-                          <line x1="3" y1="18" x2="15" y2="18" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0 text-center">
-                      <p className={`text-sm font-medium truncate [--tw-text-opacity:1] text-[var(--color-text-primary)]`}>
-                        {currentTrack?.title || currentTrackInfo?.track_title || 'Unknown Track'}
-                      </p>
-                      <p className={`text-xs truncate [--tw-text-opacity:0.8] text-[var(--color-text-secondary)]`}>
-                        {currentTrack?.artist || currentTrackInfo?.track_artist || 'Unknown Artist'}
-                      </p>
-                    </div>
-                  </div>
-                    {mode === "host" && (
-                      <button
-                        onClick={togglePlayPause}
-                        className="player-control vibox-button hover:scale-105 transition-transform [--tw-text-opacity:1] text-[var(--color-button-primary)] flex-shrink-0 svg-glow-primary"
-                      >
-                        {isPlaying ? (
-                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                            <rect x="6" y="4" width="4" height="16" />
-                            <rect x="14" y="4" width="4" height="16" />
-                          </svg>
-                        ) : (
-                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z"/>
-                          </svg>
-                        )}
-                      </button>
-                    )}
-                </div>
-              </div>
-            ) : (
-              <div className="px-4 py-3">
-                {/* Track Info and Play Button - Horizontal Layout */}
-                <div className="flex items-center gap-3 px-4">
-                  <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => setExpandedPlayer(true)}>
-                    <div className="flex items-center justify-center w-10 h-10 group hover:scale-105 transition-transform">
-                      <div className="flex items-center svg-glow-primary">
-                        <ChevronUpIcon className="w-8 h-8 mr-1 text-[var(--color-button-primary)]" />
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round" className="[--tw-text-opacity:0.8] text-[var(--color-button-primary)]">
-                          <line x1="3" y1="6" x2="21" y2="6" />
-                          <line x1="3" y1="10" x2="21" y2="10" />
-                          <line x1="3" y1="14" x2="21" y2="14" />
-                          <line x1="3" y1="18" x2="15" y2="18" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0 text-center">
-                      <p className={`text-sm font-medium truncate [--tw-text-opacity:0.6] text-[var(--color-text-secondary)]`}>No track playing</p>
-                    </div>
-                  </div>
-                  <button
-                    className={`hover:scale-105 transition-transform [--tw-text-opacity:0.5] text-[var(--color-button-primary)] flex-shrink-0`}
-                    disabled
-                  >
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            {/* Progress Bar - Direct in Bottom Player Bar - Host Only Seeking */}
-            <div 
-              className={`progress-bar w-full h-2 bg-[var(--color-vibox-progress-track)] relative ${
-                mode === "host" ? "cursor-pointer" : "cursor-default"
-              }`}
-              onMouseDown={mode === "host" ? handleProgressMouseDown : undefined}
-              onTouchStart={mode === "host" ? handleProgressTouchStart : undefined}
-            >
-              {((currentTrack || currentTrackInfo) && (
-                <div 
-                  className="h-full [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)] absolute top-0 left-0 transition-all"
-                  style={{ width: `${(currentTime / (audioRef.current?.duration || currentTrackInfo?.track_duration || 1)) * 100}%` }}
-                />
-              ))}
-            </div>
-            </div>
-
-            {/* Bottom Navigation Bar */}
-            <div className={`bg-[var(--color-player-background)]/85 backdrop-blur-2xl pb-[env(safe-area-inset-bottom)]`}>
-              <div className={`h-16 flex items-center justify-end px-4`}>
-                <span className="[--tw-text-opacity:0.6] text-[var(--color-text-secondary)] text-xs">
-                  VIBox powered by Söcial
-                </span>
               </div>
             </div>
           </div>
