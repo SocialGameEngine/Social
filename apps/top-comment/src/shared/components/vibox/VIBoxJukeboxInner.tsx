@@ -68,8 +68,7 @@ export function VIBoxJukeboxInner({
   // Use voting context
   const { handleVote, getVoteCount, getUserVote } = useVoting();
   const [windowWidth, setWindowWidth] = useState(0);
-  const [bottomPlayerHeight, setBottomPlayerHeight] = useState(0);
-  const bottomPlayerExtraLeeway = 64;
+  const [_bottomPlayerHeight, setBottomPlayerHeight] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomPlayerRef = useRef<HTMLDivElement>(null);
