@@ -83,7 +83,7 @@ function RoomPageContent() {
   );
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-b from-slate-900 to-slate-800 text-white overflow-hidden">
+    <div className="min-h-[90dvh] flex flex-col bg-gradient-to-b from-slate-900 to-slate-800 text-white overflow-hidden">
       <BackgroundAnimation show={true} />
 
       {isMobile ? (
@@ -103,7 +103,7 @@ function RoomPageContent() {
           </div>
 
           {/* Bottom area: absolute positioned so widgets can overlay SessionPanel */}
-          <div className={`absolute bottom-0 left-0 right-0 flex flex-col z-10 transition-all duration-300 ease-out ${isWidgetsExpanded ? 'h-[80vh] bg-slate-900/95 backdrop-blur-sm' : 'h-[50vh]'}`}>
+          <div className={`absolute bottom-0 left-0 right-0 flex flex-col z-10 transition-all duration-300 ease-out ${isWidgetsExpanded ? 'h-[66vh] bg-slate-900/95 backdrop-blur-sm' : 'h-[33vh]'}`}>
             {/* Divider with toggle - at top of overlay area */}
             <button
               onClick={() => setIsWidgetsExpanded(!isWidgetsExpanded)}
