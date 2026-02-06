@@ -38,7 +38,7 @@ serve(async (req) => {
     // Create service role client for admin operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // First, verify the session exists and get the host
+    // First, verify the session exists
     const { data: session, error: sessionError } = await supabase
       .from("top_comment_sessions")
       .select("host_uid")
@@ -52,24 +52,36 @@ serve(async (req) => {
       )
     }
 
-    // Verify the player exists in this session
-    const { data: team, error: teamError } = await supabase
+    // Verify the player exists in this session - try lookup by teamId first, then userId as fallback
+    let { data: team, error: teamError } = await supabase
       .from("top_comment_players")
       .select("id, display_name, user_id")
       .eq("id", teamId)
       .eq("session_id", sessionId)
-      .single()
+      .maybeSingle()
 
-    if (teamError || !team) {
+    if (!team && !teamError && userId) {
+      const { data: teamByUid, error: uidError } = await supabase
+        .from("top_comment_players")
+        .select("id, display_name, user_id")
+        .eq("user_id", userId)
+        .eq("session_id", sessionId)
+        .maybeSingle();
+      
+      team = teamByUid;
+      teamError = uidError;
+    }
+
+    if (!team) {
       return new Response(
         JSON.stringify({ error: "Player not found in session" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       )
     }
 
-    console.log("Player to ban:", { userId, playerName: team.display_name })
+    console.log("Player to ban found in session:", { userId, playerName: team.display_name })
 
-    // Check if user is already banned
+    // Check if user is already banned from session
     const { data: existingBan } = await supabase
       .from("top_comment_banned_players")
       .select("id")
@@ -77,49 +89,42 @@ serve(async (req) => {
       .eq("user_id", userId)
       .single()
 
-    console.log("Existing ban check:", { existingBan })
+    if (!existingBan) {
+      // Remove player record
+      const { error: deleteError } = await supabase
+        .from("top_comment_players")
+        .delete()
+        .eq("id", team.id)
+        .eq("session_id", sessionId)
 
-    if (existingBan) {
-      return new Response(
-        JSON.stringify({ error: "User is already banned from this session" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      )
+      if (deleteError) {
+        console.error("Error removing player:", deleteError)
+        return new Response(
+          JSON.stringify({ error: "Failed to remove player" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        )
+      }
+
+      // Add to banned list
+      const { error: banError } = await supabase
+        .from("top_comment_banned_players")
+        .insert({
+          session_id: sessionId,
+          user_id: userId,
+          display_name: team.display_name,
+          created_at: new Date().toISOString()
+        })
+
+      if (banError) {
+        console.error("Error adding player to banned list:", banError)
+        return new Response(
+          JSON.stringify({ error: "Failed to ban player" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        )
+      }
     }
 
-    // 1. Remove the player record
-    const { error: deleteError } = await supabase
-      .from("top_comment_players")
-      .delete()
-      .eq("id", teamId)
-      .eq("session_id", sessionId)
-
-    if (deleteError) {
-      console.error("Error removing player:", deleteError)
-      return new Response(
-        JSON.stringify({ error: "Failed to remove player" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      )
-    }
-
-    // 2. Add the user to banned_teams table
-    const { error: banError } = await supabase
-      .from("top_comment_banned_players")
-      .insert({
-        session_id: sessionId,
-        user_id: userId,
-        display_name: team.display_name,
-        created_at: new Date().toISOString()
-      })
-
-    if (banError) {
-      console.error("Error adding player to banned list:", banError)
-      return new Response(
-        JSON.stringify({ error: "Player was removed but ban could not be recorded" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      )
-    }
-
-    console.log(`Player ${team.display_name} (${userId}) banned from session ${sessionId}`)
+    console.log(`Ban operation completed for user ${userId} in session ${sessionId}`)
 
     return new Response(
       JSON.stringify({ 

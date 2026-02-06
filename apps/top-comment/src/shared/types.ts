@@ -1,4 +1,24 @@
-import type { PromptLibraryId } from "./promptLibraries";
+import type {
+  SessionStatus,
+  SessionSettings,
+  RoundGroup,
+  RoundDefinition,
+  Session,
+  Team,
+  Answer,
+  Vote,
+  VoteCount,
+  RoundSummary,
+  AnswerWithVotes,
+  LeaderboardEntry,
+  GameState,
+} from "../domain/types/domain.types";
+import type { 
+  Room, 
+  RoomSettings, 
+  RoomMembership, 
+  RoomAnalytics
+} from "../domain/types/room.types";
 
 // Re-export core domain types as single source of truth
 export type {
@@ -15,122 +35,254 @@ export type {
   AnswerWithVotes,
   LeaderboardEntry,
   GameState,
-} from "../domain/types/domain.types";
+};
 
-// API Request/Response types (these stay in shared as they're infrastructure concerns)
+// Re-export room domain types
+export type { 
+  Room, 
+  RoomSettings, 
+  RoomMembership, 
+  RoomAnalytics
+};
+
+// Team member type for sessions
+export interface TeamMember {
+  id: string;
+  teamId: string;
+  userId?: string;
+  playerName?: string;
+  mascotId?: number;
+  joinedAt: string;
+  isActive: boolean;
+}
+
+// Session analytics type
+export interface SessionAnalytics {
+  sessionId: string;
+  totalParticipants: number;
+  activeTeams: number;
+  roundsCompleted: number;
+  averageAnswerTime: number;
+  engagementScore: number;
+  startTime: string;
+  endTime?: string;
+  joinedCount?: number; // Optional for compatibility
+  answerRate?: number; // Optional for compatibility
+  voteRate?: number; // Optional for compatibility
+  duration?: number; // Optional for compatibility (in seconds)
+}
+
+// Session API types
 export interface CreateSessionRequest {
-  venueName?: string;
-  promptLibraryId?: PromptLibraryId;
-  gameMode?: "classic" | "mashup";
-  selectedLibraries?: PromptLibraryId[];
-  totalRounds?: number;
+  roomId?: string;
+  settings?: Partial<SessionSettings>;
+  venueName?: string; // Optional for compatibility
+  gameMode?: string; // Optional for compatibility
+  selectedLibraries?: string[]; // Optional for compatibility
+  totalRounds?: number; // Optional for compatibility
 }
 
 export interface CreateSessionResponse {
-  sessionId: string;
-  code: string;
-  session: any; // Use domain Session type
+  session: Session;
+  sessionId?: string; // Optional for compatibility
+  code?: string; // Optional for compatibility
 }
 
 export interface UpdateSessionRequest {
   sessionId: string;
-  venueName?: string;
-  gameMode?: "classic" | "mashup";
-  selectedLibraries?: PromptLibraryId[];
-  totalRounds?: number;
+  settings?: Partial<SessionSettings>;
+  venueName?: string; // Optional for compatibility
+  gameMode?: string; // Optional for compatibility
+  selectedLibraries?: string[]; // Optional for compatibility
+  totalRounds?: number; // Optional for compatibility
 }
 
 export interface UpdateSessionResponse {
-  sessionId: string;
-  code: string;
-  session: any; // Use domain Session type
+  session: Session;
+  sessionId?: string; // Optional for compatibility
+  code?: string; // Optional for compatibility
 }
 
 export interface JoinSessionRequest {
-  code: string;
-  teamName: string;
-  playerName?: string;
+  sessionId?: string; // Optional - either sessionId or code required
+  playerName: string;
+  mascotId?: number;
+  code?: string; // Optional - either sessionId or code required
 }
 
 export interface JoinSessionResponse {
-  sessionId: string;
-  team: any; // Use domain Team type
-  session: any; // Use domain Session type
-}
-
-export interface StartGameRequest {
-  sessionId: string;
-}
-
-export interface TransitionPhaseRequest {
-  sessionId: string;
-}
-
-export interface SubmitAnswerRequest {
-  sessionId: string;
-  text: string;
-}
-
-export interface SubmitAnswerResponse {
-  success: boolean;
-  isUpdate?: boolean;
-}
-
-export interface SubmitVoteRequest {
-  sessionId: string;
-  answerId: string;
-}
-
-export interface KickTeamRequest {
-  sessionId: string;
-  teamId: string;
+  session: Session;
+  team: Team;
+  sessionId?: string; // Optional for compatibility
 }
 
 export interface SessionAnalyticsResponse {
   analytics: SessionAnalytics;
 }
 
-// Additional shared types
-export interface RoundResults {
-  roundIndex: number;
-  winningAnswerId?: string;
-  voteCounts: Record<string, number>;
-  leaderboard: TeamLeaderboardEntry[];
+export interface StartGameRequest {
+  sessionId: string;
 }
 
-export interface TeamLeaderboardEntry {
-  teamId: string;
-  teamName: string;
-  score: number;
-  rank: number;
+export interface SubmitAnswerRequest {
+  sessionId: string;
+  teamId?: string; // Optional - can be inferred from context
+  answer?: string; // Optional for compatibility
+  text?: string; // Optional for compatibility
 }
 
-export interface SessionAnalytics {
-  joinedCount: number;
-  answerRate: number;
-  voteRate: number;
-  duration?: number;
+export interface SubmitAnswerResponse {
+  success: boolean;
+  points?: number;
+  isUpdate?: boolean; // Optional for compatibility
 }
 
-export interface TeamMember {
-  id: string;
-  team_id: string;
-  user_id: string;
-  player_name?: string | null;
-  is_captain: boolean;
-  joined_at: string;
+export interface SubmitVoteRequest {
+  sessionId: string;
+  teamId?: string; // Optional - can be inferred from context
+  votedForTeamId?: string; // Optional for compatibility
+  answerId?: string; // Optional for compatibility
+}
+
+export interface TransitionPhaseRequest {
+  sessionId: string;
+  targetPhase: string;
 }
 
 export interface SetPromptLibraryRequest {
   sessionId: string;
-  promptLibraryId: PromptLibraryId;
+  promptLibraryId: string;
 }
 
 export interface SetPromptLibraryResponse {
-  session: any; // Use domain Session type
+  session: Session;
 }
 
-export interface PauseSessionRequest {
+// API Request/Response types for room operations
+export interface CreateRoomRequest {
+  name?: string;
+  description?: string;
+  maxPlayers?: number;
+  settings?: Partial<RoomSettings>;
+}
+
+export interface CreateRoomResponse {
+  room: Room;
+  membership: RoomMembership;
+}
+
+export interface JoinRoomRequest {
+  code: string;
+  playerName: string;
+  mascotId?: number;
+}
+
+export interface JoinRoomResponse {
+  room: Room;
+  membership: RoomMembership;
+  requiresApproval: boolean;
+}
+
+export interface UpdateRoomRequest {
+  roomId: string;
+  name?: string;
+  description?: string;
+  settings?: Partial<RoomSettings>;
+}
+
+export interface UpdateRoomResponse {
+  room: Room;
+}
+
+export interface GetRoomRequest {
+  roomId?: string;
+  code?: string;
+}
+
+export interface GetRoomResponse {
+  room: Room;
+}
+
+export interface LeaveRoomRequest {
+  roomId: string;
+  userId: string;
+}
+
+export interface LeaveRoomResponse {
+  success: boolean;
+}
+
+export interface GetRoomMembersRequest {
+  roomId: string;
+}
+
+export interface GetRoomMembersResponse {
+  members: RoomMembership[];
+}
+
+export interface KickMemberRequest {
+  roomId: string;
+  userId: string;
+  reason?: string;
+}
+
+export interface KickMemberResponse {
+  success: boolean;
+}
+
+export interface BanMemberRequest {
+  roomId: string;
+  userId: string;
+  reason?: string;
+}
+
+export interface BanMemberResponse {
+  success: boolean;
+}
+
+export interface ApproveMemberRequest {
+  roomId: string;
+  userId: string;
+}
+
+export interface ApproveMemberResponse {
+  success: boolean;
+}
+
+export interface RejectMemberRequest {
+  roomId: string;
+  userId: string;
+  reason?: string;
+}
+
+export interface RejectMemberResponse {
+  success: boolean;
+}
+
+export interface GetRoomAnalyticsRequest {
+  roomId: string;
+}
+
+export interface GetRoomAnalyticsResponse {
+  analytics: RoomAnalytics;
+}
+
+export interface StartSessionInRoomRequest {
+  roomId: string;
+  sessionSettings?: Partial<SessionSettings>;
+}
+
+export interface StartSessionInRoomResponse {
+  session: Session;
+  room: Room;
+}
+
+export interface EndSessionInRoomRequest {
+  roomId: string;
   sessionId: string;
-  pause: boolean;
+}
+
+export interface EndSessionInRoomResponse {
+  session: Session;
+  room: Room;
 }

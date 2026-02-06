@@ -8,7 +8,7 @@ import type { SessionAnalytics } from "../../../shared/types";
  */
 export function useHostState(storedSessionId: string | null) {
   const [sessionId, setSessionId] = useState<string | null>(storedSessionId);
-  const [showCreateModal, setShowCreateModal] = useState(!storedSessionId);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [isUpdatingSession, setIsUpdatingSession] = useState(false);

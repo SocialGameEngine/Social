@@ -4,12 +4,12 @@ import { formatCode } from "../../../shared/constants";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 
 interface JoinFormProps {
-  joinForm: { code: string; teamName: string };
+  joinForm: { code: string; playerName: string };
   joinErrors: Record<string, string>;
   isJoining: boolean;
   handleJoin: (event: FormEvent<HTMLFormElement>) => void;
   setJoinForm: React.Dispatch<
-    React.SetStateAction<{ code: string; teamName: string }>
+    React.SetStateAction<{ code: string; playerName: string }>
   >;
 }
 
@@ -25,7 +25,7 @@ export function JoinForm({
   // Disable button if either field is empty or too short
   const isDisabled = 
     !joinForm.code || joinForm.code.trim().length === 0 || 
-    !joinForm.teamName || joinForm.teamName.trim().length === 0;
+    !joinForm.playerName || joinForm.playerName.trim().length === 0;
 
   return (
     <div className="space-y-5">
@@ -50,14 +50,14 @@ export function JoinForm({
         />
         <FormField
           label="Display name"
-          name="teamName"
+          name="playerName"
           placeholder="Your name"
-          value={joinForm.teamName}
+          value={joinForm.playerName}
           onChange={(event) =>
-            setJoinForm((prev) => ({ ...prev, teamName: event.target.value }))
+            setJoinForm((prev) => ({ ...prev, playerName: event.target.value }))
           }
           maxLength={15}
-          error={joinErrors.teamName}
+          error={joinErrors.playerName}
           isDark={isDark}
         />
         <Button type="submit" fullWidth isLoading={isJoining} disabled={isDisabled}>

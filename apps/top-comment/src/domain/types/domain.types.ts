@@ -32,7 +32,8 @@ export interface RoundDefinition {
 
 export interface Session {
   id: string;
-  code: string;
+  roomId?: string; // Link to parent room (optional for backward compatibility)
+  code: string; // Keep for compatibility, but may be deprecated
   hostUid: string;
   status: SessionStatus;
   roundIndex: number;
@@ -45,12 +46,14 @@ export interface Session {
   settings: SessionSettings;
   venueName?: string;
   promptLibraryId?: string;
-  selectedLibraries?: string[];
-  currentLibraryIndex?: number;
   paused?: boolean;
   pausedAt?: string;
   totalPausedMs?: number;
   endedByHost?: boolean;
+  categoryGrid?: any; // CategoryGrid type from shared/utils/categoryGrid
+  autoAssignedPlayers: string[]; // RoomMembership IDs
+  selectedLibraries?: string[]; // For mashup mode
+  currentLibraryIndex?: number; // For mashup mode
 }
 
 export interface Team {

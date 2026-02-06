@@ -6,11 +6,11 @@ export const joinSchema = z.object({
     .trim()
     .length(6, "Room code must be 6 characters")
     .regex(/^[A-Z0-9]{6}$/i, "Use letters and numbers only"),
-  teamName: z
+  playerName: z
     .string()
     .trim()
-    .min(2, "Team name must be at least 2 characters")
-    .max(15, "Team name must be 15 characters or fewer"),
+    .min(2, "Player name must be at least 2 characters")
+    .max(15, "Player name must be 15 characters or fewer"),
 });
 
 export const answerSchema = z

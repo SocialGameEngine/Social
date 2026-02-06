@@ -1172,6 +1172,136 @@ export type Database = {
         }
         Relationships: []
       }
+      rooms: {
+        Row: {
+          code: string
+          created_at: string
+          current_session_id: string | null
+          description: string | null
+          host_uid: string
+          id: string
+          max_players: number
+          name: string | null
+          settings: Json
+          status: string
+          total_sessions_played: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          current_session_id?: string | null
+          description?: string | null
+          host_uid: string
+          id?: string
+          max_players: number
+          name?: string | null
+          settings?: Json
+          status?: string
+          total_sessions_played?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          current_session_id?: string | null
+          description?: string | null
+          host_uid?: string
+          id?: string
+          max_players?: number
+          name?: string | null
+          settings?: Json
+          status?: string
+          total_sessions_played?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_rooms_current_session"
+            columns: ["current_session_id"]
+            isOneToOne: true
+            referencedRelation: "top_comment_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rooms_host_uid_fkey"
+            columns: ["host_uid"]
+            isOneToOne: false
+            referencedRelation: "auth.users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      room_memberships: {
+        Row: {
+          banned_at: string | null
+          banned_by: string | null
+          ban_reason: string | null
+          id: string
+          is_banned: boolean
+          is_host: boolean
+          joined_at: string
+          last_active_at: string
+          mascot_id: number | null
+          player_name: string
+          room_id: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          banned_at?: string | null
+          banned_by?: string | null
+          ban_reason?: string | null
+          id?: string
+          is_banned?: boolean
+          is_host?: boolean
+          joined_at?: string
+          last_active_at?: string
+          mascot_id?: number | null
+          player_name: string
+          room_id: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          banned_at?: string | null
+          banned_by?: string | null
+          ban_reason?: string | null
+          id?: string
+          is_banned?: boolean
+          is_host?: boolean
+          joined_at?: string
+          last_active_at?: string
+          mascot_id?: number | null
+          player_name?: string
+          room_id?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_memberships_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_memberships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "auth.users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_memberships_banned_by_fkey"
+            columns: ["banned_by"]
+            isOneToOne: false
+            referencedRelation: "auth.users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Functions: {
       ensure_unique_code: { Args: never; Returns: string }

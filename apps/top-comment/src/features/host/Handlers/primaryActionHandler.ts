@@ -44,7 +44,7 @@ export const handlePrimaryAction = (deps: PrimaryActionDeps) => async () => {
       if (session.paused) {
         await pauseSession({ sessionId: session.id, pause: false });
       }
-      await advancePhase({ sessionId: session.id });
+      await advancePhase({ sessionId: session.id, targetPhase: 'next' });
     }
   } catch (error: unknown) {
     console.error("Primary action error:", error);

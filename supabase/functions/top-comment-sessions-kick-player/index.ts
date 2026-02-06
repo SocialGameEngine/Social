@@ -16,16 +16,28 @@ async function handleKickPlayer(req: Request, uid: string, supabase: any): Promi
       throw new AppError(403, 'Only the host can kick players', 'permission-denied');
     }
     
-    // Get team
-    const { data: team, error: teamError } = await supabase
+    // Get team - try lookup by teamId first, then userId as fallback
+    let { data: team, error: teamError } = await supabase
       .from('top_comment_players')
-      .select('is_host')
+      .select('id, is_host')
       .eq('id', teamId)
       .eq('session_id', sessionId)
-      .single();
+      .maybeSingle();
     
-    if (teamError || !team) {
-      throw new AppError(404, 'Team not found', 'not-found');
+    if (!team && !teamError && userId) {
+      const { data: teamByUid, error: uidError } = await supabase
+        .from('top_comment_players')
+        .select('id, is_host')
+        .eq('user_id', userId)
+        .eq('session_id', sessionId)
+        .maybeSingle();
+      
+      team = teamByUid;
+      teamError = uidError;
+    }
+    
+    if (!team) {
+      throw new AppError(404, 'Player not found in session', 'not-found');
     }
     
     // Can't kick the host
@@ -33,11 +45,10 @@ async function handleKickPlayer(req: Request, uid: string, supabase: any): Promi
       throw new AppError(400, 'Cannot kick the host', 'failed-precondition');
     }
     
-    // Remove the player record
     const { error: deleteError } = await supabase
       .from('top_comment_players')
       .delete()
-      .eq('id', teamId)
+      .eq('id', team.id)
       .eq('session_id', sessionId);
     
     if (deleteError) throw deleteError;

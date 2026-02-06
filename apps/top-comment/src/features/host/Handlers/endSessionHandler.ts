@@ -29,7 +29,7 @@ export const handleEndSession = (deps: EndSessionDeps) => async () => {
   setIsEndingSession(true);
   try {
     if (session.status !== "ended") {
-      await endSession({ sessionId: session.id });
+      await endSession({ sessionId: session.id, targetPhase: 'ended' });
     }
     toast({ title: "Session ended", variant: "info" });
     setAnalytics(null);

@@ -56,7 +56,7 @@ export function VotePhase({
     activeGroup?.prompt ??
     roundGroups[activeGroupIndex]?.prompt ??
     null;
-
+  
   const groupLabel = totalGroups
     ? `Group ${activeGroupIndex + 1} of ${totalGroups}`
     : "No groups";

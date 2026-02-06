@@ -85,7 +85,9 @@ export const handleUpdateSession =
         totalRounds: totalRounds || 5,
       });
 
-      onUpdated({ sessionId: response.sessionId, code: response.code });
+      const updatedSessionId = response.sessionId || response.session.id;
+      const updatedCode = response.code || response.session.code;
+      onUpdated({ sessionId: updatedSessionId, code: updatedCode });
       setShowEditModal(false);
       toast({ title: "Session updated", description: "Your room settings have been applied.", variant: "success" });
     } catch (error: unknown) {

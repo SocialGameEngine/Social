@@ -22,7 +22,34 @@ async function handleStartSession(req: Request, uid: string, supabase: any): Pro
 
   // Only include "active" players (players with user_id set).
   // This prevents inactive players from being grouped.
-  const activeTeamIds = await getActiveTopCommentPlayers(supabase, sessionId);
+  let activeTeamIds = await getActiveTopCommentPlayers(supabase, sessionId);
+
+  if (activeTeamIds.length === 0 && session.room_id) {
+    const { data: memberships } = await supabase
+      .from('room_memberships')
+      .select('*')
+      .eq('room_id', session.room_id)
+      .eq('is_banned', false)
+      .in('status', ['active', 'approved'])
+      .eq('is_host', false);
+
+    if (memberships?.length) {
+      const players = memberships.map(membership => ({
+        id: crypto.randomUUID(),
+        session_id: session.id,
+        user_id: membership.user_id || '',
+        display_name: membership.team_name,
+        score: 0,
+        joined_at: new Date().toISOString(),
+      }));
+
+      await supabase
+        .from('top_comment_players')
+        .insert(players);
+
+      activeTeamIds = await getActiveTopCommentPlayers(supabase, sessionId);
+    }
+  }
 
   if (activeTeamIds.length === 0) {
     throw new AppError(400, 'Need at least one player to start', 'failed-precondition');

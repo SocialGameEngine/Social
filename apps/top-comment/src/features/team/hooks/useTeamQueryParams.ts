@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { formatCode } from "../../../shared/constants";
 
 interface UseTeamQueryParamsProps {
-  setJoinForm: (form: { code: string; teamName: string } | ((prev: { code: string; teamName: string }) => { code: string; teamName: string })) => void;
+  setJoinForm: (form: { code: string; playerName: string } | ((prev: { code: string; playerName: string }) => { code: string; playerName: string })) => void;
   setAutoJoinAttempted: (attempted: boolean) => void;
   hasManuallyLeft: boolean;
 }
@@ -43,9 +43,9 @@ export function useTeamQueryParams({
   useEffect(() => {
     if (!queryTeamName) return;
     setJoinForm((prev) =>
-      prev.teamName === queryTeamName
+      prev.playerName === queryTeamName
         ? prev
-        : { ...prev, teamName: queryTeamName },
+        : { ...prev, playerName: queryTeamName },
     );
   }, [queryTeamName, setJoinForm]);
 

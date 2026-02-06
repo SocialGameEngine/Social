@@ -17,6 +17,7 @@ interface CreateSessionHandlersDeps {
   setHostSession: (sessionInfo: { sessionId: string; code: string }) => void;
   setShowCreateModal: React.Dispatch<React.SetStateAction<boolean>>;
   onSessionCreated: () => void;
+  roomId: string | null;
   gameMode: "classic" | "mashup";
   selectedLibraries: string[];
   totalRounds?: number;
@@ -39,6 +40,7 @@ export const handleCreateSession =
       setHostSession,
       setShowCreateModal,
       onSessionCreated,
+      roomId,
       gameMode,
       selectedLibraries,
       totalRounds,
@@ -59,6 +61,10 @@ export const handleCreateSession =
     }
     if (!isVenueAccount) {
       toast({ title: "Only venue accounts can host games. Please sign in with your venue credentials.", variant: "error" });
+      return;
+    }
+    if (!roomId) {
+      toast({ title: "Create a room before starting a session.", variant: "error" });
       return;
     }
 
@@ -84,17 +90,20 @@ export const handleCreateSession =
 
     try {
       const response = await createSession({
+        roomId,
         venueName: parsed.data.venueName || undefined,
         gameMode,
         selectedLibraries: gameMode === 'mashup' ? selectedLibraries : undefined,
         totalRounds: totalRounds || 5,
       });
       if (response) {
-        setSessionId(response.sessionId);
-        setHostSession({ sessionId: response.sessionId, code: response.code });
+        const sessionId = response.sessionId || response.session.id;
+        const code = response.code || response.session.code;
+        setSessionId(sessionId);
+        setHostSession({ sessionId, code });
         setShowCreateModal(false);
         onSessionCreated();
-        toast({ title: `Game room ready! Share code ${response.session.code} to invite teams`, variant: "success" });
+        toast({ title: "Game session created!", variant: "success" });
       }
     } catch (error: unknown) {
       toast({ title: getErrorMessage(error, "Could not create session. Please try again in a moment."), variant: "error" });

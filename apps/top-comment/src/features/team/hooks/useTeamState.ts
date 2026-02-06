@@ -8,13 +8,16 @@ const SESSION_ENDED_MODAL_DISMISSED_KEY = "social-session-ended-modal-dismissed"
  * Manages all state for the TeamPage component
  * Consolidates 15 useState and 2 useRef declarations
  */
-export function useTeamState(teamSession: { sessionId: string; code: string; teamName: string } | null) {
+export function useTeamState(
+  teamSession: { sessionId: string; code: string; teamName: string } | null,
+  teamRoom: { roomId: string; roomCode: string; playerName: string } | null,
+) {
   const [sessionId, setSessionId] = useState<string | null>(
     teamSession?.sessionId ?? null
   );
   const [joinForm, setJoinForm] = useState({
-    code: teamSession?.code ?? "",
-    teamName: teamSession?.teamName ?? "",
+    code: teamSession?.code ?? teamRoom?.roomCode ?? "",
+    playerName: teamSession?.teamName ?? teamRoom?.playerName ?? "",
   });
   const [joinErrors, setJoinErrors] = useState<Record<string, string>>({});
   const [isJoining, setIsJoining] = useState(false);
