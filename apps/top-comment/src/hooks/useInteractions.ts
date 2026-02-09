@@ -15,8 +15,10 @@ export function useInteractions({ roomId }: UseInteractionsOptions) {
   const refresh = useCallback(async () => {
     if (!roomId) return;
     try {
-      const data = await interactionService.getActiveInteractions(roomId);
-      setInteractions(data);
+      const data = await interactionService.getAllInteractions(roomId);
+      // Filter out closed interactions - show active/voting/results interactions to all users
+      const activeInteractions = data.filter(interaction => interaction.status !== 'closed');
+      setInteractions(activeInteractions);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load interactions');

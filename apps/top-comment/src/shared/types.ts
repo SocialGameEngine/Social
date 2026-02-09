@@ -24,6 +24,7 @@ import type {
   InteractionStatus,
   Interaction,
   InteractionResponse,
+  InteractionVote,
 } from "../domain/types/interaction.types";
 
 // Re-export core domain types as single source of truth
@@ -57,6 +58,7 @@ export type {
   InteractionStatus,
   Interaction,
   InteractionResponse,
+  InteractionVote,
 };
 
 // Team member type for sessions

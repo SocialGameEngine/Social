@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, useCallback } from 'react';
 import { useInteractions } from '../../../hooks/useInteractions';
 import { useTheme } from '../../../shared/providers/ThemeProvider';
 import { Button, Card } from '@social/ui';
+import { interactionService } from '../../../services/interactionService';
 import type { Interaction, RoomMembership } from '../../../shared/types';
 
 const SendPromptModal = lazy(() => import('../../room/components/interactions/SendPromptModal'));
@@ -33,6 +34,20 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
       setViewingResponses(null);
     },
     [closeInteraction]
+  );
+
+  const handleStartVoting = useCallback(
+    async (interactionId: string) => {
+      await interactionService.advanceToVoting(interactionId, 300);
+    },
+    []
+  );
+
+  const handleShowResults = useCallback(
+    async (interactionId: string) => {
+      await interactionService.advanceToResults(interactionId);
+    },
+    []
   );
 
   return (
@@ -72,24 +87,72 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
                   </p>
                   <div className={`flex items-center gap-3 mt-1.5 text-xs ${!isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                     <span>{interaction.responseCount}/{activeMemberCount} responses</span>
+                    {interaction.status === 'voting' && <span>{interaction.voteCount} votes</span>}
                     <span>{getTimeAgo(interaction.createdAt)}</span>
+                    <span className={`font-bold ${
+                      interaction.status === 'voting' ? 'text-cyan-600' : 
+                      interaction.status === 'results' ? 'text-cyan-600' :
+                      interaction.status === 'closed' ? 'text-gray-600' : 'text-green-600'
+                    }`}>
+                      {interaction.status === 'voting' ? 'Voting' : 
+                       interaction.status === 'results' ? 'Results' :
+                       interaction.status === 'closed' ? 'Closed' : 'Active'}
+                    </span>
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0">
+                  {interaction.status === 'active' && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => handleStartVoting(interaction.id)}
+                    >
+                      Start Voting
+                    </Button>
+                  )}
+                  {interaction.status === 'voting' && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => handleShowResults(interaction.id)}
+                    >
+                      Show Results
+                    </Button>
+                  )}
+                  {interaction.status === 'results' && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => setViewingResponses(interaction)}
+                    >
+                      View Results
+                    </Button>
+                  )}
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={() => setViewingResponses(interaction)}
                   >
-                    View
+                    {interaction.status === 'voting' ? 'Votes' : 'View'}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleCloseInteraction(interaction.id)}
-                  >
-                    Close
-                  </Button>
+                  {(interaction.status === 'results' || interaction.status === 'voting') && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCloseInteraction(interaction.id)}
+                    >
+                      Close
+                    </Button>
+                  )}
+                  {interaction.status === 'active' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCloseInteraction(interaction.id)}
+                    >
+                      Close
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

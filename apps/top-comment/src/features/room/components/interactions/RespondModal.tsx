@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Button } from '../../../../components/Button';
 
 interface RespondModalProps {
@@ -21,6 +21,11 @@ export function RespondModal({
   const [text, setText] = useState(existingResponse || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Update text when existingResponse changes (e.g., when reopening modal)
+  useEffect(() => {
+    setText(existingResponse || '');
+  }, [existingResponse]);
 
   const handleSubmit = useCallback(async () => {
     const trimmed = text.trim();
@@ -70,7 +75,7 @@ export function RespondModal({
         </div>
 
         {/* Content */}
-        <div className="space-y-3 p-3 sm:space-y-4 sm:p-5">
+        <div className="space-y-6 p-3 sm:space-y-8 sm:p-5">
           {/* Prompt Card */}
           <div className="chaos-interaction-card px-3 py-3 text-center sm:px-4 sm:py-4 shadow-xl border-2 border-black/80">
             <p className="text-xl font-black tracking-tight drop-shadow-lg sm:text-2xl text-black">

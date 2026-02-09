@@ -63,8 +63,8 @@ export async function joinRoom(request: JoinRoomRequest): Promise<JoinRoomRespon
     description: roomData.description || undefined,
     status: roomData.status as any, // Will be properly typed by DB
     maxPlayers: roomData.max_players,
-    createdAt: roomData.created_at,
-    updatedAt: roomData.updated_at,
+    createdAt: roomData.created_at || "",
+    updatedAt: roomData.updated_at || "",
     settings: (roomData.settings as any) || {}, // Will be properly typed by DB
     currentSessionId: roomData.current_session_id || undefined,
     totalSessionsPlayed: roomData.total_sessions_played || 0,

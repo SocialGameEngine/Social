@@ -2,7 +2,7 @@
 // These types represent room-scoped interactions (prompts, etc.) independent of sessions
 
 export type InteractionType = 'prompt'; // Phase 2: | 'trivia' | 'poll'
-export type InteractionStatus = 'active' | 'closed';
+export type InteractionStatus = 'active' | 'voting' | 'results' | 'closed';
 
 export interface Interaction {
   id: string;
@@ -11,11 +11,16 @@ export interface Interaction {
   type: InteractionType;
   status: InteractionStatus;
   question: string;
-  description?: string;
+  description?: string | null;
   settings: Record<string, unknown>;
   responseCount: number;
+  voteCount: number;
+  answerEndsAt?: string | null;
+  answerSeconds?: number;
+  votingEndsAt?: string | null;
+  votingSeconds?: number;
   createdAt: string;
-  closedAt?: string;
+  closedAt?: string | null;
 }
 
 export interface InteractionResponse {
@@ -27,4 +32,12 @@ export interface InteractionResponse {
   // Joined fields (from room_memberships)
   playerName?: string;
   mascotId?: number;
+}
+
+export interface InteractionVote {
+  id: string;
+  interactionId: string;
+  membershipId: string;
+  responseId: string;
+  createdAt: string;
 }
