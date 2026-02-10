@@ -240,7 +240,7 @@ export function RootLayout() {
       </nav>
 
       {/* Main content with padding-top = navbar height */}
-      <main className="pt-16">
+      <main className="pt-0 md:pt-16">
         <Outlet />
       </main>
     </div>

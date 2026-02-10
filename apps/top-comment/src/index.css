@@ -173,6 +173,15 @@ a {
 }
 
 /* Chaos theme utilities */
+@keyframes slide-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+}
+
 @keyframes chaos-orb-float {
     0% { transform: translateY(0) translateX(0) scale(0.9); }
     100% { transform: translateY(-80vh) translateX(40px) scale(1.2); }
@@ -229,7 +238,7 @@ a {
     border-radius: 28px;
     box-shadow: 0 16px 0 #000;
     color: #000;
-    transform: rotate(-1deg);
+    transform: rotate(2deg);
     animation: chaos-slam 180ms cubic-bezier(.34,1.56,.64,1);
 }
 

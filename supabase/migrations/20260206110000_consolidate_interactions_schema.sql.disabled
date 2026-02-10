@@ -27,8 +27,11 @@ CREATE POLICY "Users can view votes for their room" ON public.interaction_votes
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM public.room_memberships rm
-      WHERE rm.room_id = interaction_votes.interaction_id
-      AND rm.membership_id = auth.uid()
+      WHERE rm.room_id = (
+        SELECT room_id FROM public.interactions 
+        WHERE id = interaction_votes.interaction_id
+      )
+      AND rm.user_id = auth.uid()
     )
   );
 
@@ -36,8 +39,11 @@ CREATE POLICY "Users can insert votes for their room" ON public.interaction_vote
   FOR INSERT WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.room_memberships rm
-      WHERE rm.room_id = interaction_votes.interaction_id
-      AND rm.membership_id = auth.uid()
+      WHERE rm.room_id = (
+        SELECT room_id FROM public.interactions 
+        WHERE id = interaction_votes.interaction_id
+      )
+      AND rm.user_id = auth.uid()
     )
   );
 
@@ -53,8 +59,11 @@ CREATE POLICY "Users can view responses for their room" ON public.interaction_re
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM public.room_memberships rm
-      WHERE rm.room_id = interaction_responses.interaction_id
-      AND rm.membership_id = auth.uid()
+      WHERE rm.room_id = (
+        SELECT room_id FROM public.interactions 
+        WHERE id = interaction_responses.interaction_id
+      )
+      AND rm.user_id = auth.uid()
     )
   );
 
@@ -62,8 +71,11 @@ CREATE POLICY "Users can insert responses for their room" ON public.interaction_
   FOR INSERT WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.room_memberships rm
-      WHERE rm.room_id = interaction_responses.interaction_id
-      AND rm.membership_id = auth.uid()
+      WHERE rm.room_id = (
+        SELECT room_id FROM public.interactions 
+        WHERE id = interaction_responses.interaction_id
+      )
+      AND rm.user_id = auth.uid()
     )
   );
 

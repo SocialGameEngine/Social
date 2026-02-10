@@ -97,10 +97,6 @@ export function InteractionSection({
   }, [viewingResults]);
 
   const isHost = myMembership?.isHost ?? false;
-  const activeMemberCount = useMemo(
-    () => memberships?.filter((m) => !m.isBanned).length ?? 0,
-    [memberships]
-  );
 
   const handleSendPrompt = useCallback(
     async (question: string, description?: string) => {
@@ -158,8 +154,8 @@ export function InteractionSection({
   const showEmptyHostCard = !hasInteractions && !hasActiveSession && isHost;
 
   return (
-    <div className="relative z-10 w-full max-w-2xl mx-auto mb-8">
-      <div className="p-4">
+    <div className="relative z-10 w-[85%] max-w-2xl mb-8">
+      <div className="px-4 pb-4 pt-0 sm:p-4">
         {/* Empty state: only show for host when no interactions */}
         {showEmptyHostCard && (
           <button
@@ -201,12 +197,10 @@ export function InteractionSection({
                 isHost={isHost}
                 hasResponded={respondedIds.has(interaction.id)}
                 hasVoted={votedIds.has(interaction.id)}
-                memberCount={activeMemberCount}
                 onRespond={() => setRespondingTo(interaction)}
                 onVote={() => setVotingFor(interaction)}
                 onViewResponses={() => setViewingResponses(interaction)}
                 onViewResults={() => setViewingResults(interaction)}
-                onClose={() => handleCloseInteraction(interaction.id)}
                 onAutoAdvanceToResults={handleAutoAdvanceToResults}
               />
             ))}
@@ -214,7 +208,8 @@ export function InteractionSection({
             {isHost && (
               <button
                 onClick={() => setShowSendModal(true)}
-                className="w-full chaos-interaction-card px-3 py-4 shadow-xl border-2 border-black/80 transform transition-transform hover:scale-[1.02] active:scale-[0.98] opacity-60"
+                className="w-full chaos-interaction-card pl-4 pr-2 py-2 shadow-xl border-2 border-black/80 transform transition-all hover:scale-[1.04] active:scale-[0.96] opacity-60"
+                style={{ transform: 'rotate(2deg) scale(0.9)' }}
               >
                 <p className="text-sm sm:text-base font-black text-black/60">
                   + Send Another Prompt
@@ -238,12 +233,10 @@ export function InteractionSection({
                   isHost={isHost}
                   hasResponded={respondedIds.has(interaction.id)}
                   hasVoted={votedIds.has(interaction.id)}
-                  memberCount={activeMemberCount}
                   onRespond={() => setRespondingTo(interaction)}
                   onVote={() => setVotingFor(interaction)}
                   onViewResponses={() => setViewingResponses(interaction)}
                   onViewResults={() => setViewingResults(interaction)}
-                  onClose={() => handleCloseInteraction(interaction.id)}
                   onAutoAdvanceToResults={handleAutoAdvanceToResults}
                 />
               ))}

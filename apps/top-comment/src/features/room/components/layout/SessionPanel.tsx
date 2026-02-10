@@ -26,7 +26,7 @@ export function SessionPanel({
         isSticky ? 'sticky top-0 backdrop-blur-sm' : ''
       }`}
     >
-      <div className="p-4">
+      <div className="px-4 pb-4 pt-0 sm:p-4">
         <PhaseController
           session={session}
           sessionId={sessionId}

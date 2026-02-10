@@ -9,12 +9,11 @@ import { VIBoxJukebox } from '../../../shared/components/vibox/VIBoxJukebox';
 import { BackgroundAnimation } from '../../../components/BackgroundAnimation';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { SessionPanel } from './layout/SessionPanel';
-import { RoomCanvas } from './layout/RoomCanvas';
-import { RoomInfoRail } from './layout/RoomInfoRail';
-import { ActivityFeedWidget } from '../widgets/ActivityFeedWidget';
-import { RoomChatWidget } from '../widgets/RoomChatWidget';
-import { PollsWidget } from '../widgets/PollsWidget';
-import { TriviaWidget } from '../widgets/TriviaWidget';
+import { RoomSidebar } from './layout/RoomSidebar';
+import { LobbyDrawer } from './layout/LobbyDrawer';
+import { ChatDrawer } from './layout/ChatDrawer';
+import { LeaderboardHistoryDrawer } from './layout/LeaderboardHistoryDrawer';
+import { HelpDrawer } from './layout/HelpDrawer';
 import { InteractionSection } from './interactions';
 
 // Lazy load ended modals
@@ -29,10 +28,17 @@ function RoomPageContent() {
   const navigate = useNavigate();
   const teams = useTeams(sessionId || undefined);
   const { isMobile, isRailCollapsed, setIsRailCollapsed } = useResponsiveLayout();
+
+  // Derive chat/leaderboard props
+  const myMembership = memberships?.find(m => m.userId === user?.id);
+  const myDisplayName = myMembership?.playerName || user?.user_metadata?.display_name || 'Anonymous';
   
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showVIBox, setShowVIBox] = useState(false);
-  const [isWidgetsExpanded, setIsWidgetsExpanded] = useState(false);
+  const [showLobbyDrawer, setShowLobbyDrawer] = useState(false);
+  const [showChatDrawer, setShowChatDrawer] = useState(false);
+  const [showLeaderboardDrawer, setShowLeaderboardDrawer] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
 
   // Clear ended modals when leaving ended phase
@@ -70,28 +76,117 @@ function RoomPageContent() {
   }, [showAccountMenu]);
 
   // Configure which modals should hide the bottom navbar
-  const modalsThatHideNav: Array<'leaderboard' | 'selfie'> = ['selfie']; // Add 'leaderboard' or others as needed
+  const modalsThatHideNav: Array<'leaderboard' | 'selfie'> = ['selfie'];
   const shouldHideBottomNav = modalsThatHideNav.some(modal => state.endedModals.includes(modal));
 
-  // Shared widget cards rendered in both layouts
-  const widgetCards = (
-    <>
-      <ActivityFeedWidget />
-      <RoomChatWidget />
-      <PollsWidget />
-      <TriviaWidget />
-    </>
-  );
-
   return (
-    <div className="min-h-[90dvh] flex flex-col bg-gradient-to-b from-slate-900 to-slate-800 text-white overflow-hidden">
+    <div className="min-h-[90dvh] flex flex-col bg-gradient-to-b from-slate-900 to-slate-800 text-white sm:overflow-hidden">
       <BackgroundAnimation show={true} />
 
-      {isMobile ? (
-        /* ── Mobile Layout ── */
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
-          {/* SessionPanel - at top, fixed height, lower z-index so widgets can overlay */}
-          <div className="shrink-0 relative z-10">
+      {/* Main content area - shared structure */}
+      <div className="flex-1 flex min-h-0 sm:overflow-hidden">
+        {/* Main Column */}
+        <div className="flex-1 flex flex-col min-h-0 sm:overflow-hidden">
+          {/* Header - desktop only */}
+          {!isMobile && (
+            <header className="flex items-center justify-between p-4 border-b border-slate-700/50 relative z-10">
+              <h1 className="text-3xl font-black tracking-tight">{room?.code}</h1>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.location.href = '/join'}
+                  className="px-3 py-1.5 text-xs font-medium bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 rounded-lg transition-colors"
+                  title="Bail"
+                >
+                  Bail
+                </button>
+                <button
+                  onClick={() => setShowVIBox(!showVIBox)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                    showVIBox 
+                      ? 'bg-cyan-600 text-cyan-100' 
+                      : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                  }`}
+                  title={showVIBox ? 'Close VIBox' : 'VIBox'}
+                >
+                  VIBox
+                </button>
+                <button
+                  onClick={() => setShowHowToPlay(true)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                    showHowToPlay 
+                      ? 'bg-cyan-600 text-cyan-100' 
+                      : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                  }`}
+                  title={showHowToPlay ? 'Close Help' : 'Help'}
+                >
+                  Help
+                </button>
+                <div ref={!isMobile ? accountMenuRef : undefined} className="relative">
+                  <button
+                    onClick={() => setShowAccountMenu(!showAccountMenu)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                      showAccountMenu 
+                        ? 'bg-cyan-600 text-cyan-100' 
+                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                    }`}
+                    title={showAccountMenu ? 'Close Profile' : 'Profile'}
+                  >
+                    {user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Profile'}
+                  </button>
+                  {showAccountMenu && (
+                    <div className="absolute top-full right-0 mt-2 w-64 rounded-xl bg-slate-800 border border-cyan-400/50 shadow-lg shadow-fuchsia-500/20 z-50 overflow-hidden">
+                      <div className="p-4 space-y-3">
+                        {user ? (
+                          <>
+                            <div className="space-y-1">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">Account</p>
+                              {user.user_metadata?.display_name && (
+                                <p className="text-sm font-semibold text-pink-400">{user.user_metadata.display_name}</p>
+                              )}
+                              {user.email ? (
+                                <p className="text-sm text-cyan-300 break-all">{user.email}</p>
+                              ) : (
+                                <p className="text-sm text-slate-400 italic">No email</p>
+                              )}
+                            </div>
+                            {isGuest && (
+                              <div className="pt-2 border-t border-slate-700">
+                                <p className="text-xs text-slate-400">Guest mode</p>
+                              </div>
+                            )}
+                            <div className="pt-2 border-t border-slate-700">
+                              <button
+                                onClick={handleSignOut}
+                                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-slate-700/50 rounded-lg transition-colors"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                                </svg>
+                                Sign Out
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="space-y-1">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">Not signed in</p>
+                            <p className="text-sm text-slate-400">Sign in to access your account</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={handleLeaveRoom}
+                  className="px-3 py-1.5 text-xs font-medium bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 rounded-lg transition-colors"
+                >
+                  Leave
+                </button>
+              </div>
+            </header>
+          )}
+
+          <div className="flex-1 overflow-y-auto relative z-10 pt-4">
             <SessionPanel
               session={session}
               sessionId={sessionId}
@@ -99,180 +194,167 @@ function RoomPageContent() {
               onOpenLeaderboard={() => openEndedModal('leaderboard')}
               onOpenSelfie={() => openEndedModal('selfie')}
               onOpenModal={openModal}
-              isSticky={false}
+              isSticky={!isMobile}
             />
-            {/* Async Interactions - below session panel */}
             <InteractionSection
               room={room}
               memberships={memberships}
               hasActiveSession={!!session && session.status !== 'ended'}
             />
           </div>
-
-          {/* Bottom area: absolute positioned so widgets can overlay SessionPanel */}
-          <div className={`absolute bottom-0 left-0 right-0 flex flex-col z-10 transition-all duration-300 ease-out ${isWidgetsExpanded ? 'h-[66vh] bg-slate-900/95 backdrop-blur-sm' : 'h-[33vh]'}`}>
-            {/* Divider with toggle - at top of overlay area */}
-            <button
-              onClick={() => setIsWidgetsExpanded(!isWidgetsExpanded)}
-              className="relative h-1 bg-gradient-to-r from-transparent via-cyan-400/80 to-transparent shrink-0 w-full group cursor-pointer z-30"
-              aria-label={isWidgetsExpanded ? 'Collapse widgets' : 'Expand widgets'}
-            >
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                <div className={`w-7 h-7 rounded-full bg-slate-900 border border-cyan-400/40 flex items-center justify-center shadow-lg shadow-cyan-500/20 transition-transform duration-300 ${isWidgetsExpanded ? '' : 'rotate-180'}`}>
-                  <svg className="w-4 h-4 text-cyan-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            </button>
-
-            {/* Widgets section - expands upward OVER SessionPanel */}
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              <RoomCanvas>{widgetCards}</RoomCanvas>
-            </div>
-          </div>
         </div>
-      ) : (
-        /* ── Desktop Layout (2-column) ── */
-        <div className="flex-1 flex min-h-0 overflow-hidden">
-          {/* Main Column */}
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            {/* Header */}
-            <header className="flex items-center justify-between p-4 border-b border-slate-700/50 order-1">
-              <h1 className="text-3xl font-black tracking-tight">{room?.code}</h1>
-              <button
-                onClick={handleLeaveRoom}
-                className="px-3 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-slate-300"
-              >
-                Leave
-              </button>
-            </header>
 
-            <div className={`flex flex-col min-h-0 overflow-hidden transition-all duration-300 ease-out order-5 z-10 ${isWidgetsExpanded ? 'max-h-[80vh]' : 'max-h-[50vh]'} flex-1`}>
-              <RoomCanvas>{widgetCards}</RoomCanvas>
-            </div>
+        {/* Right Sidebar — desktop only (hidden on mobile via internal class) */}
+        <RoomSidebar
+          memberships={memberships}
+          isCollapsed={isRailCollapsed}
+          onToggle={() => setIsRailCollapsed(!isRailCollapsed)}
+          roomId={room?.id}
+          userId={user?.id}
+          membershipId={myMembership?.id}
+          displayName={myDisplayName}
+        />
+      </div>
 
-            {/* Modern gradient divider with toggle chevron */}
-            <button
-              onClick={() => setIsWidgetsExpanded(!isWidgetsExpanded)}
-              className="relative h-1 bg-gradient-to-r from-transparent via-cyan-400/80 to-transparent shrink-0 w-full group cursor-pointer order-4"
-              aria-label={isWidgetsExpanded ? 'Collapse widgets' : 'Expand widgets'}
-            >
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                <div className={`w-7 h-7 rounded-full bg-slate-900 border border-cyan-400/40 flex items-center justify-center shadow-lg shadow-cyan-500/20 transition-transform duration-300 ${isWidgetsExpanded ? '' : 'rotate-180'}`}>
-                  <svg className="w-4 h-4 text-cyan-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            </button>
+      {/* Mobile Drawers */}
+      <LobbyDrawer
+        memberships={memberships}
+        isOpen={showLobbyDrawer}
+        onClose={() => setShowLobbyDrawer(false)}
+      />
+      <ChatDrawer
+        isOpen={showChatDrawer}
+        onClose={() => setShowChatDrawer(false)}
+        roomId={room?.id}
+        userId={user?.id}
+        membershipId={myMembership?.id}
+        displayName={myDisplayName}
+      />
+      <LeaderboardHistoryDrawer
+        isOpen={showLeaderboardDrawer}
+        onClose={() => setShowLeaderboardDrawer(false)}
+        roomId={room?.id}
+        currentSessionId={sessionId}
+      />
+      <HelpDrawer
+        isOpen={showHowToPlay}
+        onClose={() => setShowHowToPlay(false)}
+        initialPhase={session?.status}
+      />
 
-            <div className="shrink-0">
-              <SessionPanel
-                session={session}
-                sessionId={sessionId}
-                memberships={memberships}
-                onOpenLeaderboard={() => openEndedModal('leaderboard')}
-                onOpenSelfie={() => openEndedModal('selfie')}
-                onOpenModal={openModal}
-              />
-              {/* Async Interactions - below session panel */}
-              <InteractionSection
-                room={room}
-                memberships={memberships}
-                hasActiveSession={!!session && session.status !== 'ended'}
-              />
-            </div>
-          </div>
-
-          {/* Right Rail */}
-          <RoomInfoRail
-            memberships={memberships}
-            room={room}
-            isCollapsed={isRailCollapsed}
-            onToggle={() => setIsRailCollapsed(!isRailCollapsed)}
-          />
+      {/* Floating Action Buttons - Mobile only */}
+      {isMobile && (
+        <div className="fixed right-4 bottom-24 flex flex-col items-end gap-3 z-40 sm:hidden">
+          {/* Leaderboard Button */}
+          <button
+            onClick={() => {
+              setShowLeaderboardDrawer(!showLeaderboardDrawer);
+              setShowChatDrawer(false);
+              setShowLobbyDrawer(false);
+            }}
+            className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
+              showLeaderboardDrawer 
+                ? 'bg-amber-400 text-white shadow-amber-400/40' 
+                : 'bg-amber-500 hover:bg-amber-400 text-white shadow-amber-500/30'
+            }`}
+            aria-label={showLeaderboardDrawer ? 'Close Leaderboard' : 'Open Leaderboard'}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </button>
+          
+          {/* Chat Button */}
+          <button
+            onClick={() => {
+              setShowChatDrawer(!showChatDrawer);
+              setShowLeaderboardDrawer(false);
+              setShowLobbyDrawer(false);
+            }}
+            className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
+              showChatDrawer 
+                ? 'bg-cyan-400 text-white shadow-cyan-400/40' 
+                : 'bg-cyan-500 hover:bg-cyan-400 text-white shadow-cyan-500/30'
+            }`}
+            aria-label={showChatDrawer ? 'Close Chat' : 'Open Chat'}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </button>
         </div>
       )}
 
-      {/* Bottom Navigation Bar - Mobile only: Home, VIBox, Help, Profile */}
+      {/* Bottom Navigation Bar - Mobile only */}
       <nav className={`chaos-bottom-nav sm:hidden ${shouldHideBottomNav ? 'hidden' : ''}`}>
-        <button
-          type="button"
-          className="chaos-nav-item"
-          onClick={() => window.location.href = '/'}
-        >
-          <div className="text-2xl">🏠</div>
-          <span className="chaos-nav-label">Home</span>
+        <button type="button" className="chaos-nav-item" onClick={() => window.location.href = '/join'}>
+          <div className="text-2xl">🚪</div>
+          <span className="chaos-nav-label">Bail</span>
         </button>
         <button
           type="button"
-          className="chaos-nav-item"
-          onClick={() => setShowVIBox(true)}
+          className={`chaos-nav-item ${showLobbyDrawer ? 'opacity-100' : 'opacity-70'}`}
+          onClick={() => {
+            setShowLobbyDrawer(!showLobbyDrawer);
+            setShowChatDrawer(false);
+            setShowLeaderboardDrawer(false);
+          }}
+        >
+          <div className="text-2xl">👥</div>
+          <span className="chaos-nav-label">Lobby</span>
+        </button>
+        <button 
+          type="button" 
+          className={`chaos-nav-item ${showVIBox ? 'opacity-100' : 'opacity-70'}`}
+          onClick={() => setShowVIBox(!showVIBox)}
         >
           <div className="text-2xl">🎵</div>
           <span className="chaos-nav-label">VIBox</span>
         </button>
-        <button
-          type="button"
-          className="chaos-nav-item"
-          onClick={() => window.open('/help', '_blank')}
+        <button 
+          type="button" 
+          className={`chaos-nav-item ${showHowToPlay ? 'opacity-100' : 'opacity-70'}`}
+          onClick={() => setShowHowToPlay(!showHowToPlay)}
         >
-          <div className="text-xl">❓</div>
+          <div className="text-2xl">❓</div>
           <span className="chaos-nav-label">Help</span>
         </button>
-        <div ref={accountMenuRef} className="relative">
-          <button
-            type="button"
-            className="chaos-nav-item"
+        <div ref={isMobile ? accountMenuRef : undefined} className="relative">
+          <button 
+            type="button" 
+            className={`chaos-nav-item ${showAccountMenu ? 'opacity-100' : 'opacity-70'}`}
             onClick={() => setShowAccountMenu(!showAccountMenu)}
           >
             <div className="text-2xl">
               {user ? (
-                isGuest ? (
-                  '👤'
-                ) : (
+                isGuest ? '👤' : (
                   <span className="text-sm font-semibold">
-                    {(user.user_metadata?.display_name?.[0] || user.email?.[0] || "U").toUpperCase()}
+                    {(user.user_metadata?.display_name?.[0] || user.email?.[0] || 'U').toUpperCase()}
                   </span>
                 )
-              ) : (
-                '👤'
-              )}
+              ) : '👤'}
             </div>
             <span className="chaos-nav-label">Profile</span>
           </button>
-
-          {/* Account Menu Dropdown */}
-          {showAccountMenu && (
+          {showAccountMenu && isMobile && (
             <div className="absolute bottom-full right-0 mb-2 w-64 rounded-xl bg-slate-800 border border-cyan-400/50 shadow-lg shadow-fuchsia-500/20 z-50 overflow-hidden">
               <div className="p-4 space-y-3">
                 {user ? (
                   <>
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
-                        Account
-                      </p>
-                      {user.user_metadata?.display_name ? (
-                        <p className="text-sm font-semibold text-pink-400">
-                          {user.user_metadata.display_name}
-                        </p>
-                      ) : null}
+                      <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">Account</p>
+                      {user.user_metadata?.display_name && (
+                        <p className="text-sm font-semibold text-pink-400">{user.user_metadata.display_name}</p>
+                      )}
                       {user.email ? (
-                        <p className="text-sm text-cyan-300 break-all">
-                          {user.email}
-                        </p>
+                        <p className="text-sm text-cyan-300 break-all">{user.email}</p>
                       ) : (
-                        <p className="text-sm text-slate-400 italic">
-                          No email
-                        </p>
+                        <p className="text-sm text-slate-400 italic">No email</p>
                       )}
                     </div>
                     {isGuest && (
                       <div className="pt-2 border-t border-slate-700">
-                        <p className="text-xs text-slate-400">
-                          Guest mode
-                        </p>
+                        <p className="text-xs text-slate-400">Guest mode</p>
                       </div>
                     )}
                     <div className="pt-2 border-t border-slate-700">
@@ -280,19 +362,8 @@ function RoomPageContent() {
                         onClick={handleSignOut}
                         className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-slate-700/50 rounded-lg transition-colors"
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={2}
-                          stroke="currentColor"
-                          className="w-4 h-4"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"
-                          />
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
                         </svg>
                         Sign Out
                       </button>
@@ -300,12 +371,8 @@ function RoomPageContent() {
                   </>
                 ) : (
                   <div className="space-y-1">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
-                      Not signed in
-                    </p>
-                    <p className="text-sm text-slate-400">
-                      Sign in to access your account
-                    </p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">Not signed in</p>
+                    <p className="text-sm text-slate-400">Sign in to access your account</p>
                   </div>
                 )}
               </div>
