@@ -1,5 +1,5 @@
 import { supabase } from "../supabase/client";
-import type { Interaction, InteractionResponse, InteractionVote } from "../domain/types/interaction.types";
+import type { Interaction, InteractionResponse, InteractionVote, HeadlineFibbageSettings, VotingOption, HeadlineResults } from "../domain/types/interaction.types";
 
 // --- Mappers ---
 
@@ -223,6 +223,85 @@ async function getVotes(interactionId: string): Promise<InteractionVote[]> {
   return (data || []).map(mapVote);
 }
 
+// --- Headline Fibbage Methods ---
+
+async function createHeadlineInteraction(params: {
+  roomId: string;
+  headlineId: string;
+  headlineBlank: string;
+  sourceName: string;
+  publishedAt: string;
+  answerSeconds?: number;
+  votingSeconds?: number;
+}): Promise<Interaction> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) throw new Error("User not authenticated");
+
+  const answerSeconds = params.answerSeconds ?? 90;
+  const votingSeconds = params.votingSeconds ?? 60;
+
+  const settings: HeadlineFibbageSettings = {
+    mode: "headline_fibbage",
+    headlineId: params.headlineId,
+    headlineBlank: params.headlineBlank,
+    sourceName: params.sourceName,
+    publishedAt: params.publishedAt,
+    answerMaxLen: 40,
+    profanityFilter: "basic",
+  };
+
+  const { data, error } = await supabase
+    .from("interactions")
+    .insert({
+      room_id: params.roomId,
+      created_by: userData.user.id,
+      type: "headline_fibbage",
+      status: "active",
+      question: params.headlineBlank,
+      description: `${params.sourceName} • ${new Date(params.publishedAt).toLocaleDateString()}`,
+      settings: settings as any, // Cast to any for Supabase JSON column
+      answer_seconds: answerSeconds,
+      answer_ends_at: new Date(Date.now() + answerSeconds * 1000).toISOString(),
+      voting_seconds: votingSeconds,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to create headline interaction: ${error.message}`);
+  return mapInteraction(data);
+}
+
+async function getVotingOptions(_interactionId: string, _membershipId: string): Promise<VotingOption[]> {
+  // TODO: Replace with actual RPC call when database is updated
+  // For now, return mock data
+  return [
+    { optionId: '1', text: 'The real answer', isReal: true },
+    { optionId: '2', text: 'A believable lie', isReal: false },
+    { optionId: '3', text: 'Another lie', isReal: false },
+    { optionId: '4', text: 'Yet another lie', isReal: false },
+  ];
+}
+
+async function getHeadlineResults(_interactionId: string, _membershipId: string): Promise<HeadlineResults> {
+  // TODO: Replace with actual RPC call when database is updated
+  // For now, return mock data
+  return {
+    realAnswer: 'The real answer to the headline',
+    options: [
+      { optionId: '1', text: 'The real answer to the headline', voteCount: 5, fooledTeams: 5, isReal: true },
+      { optionId: '2', text: 'A believable lie', voteCount: 3, fooledTeams: 3, isReal: false },
+      { optionId: '3', text: 'Another lie', voteCount: 2, fooledTeams: 2, isReal: false },
+      { optionId: '4', text: 'Yet another lie', voteCount: 1, fooledTeams: 1, isReal: false },
+    ],
+  };
+}
+
+async function submitHeadlineVote(interactionId: string, membershipId: string, responseId: string): Promise<void> {
+  // TODO: Replace with actual RPC call when database is updated
+  // For now, just simulate success
+  console.log('Mock vote submitted:', { interactionId, membershipId, responseId });
+}
+
 export const interactionService = {
   createInteraction,
   closeInteraction,
@@ -235,4 +314,8 @@ export const interactionService = {
   advanceToResults,
   submitVote,
   getVotes,
+  createHeadlineInteraction,
+  getVotingOptions,
+  getHeadlineResults,
+  submitHeadlineVote,
 };

@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackgroundAnimation } from "../../components/BackgroundAnimation";
-import { JoinForm } from "../team/Phases";
+import { JoinForm } from "./JoinForm";
 import { useToast } from "../../shared/hooks";
 import { roomService } from "../../services/roomService";
 import { roomMembershipService } from "../../services/roomMembershipService";

@@ -7,6 +7,7 @@ import { useGameState, useSessionOrchestrator, transformRoundSummariesForUI } fr
 import { useRoom } from "../../hooks/useRoom";
 import { VIBoxButton } from "../../shared/components/vibox/VIBoxButton";
 import { VIBoxJukebox } from "../../shared/components/vibox/VIBoxJukebox";
+import { MobileLayout } from "../../shared/components/MobileLayout";
 import { useActiveGroupAnswers, usePlayerLookup, useToast } from "../../shared/hooks";
 import { useAuth } from "../../shared/providers/AuthContext";
 import { useTheme } from "../../shared/providers/ThemeProvider";
@@ -32,6 +33,7 @@ import { setPromptLibrary, pauseSession } from "../session/sessionService";
 import { useHostRoom } from "./useHostRoom";
 import { useHostSession } from "./useHostSession";
 import { useHostComputations, useHostState } from "./hooks";
+import { useResponsiveLayout } from "../room/hooks/useResponsiveLayout";
 import type { PromptLibraryId } from "../../shared/promptLibraries";
 import type { Room, Team } from "../../shared/types";
 
@@ -732,8 +734,58 @@ export function HostPage() {
     </Button>
   ) : null;
 
-  return (
-    <main className="min-h-screen px-4 py-8 bg-slate-950">
+  // Responsive layout hook for mobile detection
+  const { isMobile } = useResponsiveLayout();
+
+  // Bottom navigation content for mobile
+  const mobileBottomNav = (
+    <>
+      <button
+        type="button"
+        className="chaos-nav-item"
+        onClick={() => navigate('/')}
+      >
+        <div className="text-2xl">🏠</div>
+        <span className="chaos-nav-label">Home</span>
+      </button>
+      <button
+        type="button"
+        className="chaos-nav-item"
+        onClick={() => setShowVIBoxModal(true)}
+      >
+        <div className="text-2xl">🎵</div>
+        <span className="chaos-nav-label">VIBox</span>
+      </button>
+      <button
+        type="button"
+        className="chaos-nav-item"
+        onClick={() => window.open('/help', '_blank')}
+      >
+        <div className="text-xl">❓</div>
+        <span className="chaos-nav-label">Help</span>
+      </button>
+      <button
+        type="button"
+        className="chaos-nav-item"
+        onClick={() => navigate('/profile')}
+      >
+        <div className="text-2xl">
+          {user ? (
+            <span className="text-sm font-semibold">
+              {(user.user_metadata?.display_name?.[0] || user.email?.[0] || "U").toUpperCase()}
+            </span>
+          ) : (
+            '👤'
+          )}
+        </div>
+        <span className="chaos-nav-label">Profile</span>
+      </button>
+    </>
+  );
+
+  // Main content (shared between mobile and desktop)
+  const mainContent = (
+    <>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
         <Card className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between" isDark={isDark}>
           <div className="space-y-3">
@@ -1156,7 +1208,7 @@ export function HostPage() {
         </p>
       </Modal>
       {/* Bottom Navigation Bar - Mobile only */}
-      <nav className="chaos-bottom-nav sm:hidden">
+      <nav className="bottom-nav sm:hidden">
         <button
           type="button"
           className="chaos-nav-item"
@@ -1199,6 +1251,28 @@ export function HostPage() {
         </button>
       </nav>
 
+      {/* End of mainContent fragment */}
+    </>
+  );
+
+  // Mobile layout with grid shell
+  if (isMobile) {
+    return (
+      <MobileLayout 
+        bottomNav={mobileBottomNav}
+        className="bg-slate-950"
+      >
+        <div className="px-4 py-4 overflow-y-auto">
+          {mainContent}
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  // Desktop layout (unchanged)
+  return (
+    <main className="min-h-screen px-4 py-8 bg-slate-950">
+      {mainContent}
     </main>
   );
 }

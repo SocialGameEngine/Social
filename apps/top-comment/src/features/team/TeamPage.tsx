@@ -699,7 +699,7 @@ export function TeamPage() {
         </div>
 
         {session ? (
-          <nav className="chaos-bottom-nav sm:hidden">
+          <nav className="bottom-nav sm:hidden">
             <div className="chaos-nav-item">
               <SessionTimer
                 endTime={session.endsAt}

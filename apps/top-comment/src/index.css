@@ -236,10 +236,356 @@ a {
 .chaos-interaction-card {
     background: linear-gradient(135deg, #00ff88, #0099ff);
     border-radius: 28px;
-    box-shadow: 0 16px 0 #000;
+    box-shadow: 0 12px 0 #000;
     color: #000;
-    transform: rotate(2deg);
-    animation: chaos-slam 180ms cubic-bezier(.34,1.56,.64,1);
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+    border: 2px solid transparent;
+}
+
+.chaos-interaction-card:hover {
+    transform: scale(1.02);
+}
+
+.chaos-interaction-card:active {
+    transform: scale(0.98);
+}
+
+.chaos-interaction-card.interacted {
+    background: linear-gradient(135deg, #00ff88, #00ccff); /* slightly brighter */
+    box-shadow: 0 12px 0 #000, 0 0 18px rgba(34,211,238,0.35);
+    border-color: rgba(34,211,238,0.9);
+}
+
+.chaos-edit-badge {
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 12px 16px;
+    border-radius: 9999px;
+    background: #ff1493;
+    border: 3px solid #ffffff;
+    box-shadow: 0 6px 0 #000;
+    color: white;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.chaos-cta-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  border: 2px solid rgba(0,0,0,0.75);
+  box-shadow: 0 4px 0 #000;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.chaos-cta-pill:active {
+  transform: scale(0.94);
+}
+
+.chaos-cta-pill--fresh {
+  border-color: rgba(34, 211, 238, 0.9); /* cyan */
+  box-shadow: 0 4px 0 #000, 0 0 14px rgba(34,211,238,0.22);
+}
+
+.chaos-cta-pill--acted {
+  border-color: rgba(244, 114, 182, 0.85); /* pink */
+  box-shadow: 0 4px 0 #000, 0 0 14px rgba(244,114,182,0.18);
+}
+
+.chaos-action-tile {
+  width: 76px;
+  min-width: 76px;
+  border-radius: 22px;
+  border: 2px solid rgba(0,0,0,0.8);
+  box-shadow: 0 12px 0 #000;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.chaos-action-tile:active {
+  transform: scale(0.96);
+}
+
+.chaos-action-tile svg {
+  stroke-width: 2.5;
+}
+
+.chaos-action-tile--fresh {
+  border-color: rgba(34,211,238,0.9);
+  box-shadow: 0 12px 0 #000, 0 0 14px rgba(34,211,238,0.20);
+}
+
+.chaos-action-tile--acted {
+  border-color: rgba(244, 114, 182, 0.85);
+  box-shadow: 0 12px 0 #000, 0 0 14px rgba(244,114,182,0.18);
+}
+
+:root {
+  --chip-rail-safe: 22px;
+  --phase-chip-safe: 34px;
+}
+
+.chaos-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  line-height: 1;
+  border: 2px solid rgba(0,0,0,0.85);
+  box-shadow: 0 6px 0 #000;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  outline: 1px solid rgba(255,255,255,0.06);
+  outline-offset: -2px;
+}
+
+.chaos-chip--active {
+  background: rgba(0,0,0,0.72);
+  border-color: rgba(250,204,21,0.95);
+  color: rgba(250,204,21,1);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+.chaos-chip--voting {
+  background: rgba(0,0,0,0.72);
+  border-color: rgba(168,85,247,0.95);
+  color: rgba(168,85,247,1);
+  text-shadow: 0 0 6px rgba(168,85,247,0.30);
+}
+
+.chaos-chip--results {
+  background: rgba(0,0,0,0.72);
+  border-color: rgba(34,197,94,0.95);
+  color: rgba(34,197,94,1);
+  text-shadow: 0 0 6px rgba(34,197,94,0.25);
+}
+
+.chaos-chip--closed {
+  background: rgba(0,0,0,0.72);
+  border-color: rgba(148,163,184,0.95);
+  color: rgba(226,232,240,0.95);
+}
+
+.chaos-chip--timer {
+  background: rgba(0,0,0,0.85);
+  border-color: rgba(255,255,255,0.25);
+  color: #fff;
+  min-width: 56px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.chaos-chip--type {
+  background: rgba(0,0,0,0.55);
+  border-color: rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.9);
+  letter-spacing: 0.12em;
+}
+
+.headline-chip-left,
+.headline-chip-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.interaction-row {
+  overflow: visible;
+}
+
+.chaos-chip-rail {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.chaos-chip-stack-left {
+  position: absolute;
+  left: calc(50% - 38px); /* Center of card (interaction center - half action tile) */
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  min-height: 0;
+}
+
+.chaos-chip-right {
+  position: absolute;
+  right: 38px;
+  transform: translateX(50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  min-height: 0;
+}
+
+.chaos-action-tile {
+  min-height: 60px;
+  transform: scale(0.75);
+}
+
+@media (min-width: 640px) {
+  .chaos-action-tile { min-height: 75px; }
+}
+
+/* De-emphasize interaction cards when session button is primary */
+.interaction-supporting {
+  filter: saturate(0.8);
+  opacity: 0.85;
+}
+
+.interaction-supporting:hover {
+  filter: saturate(1);
+  opacity: 1;
+}
+
+/* Radial gradient utility for spotlight effect */
+.bg-gradient-radial {
+  background: radial-gradient(circle, var(--tw-gradient-from) 0%, var(--tw-gradient-via) 50%, var(--tw-gradient-to) 100%);
+}
+
+/* Hero Session Button - Arcade Feel */
+.chaos-session-button {
+  color: #000;
+  border-radius: 28px;
+  border: 3px solid rgba(0,0,0,0.85);
+  box-shadow: 0 16px 0 #000;
+  padding: 18px 18px;
+  transform: rotate(-1.2deg);
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+/* Phase-specific colors */
+.chaos-session-button[data-phase="lobby"] {
+  background: linear-gradient(135deg, rgba(250,204,21,0.95), rgba(250,204,21,0.8));
+  box-shadow: 0 16px 0 #000, 0 0 24px rgba(250,204,21,0.25);
+}
+
+.chaos-session-button[data-phase="lobby"]:active {
+  transform: rotate(-1.2deg) translateY(6px);
+  box-shadow: 0 10px 0 #000, 0 0 16px rgba(250,204,21,0.18);
+}
+
+.chaos-session-button[data-phase="answer"] {
+  background: linear-gradient(135deg, rgba(250,204,21,0.95), rgba(250,204,21,0.8));
+  box-shadow: 0 16px 0 #000, 0 0 24px rgba(250,204,21,0.25);
+}
+
+.chaos-session-button[data-phase="answer"]:active {
+  transform: rotate(-1.2deg) translateY(6px);
+  box-shadow: 0 10px 0 #000, 0 0 16px rgba(250,204,21,0.18);
+}
+
+.chaos-session-button[data-phase="vote"] {
+  background: linear-gradient(135deg, rgba(168,85,247,0.95), rgba(168,85,247,0.8));
+  box-shadow: 0 16px 0 #000, 0 0 24px rgba(168,85,247,0.25);
+}
+
+.chaos-session-button[data-phase="vote"]:active {
+  transform: rotate(-1.2deg) translateY(6px);
+  box-shadow: 0 10px 0 #000, 0 0 16px rgba(168,85,247,0.18);
+}
+
+.chaos-session-button[data-phase="results"] {
+  background: linear-gradient(135deg, rgba(34,197,94,0.95), rgba(34,197,94,0.8));
+  box-shadow: 0 16px 0 #000, 0 0 24px rgba(34,197,94,0.25);
+}
+
+.chaos-session-button[data-phase="results"]:active {
+  transform: rotate(-1.2deg) translateY(6px);
+  box-shadow: 0 10px 0 #000, 0 0 16px rgba(34,197,94,0.18);
+}
+
+.chaos-session-button[data-phase="ended"] {
+  background: linear-gradient(135deg, rgba(34,197,94,0.95), rgba(34,197,94,0.8));
+  box-shadow: 0 16px 0 #000, 0 0 24px rgba(34,197,94,0.25);
+}
+
+.chaos-session-button[data-phase="ended"]:active {
+  transform: rotate(-1.2deg) translateY(6px);
+  box-shadow: 0 10px 0 #000, 0 0 16px rgba(34,197,94,0.18);
+}
+
+/* Animated chip for live/next indicators */
+.pulse-neon {
+  animation: pulse-neon 2s ease-in-out infinite;
+}
+
+@keyframes pulse-neon {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(250,204,21,0.8);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(250,204,21,1);
+  }
+}
+
+.chaos-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    font-weight: 900;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: rgba(2, 6, 23, 0.45);
+    border: 1px solid rgba(34, 211, 238, 0.45);
+    box-shadow: 0 6px 0 rgba(0,0,0,0.55);
+}
+
+.chaos-pill--saved {
+    border-color: rgba(34, 211, 238, 0.9);
+}
+
+.chaos-pill--edit {
+    border-color: rgba(244, 114, 182, 0.85);
 }
 
 .chaos-answer-pill {
@@ -279,11 +625,7 @@ a {
 }
 
 .chaos-bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 85px;
+    /* Deprecated: Use .bottom-nav with grid shell instead */
     background: var(--chaos-menu-bg, rgba(15, 15, 28, 0.75));
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -329,6 +671,51 @@ a {
 
 .chaos-success-dot {
     background: var(--chaos-success-bg, #22c55e);
+}
+
+/* Grid Shell Layout - MobileLayout component styles
+   Benefits over position: fixed:
+   - No manual padding needed
+   - Nav height can change freely
+   - Works with safe areas
+   - Clean mental model
+*/
+.app-shell {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    height: 100dvh;
+    width: 100%;
+    overflow: hidden;
+}
+
+.main-content {
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0; /* CRITICAL: prevents 1fr section from expanding beyond container */
+    position: relative;
+    z-index: 10;
+}
+
+.bottom-nav {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--chaos-menu-bg, rgba(15, 15, 28, 0.75));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--chaos-menu-shadow, 0 -10px 40px rgba(0, 0, 0, 0.6));
+    border-top-left-radius: 32px;
+    border-top-right-radius: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 1rem;
+    min-height: 72px;
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 100;
+}
+
+/* Ensure grid shell fills available space in root containers */
+#root .app-shell {
+    min-height: 100dvh;
 }
 
 .chaos-success-text {

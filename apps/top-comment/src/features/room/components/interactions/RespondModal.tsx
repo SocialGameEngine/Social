@@ -116,15 +116,6 @@ export function RespondModal({
             {isSubmitting ? 'Submitting...' : existingResponse ? 'Update Response' : 'Submit Response'}
           </Button>
 
-          {/* Cancel Link */}
-          <button
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="w-full text-center text-xs sm:text-sm font-medium transition-colors text-cyan-200 hover:text-cyan-300"
-          >
-            Cancel
-          </button>
-
           {/* Error */}
           {error && (
             <p className="text-center text-sm text-rose-400">{error}</p>

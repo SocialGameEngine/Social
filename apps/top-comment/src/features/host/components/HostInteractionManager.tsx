@@ -6,6 +6,7 @@ import { interactionService } from '../../../services/interactionService';
 import type { Interaction, RoomMembership } from '../../../shared/types';
 
 const SendPromptModal = lazy(() => import('../../room/components/interactions/SendPromptModal'));
+const SendHeadlineModal = lazy(() => import('../../room/components/interactions/SendHeadlineModal'));
 const ResponsesDrawer = lazy(() => import('../../room/components/interactions/ResponsesDrawer'));
 
 interface HostInteractionManagerProps {
@@ -17,6 +18,7 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
   const { isDark } = useTheme();
   const { interactions, createInteraction, closeInteraction } = useInteractions({ roomId: room.id });
   const [showSendModal, setShowSendModal] = useState(false);
+  const [showHeadlineModal, setShowHeadlineModal] = useState(false);
   const [viewingResponses, setViewingResponses] = useState<Interaction | null>(null);
 
   const activeMemberCount = memberships?.filter((m) => !m.isBanned).length ?? 0;
@@ -26,6 +28,23 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
       await createInteraction(question, description);
     },
     [createInteraction]
+  );
+
+  const handleSendHeadline = useCallback(
+    async (params: {
+      headlineId: string;
+      headlineBlank: string;
+      sourceName: string;
+      publishedAt: string;
+      answerSeconds?: number;
+      votingSeconds?: number;
+    }) => {
+      await interactionService.createHeadlineInteraction({
+        roomId: room.id,
+        ...params,
+      });
+    },
+    [room.id]
   );
 
   const handleCloseInteraction = useCallback(
@@ -64,12 +83,20 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
               : `${interactions.length} active prompt${interactions.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <Button
-          variant="secondary"
-          onClick={() => setShowSendModal(true)}
-        >
-          Send Prompt
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => setShowHeadlineModal(true)}
+          >
+            🎭 Fibbage
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => setShowSendModal(true)}
+          >
+            Send Prompt
+          </Button>
+        </div>
       </div>
 
       {/* Active Interactions */}
@@ -83,10 +110,18 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <p className={`font-semibold text-sm ${!isDark ? 'text-slate-900' : 'text-white'}`}>
-                    {interaction.question}
+                    {interaction.type === 'headline_fibbage' 
+                      ? `🎭 ${(interaction.settings as any)?.headlineBlank || interaction.question}`
+                      : interaction.question
+                    }
                   </p>
+                  {interaction.type === 'headline_fibbage' && (
+                    <p className={`text-xs ${!isDark ? 'text-slate-500' : 'text-slate-400'} mt-1`}>
+                      {(interaction.settings as any)?.sourceName} • {(interaction.settings as any)?.publishedAt ? new Date((interaction.settings as any).publishedAt).toLocaleDateString() : ''}
+                    </p>
+                  )}
                   <div className={`flex items-center gap-3 mt-1.5 text-xs ${!isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                    <span>{interaction.responseCount}/{activeMemberCount} responses</span>
+                    <span>{interaction.responseCount}/{activeMemberCount} {interaction.type === 'headline_fibbage' ? 'lies' : 'responses'}</span>
                     {interaction.status === 'voting' && <span>{interaction.voteCount} votes</span>}
                     <span>{getTimeAgo(interaction.createdAt)}</span>
                     <span className={`font-bold ${
@@ -96,7 +131,8 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
                     }`}>
                       {interaction.status === 'voting' ? 'Voting' : 
                        interaction.status === 'results' ? 'Results' :
-                       interaction.status === 'closed' ? 'Closed' : 'Active'}
+                       interaction.status === 'closed' ? 'Closed' : 
+                       interaction.type === 'headline_fibbage' ? 'Lie Submission' : 'Active'}
                     </span>
                   </div>
                 </div>
@@ -166,6 +202,14 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
             isOpen={true}
             onClose={() => setShowSendModal(false)}
             onSend={handleSendPrompt}
+          />
+        )}
+
+        {showHeadlineModal && (
+          <SendHeadlineModal
+            isOpen={true}
+            onClose={() => setShowHeadlineModal(false)}
+            onSubmit={handleSendHeadline}
           />
         )}
 

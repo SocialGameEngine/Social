@@ -129,7 +129,7 @@ export interface GameState {
 }
 
 export interface StateMachineContext {
-  teamCount: number;
+  playerCount: number;
   hasAnswers: boolean;
   hasVotes: boolean;
   currentRoundComplete: boolean;

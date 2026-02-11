@@ -56,7 +56,7 @@ export interface RoomMemberJoinedEvent {
   type: 'room.member_joined';
   roomId: string;
   userId: string;
-  teamName: string;
+  playerName: string;
   timestamp: string;
 }
 
@@ -94,7 +94,7 @@ export type RoomEvent =
 export interface RoomValidationRules {
   maxRoomNameLength: number;
   maxRoomDescriptionLength: number;
-  maxTeamNameLength: number;
+  maxPlayerNameLength: number;
   minRoomCodeLength: number;
   maxRoomCodeLength: number;
   maxPlayersPerRoom: number;
@@ -104,7 +104,7 @@ export interface RoomValidationRules {
 export const DEFAULT_ROOM_VALIDATION_RULES: RoomValidationRules = {
   maxRoomNameLength: 100,
   maxRoomDescriptionLength: 500,
-  maxTeamNameLength: 50,
+  maxPlayerNameLength: 50,
   minRoomCodeLength: 6,
   maxRoomCodeLength: 6,
   maxPlayersPerRoom: 100,
@@ -127,7 +127,7 @@ export interface RoomSessionSummary {
   endedAt?: string;
   participantCount: number;
   finalScores: Array<{
-    teamName: string;
+    playerName: string;
     score: number;
     rank: number;
   }>;
@@ -147,7 +147,7 @@ export interface RoomContext {
   isHost: boolean;
   currentMembership: RoomMembership | null;
   createRoom: (data: CreateRoomRequest) => Promise<void>;
-  joinRoom: (code: string, teamName: string) => Promise<void>;
+  joinRoom: (code: string, playerName: string) => Promise<void>;
   leaveRoom: () => Promise<void>;
   updateRoomSettings: (settings: Partial<RoomSettings>) => Promise<void>;
   startSession: (settings: any) => Promise<void>; // Will be typed as SessionSettings when available
@@ -168,7 +168,7 @@ export interface CreateRoomRequest {
 
 export interface JoinRoomRequest {
   code: string;
-  teamName: string;
+  playerName: string;
   mascotId?: number;
 }
 

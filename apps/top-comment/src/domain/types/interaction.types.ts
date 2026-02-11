@@ -1,7 +1,7 @@
 // Domain types for async interactions system
 // These types represent room-scoped interactions (prompts, etc.) independent of sessions
 
-export type InteractionType = 'prompt'; // Phase 2: | 'trivia' | 'poll'
+export type InteractionType = 'prompt' | 'headline_fibbage'; // Phase 2: | 'trivia' | 'poll'
 export type InteractionStatus = 'active' | 'voting' | 'results' | 'closed';
 
 export interface Interaction {
@@ -40,4 +40,32 @@ export interface InteractionVote {
   membershipId: string;
   responseId: string;
   createdAt: string;
+}
+
+// Headline Fibbage specific types
+export interface HeadlineFibbageSettings {
+  mode: 'headline_fibbage';
+  headlineId: string;
+  headlineBlank: string; // e.g. "Tech CEO sues former employee over leaked ____"
+  sourceName: string;
+  publishedAt: string; // ISO
+  answerMaxLen?: number; // e.g. 40
+  profanityFilter?: 'none' | 'basic';
+}
+
+export interface VotingOption {
+  optionId: string;
+  text: string;
+  isReal?: boolean; // Only returned in results phase
+  authorMembershipId?: string | null;
+}
+
+export interface HeadlineResults {
+  realAnswer: string;
+  options: Array<
+    VotingOption & {
+      voteCount: number;
+      fooledTeams: number;
+    }
+  >;
 }
