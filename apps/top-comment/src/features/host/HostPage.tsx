@@ -807,6 +807,14 @@ export function HostPage() {
                 ← Back
               </Link>
               {presenterButton}
+              {storedRoomCode && (
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate(`/analytics/${storedRoomCode}`)}
+                >
+                  Analytics
+                </Button>
+              )}
               <VIBoxButton 
                 onClick={() => setShowVIBoxModal(true)}
                 variant="host"

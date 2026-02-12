@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useRoom } from '../../../hooks/useRoom';
 import { useSession, useMemberships } from '../../session/hooks';
 import { RoomPageProvider } from '../context/RoomPageContext';
@@ -324,6 +324,8 @@ function RoomPageContent() {
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
+  const navigate = useNavigate();
+  const { user, loading: authLoading, signInAnonymously } = useAuth();
   const [sessionId, setSessionId] = useState<string | null>(null);
   
   const { room, memberships, isLoading: roomLoading, error: roomError } = useRoom({
@@ -332,6 +334,15 @@ export function RoomPage() {
 
   const { session } = useSession(sessionId || undefined);
 
+  // Auto sign-in as guest if not authenticated (handles direct link / incognito)
+  useEffect(() => {
+    if (!authLoading && !user) {
+      signInAnonymously().catch((err) =>
+        console.error("Auto guest sign-in failed:", err)
+      );
+    }
+  }, [authLoading, user, signInAnonymously]);
+
   // Get sessionId from room when it updates
   useEffect(() => {
     if (room?.currentSessionId && room.currentSessionId !== sessionId) {
@@ -339,7 +350,19 @@ export function RoomPage() {
     }
   }, [room?.currentSessionId, sessionId]);
 
-  if (roomLoading) {
+  // Check if user has a membership in this room
+  const myMembership = user ? memberships.find(m => m.userId === user.id) : null;
+  const isHost = room?.hostUid === user?.id;
+  const hasMembership = !!myMembership || isHost;
+
+  // Redirect to join page if user has no membership (after loading completes)
+  useEffect(() => {
+    if (!authLoading && user && !roomLoading && room && !hasMembership) {
+      navigate(`/join?code=${roomCode}`, { replace: true });
+    }
+  }, [authLoading, user, roomLoading, room, hasMembership, roomCode, navigate]);
+
+  if (authLoading || roomLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
         <div className="animate-pulse">Loading room...</div>
@@ -354,6 +377,15 @@ export function RoomPage() {
           <h1 className="text-2xl font-bold mb-4">Room Not Found</h1>
           <p className="text-slate-400">The room code "{roomCode}" doesn't exist.</p>
         </div>
+      </div>
+    );
+  }
+
+  // Still waiting for membership check or redirecting
+  if (!hasMembership) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
+        <div className="animate-pulse">Joining room...</div>
       </div>
     );
   }

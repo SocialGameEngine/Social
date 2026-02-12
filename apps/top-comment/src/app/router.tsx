@@ -10,6 +10,7 @@ import { JoinPage } from "../features/join/JoinPage";
 import { PresenterPage } from "../features/presenter/PresenterPage";
 import { NotFoundPage } from "../features/404/NotFoundPage";
 import { RoomPage } from "../features/room/components/RoomPage";
+import { AnalyticsDashboard } from "../features/analytics/AnalyticsDashboard";
 
 export const appRouter = createBrowserRouter([
   {
@@ -46,6 +47,7 @@ export const appRouter = createBrowserRouter([
       { path: "team", loader: () => redirect("/join") },
       { path: "play", loader: () => redirect("/join") },
 
+      { path: "analytics/:roomCode", element: <AnalyticsDashboard /> },
       { path: "presenter/:sessionId", element: <PresenterPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],

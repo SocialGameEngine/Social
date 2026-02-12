@@ -4,8 +4,10 @@ import { ReportButton } from '../../../../shared/components/ReportButton';
 import { ReportModal } from '../../../../shared/components/ReportModal';
 import { BlockConfirmation } from '../../../../shared/components/BlockConfirmation';
 import { ChallengeButton } from '../challenges/ChallengeButton';
+import { BadgeDisplay } from '../../../../shared/components/BadgeDisplay';
 import { reportService, type ReportReason } from '../../../../services/reportService';
 import type { RoomMembership } from '../../../../shared/types';
+import type { PlayerBadge } from '../../../../services/badgeService';
 
 interface LobbyPanelProps {
   memberships: RoomMembership[] | null;
@@ -13,9 +15,10 @@ interface LobbyPanelProps {
   myMembershipId?: string;
   blockPlayer?: (membershipId: string) => Promise<void>;
   onChallengePlayer?: (membershipId: string, playerName: string) => void;
+  roomBadges?: Record<string, PlayerBadge[]>;
 }
 
-export function LobbyPanel({ memberships, roomId, myMembershipId, blockPlayer, onChallengePlayer }: LobbyPanelProps) {
+export function LobbyPanel({ memberships, roomId, myMembershipId, blockPlayer, onChallengePlayer, roomBadges }: LobbyPanelProps) {
   const [reportTarget, setReportTarget] = useState<RoomMembership | null>(null);
   const [blockTarget, setBlockTarget] = useState<{ membershipId: string; name: string } | null>(null);
 
@@ -75,11 +78,16 @@ export function LobbyPanel({ memberships, roomId, myMembershipId, blockPlayer, o
                   )}
                 </div>
 
-                {/* Name + role */}
+                {/* Name + badges */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-200 truncate">
-                    {member.playerName || 'Anonymous'}
-                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium text-slate-200 truncate">
+                      {member.playerName || 'Anonymous'}
+                    </p>
+                    {roomBadges && roomBadges[member.userId] && (
+                      <BadgeDisplay badges={roomBadges[member.userId]} maxShow={3} />
+                    )}
+                  </div>
                 </div>
 
                 {/* Host badge */}

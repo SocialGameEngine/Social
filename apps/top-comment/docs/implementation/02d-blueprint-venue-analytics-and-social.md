@@ -394,3 +394,37 @@ Recommended: D3 → D1 → D2
 | Badge display works | Badges appear next to names in lobby |
 | Name generator produces unique names | Generate 100 names, verify no duplicates |
 | Name suggestions are tappable | Tap chip → input fills |
+
+---
+
+## Implementation Status
+
+### Phase D3: Auto-Generated Player Names ✅
+- **Utility**: `src/shared/utils/nameGenerator.ts` — 50 adjectives × 50 nouns = 2,500+ unique combos
+- **Integration**: `JoinForm.tsx` — 3 tappable name suggestion chips below display name input, shuffle button for new suggestions
+- **UX**: Chips styled with theme-aware colors, fills input on tap
+
+### Phase D1: Venue Analytics Dashboard ✅
+- **Database**: `20260212000000_analytics_views_and_badges.sql` — `room_analytics_summary`, `session_detail_view`, `player_engagement_view` views
+- **Service**: `analyticsService.ts` — `getRoomAnalyticsSummary`, `getSessionHistory`, `getPlayerEngagement`, `getPeakTimes`, `getPopularPromptLibraries`, `getRetentionMetrics`
+- **Hook**: `useVenueAnalytics.ts` — fetches all analytics data with date range state
+- **UI Components**:
+  - `AnalyticsDashboard.tsx` — full page layout with access control (host/venue only)
+  - `StatCards.tsx` — KPI cards (sessions, players, answer rate, duration)
+  - `SessionHistoryTable.tsx` — sortable session list with all metrics
+  - `PeakTimesHeatmap.tsx` — day × hour heatmap with intensity colors
+  - `PromptLibraryChart.tsx` — horizontal bar chart of library usage
+  - `PlayerEngagementTable.tsx` — top returning players with retention metrics
+  - `DateRangePicker.tsx` — 7d/30d/90d/All preset buttons
+- **Route**: `/analytics/:roomCode` added to router
+- **Integration**: "Analytics" button added to HostPage header
+
+### Phase D2: Player Badges & Achievements ✅
+- **Database**: Same migration — `badge_definitions` table (seeded with 11 badges), `player_badges` table with RLS
+- **Data**: `src/shared/data/badges.ts` — badge definitions, rarity colors, helper functions
+- **Service**: `badgeService.ts` — `getPlayerBadges`, `getRoomBadges`, `awardBadge`, `evaluateBadges` (full evaluation engine checking player stats)
+- **Hook**: `useBadges.ts` — fetch badges, evaluate, track newly awarded
+- **UI Components**:
+  - `BadgeDisplay.tsx` — compact emoji row shown next to player names
+  - `BadgeCollectionModal.tsx` — full grid of all badges organized by category, earned/locked states, rarity indicators
+- **Integration**: `LobbyPanel.tsx` — badges shown next to player names (accepts `roomBadges` prop)

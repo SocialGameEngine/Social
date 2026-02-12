@@ -1,5 +1,4 @@
 import { supabase } from "../supabase/client";
-import { logger } from "../shared/utils/logger";
 import { censorText } from "../shared/utils/profanityFilter";
 import { createRateLimiter } from "../shared/utils/rateLimiter";
 import { RATE_LIMITS } from "../shared/constants/rateLimits";
@@ -28,7 +27,7 @@ import type { RoomStatus, RoomSettings } from "../domain/types/room.types";
 // Helper to convert Supabase room membership row to our RoomMembership type
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapRoomMembership(data: Record<string, any>): RoomMembership | null {
-  if (!data) return null;
+  if (!data || !data.user_id) return null;
   
   return {
     id: data.id,
@@ -217,11 +216,8 @@ export async function getRoomMembers(request: GetRoomMembersRequest): Promise<Ge
 
 // Kick a member (host only)
 export async function kickMember(request: KickMemberRequest): Promise<KickMemberResponse> {
-  logger.debug('kickMember called', { request: JSON.stringify(request) });
-  
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) {
-    console.error('❌ User not authenticated');
     throw new Error("User not authenticated");
   }
 
@@ -255,27 +251,38 @@ export async function kickMember(request: KickMemberRequest): Promise<KickMember
     throw new Error("Cannot kick the host");
   }
 
-  // Delete membership
-  logger.debug('Attempting to delete membership for kick');
+  // Application-level cleanup before deleting membership
+  // Delete user's responses
+  await supabase
+    .from('responses')
+    .delete()
+    .eq('membership_id', memberToKick.id);
+
+  // Delete user's interaction votes
+  await supabase
+    .from('interaction_votes')
+    .delete()
+    .eq('membership_id', memberToKick.id);
+
+  // Delete user's room reactions
+  await (supabase.from('room_reactions') as any)
+    .delete()
+    .eq('membership_id', memberToKick.id);
+
+  // Now delete the membership
   const { error: deleteError } = await supabase
     .from('room_memberships')
     .delete()
     .eq('room_id', request.roomId)
     .eq('user_id', request.userId);
 
-  logger.debug('Kick delete result', { deleteError: deleteError?.message });
-
   if (deleteError) {
-    console.error('❌ Failed to kick member:', deleteError);
     throw new Error(`Failed to kick member: ${deleteError.message}`);
   }
 
-  logger.debug('Kick completed successfully');
-  
   // Add a small delay to ensure real-time events propagate
   await new Promise(resolve => setTimeout(resolve, 100));
   
-  // Return success
   return { success: true };
 }
 
@@ -315,15 +322,10 @@ export async function removePlayerFromRoom(request: { roomId: string; userId: st
 
 // Ban a member (host only)
 export async function banMember(request: BanMemberRequest): Promise<BanMemberResponse> {
-  logger.debug('banMember called', { request: JSON.stringify(request) });
-  
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) {
-    console.error('❌ User not authenticated');
     throw new Error("User not authenticated");
   }
-
-  logger.debug('Current user', { userId: userData.user.id });
 
   // Verify user is host
   const { data: hostMembership, error: hostError } = await supabase
@@ -334,10 +336,7 @@ export async function banMember(request: BanMemberRequest): Promise<BanMemberRes
     .eq('is_host', true)
     .single();
 
-  logger.debug('Host membership check', { found: !!hostMembership, error: hostError?.message });
-
   if (hostError || !hostMembership) {
-    console.error('❌ User is not host:', hostError);
     throw new Error("Only the host can ban members");
   }
 
@@ -349,28 +348,16 @@ export async function banMember(request: BanMemberRequest): Promise<BanMemberRes
     .eq('user_id', request.userId)
     .single();
 
-  logger.debug('Member to ban', { found: !!memberToBan, error: memberError?.message });
-
   if (memberError || !memberToBan) {
-    console.error('❌ Member not found:', memberError);
     throw new Error("Member not found");
   }
 
   // Cannot ban host
   if (memberToBan.is_host) {
-    console.error('❌ Cannot ban host');
     throw new Error("Cannot ban the host");
   }
 
-  // Get the room to find current session for ban tracking
-  const { data: roomData, error: roomError } = await supabase
-    .from('rooms')
-    .select('current_session_id')
-    .eq('id', request.roomId)
-    .single();
-
-  logger.debug('Room data for ban', { found: !!roomData, error: roomError?.message });
-
+  
   // Add to top_comment_banned_players table for ban tracking
   const banData: any = {
     room_id: request.roomId,
@@ -384,10 +371,28 @@ export async function banMember(request: BanMemberRequest): Promise<BanMemberRes
     .insert(banData);
 
   if (banError) {
-    console.error('⚠️ Failed to add to top_comment_banned_players (continuing with ban):', banError);
+    // Continue with ban even if tracking fails
   }
 
-  // Delete the membership to kick them out of lobby
+  // Application-level cleanup before deleting membership
+  // Delete user's responses
+  await supabase
+    .from('responses')
+    .delete()
+    .eq('membership_id', memberToBan.id);
+
+  // Delete user's interaction votes
+  await supabase
+    .from('interaction_votes')
+    .delete()
+    .eq('membership_id', memberToBan.id);
+
+  // Delete user's room reactions
+  await (supabase.from('room_reactions') as any)
+    .delete()
+    .eq('membership_id', memberToBan.id);
+
+  // Now delete the membership
   const { error: deleteError } = await supabase
     .from('room_memberships')
     .delete()
@@ -395,11 +400,8 @@ export async function banMember(request: BanMemberRequest): Promise<BanMemberRes
     .eq('user_id', request.userId);
 
   if (deleteError) {
-    console.error('❌ Failed to delete membership:', deleteError);
     throw new Error(`Failed to ban member: ${deleteError.message}`);
   }
-
-  logger.debug('Ban completed successfully');
   return { success: true };
 }
 
