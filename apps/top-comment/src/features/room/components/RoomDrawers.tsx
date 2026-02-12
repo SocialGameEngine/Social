@@ -20,6 +20,8 @@ interface RoomDrawersProps {
   onCloseChat: () => void;
   onCloseLeaderboard: () => void;
   onCloseHelp: () => void;
+  blockPlayer?: (membershipId: string) => Promise<void>;
+  onChallengePlayer?: (membershipId: string, playerName: string) => void;
 }
 
 export function RoomDrawers({
@@ -38,6 +40,8 @@ export function RoomDrawers({
   onCloseLeaderboard,
   onCloseHelp,
   sessionId,
+  blockPlayer,
+  onChallengePlayer,
 }: RoomDrawersProps) {
   return (
     <>
@@ -45,6 +49,10 @@ export function RoomDrawers({
         memberships={memberships}
         isOpen={showLobbyDrawer}
         onClose={onCloseLobby}
+        roomId={roomId}
+        myMembershipId={membershipId}
+        blockPlayer={blockPlayer}
+        onChallengePlayer={onChallengePlayer}
       />
       <ChatDrawer
         isOpen={showChatDrawer}

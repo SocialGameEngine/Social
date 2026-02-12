@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { Timer, Card } from "@social/ui";
 import { BackgroundAnimation } from "../../components/BackgroundAnimation";
 import { TTSControls } from "../../components/TTSControls";
@@ -22,6 +22,9 @@ import QRCodeBlock from "../../components/QRCodeBlock";
 import { useReactions } from "../../hooks/useReactions";
 import { PresenterReactionBar } from "./components/PresenterReactionBar";
 import { ReactionOverlay } from "../room/components/ReactionOverlay";
+import { ReconnectionOverlay } from "./components/ReconnectionOverlay";
+import { useConnectionHealth } from "../../shared/hooks/useConnectionHealth";
+import { savePresenterCache, loadPresenterCache, clearStalePresenterCaches } from "../../shared/utils/presenterCache";
 
 export function PresenterPage() {
   const params = useParams<{ sessionId: string }>();
@@ -80,6 +83,47 @@ export function PresenterPage() {
 
     return () => window.clearInterval(interval);
   }, [session?.paused]);
+
+  // Connection health monitoring
+  const { isConnected, secondsSinceLastUpdate, reconnectAttempts, onReconnect, markUpdated } = useConnectionHealth();
+
+  // Clear stale caches on mount
+  useEffect(() => {
+    clearStalePresenterCaches();
+  }, []);
+
+  // Load from cache on mount
+  useEffect(() => {
+    if (!sessionId) return;
+    const cached = loadPresenterCache(sessionId);
+    if (cached) {
+      console.log('Loaded presenter cache for session', sessionId);
+    }
+  }, [sessionId]);
+
+  // Save to cache when session state changes
+  useEffect(() => {
+    if (!session || !sessionId) return;
+    savePresenterCache(sessionId, {
+      sessionId,
+      sessionStatus: session.status,
+      roomCode: session.code,
+      leaderboard: gameState.leaderboard || [],
+      interactions: [],
+    });
+    markUpdated();
+  }, [session, sessionId, gameState.leaderboard, markUpdated]);
+
+  // Register reconnect handler
+  const handleReconnect = useCallback(() => {
+    // Force a re-fetch by triggering a state update
+    console.log('Reconnected - refreshing presenter data');
+    markUpdated();
+  }, [markUpdated]);
+
+  useEffect(() => {
+    onReconnect(handleReconnect);
+  }, [onReconnect, handleReconnect]);
 
   // Live reactions for presenter view
   const { reactions, reactionCounts, bursts } = useReactions({
@@ -394,6 +438,11 @@ export function PresenterPage() {
         <PresenterReactionBar reactionCounts={reactionCounts} />
       </div>
       <ReactionOverlay reactions={reactions} bursts={bursts} />
+      <ReconnectionOverlay
+        isConnected={isConnected}
+        secondsSinceLastUpdate={secondsSinceLastUpdate}
+        reconnectAttempts={reconnectAttempts}
+      />
     </main>
     </>
   );

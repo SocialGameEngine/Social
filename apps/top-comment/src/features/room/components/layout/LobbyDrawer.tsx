@@ -6,9 +6,13 @@ interface LobbyDrawerProps {
   memberships: RoomMembership[] | null;
   isOpen: boolean;
   onClose: () => void;
+  roomId?: string;
+  myMembershipId?: string;
+  blockPlayer?: (membershipId: string) => Promise<void>;
+  onChallengePlayer?: (membershipId: string, playerName: string) => void;
 }
 
-export function LobbyDrawer({ memberships, isOpen, onClose }: LobbyDrawerProps) {
+export function LobbyDrawer({ memberships, isOpen, onClose, roomId, myMembershipId, blockPlayer, onChallengePlayer }: LobbyDrawerProps) {
   if (!isOpen) return null;
 
   return createPortal(
@@ -42,7 +46,13 @@ export function LobbyDrawer({ memberships, isOpen, onClose }: LobbyDrawerProps) 
 
         {/* Lobby content */}
         <div className="flex-1 min-h-0">
-          <LobbyPanel memberships={memberships} />
+          <LobbyPanel 
+            memberships={memberships} 
+            roomId={roomId}
+            myMembershipId={myMembershipId}
+            blockPlayer={blockPlayer}
+            onChallengePlayer={onChallengePlayer}
+          />
         </div>
       </div>
     </div>,

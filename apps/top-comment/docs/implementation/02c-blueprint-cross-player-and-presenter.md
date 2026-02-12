@@ -395,14 +395,44 @@ From the deep analysis, these functions return hardcoded data:
 
 ---
 
+## Implementation Status
+
+**✅ COMPLETED** - All phases implemented on Feb 11, 2026
+
+### Phase C1: Cross-Player Targeting ✅
+- **Database**: `20260211200000_cross_player_and_submissions.sql` - added `target_type`, `target_membership_id`, `source_membership_id`, `challenge_status`, `challenge_expires_at`, `points_wager` to interactions table
+- **Types**: Extended `InteractionType` with `challenge`, `directed_reaction`, `audience_question`; added `ChallengeStatus`, `TargetType`; added targeting fields to `Interaction` interface
+- **Service**: `challengeService.ts` - send/accept/decline/resolve challenges with rate limiting
+- **Hook**: `useChallenges.ts` - real-time subscription for pending/sent challenges with auto-expiry
+- **UI**: `ChallengeButton.tsx`, `ChallengeModal.tsx` (prompt + wager slider), `ChallengeNotification.tsx` (toast with countdown), `ChallengeResults.tsx`
+- **Integration**: LobbyPanel (challenge button per player), RoomPage (notification overlay + modal), interactionService mapper updated
+
+### Phase C2: Audience-Sourced Question Submission ✅
+- **Database**: `audience_submissions` table with RLS policies + realtime enabled (same migration)
+- **Service**: `audienceSubmissionService.ts` - submit/approve/reject/markUsed with rate limiting
+- **Hook**: `useAudienceSubmissions.ts` - real-time for both players and hosts
+- **UI**: `SubmitQuestionButton.tsx`, `SubmitQuestionModal.tsx` (with categories), `SubmissionReviewPanel.tsx` (host review with approve/reject)
+- **Integration**: RoomPage (floating submit button for non-hosts), RoomSidebar (Q's tab for hosts with badge count)
+
+### Phase C3: Presenter View Hardening ✅
+- **Hook**: `useConnectionHealth.ts` - monitors Supabase realtime connection, tracks reconnect attempts, visibility change handler
+- **Utility**: `presenterCache.ts` - localStorage cache with 24h TTL, save/load/clear
+- **UI**: `ReconnectionOverlay.tsx` - "Reconnecting..." overlay with spinner and stale timer
+- **Integration**: PresenterPage - cache on state change, load from cache on mount, show overlay on disconnect, auto-refresh on reconnect/tab focus
+
+### Phase C4: Complete Headline Fibbage Backend ✅
+- **Replaced**: `getVotingOptions()` - now fetches real responses + real answer, shuffles options, excludes own response
+- **Replaced**: `getHeadlineResults()` - now fetches real votes, calculates vote counts and fooled counts per option
+- **Replaced**: `submitHeadlineVote()` - now calls real `submitVote()` instead of console.log no-op
+- **Fixed**: `fooledTeams` → `fooledCount` rename across types and components
+
 ## Deployment Order
 
 ```
-C1 (Cross-Player Targeting)  ──→  depends on B1 (report/block for safety)
-C2 (Audience Submissions)    ──→  independent, can parallel with C1
-C3 (Presenter Hardening)     ──→  independent, can parallel with C1/C2
-C4 (Headline Fibbage)        ──→  independent, can parallel with all
+✅ C1 (Cross-Player Targeting)  ──→  DEPLOYED
+✅ C2 (Audience Submissions)    ──→  DEPLOYED
+✅ C3 (Presenter Hardening)     ──→  DEPLOYED
+✅ C4 (Headline Fibbage)        ──→  DEPLOYED
 
-Recommended order: C3 → C4 → C2 → C1
-(Ship reliability and completions first, then new features)
+All four phases are complete and ready for testing.
 ```

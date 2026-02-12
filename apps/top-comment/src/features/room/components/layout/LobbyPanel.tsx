@@ -3,6 +3,7 @@ import { getMascotById } from '../../../../shared/mascots';
 import { ReportButton } from '../../../../shared/components/ReportButton';
 import { ReportModal } from '../../../../shared/components/ReportModal';
 import { BlockConfirmation } from '../../../../shared/components/BlockConfirmation';
+import { ChallengeButton } from '../challenges/ChallengeButton';
 import { reportService, type ReportReason } from '../../../../services/reportService';
 import type { RoomMembership } from '../../../../shared/types';
 
@@ -11,9 +12,10 @@ interface LobbyPanelProps {
   roomId?: string;
   myMembershipId?: string;
   blockPlayer?: (membershipId: string) => Promise<void>;
+  onChallengePlayer?: (membershipId: string, playerName: string) => void;
 }
 
-export function LobbyPanel({ memberships, roomId, myMembershipId, blockPlayer }: LobbyPanelProps) {
+export function LobbyPanel({ memberships, roomId, myMembershipId, blockPlayer, onChallengePlayer }: LobbyPanelProps) {
   const [reportTarget, setReportTarget] = useState<RoomMembership | null>(null);
   const [blockTarget, setBlockTarget] = useState<{ membershipId: string; name: string } | null>(null);
 
@@ -87,7 +89,13 @@ export function LobbyPanel({ memberships, roomId, myMembershipId, blockPlayer }:
                   </span>
                 )}
 
-                {/* Report button (not on self or host) */}
+                {/* Challenge + Report buttons (not on self or host) */}
+                {!member.isHost && member.id !== myMembershipId && onChallengePlayer && (
+                  <ChallengeButton
+                    onChallenge={() => onChallengePlayer(member.id, member.playerName || 'Anonymous')}
+                    playerName={member.playerName || 'Anonymous'}
+                  />
+                )}
                 {!member.isHost && member.id !== myMembershipId && (
                   <ReportButton onReport={() => setReportTarget(member)} />
                 )}

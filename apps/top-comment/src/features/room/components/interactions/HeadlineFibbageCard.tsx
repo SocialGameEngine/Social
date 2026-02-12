@@ -203,7 +203,7 @@ function ResultsPanel({
       </div>
 
       <div className="space-y-2">
-        {results.options.map((o: VotingOption & { voteCount: number; fooledTeams: number }) => (
+        {results.options.map((o: VotingOption & { voteCount: number; fooledCount: number }) => (
           <div key={o.optionId} className="p-2 border rounded-md flex items-center justify-between">
             <div className="text-sm">
               {o.text}{' '}

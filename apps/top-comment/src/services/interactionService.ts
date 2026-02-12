@@ -1,5 +1,4 @@
 import { supabase } from "../supabase/client";
-import { logger } from "../shared/utils/logger";
 import { censorText } from "../shared/utils/profanityFilter";
 import { createRateLimiter } from "../shared/utils/rateLimiter";
 import { RATE_LIMITS } from "../shared/constants/rateLimits";
@@ -28,6 +27,12 @@ function mapInteraction(data: any): Interaction {
     votingSeconds: data.voting_seconds,
     createdAt: data.created_at,
     closedAt: data.closed_at,
+    targetType: data.target_type ?? 'broadcast',
+    targetMembershipId: data.target_membership_id ?? null,
+    sourceMembershipId: data.source_membership_id ?? null,
+    challengeStatus: data.challenge_status ?? null,
+    challengeExpiresAt: data.challenge_expires_at ?? null,
+    pointsWager: data.points_wager ?? 0,
   };
 }
 
@@ -294,35 +299,96 @@ async function createHeadlineInteraction(params: {
   return mapInteraction(data);
 }
 
-async function getVotingOptions(_interactionId: string, _membershipId: string): Promise<VotingOption[]> {
-  // TODO: Replace with actual RPC call when database is updated
-  // For now, return mock data
-  return [
-    { optionId: '1', text: 'The real answer', isReal: true },
-    { optionId: '2', text: 'A believable lie', isReal: false },
-    { optionId: '3', text: 'Another lie', isReal: false },
-    { optionId: '4', text: 'Yet another lie', isReal: false },
-  ];
+async function getVotingOptions(interactionId: string, membershipId: string): Promise<VotingOption[]> {
+  // Fetch all responses for this interaction
+  const responses = await getResponses(interactionId);
+
+  // Get the interaction to find the real answer from settings
+  const { data: interactionData, error: intError } = await supabase
+    .from('interactions')
+    .select('settings')
+    .eq('id', interactionId)
+    .single();
+
+  if (intError) throw new Error(`Failed to fetch interaction: ${intError.message}`);
+
+  const settings = interactionData.settings as any;
+  const realAnswer = settings?.headlineBlank ? settings.headlineBlank.replace(/____/g, settings.realAnswer || 'the real answer') : 'Real answer';
+
+  // Build options: player responses + real answer
+  const options: VotingOption[] = responses
+    .filter(r => r.membershipId !== membershipId) // Exclude own response
+    .map(r => ({
+      optionId: r.id,
+      text: r.text,
+      authorMembershipId: r.membershipId,
+    }));
+
+  // Add the real answer
+  options.push({
+    optionId: 'real_answer',
+    text: realAnswer,
+    isReal: true,
+    authorMembershipId: null,
+  });
+
+  // Shuffle
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+
+  return options;
 }
 
-async function getHeadlineResults(_interactionId: string, _membershipId: string): Promise<HeadlineResults> {
-  // TODO: Replace with actual RPC call when database is updated
-  // For now, return mock data
-  return {
-    realAnswer: 'The real answer to the headline',
-    options: [
-      { optionId: '1', text: 'The real answer to the headline', voteCount: 5, fooledTeams: 5, isReal: true },
-      { optionId: '2', text: 'A believable lie', voteCount: 3, fooledTeams: 3, isReal: false },
-      { optionId: '3', text: 'Another lie', voteCount: 2, fooledTeams: 2, isReal: false },
-      { optionId: '4', text: 'Yet another lie', voteCount: 1, fooledTeams: 1, isReal: false },
-    ],
-  };
+async function getHeadlineResults(interactionId: string, _membershipId: string): Promise<HeadlineResults> {
+  // Fetch responses and votes
+  const responses = await getResponses(interactionId);
+  const votes = await getVotes(interactionId);
+
+  // Get the interaction settings for the real answer
+  const { data: interactionData, error: intError } = await supabase
+    .from('interactions')
+    .select('settings')
+    .eq('id', interactionId)
+    .single();
+
+  if (intError) throw new Error(`Failed to fetch interaction: ${intError.message}`);
+
+  const settings = interactionData.settings as any;
+  const realAnswer = settings?.headlineBlank ? settings.headlineBlank.replace(/____/g, settings.realAnswer || 'the real answer') : 'Real answer';
+
+  // Build vote counts per option
+  const voteCounts = new Map<string, number>();
+  for (const v of votes) {
+    voteCounts.set(v.responseId, (voteCounts.get(v.responseId) || 0) + 1);
+  }
+
+  // Build options from responses
+  const options = responses.map(r => ({
+    optionId: r.id,
+    text: r.text,
+    isReal: false,
+    authorMembershipId: r.membershipId,
+    voteCount: voteCounts.get(r.id) || 0,
+    fooledCount: voteCounts.get(r.id) || 0,
+  }));
+
+  // Add real answer option
+  options.push({
+    optionId: 'real_answer',
+    text: realAnswer,
+    isReal: true,
+    authorMembershipId: null as any,
+    voteCount: voteCounts.get('real_answer') || 0,
+    fooledCount: 0,
+  });
+
+  return { realAnswer, options };
 }
 
 async function submitHeadlineVote(interactionId: string, membershipId: string, responseId: string): Promise<void> {
-  // TODO: Replace with actual RPC call when database is updated
-  // For now, just simulate success
-  logger.debug('Mock vote submitted', { interactionId, membershipId, responseId });
+  await submitVote(interactionId, membershipId, responseId);
 }
 
 export const interactionService = {

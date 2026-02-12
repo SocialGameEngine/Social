@@ -35,6 +35,8 @@ import { useHostSession } from "./useHostSession";
 import { useHostComputations, useHostState } from "./hooks";
 import { useHostKeyboardShortcuts } from "../../hooks/useHostKeyboardShortcuts";
 import { useResponsiveLayout } from "../room/hooks/useResponsiveLayout";
+import { useAudienceSubmissions } from "../../hooks/useAudienceSubmissions";
+import { SubmissionReviewPanel } from "../room/components/submissions/SubmissionReviewPanel";
 import type { PromptLibraryId } from "../../shared/promptLibraries";
 import type { Room } from "../../shared/types";
 
@@ -177,6 +179,19 @@ export function HostPage() {
   const lobbyPlayerCount = storedRoomId
     ? roomLobbyMembers.length
     : players.length;
+
+  // Host membership for audience submissions
+  const hostMembership = useMemo(() => {
+    return roomMemberships.find((m) => m.userId === user?.id && m.isHost);
+  }, [roomMemberships, user?.id]);
+
+  // Audience submissions (host review)
+  const {
+    submissions: allSubmissions,
+    pendingCount: pendingSubmissionCount,
+    approveSubmission,
+    rejectSubmission,
+  } = useAudienceSubmissions({ roomId: storedRoomId ?? undefined, membershipId: hostMembership?.id, isHost: true });
 
   // Handle room creation success
   const handleRoomCreateSuccess = (newRoom: Room) => {
@@ -1066,6 +1081,30 @@ export function HostPage() {
                 </ul>
               </div>
             ) : null}
+            {/* Audience Question Submissions Review */}
+            {(storedRoomId || session) && (
+              <div className={`rounded-3xl shadow-lg border-[3px] overflow-hidden ${!isDark ? 'bg-white shadow-slate-300/40 border-slate-200' : 'bg-slate-800 shadow-fuchsia-500/20 border-slate-600'}`}>
+                <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                  <h3 className="text-lg font-semibold text-pink-400">
+                    Audience Questions
+                  </h3>
+                  {pendingSubmissionCount > 0 && (
+                    <span className="text-xs font-bold bg-emerald-500 text-white rounded-full px-2 py-0.5">
+                      {pendingSubmissionCount} pending
+                    </span>
+                  )}
+                </div>
+                <div className="max-h-[400px]">
+                  <SubmissionReviewPanel
+                    submissions={allSubmissions}
+                    pendingCount={pendingSubmissionCount}
+                    isLoading={false}
+                    onApprove={approveSubmission}
+                    onReject={rejectSubmission}
+                  />
+                </div>
+              </div>
+            )}
           </aside>
         </section>
       </div>

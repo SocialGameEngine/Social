@@ -22,6 +22,12 @@ import { ReactionOverlay } from './ReactionOverlay';
 import { useReactions } from '../../../hooks/useReactions';
 import { useBlocks } from '../../../hooks/useBlocks';
 import { useReports } from '../../../hooks/useReports';
+import { useChallenges } from '../../../hooks/useChallenges';
+import { useAudienceSubmissions } from '../../../hooks/useAudienceSubmissions';
+import { ChallengeNotification } from './challenges/ChallengeNotification';
+import { ChallengeModal } from './challenges/ChallengeModal';
+import { SubmitQuestionButton } from './submissions/SubmitQuestionButton';
+import { SubmitQuestionModal } from './submissions/SubmitQuestionModal';
 
 function RoomPageContent() {
   const { room, memberships, session, sessionId, state, openModal, closeModal, markSubmitted, openEndedModal, closeEndedModal, handleLeaveRoom } = useRoomPage();
@@ -50,6 +56,28 @@ function RoomPageContent() {
   // Blocks & reports
   const { blockedIds, blockPlayer } = useBlocks({ membershipId: myMembership?.id, roomId: room?.id });
   const { pendingCount: pendingReportCount } = useReports({ roomId: room?.id, isHost });
+
+  // Challenges
+  const {
+    pendingChallenges,
+    sendChallenge,
+    acceptChallenge,
+    declineChallenge,
+  } = useChallenges({ roomId: room?.id, membershipId: myMembership?.id });
+  const [challengeTarget, setChallengeTarget] = useState<{ id: string; name: string } | null>(null);
+
+  // Audience submissions (player side only - host reviews in HostPage)
+  const {
+    submitQuestion,
+  } = useAudienceSubmissions({ roomId: room?.id, membershipId: myMembership?.id, isHost: false });
+  const [showSubmitQuestion, setShowSubmitQuestion] = useState(false);
+
+  // Helper: get member name from membership id
+  const getMemberName = (membershipId: string | null | undefined) => {
+    if (!membershipId || !memberships) return 'Unknown';
+    const m = memberships.find((mem) => mem.id === membershipId);
+    return m?.playerName || 'Anonymous';
+  };
 
   // Clear ended modals when leaving ended phase
   useEffect(() => {
@@ -81,6 +109,14 @@ function RoomPageContent() {
     onCloseChat: () => setShowChatDrawer(false),
     onCloseLeaderboard: () => setShowLeaderboardDrawer(false),
     onCloseHelp: () => setShowHowToPlay(false),
+    blockPlayer,
+    onChallengePlayer: (id: string, name: string) => {
+      // Close lobby drawer on mobile when opening challenge modal
+      if (isMobile) {
+        setShowLobbyDrawer(false);
+      }
+      setChallengeTarget({ id, name });
+    },
   };
 
   // Shared modal props
@@ -160,6 +196,33 @@ function RoomPageContent() {
           </div>
         </div>
 
+        <ChallengeNotification
+          challenges={pendingChallenges}
+          onAccept={acceptChallenge}
+          onDecline={declineChallenge}
+          getMemberName={getMemberName}
+        />
+        <ChallengeModal
+          isOpen={!!challengeTarget}
+          onClose={() => setChallengeTarget(null)}
+          onSend={async (question, wager) => {
+            if (challengeTarget) {
+              await sendChallenge(challengeTarget.id, question, wager);
+            }
+          }}
+          targetName={challengeTarget?.name || ''}
+        />
+        {!isHost && (
+          <div className="fixed bottom-20 left-4 z-30">
+            <SubmitQuestionButton onClick={() => setShowSubmitQuestion(true)} />
+          </div>
+        )}
+        <SubmitQuestionModal
+          isOpen={showSubmitQuestion}
+          onClose={() => setShowSubmitQuestion(false)}
+          onSubmit={async (q: string, c?: string) => { await submitQuestion(q, c); }}
+        />
+
         <ReactionOverlay reactions={reactions} bursts={bursts} />
         <ReactionBar onReact={sendReaction} reactionCounts={reactionCounts} />
         <RoomDrawers {...drawerProps} />
@@ -209,8 +272,41 @@ function RoomPageContent() {
           blockedIds={blockedIds}
           blockPlayer={blockPlayer}
           pendingReportCount={pendingReportCount}
+          onChallengePlayer={(id: string, name: string) => setChallengeTarget({ id, name })}
         />
       </div>
+
+      {/* Challenge notifications */}
+      <ChallengeNotification
+        challenges={pendingChallenges}
+        onAccept={acceptChallenge}
+        onDecline={declineChallenge}
+        getMemberName={getMemberName}
+      />
+
+      {/* Challenge creation modal */}
+      <ChallengeModal
+        isOpen={!!challengeTarget}
+        onClose={() => setChallengeTarget(null)}
+        onSend={async (question, wager) => {
+          if (challengeTarget) {
+            await sendChallenge(challengeTarget.id, question, wager);
+          }
+        }}
+        targetName={challengeTarget?.name || ''}
+      />
+
+      {/* Submit question button (for non-hosts) */}
+      {!isHost && (
+        <div className="fixed bottom-20 left-4 z-30">
+          <SubmitQuestionButton onClick={() => setShowSubmitQuestion(true)} />
+        </div>
+      )}
+      <SubmitQuestionModal
+        isOpen={showSubmitQuestion}
+        onClose={() => setShowSubmitQuestion(false)}
+        onSubmit={async (q: string, c?: string) => { await submitQuestion(q, c); }}
+      />
 
       <ReactionOverlay reactions={reactions} bursts={bursts} />
       <ReactionBar onReact={sendReaction} reactionCounts={reactionCounts} />

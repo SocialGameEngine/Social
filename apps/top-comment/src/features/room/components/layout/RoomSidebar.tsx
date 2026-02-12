@@ -19,6 +19,7 @@ interface RoomSidebarProps {
   blockPlayer?: (membershipId: string) => Promise<void>;
   isMuted?: boolean;
   pendingReportCount?: number;
+  onChallengePlayer?: (membershipId: string, playerName: string) => void;
 }
 
 function TabBar({ activeTab, setActiveTab, isHost, pendingReportCount }: { activeTab: SidebarTab; setActiveTab: (tab: SidebarTab) => void; isHost?: boolean; pendingReportCount?: number }) {
@@ -74,7 +75,7 @@ function TabBar({ activeTab, setActiveTab, isHost, pendingReportCount }: { activ
   );
 }
 
-export function RoomSidebar({ memberships, isCollapsed, onToggle, roomId, userId, membershipId, displayName, isHost, blockedIds, blockPlayer, isMuted, pendingReportCount }: RoomSidebarProps) {
+export function RoomSidebar({ memberships, isCollapsed, onToggle, roomId, userId, membershipId, displayName, isHost, blockedIds, blockPlayer, isMuted, pendingReportCount, onChallengePlayer }: RoomSidebarProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('lobby');
 
   return (
@@ -103,7 +104,7 @@ export function RoomSidebar({ memberships, isCollapsed, onToggle, roomId, userId
         <>
           <TabBar activeTab={activeTab} setActiveTab={setActiveTab} isHost={isHost} pendingReportCount={pendingReportCount} />
           {activeTab === 'lobby' ? (
-            <LobbyPanel memberships={memberships} roomId={roomId} myMembershipId={membershipId} blockPlayer={blockPlayer} />
+            <LobbyPanel memberships={memberships} roomId={roomId} myMembershipId={membershipId} blockPlayer={blockPlayer} onChallengePlayer={onChallengePlayer} />
           ) : activeTab === 'chat' ? (
             <ChatPanel roomId={roomId} userId={userId} membershipId={membershipId} displayName={displayName} blockedIds={blockedIds} blockPlayer={blockPlayer} isHost={isHost} isMuted={isMuted} />
           ) : (

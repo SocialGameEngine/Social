@@ -1,7 +1,9 @@
 // Domain types for async interactions system
 // These types represent room-scoped interactions (prompts, etc.) independent of sessions
 
-export type InteractionType = 'prompt' | 'headline_fibbage'; // Phase 2: | 'trivia' | 'poll'
+export type InteractionType = 'prompt' | 'headline_fibbage' | 'challenge' | 'directed_reaction' | 'audience_question';
+export type ChallengeStatus = 'pending' | 'accepted' | 'declined' | 'expired';
+export type TargetType = 'broadcast' | 'player' | 'challenge';
 export type InteractionStatus = 'active' | 'voting' | 'results' | 'closed';
 
 export interface Interaction {
@@ -21,6 +23,13 @@ export interface Interaction {
   votingSeconds?: number;
   createdAt: string;
   closedAt?: string | null;
+  // Cross-player targeting fields
+  targetType?: TargetType;
+  targetMembershipId?: string | null;
+  sourceMembershipId?: string | null;
+  challengeStatus?: ChallengeStatus | null;
+  challengeExpiresAt?: string | null;
+  pointsWager?: number;
 }
 
 export interface InteractionResponse {
@@ -65,7 +74,7 @@ export interface HeadlineResults {
   options: Array<
     VotingOption & {
       voteCount: number;
-      fooledTeams: number;
+      fooledCount: number;
     }
   >;
 }
