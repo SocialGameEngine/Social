@@ -35,7 +35,7 @@ import { useHostSession } from "./useHostSession";
 import { useHostComputations, useHostState } from "./hooks";
 import { useResponsiveLayout } from "../room/hooks/useResponsiveLayout";
 import type { PromptLibraryId } from "../../shared/promptLibraries";
-import type { Room, Team } from "../../shared/types";
+import type { Room } from "../../shared/types";
 
 export function HostPage() {
   const { user, loading: authLoading, isVenueAccount, venueAccountLoading, refreshVenueAccount } = useAuth();
@@ -133,7 +133,7 @@ export function HostPage() {
 
   // Extract data from gameState for compatibility with existing code
   const session = gameState.session;
-  const players = useMemo(() => gameState.teams, [gameState.teams]);
+  const players = useMemo(() => gameState.memberships, [gameState.memberships]);
   const answers = gameState.answers;
   const roomJoinCode = storedRoomCode ?? session?.code ?? storedCode ?? "";
   const inviteLink = useMemo(() => {
@@ -166,21 +166,12 @@ export function HostPage() {
     );
   }, [storedRoomId, roomMemberships]);
 
-  const lobbyTeams = useMemo<Team[]>(() => {
+  const lobbyTeams = useMemo(() => {
     if (!storedRoomId) {
       return players;
     }
-    return roomLobbyMembers.map((member) => ({
-      id: member.id,
-      uid: member.userId ?? null,
-      teamName: member.playerName,
-      isHost: member.isHost,
-      score: 0,
-      joinedAt: member.joinedAt,
-      lastActiveAt: member.lastActiveAt,
-      mascotId: member.mascotId,
-    }));
-  }, [session, storedRoomId, roomLobbyMembers, players]);
+    return roomLobbyMembers;
+  }, [storedRoomId, roomLobbyMembers, players]);
 
   const lobbyPlayerCount = storedRoomId
     ? roomLobbyMembers.length
@@ -1033,14 +1024,14 @@ export function HostPage() {
                       className="flex items-center justify-between rounded-2xl px-4 py-3 bg-slate-700"
                     >
                       <span className="font-medium text-cyan-100">
-                        {player.teamName}
+                        {player.playerName}
                         {player.isHost ? " (Host)" : ""}
                       </span>
                       {!player.isHost ? (
                         <div className="flex gap-2">
                           <Button
                             variant="ghost"
-                            onClick={() => storedRoomId && roomKickPlayerHandler(player.id, player.uid || "", storedRoomId)}
+                            onClick={() => storedRoomId && roomKickPlayerHandler(player.id, player.userId || "", storedRoomId)}
                             className="text-sm text-orange-600"
                             disabled={kickingPlayerId !== null || banningPlayerId !== null}
                             isLoading={kickingPlayerId === player.id}
@@ -1049,7 +1040,7 @@ export function HostPage() {
                           </Button>
                           <Button
                             variant="ghost"
-                            onClick={() => storedRoomId && roomBanPlayerHandler(player.id, player.uid || "", storedRoomId)}
+                            onClick={() => storedRoomId && roomBanPlayerHandler(player.id, player.userId || "", storedRoomId)}
                             className="text-sm text-rose-600"
                             disabled={kickingPlayerId !== null || banningPlayerId !== null}
                             isLoading={banningPlayerId === player.id}

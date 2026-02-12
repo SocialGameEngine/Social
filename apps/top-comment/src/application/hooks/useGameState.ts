@@ -8,7 +8,7 @@ import type {
 } from '../types/application.types';
 
 // Import existing hooks for data fetching
-import { useSession, useTeams, useAnswers, useVotes } from '../../features/session/hooks';
+import { useSession, useMemberships, useAnswers, useVotes } from '../../features/session/hooks';
 
 /**
  * Central hook that replaces 10+ useMemo hooks across all pages
@@ -22,7 +22,7 @@ export function useGameState(config: GameStateConfig = {}): UseGameStateReturn {
 
   // Fetch raw data using existing hooks
   const { session, loading: sessionLoading, hasSnapshot } = useSession(sessionId);
-  const teams = useTeams(sessionId);
+  const memberships = useMemberships(sessionId);
   const answers = useAnswers(sessionId, session?.roundIndex);
   const votes = useVotes(sessionId, session?.roundIndex);
 
@@ -46,8 +46,8 @@ export function useGameState(config: GameStateConfig = {}): UseGameStateReturn {
       
       // Domain service computations
       const voteCounts = VotingEngine.calculateVoteCounts(votes);
-      // Players are stored in the teams table; treat each team as a player
-      const leaderboard = LeaderboardCalculator.calculate(teams);
+      // Players are stored in the memberships table; treat each team as a player
+      const leaderboard = LeaderboardCalculator.calculate(memberships);
       const roundSummaries = session ? 
         VotingEngine.calculateRoundSummaries(
           RoundManager.getCurrentGroups(session.rounds, session.roundIndex),
@@ -63,7 +63,7 @@ export function useGameState(config: GameStateConfig = {}): UseGameStateReturn {
         RoundManager.getActiveVoteGroup(session.rounds, session.roundIndex, session.voteGroupIndex) : null;
 
       // Build state machine context
-      const context = SessionStateMachine.buildContext(session, teams, answers, votes);
+      const context = SessionStateMachine.buildContext(session, memberships, answers, votes);
       
       // Phase-specific state
       const canAdvancePhase = session ? 
@@ -83,21 +83,21 @@ export function useGameState(config: GameStateConfig = {}): UseGameStateReturn {
         RoundManager.getVotingProgress(session.voteGroupIndex, currentGroups.length) : 0;
 
       // User-specific state
-      const userTeam = userId ? teams.find(team => team.uid === userId) : null;
+      const userTeam = userId ? memberships.find(team => team.uid === userId) : null;
       const userTeamState = userTeam ? {
         id: userTeam.id,
-        name: userTeam.teamName,
-        score: userTeam.score,
-        rank: LeaderboardCalculator.findTeamRank(userTeam.id, leaderboard),
+        name: userTeam.playerName,
+        score: 0, // RoomMembership doesn't have score
+        rank: LeaderboardCalculator.findMembershipRank(userTeam.id, leaderboard),
         isInCurrentRound: currentGroups.some(group => group.teamIds.includes(userTeam.id)),
-        hasAnswered: answers.some(answer => answer.teamId === userTeam.id),
+        hasAnswered: answers.some(answer => answer.membershipId === userTeam.id),
         hasVoted: votes.some(vote => vote.voterId === userTeam.id)
       } : null;
 
       return {
         // Base game state
         session,
-        teams,
+        memberships,
         answers,
         votes,
         voteCounts,
@@ -140,7 +140,7 @@ export function useGameState(config: GameStateConfig = {}): UseGameStateReturn {
       // Return minimal safe state
       return {
         session: null,
-        teams: [],
+        memberships: [],
         answers: [],
         votes: [],
         voteCounts: new Map(),
@@ -165,7 +165,7 @@ export function useGameState(config: GameStateConfig = {}): UseGameStateReturn {
     session, 
     sessionLoading, 
     hasSnapshot, 
-    teams, 
+    memberships, 
     answers, 
     votes, 
     userId, 

@@ -96,10 +96,15 @@ export function VotePhase({
           activeGroupAnswers.map((answer) => {
             const voteTotal = voteCounts.get(answer.id) ?? 0;
             const isSelected = activeGroupVote === answer.id;
+            // Add teamId compatibility for UI
+            const answerWithTeamId = {
+              ...answer,
+              teamId: answer.membershipId
+            };
             return (
               <AnswerCard
                 key={answer.id}
-                answer={answer}
+                answer={answerWithTeamId}
                 voteCount={voteTotal}
                 isSelected={isSelected}
                 onClick={() => handleHostVote(answer.id)}

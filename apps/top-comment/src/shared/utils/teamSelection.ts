@@ -1,32 +1,32 @@
-import type { Team } from "../types";
+import type { RoomMembership } from "../types";
 
 /**
- * Select a random team from a list
- * @returns Random team or null if list is empty
+ * Select a random membership from a list
+ * @returns Random membership or null if list is empty
  */
-export function selectRandomTeam(teams: Team[]): Team | null {
-  if (teams.length === 0) return null;
-  const randomIndex = Math.floor(Math.random() * teams.length);
-  return teams[randomIndex];
+export function selectRandomMembership(memberships: RoomMembership[]): RoomMembership | null {
+  if (memberships.length === 0) return null;
+  const randomIndex = Math.floor(Math.random() * memberships.length);
+  return memberships[randomIndex];
 }
 
 /**
- * Select one random team per group for category selection
- * @param groups - Array of groups with teamIds
- * @param allTeams - All teams in the session
- * @returns Map of groupId to selected teamId
+ * Select one random membership per group for category selection
+ * @param groups - Array of groups with membershipIds
+ * @param allMemberships - All memberships in the session
+ * @returns Map of groupId to selected membershipId
  */
-export function selectTeamsForGroups(
-  groups: { id: string; teamIds: string[] }[],
-  allTeams: Team[]
+export function selectMembershipsForGroups(
+  groups: { id: string; membershipIds: string[] }[],
+  allMemberships: RoomMembership[]
 ): Map<string, string> {
   const selections = new Map<string, string>();
   
   groups.forEach(group => {
-    const groupTeams = allTeams.filter(t => group.teamIds.includes(t.id));
-    const selectedTeam = selectRandomTeam(groupTeams);
-    if (selectedTeam) {
-      selections.set(group.id, selectedTeam.id);
+    const groupMemberships = allMemberships.filter(m => group.membershipIds.includes(m.id));
+    const selectedMembership = selectRandomMembership(groupMemberships);
+    if (selectedMembership) {
+      selections.set(group.id, selectedMembership.id);
     }
   });
   
@@ -34,11 +34,11 @@ export function selectTeamsForGroups(
 }
 
 /**
- * Check if a team is the selecting team for their group
+ * Check if a membership is the selecting membership for their group
  */
-export function isSelectingTeam(
-  teamId: string,
-  groupSelectingTeamId: string | undefined
+export function isSelectingMembership(
+  membershipId: string,
+  groupSelectingMembershipId: string | undefined
 ): boolean {
-  return groupSelectingTeamId === teamId;
+  return groupSelectingMembershipId === membershipId;
 }

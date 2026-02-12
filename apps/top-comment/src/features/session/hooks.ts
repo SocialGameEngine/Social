@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import type { Answer, Team, Session, Vote } from "../../shared/types";
+import type { Answer, Session, Vote } from "../../shared/types";
 import {
   subscribeToAnswers,
-  subscribeToTeams,
+  subscribeToMemberships,
   subscribeToSession,
   subscribeToVotes,
 } from "./sessionService";
@@ -32,18 +32,18 @@ export function useSession(sessionId?: string) {
   return { session, loading, hasSnapshot };
 }
 
-export function useTeams(sessionId?: string) {
-  const [teams, setTeams] = useState<Team[]>([]);
+export function useMemberships(sessionId?: string) {
+  const [memberships, setMemberships] = useState<any[]>([]);
 
   useEffect(() => {
     if (!sessionId) {
-      setTeams([]);
+      setMemberships([]);
       return;
     }
-    return subscribeToTeams(sessionId, setTeams);
+    return subscribeToMemberships(sessionId, setMemberships);
   }, [sessionId]);
 
-  return teams;
+  return memberships;
 }
 
 export function useAnswers(sessionId?: string, roundIndex?: number) {

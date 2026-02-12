@@ -8,7 +8,6 @@ import { useInviteLink, usePlayerLookup, useSessionTimers, useVoteCalculations, 
 import { useTheme } from "../../shared/providers/ThemeProvider";
 import { phaseSubtitle, phaseHeadline } from "../../shared/constants";
 import classicPrompts from "../../shared/prompts.json";
-import type { Team } from "../../shared/types";
 import {
   LobbyPhase,
   AnswerPhase,
@@ -220,11 +219,8 @@ export function PresenterPage() {
     return "";
   }, [session, totalGroups, activeGroupIndex]);
 
-  // Use gameState.leaderboard and merge with full team data for compatibility
-  const leaderboard = gameState.leaderboard.map(entry => {
-    const team = teams.find(t => t.id === entry.teamId);
-    return team ? { ...team, rank: entry.rank } : null;
-  }).filter(Boolean) as (Team & { rank: number })[];
+  // Use gameState.leaderboard directly - no team merging needed
+  const leaderboard = gameState.leaderboard;
 
   if (!hasSnapshot) {
     return (

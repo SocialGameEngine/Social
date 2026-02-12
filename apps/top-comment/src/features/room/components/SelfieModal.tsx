@@ -1,19 +1,19 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { Button } from '@social/ui';
-import type { Team } from '../../../shared/types';
+import type { RoomMembership } from '../../../shared/types';
 
 interface SelfieModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentTeam?: Team | null;
-  finalLeaderboard?: Array<Team & { rank: number }>;
+  currentMembership?: RoomMembership | null;
+  finalLeaderboard?: Array<RoomMembership & { rank: number }>;
   venueName?: string;
 }
 
 export function SelfieModal({ 
   isOpen, 
   onClose, 
-  currentTeam = null, 
+  currentMembership = null, 
   finalLeaderboard = [], 
   venueName 
 }: SelfieModalProps) {
@@ -34,9 +34,9 @@ export function SelfieModal({
 
   // Shared overlay drawing function - Strava style
   const drawOverlay = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
-    if (!currentTeam || finalLeaderboard.length === 0) return;
+    if (!currentMembership || finalLeaderboard.length === 0) return;
     
-    const teamWithRank = finalLeaderboard.find(t => t.id === currentTeam.id);
+    const teamWithRank = finalLeaderboard.find(t => t.id === currentMembership.id);
     if (!teamWithRank) return;
 
     const scale = width / 375;
@@ -50,16 +50,16 @@ export function SelfieModal({
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, 150 * scale);
     
-    // Team name - large, bold at top left
+    // Player name - large, bold at top left
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.font = `bold ${28 * scale}px Arial, sans-serif`;
-    ctx.fillText(currentTeam.teamName, padding, topY);
+    ctx.fillText(currentMembership.playerName, padding, topY);
     
-    // Rank and score - smaller, below team name
+    // Rank - smaller, below player name
     ctx.font = `${16 * scale}px Arial, sans-serif`;
-    ctx.fillText(`#${teamWithRank.rank} • ${currentTeam.score} pts`, padding, topY + 32 * scale);
+    ctx.fillText(`#${teamWithRank.rank}`, padding, topY + 32 * scale);
     
     // Venue if available
     if (venueName) {
@@ -74,7 +74,7 @@ export function SelfieModal({
     ctx.fillStyle = '#60a5fa';
     ctx.font = `bold ${12 * scale}px Arial, sans-serif`;
     ctx.fillText('Söcial', width - padding, height - padding);
-  }, [currentTeam, finalLeaderboard, venueName]);
+  }, [currentMembership, finalLeaderboard, venueName]);
 
   // Preview animation loop - draws overlay on preview canvas
   const startPreviewOverlay = useCallback(() => {
@@ -208,13 +208,13 @@ export function SelfieModal({
     if (!selfieImage) return;
     
     const link = document.createElement('a');
-    const filename = currentTeam?.teamName 
-      ? `${currentTeam.teamName}-selfie.png` 
+    const filename = currentMembership?.playerName 
+      ? `${currentMembership.playerName}-selfie.png` 
       : 'selfie.png';
     link.download = filename;
     link.href = selfieImage;
     link.click();
-  }, [selfieImage, currentTeam]);
+  }, [selfieImage, currentMembership]);
 
   const shareSelfie = useCallback(async () => {
     if (!selfieImage) return;
@@ -225,10 +225,10 @@ export function SelfieModal({
       
       const shareData = {
         title: 'Söcial Selfie',
-        text: currentTeam 
-          ? `I got ${currentTeam.score} points playing Söcial!` 
+        text: currentMembership 
+          ? 'Check out my Söcial selfie!' 
           : 'Check out my Söcial selfie!',
-        files: [new File([blob], currentTeam?.teamName ? `${currentTeam.teamName}-selfie.png` : 'selfie.png', { type: 'image/png' })]
+        files: [new File([blob], currentMembership?.playerName ? `${currentMembership.playerName}-selfie.png` : 'selfie.png', { type: 'image/png' })]
       };
       
       if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
@@ -240,7 +240,7 @@ export function SelfieModal({
       console.error('Error sharing selfie:', error);
       downloadSelfie();
     }
-  }, [selfieImage, currentTeam, downloadSelfie]);
+  }, [selfieImage, currentMembership, downloadSelfie]);
 
   const handleClose = useCallback(() => {
     cancelSelfie();

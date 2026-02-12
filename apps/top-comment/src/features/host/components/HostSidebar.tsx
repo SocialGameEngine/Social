@@ -1,16 +1,16 @@
 import { Button, QRCodeBlock } from "@social/ui";
-import type { Session, Team } from "../../../shared/types";
+import type { Session } from "../../../shared/types";
 
 interface HostSidebarProps {
   session: Session | null;
   storedRoomId: string | null;
-  lobbyTeams: Team[];
+  lobbyTeams: any[]; // RoomMembership array
   lobbyPlayerCount: number;
   inviteLink: string;
   isDark: boolean;
   setShowBannedPlayersModal: (show: boolean) => void;
-  kickPlayerHandler: (teamId: string, userId: string) => Promise<void>;
-  banPlayerHandler: (teamId: string, userId: string) => Promise<void>;
+  kickPlayerHandler: (membershipId: string, userId: string) => Promise<void>;
+  banPlayerHandler: (membershipId: string, userId: string) => Promise<void>;
   kickingPlayerId: string | null;
   banningPlayerId: string | null;
 }
@@ -63,14 +63,14 @@ export function HostSidebar({
                 className="flex items-center justify-between rounded-2xl px-4 py-3 bg-slate-700"
               >
                 <span className="font-medium text-cyan-100">
-                  {player.teamName}
+                  {player.playerName}
                   {player.isHost ? " (Host)" : ""}
                 </span>
                 {!player.isHost ? (
                   <div className="flex gap-2">
                     <Button
                       variant="ghost"
-                      onClick={() => kickPlayerHandler(player.id, player.uid || "")}
+                      onClick={() => kickPlayerHandler(player.id, player.userId || "")}
                       className="text-sm text-orange-600"
                       disabled={kickingPlayerId !== null || banningPlayerId !== null}
                       isLoading={kickingPlayerId === player.id}
@@ -79,7 +79,7 @@ export function HostSidebar({
                     </Button>
                     <Button
                       variant="ghost"
-                      onClick={() => banPlayerHandler(player.id, player.uid || "")}
+                      onClick={() => banPlayerHandler(player.id, player.userId || "")}
                       className="text-sm text-rose-600"
                       disabled={kickingPlayerId !== null || banningPlayerId !== null}
                       isLoading={banningPlayerId === player.id}

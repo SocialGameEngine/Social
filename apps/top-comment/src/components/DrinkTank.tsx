@@ -1,5 +1,4 @@
 import { getMascotById } from "../shared/mascots";
-import type { Team } from "../shared/types";
 import type { RoomMembership } from "../shared/types";
 
 // Card size for the grid (larger cards = tighter look between cards)
@@ -24,35 +23,15 @@ const teamCardStyles = `
 
 interface DrinkTankProps {
   roomMemberships?: RoomMembership[];
-  teams?: Team[]; // Keep for backward compatibility
   className?: string;
-}
-
-/**
- * Convert room membership to team format for DrinkTank logic
- */
-function roomMembershipToTeam(membership: RoomMembership): Team {
-  return {
-    id: membership.id,
-    uid: membership.userId,
-    teamName: membership.playerName,
-    isHost: membership.isHost,
-    score: 0, // Not used in lobby display
-    joinedAt: membership.joinedAt,
-    lastActiveAt: membership.lastActiveAt,
-    mascotId: membership.mascotId,
-  };
 }
 
 /**
  * Renders team cards in join order: first joiner on the left, pushed right
  * as more join; when the row hits the container edge, cards wrap to the next row.
  */
-export function DrinkTank({ roomMemberships, teams, className = "" }: DrinkTankProps) {
-  // Use roomMemberships if provided, fallback to teams for backward compatibility
-  const displayData = roomMemberships ? 
-    roomMemberships.map(roomMembershipToTeam) : 
-    teams || [];
+export function DrinkTank({ roomMemberships, className = "" }: DrinkTankProps) {
+  const displayData = roomMemberships || [];
     
   const sortedByJoin = [...displayData].sort(
     (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime()
@@ -70,11 +49,11 @@ export function DrinkTank({ roomMemberships, teams, className = "" }: DrinkTankP
           gridTemplateColumns: "repeat(3, auto)",
         }}
       >
-        {displayOrder.map((team) => {
-          const mascot = getMascotById(team.mascotId);
+        {displayOrder.map((membership) => {
+          const mascot = getMascotById(membership.mascotId);
           return (
             <div
-              key={team.id}
+              key={membership.id}
               className="flex flex-col items-center"
               style={{ flexShrink: 0 }}
             >
@@ -100,7 +79,7 @@ export function DrinkTank({ roomMemberships, teams, className = "" }: DrinkTankP
                         e.currentTarget.style.display = "none";
                         const parent = e.currentTarget.parentElement;
                         if (parent) {
-                          parent.textContent = team.teamName
+                          parent.textContent = membership.playerName
                             .charAt(0)
                             .toUpperCase();
                           parent.className =
@@ -114,7 +93,7 @@ export function DrinkTank({ roomMemberships, teams, className = "" }: DrinkTankP
                       className="font-bold text-cyan-400 drop-shadow-[0_2px_4px_rgba(6,182,212,0.4)]"
                       style={{ fontSize: "clamp(1.75rem, 6vw, 3.5rem)" }}
                     >
-                      {team.teamName.charAt(0).toUpperCase()}
+                      {membership.playerName.charAt(0).toUpperCase()}
                     </span>
                   )}
                 </div>
@@ -123,7 +102,7 @@ export function DrinkTank({ roomMemberships, teams, className = "" }: DrinkTankP
                 className="team-grid-name text-xs sm:text-sm font-semibold text-cyan-100 rounded-full px-3 py-1.5 sm:px-4 sm:py-2 whitespace-nowrap"
                 style={{ marginTop: "clamp(6px, 1vw, 12px)" }}
               >
-                {team.teamName}
+                {membership.playerName}
               </span>
             </div>
           );

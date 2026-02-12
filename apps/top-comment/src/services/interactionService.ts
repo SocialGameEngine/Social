@@ -1,4 +1,5 @@
 import { supabase } from "../supabase/client";
+import { logger } from "../shared/utils/logger";
 import type { Interaction, InteractionResponse, InteractionVote, HeadlineFibbageSettings, VotingOption, HeadlineResults } from "../domain/types/interaction.types";
 
 // --- Mappers ---
@@ -259,7 +260,8 @@ async function createHeadlineInteraction(params: {
       status: "active",
       question: params.headlineBlank,
       description: `${params.sourceName} • ${new Date(params.publishedAt).toLocaleDateString()}`,
-      settings: settings as any, // Cast to any for Supabase JSON column
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      settings: JSON.parse(JSON.stringify(settings)),
       answer_seconds: answerSeconds,
       answer_ends_at: new Date(Date.now() + answerSeconds * 1000).toISOString(),
       voting_seconds: votingSeconds,
@@ -299,7 +301,7 @@ async function getHeadlineResults(_interactionId: string, _membershipId: string)
 async function submitHeadlineVote(interactionId: string, membershipId: string, responseId: string): Promise<void> {
   // TODO: Replace with actual RPC call when database is updated
   // For now, just simulate success
-  console.log('Mock vote submitted:', { interactionId, membershipId, responseId });
+  logger.debug('Mock vote submitted', { interactionId, membershipId, responseId });
 }
 
 export const interactionService = {

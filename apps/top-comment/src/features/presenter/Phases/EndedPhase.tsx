@@ -1,9 +1,8 @@
 import { Leaderboard, Card } from "@social/ui";
-import type { Team } from "../../../shared/types";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 
 interface EndedPhaseProps {
-  leaderboard: (Team & { rank: number })[];
+  leaderboard: any[]; // LeaderboardEntry with rank
 }
 
 export function EndedPhase({ leaderboard }: EndedPhaseProps) {

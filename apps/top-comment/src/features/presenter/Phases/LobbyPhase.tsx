@@ -1,13 +1,13 @@
 import { StatusSummaryCard } from "./StatusSummaryCard";
 import { DrinkTank } from "../../../components/DrinkTank";
-import type { Session, Team } from "../../../shared/types";
+import type { Session } from "../../../shared/types";
 
 interface LobbyPhaseProps {
   session: Session;
   presenterHeading: string | null;
   groupStatusLabel: string;
   totalSeconds: number;
-  players: Team[];
+  players: any[]; // RoomMembership array
 }
 
 export function LobbyPhase({
@@ -27,7 +27,7 @@ export function LobbyPhase({
       />
 
       {/* Floating mascot drink tank */}
-      <DrinkTank teams={players} className="mt-8" />
+      <DrinkTank roomMemberships={players} className="mt-8" />
     </>
   );
 }

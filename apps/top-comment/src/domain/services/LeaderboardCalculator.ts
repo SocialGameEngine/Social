@@ -1,4 +1,5 @@
-import type { Team, LeaderboardEntry } from '../types/domain.types';
+import type { LeaderboardEntry } from '../types/domain.types';
+import type { RoomMembership } from '../types/room.types';
 
 /**
  * Pure service for leaderboard calculations
@@ -6,61 +7,65 @@ import type { Team, LeaderboardEntry } from '../types/domain.types';
  */
 export class LeaderboardCalculator {
   /**
-   * Generate a leaderboard with ranks from teams array
-   * Teams are sorted by score (descending), ties get same rank
-   * @param teams - Array of teams to calculate leaderboard for
+   * Generate a leaderboard with ranks from memberships array
+   * Memberships are sorted by score (descending), ties get same rank
+   * @param memberships - Array of memberships to calculate leaderboard for
+   * @param scores - Optional map of membershipId to score
    * @returns Array of LeaderboardEntry objects with ranks
    */
-  static calculate(teams: Team[]): LeaderboardEntry[] {
-    if (teams.length === 0) {
+  static calculate(memberships: RoomMembership[], scores?: Map<string, number>): LeaderboardEntry[] {
+    if (memberships.length === 0) {
       return [];
     }
 
-    // Sort teams by score (descending)
-    const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
+    // Create entries with scores
+    const entries = memberships.map(membership => ({
+      membership,
+      score: scores?.get(membership.id) || 0
+    }));
+
+    // Sort by score (descending)
+    const sortedEntries = [...entries].sort((a, b) => b.score - a.score);
     
     // Calculate ranks with ties handled correctly
     const leaderboard: LeaderboardEntry[] = [];
     let currentRank = 1;
-    let previousScore = sortedTeams[0].score;
-    let teamsAtCurrentScore = 1;
+    let previousScore = sortedEntries[0].score;
+    let entriesAtCurrentScore = 1;
 
-    for (let i = 0; i < sortedTeams.length; i++) {
-      const team = sortedTeams[i];
+    for (let i = 0; i < sortedEntries.length; i++) {
+      const entry = sortedEntries[i];
       
-      // If score changed, update rank
-      if (i > 0 && team.score < previousScore) {
-        currentRank = teamsAtCurrentScore + 1;
-        teamsAtCurrentScore = currentRank;
-      } else if (i > 0 && team.score === previousScore) {
-        // Same score, same rank
-        teamsAtCurrentScore++;
-      } else {
-        teamsAtCurrentScore = currentRank;
+      if (entry.score < previousScore) {
+        currentRank += entriesAtCurrentScore;
+        entriesAtCurrentScore = 1;
+        previousScore = entry.score;
+      } else if (entry.score === previousScore) {
+        entriesAtCurrentScore++;
       }
-      
-      previousScore = team.score;
-      
-      leaderboard.push({
-        teamId: team.id,
-        teamName: team.teamName,
-        score: team.score,
+
+      const leaderboardEntry: LeaderboardEntry = {
+        membershipId: entry.membership.id,
+        playerName: entry.membership.playerName,
+        score: entry.score,
         rank: currentRank,
-        mascotId: team.mascotId
-      });
+        mascotId: entry.membership.mascotId,
+      };
+
+      leaderboard.push(leaderboardEntry);
     }
 
     return leaderboard;
   }
 
   /**
-   * Find the rank of a specific team in the leaderboard
-   * @param teamId - ID of the team to find
+   * Find the rank of a specific membership in the leaderboard
+   * @param membershipId - ID of the membership to find
    * @param leaderboard - Leaderboard array to search in
-   * @returns Rank of the team, or null if team not found
+   * @returns Rank of the membership, or null if membership not found
    */
-  static findTeamRank(teamId: string, leaderboard: LeaderboardEntry[]): number | null {
-    const entry = leaderboard.find(entry => entry.teamId === teamId);
+  static findMembershipRank(membershipId: string, leaderboard: LeaderboardEntry[]): number | null {
+    const entry = leaderboard.find(entry => entry.membershipId === membershipId);
     return entry?.rank ?? null;
   }
 
@@ -115,14 +120,14 @@ export class LeaderboardCalculator {
   }
 
   /**
-   * Check if a team is in the top N positions
-   * @param teamId - ID of the team to check
+   * Check if a membership is in the top N positions
+   * @param membershipId - ID of the membership to check
    * @param leaderboard - Leaderboard array
    * @param n - Top N positions to check against
-   * @returns Whether the team is in top N
+   * @returns Whether the membership is in top N
    */
-  static isTeamInTopN(teamId: string, leaderboard: LeaderboardEntry[], n: number): boolean {
-    const rank = this.findTeamRank(teamId, leaderboard);
+  static isMembershipInTopN(membershipId: string, leaderboard: LeaderboardEntry[], n: number): boolean {
+    const rank = this.findMembershipRank(membershipId, leaderboard);
     return rank !== null && rank <= n;
   }
 
@@ -142,28 +147,7 @@ export class LeaderboardCalculator {
     return tieCounts;
   }
 
-  /**
-   * Calculate the maximum possible rank a team could achieve
-   * based on current scores and potential points
-   * @param teamId - ID of the team
-   * @param teams - All teams array
-   * @param potentialPoints - Maximum points the team could still earn
-   * @returns Best possible rank for the team
-   */
-  static calculateBestPossibleRank(teamId: string, teams: Team[], potentialPoints: number): number {
-    const targetTeam = teams.find(t => t.id === teamId);
-    if (!targetTeam) return teams.length + 1;
-    
-    const targetFinalScore = targetTeam.score + potentialPoints;
-    
-    // Count teams that would still beat this team even with max points
-    const teamsThatWouldBeat = teams.filter(team => 
-      team.id !== teamId && team.score > targetFinalScore
-    ).length;
-    
-    return teamsThatWouldBeat + 1;
-  }
-
+  
   /**
    * Validate leaderboard consistency
    * @param leaderboard - Leaderboard array to validate

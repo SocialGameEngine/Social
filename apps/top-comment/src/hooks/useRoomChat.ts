@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../supabase/client';
+import type { RoomMessageRow } from '../domain/types/database.types';
 
 export interface ChatMessage {
   id: string;
@@ -40,7 +41,7 @@ export function useRoomChat({ roomId, userId, membershipId, displayName }: UseRo
           console.error('Error fetching chat messages:', error);
         } else if (data) {
           setMessages(
-            data.map((msg: any) => ({
+            (data as RoomMessageRow[]).map((msg) => ({
               id: msg.id,
               roomId: msg.room_id,
               userId: msg.user_id,
@@ -70,7 +71,7 @@ export function useRoomChat({ roomId, userId, membershipId, displayName }: UseRo
           filter: `room_id=eq.${roomId}`,
         },
         (payload) => {
-          const msg = payload.new as any;
+          const msg = payload.new as RoomMessageRow;
           setMessages((prev) => [
             ...prev,
             {

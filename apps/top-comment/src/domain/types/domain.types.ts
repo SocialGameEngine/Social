@@ -56,21 +56,9 @@ export interface Session {
   currentLibraryIndex?: number; // For mashup mode
 }
 
-export interface Team {
-  id: string;
-  uid: string | null; // Nullable for teams without captains
-  teamName: string;
-  isHost: boolean;
-  score: number;
-  joinedAt: string;
-  lastActiveAt?: string;
-  mascotId?: number;
-  team_members?: import("../../shared/types").TeamMember[];
-}
-
 export interface Answer {
   id: string;
-  teamId: string;
+  membershipId: string; // Replaces teamId - references RoomMembership
   roundIndex: number;
   groupId: string;
   text: string;
@@ -108,8 +96,8 @@ export interface AnswerWithVotes {
 }
 
 export interface LeaderboardEntry {
-  teamId: string;
-  teamName: string;
+  membershipId: string; // Replaces teamId
+  playerName: string; // Replaces teamName - from RoomMembership.playerName
   score: number;
   rank: number;
   mascotId?: number;
@@ -117,7 +105,7 @@ export interface LeaderboardEntry {
 
 export interface GameState {
   session: Session | null;
-  teams: Team[];
+  memberships: import("../types/room.types").RoomMembership[]; // Replaces teams
   answers: Answer[];
   votes: Vote[];
   voteCounts: Map<string, number>;

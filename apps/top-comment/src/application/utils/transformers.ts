@@ -1,10 +1,10 @@
 import type { LeaderboardEntry, RoundSummary as DomainRoundSummary } from '../../domain/types/domain.types';
-import type { Team, Answer } from '../../shared/types';
+import type { Answer } from '../../shared/types';
 
 /**
  * UI-specific type for leaderboard display
  */
-export interface LeaderboardPlayer extends Team {
+export interface LeaderboardPlayer extends LeaderboardEntry {
   rank: number;
 }
 
@@ -14,8 +14,8 @@ export interface LeaderboardPlayer extends Team {
 export interface RoundSummary {
   group: { id: string; prompt: string; teamIds: string[] };
   index: number;
-  answers: (Answer & { teamName: string })[];
-  winners: (Answer & { teamName: string })[];
+  answers: (Answer & { playerName: string })[];
+  winners: (Answer & { playerName: string })[];
 }
 
 /**
@@ -24,14 +24,14 @@ export interface RoundSummary {
  */
 export function transformLeaderboardForUI(
   entries: LeaderboardEntry[],
-  players: Team[]
+  players: any[] // RoomMembership array
 ): LeaderboardPlayer[] {
   return entries
     .map(entry => {
-      const player = players.find(p => p.id === entry.teamId);
+      const player = players.find(p => p.id === entry.membershipId);
       if (!player) return null;
       return {
-        ...player,
+        ...entry,
         rank: entry.rank
       };
     })
@@ -45,7 +45,7 @@ export function transformLeaderboardForUI(
 export function transformRoundSummariesForUI(
   summaries: DomainRoundSummary[],
   groups: Array<{ id: string; prompt: string; teamIds: string[] }>,
-  players: Team[]
+  players: any[] // RoomMembership array
 ): RoundSummary[] {
   return summaries.map(summary => {
     const group = groups.find(g => g.id === summary.groupId) || {
@@ -58,10 +58,10 @@ export function transformRoundSummariesForUI(
     const groupIndex = groups.findIndex(g => g.id === summary.groupId);
 
     const enrichAnswer = (answerData: { answer: Answer }) => {
-      const player = players.find(p => p.id === answerData.answer.teamId);
+      const player = players.find(p => p.id === answerData.answer.membershipId);
       return {
         ...answerData.answer,
-        teamName: player?.teamName || 'Unknown'
+        playerName: player?.playerName || 'Unknown'
       };
     };
 
@@ -80,9 +80,9 @@ export function transformRoundSummariesForUI(
  */
 export function transformLeaderboardSimple(entries: LeaderboardEntry[]) {
   return entries.map(entry => ({
-    id: entry.teamId,
+    id: entry.membershipId,
     rank: entry.rank,
-    teamName: entry.teamName,
+    playerName: entry.playerName,
     score: entry.score,
     mascotId: entry.mascotId
   }));

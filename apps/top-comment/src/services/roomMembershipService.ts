@@ -1,4 +1,5 @@
 import { supabase } from "../supabase/client";
+import { logger } from "../shared/utils/logger";
 
 import type {
   JoinRoomRequest,
@@ -18,9 +19,10 @@ import type {
   Room,
   RoomMembership,
 } from "../shared/types";
-
-// Helper to convert Supabase room membership to our RoomMembership type
-function mapRoomMembership(data: any): RoomMembership | null {
+import type { RoomStatus, RoomSettings } from "../domain/types/room.types";
+// Helper to convert Supabase room membership row to our RoomMembership type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapRoomMembership(data: Record<string, any>): RoomMembership | null {
   if (!data) return null;
   
   return {
@@ -28,15 +30,15 @@ function mapRoomMembership(data: any): RoomMembership | null {
     roomId: data.room_id,
     userId: data.user_id,
     playerName: data.player_name,
-    mascotId: data.mascot_id,
-    joinedAt: data.joined_at,
-    lastActiveAt: data.last_active_at,
-    isHost: data.is_host,
-    isBanned: data.is_banned,
-    banReason: data.ban_reason,
-    bannedAt: data.banned_at,
-    bannedBy: data.banned_by,
-    status: data.status || 'active',
+    mascotId: data.mascot_id ?? undefined,
+    joinedAt: data.joined_at || '',
+    lastActiveAt: data.last_active_at || '',
+    isHost: data.is_host ?? false,
+    isBanned: data.is_banned ?? false,
+    banReason: data.ban_reason ?? undefined,
+    bannedAt: data.banned_at ?? undefined,
+    bannedBy: data.banned_by ?? undefined,
+    status: (data.status as RoomMembership['status']) || 'active',
   };
 }
 
@@ -61,11 +63,11 @@ export async function joinRoom(request: JoinRoomRequest): Promise<JoinRoomRespon
     hostUid: roomData.host_uid,
     name: roomData.name || "",
     description: roomData.description || undefined,
-    status: roomData.status as any, // Will be properly typed by DB
+    status: roomData.status as RoomStatus,
     maxPlayers: roomData.max_players,
     createdAt: roomData.created_at || "",
     updatedAt: roomData.updated_at || "",
-    settings: (roomData.settings as any) || {}, // Will be properly typed by DB
+    settings: (roomData.settings || {}) as unknown as RoomSettings,
     currentSessionId: roomData.current_session_id || undefined,
     totalSessionsPlayed: roomData.total_sessions_played || 0,
   };
@@ -202,7 +204,7 @@ export async function getRoomMembers(request: GetRoomMembersRequest): Promise<Ge
 
 // Kick a member (host only)
 export async function kickMember(request: KickMemberRequest): Promise<KickMemberResponse> {
-  console.log('👟 kickMember called with:', request);
+  logger.debug('kickMember called', { request: JSON.stringify(request) });
   
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) {
@@ -241,21 +243,21 @@ export async function kickMember(request: KickMemberRequest): Promise<KickMember
   }
 
   // Delete membership
-  console.log('🗑️ Attempting to delete membership for kick');
+  logger.debug('Attempting to delete membership for kick');
   const { error: deleteError } = await supabase
     .from('room_memberships')
     .delete()
     .eq('room_id', request.roomId)
     .eq('user_id', request.userId);
 
-  console.log('📊 Kick delete result:', { deleteError });
+  logger.debug('Kick delete result', { deleteError: deleteError?.message });
 
   if (deleteError) {
     console.error('❌ Failed to kick member:', deleteError);
     throw new Error(`Failed to kick member: ${deleteError.message}`);
   }
 
-  console.log('✅ Kick completed successfully');
+  logger.debug('Kick completed successfully');
   
   // Add a small delay to ensure real-time events propagate
   await new Promise(resolve => setTimeout(resolve, 100));
@@ -300,7 +302,7 @@ export async function removePlayerFromRoom(request: { roomId: string; userId: st
 
 // Ban a member (host only)
 export async function banMember(request: BanMemberRequest): Promise<BanMemberResponse> {
-  console.log('🔨 banMember called with:', request);
+  logger.debug('banMember called', { request: JSON.stringify(request) });
   
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) {
@@ -308,7 +310,7 @@ export async function banMember(request: BanMemberRequest): Promise<BanMemberRes
     throw new Error("User not authenticated");
   }
 
-  console.log('👤 Current user:', userData.user.id);
+  logger.debug('Current user', { userId: userData.user.id });
 
   // Verify user is host
   const { data: hostMembership, error: hostError } = await supabase
@@ -319,7 +321,7 @@ export async function banMember(request: BanMemberRequest): Promise<BanMemberRes
     .eq('is_host', true)
     .single();
 
-  console.log('🏠 Host membership check:', { hostMembership, hostError });
+  logger.debug('Host membership check', { found: !!hostMembership, error: hostError?.message });
 
   if (hostError || !hostMembership) {
     console.error('❌ User is not host:', hostError);
@@ -334,7 +336,7 @@ export async function banMember(request: BanMemberRequest): Promise<BanMemberRes
     .eq('user_id', request.userId)
     .single();
 
-  console.log('🎯 Member to ban:', { memberToBan, memberError });
+  logger.debug('Member to ban', { found: !!memberToBan, error: memberError?.message });
 
   if (memberError || !memberToBan) {
     console.error('❌ Member not found:', memberError);
@@ -354,7 +356,7 @@ export async function banMember(request: BanMemberRequest): Promise<BanMemberRes
     .eq('id', request.roomId)
     .single();
 
-  console.log('🏠 Room data:', { roomData, roomError });
+  logger.debug('Room data for ban', { found: !!roomData, error: roomError?.message });
 
   // Add to top_comment_banned_players table for ban tracking
   const banData: any = {
@@ -384,7 +386,7 @@ export async function banMember(request: BanMemberRequest): Promise<BanMemberRes
     throw new Error(`Failed to ban member: ${deleteError.message}`);
   }
 
-  console.log('✅ Ban completed successfully - player kicked from lobby and added to ban list');
+  logger.debug('Ban completed successfully');
   return { success: true };
 }
 
