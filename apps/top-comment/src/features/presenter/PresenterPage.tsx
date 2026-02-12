@@ -19,6 +19,9 @@ import { StatusSummaryCard } from "./Phases/StatusSummaryCard";
 import { VoiceProfileSelector } from "./components/VoiceProfileSelector";
 import { usePresenterTTS } from "./hooks/usePresenterTTS";
 import QRCodeBlock from "../../components/QRCodeBlock";
+import { useReactions } from "../../hooks/useReactions";
+import { PresenterReactionBar } from "./components/PresenterReactionBar";
+import { ReactionOverlay } from "../room/components/ReactionOverlay";
 
 export function PresenterPage() {
   const params = useParams<{ sessionId: string }>();
@@ -77,6 +80,12 @@ export function PresenterPage() {
 
     return () => window.clearInterval(interval);
   }, [session?.paused]);
+
+  // Live reactions for presenter view
+  const { reactions, reactionCounts, bursts } = useReactions({
+    roomId: session?.roomId,
+    membershipId: undefined, // Presenter doesn't send reactions
+  });
 
   const playerLookup = usePlayerLookup(teams);
   const inviteLink = useInviteLink(session);
@@ -381,7 +390,10 @@ export function PresenterPage() {
         </header>
 
         {renderPhaseContent()}
+
+        <PresenterReactionBar reactionCounts={reactionCounts} />
       </div>
+      <ReactionOverlay reactions={reactions} bursts={bursts} />
     </main>
     </>
   );

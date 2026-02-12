@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../supabase/client';
 import type { RoomMessageRow } from '../domain/types/database.types';
+import { censorText } from '../shared/utils/profanityFilter';
+import { createRateLimiter } from '../shared/utils/rateLimiter';
+import { RATE_LIMITS } from '../shared/constants/rateLimits';
+
+const chatLimiter = createRateLimiter(RATE_LIMITS.chat.maxActions, RATE_LIMITS.chat.windowMs);
 
 export interface ChatMessage {
   id: string;
@@ -101,13 +106,18 @@ export function useRoomChat({ roomId, userId, membershipId, displayName }: UseRo
     async (content: string) => {
       if (!roomId || !userId || !membershipId || !content.trim()) return;
 
+      if (!chatLimiter.canAct()) {
+        throw new Error('Slow down! You are sending messages too fast.');
+      }
+
       setIsSending(true);
+      const filteredContent = censorText(content.trim());
       const { error } = await supabase.from('room_messages').insert({
         room_id: roomId,
         user_id: userId,
         membership_id: membershipId,
         display_name: displayName || 'Anonymous',
-        content: content.trim(),
+        content: filteredContent,
       });
 
       if (error) {

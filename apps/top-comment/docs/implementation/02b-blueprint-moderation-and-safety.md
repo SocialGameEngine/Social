@@ -292,13 +292,36 @@ alter table room_messages add column if not exists hidden_at timestamptz;
 
 ---
 
+## Implementation Status
+
+**✅ COMPLETED** - All phases implemented and deployed on Feb 11, 2026
+
+### Phase B1: Report & Block System ✅
+- **Database**: `20260211100000_create_reports_and_blocks.sql` migration applied (reports + player_blocks tables with RLS)
+- **Service**: `reportService.ts` - full CRUD for reports and blocks with rate limiting
+- **Hooks**: `useReports.ts` (host real-time report queue), `useBlocks.ts` (player block management)
+- **UI**: `ReportButton.tsx`, `ReportModal.tsx`, `BlockConfirmation.tsx`, `ModerationPanel.tsx`
+- **Integration**: ChatPanel (report on messages, block filtering), LobbyPanel (report on players), RoomSidebar (Mod tab for hosts), RoomPage (wired up hooks)
+
+### Phase B2: Rate Limiting ✅
+- **Utility**: `rateLimiter.ts` - sliding window rate limiter
+- **Config**: `rateLimits.ts` - configurable limits for chat, reactions, responses, votes, joins, reports
+- **Integration**: Applied to `useRoomChat.ts`, `interactionService.ts` (responses + votes), `roomMembershipService.ts` (joins), `reportService.ts` (reports)
+
+### Phase B3: Host Moderation Controls ✅
+- **Database**: Mute columns on `room_memberships`, hidden columns on `room_messages` (same migration)
+- **Service**: `chatModerationService.ts` - hide/unhide messages, mute/unmute members with expiry
+- **Types**: Added `isMuted`, `mutedAt`, `muteExpiresAt` to `RoomMembership`; `slowMode` to `RoomSettings`
+- **UI**: Mute buttons with duration picker in ModerationPanel, hide button on chat messages (host-only), muted input state in ChatPanel
+
 ## Deployment Order
 
 ```
-B1 (Report/Block)  →  B2 (Rate Limiting)  →  B3 (Host Moderation)
+✅ B1 (Report/Block)  →  DEPLOYED
+✅ B2 (Rate Limiting)  →  DEPLOYED
+✅ B3 (Host Moderation) →  DEPLOYED
 
-B1 and B2 are independent and can be done in parallel.
-B3 depends on B1 (moderation panel) and B2 (rate limiting infrastructure).
+All three phases are complete and ready for testing.
 ```
 
 ---

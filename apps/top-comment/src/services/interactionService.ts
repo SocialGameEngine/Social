@@ -1,6 +1,12 @@
 import { supabase } from "../supabase/client";
 import { logger } from "../shared/utils/logger";
+import { censorText } from "../shared/utils/profanityFilter";
+import { createRateLimiter } from "../shared/utils/rateLimiter";
+import { RATE_LIMITS } from "../shared/constants/rateLimits";
 import type { Interaction, InteractionResponse, InteractionVote, HeadlineFibbageSettings, VotingOption, HeadlineResults } from "../domain/types/interaction.types";
+
+const responseLimiter = createRateLimiter(RATE_LIMITS.response.maxActions, RATE_LIMITS.response.windowMs);
+const voteLimiter = createRateLimiter(RATE_LIMITS.vote.maxActions, RATE_LIMITS.vote.windowMs);
 
 // --- Mappers ---
 
@@ -58,12 +64,15 @@ async function createInteraction(
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) throw new Error("User not authenticated");
 
+  const filteredQuestion = censorText(question);
+  const filteredDescription = description ? censorText(description) : null;
+
   const { data, error } = await supabase
     .from("interactions")
     .insert({
       room_id: roomId,
-      question,
-      description: description || null,
+      question: filteredQuestion,
+      description: filteredDescription,
       created_by: userData.user.id,
       answer_ends_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // 5 minutes from now
       answer_seconds: 300,
@@ -114,13 +123,19 @@ async function submitResponse(
   membershipId: string,
   text: string
 ): Promise<InteractionResponse> {
+  if (!responseLimiter.canAct()) {
+    throw new Error('Slow down! You are submitting responses too fast.');
+  }
+
+  const filteredText = censorText(text);
+
   const { data, error } = await supabase
     .from("responses")
     .upsert(
       {
         interaction_id: interactionId,
         membership_id: membershipId,
-        text,
+        text: filteredText,
       },
       { onConflict: "interaction_id,membership_id" }
     )
@@ -196,6 +211,10 @@ async function advanceToResults(interactionId: string): Promise<boolean> {
 }
 
 async function submitVote(interactionId: string, membershipId: string, responseId: string): Promise<InteractionVote> {
+  if (!voteLimiter.canAct()) {
+    throw new Error('Slow down! You are voting too fast.');
+  }
+
   const { data, error } = await supabase
     .from("interaction_votes")
     .upsert(
@@ -251,6 +270,8 @@ async function createHeadlineInteraction(params: {
     profanityFilter: "basic",
   };
 
+  const filteredHeadline = censorText(params.headlineBlank);
+
   const { data, error } = await supabase
     .from("interactions")
     .insert({
@@ -258,7 +279,7 @@ async function createHeadlineInteraction(params: {
       created_by: userData.user.id,
       type: "headline_fibbage",
       status: "active",
-      question: params.headlineBlank,
+      question: filteredHeadline,
       description: `${params.sourceName} • ${new Date(params.publishedAt).toLocaleDateString()}`,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       settings: JSON.parse(JSON.stringify(settings)),

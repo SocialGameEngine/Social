@@ -846,3 +846,41 @@ a {
     color: #22d3ee;
     border-color: rgba(34, 211, 238, 0.3);
 }
+
+/* Reaction animations */
+@keyframes reaction-float {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    70% {
+        opacity: 0.8;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-200px) scale(0.6);
+    }
+}
+
+@keyframes reaction-burst {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.3);
+    }
+    30% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.4);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(2);
+    }
+}
+
+.animate-reaction-float {
+    animation: reaction-float 3s ease-out forwards;
+}
+
+.animate-reaction-burst {
+    animation: reaction-burst 1.2s ease-out forwards;
+}

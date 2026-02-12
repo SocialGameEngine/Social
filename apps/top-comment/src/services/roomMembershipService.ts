@@ -1,5 +1,10 @@
 import { supabase } from "../supabase/client";
 import { logger } from "../shared/utils/logger";
+import { censorText } from "../shared/utils/profanityFilter";
+import { createRateLimiter } from "../shared/utils/rateLimiter";
+import { RATE_LIMITS } from "../shared/constants/rateLimits";
+
+const joinLimiter = createRateLimiter(RATE_LIMITS.join.maxActions, RATE_LIMITS.join.windowMs);
 
 import type {
   JoinRoomRequest,
@@ -44,6 +49,10 @@ function mapRoomMembership(data: Record<string, any>): RoomMembership | null {
 
 // Join a room
 export async function joinRoom(request: JoinRoomRequest): Promise<JoinRoomResponse> {
+  if (!joinLimiter.canAct()) {
+    throw new Error('Slow down! Too many join attempts. Please wait a moment.');
+  }
+
   const { data: userData } = await supabase.auth.getUser();
   
   // Get room details
@@ -106,10 +115,14 @@ export async function joinRoom(request: JoinRoomRequest): Promise<JoinRoomRespon
     throw new Error("Player name is already taken in this room");
   }
 
+  // Apply profanity filter to player name based on room settings
+  const profanityLevel = room.settings.profanityFilter ?? 'moderate';
+  const filteredPlayerName = censorText(request.playerName, profanityLevel);
+
   const membershipData = {
     room_id: room.id,
     user_id: userData.user.id, // Always valid - no null allowed
-    player_name: request.playerName,
+    player_name: filteredPlayerName,
     mascot_id: request.mascotId,
     is_host: false,
     is_banned: false,

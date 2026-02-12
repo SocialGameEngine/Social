@@ -17,6 +17,11 @@ import { RoomModals } from './RoomModals';
 import { RoomDrawers } from './RoomDrawers';
 import { RoomFloatingButtons } from './RoomFloatingButtons';
 import { RoomBottomNav } from './RoomBottomNav';
+import { ReactionBar } from './ReactionBar';
+import { ReactionOverlay } from './ReactionOverlay';
+import { useReactions } from '../../../hooks/useReactions';
+import { useBlocks } from '../../../hooks/useBlocks';
+import { useReports } from '../../../hooks/useReports';
 
 function RoomPageContent() {
   const { room, memberships, session, sessionId, state, openModal, closeModal, markSubmitted, openEndedModal, closeEndedModal, handleLeaveRoom } = useRoomPage();
@@ -33,6 +38,18 @@ function RoomPageContent() {
   const [showChatDrawer, setShowChatDrawer] = useState(false);
   const [showLeaderboardDrawer, setShowLeaderboardDrawer] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+
+  const isHost = myMembership?.isHost ?? false;
+
+  // Live reactions
+  const { reactions, reactionCounts, bursts, sendReaction } = useReactions({
+    roomId: room?.id,
+    membershipId: myMembership?.id,
+  });
+
+  // Blocks & reports
+  const { blockedIds, blockPlayer } = useBlocks({ membershipId: myMembership?.id, roomId: room?.id });
+  const { pendingCount: pendingReportCount } = useReports({ roomId: room?.id, isHost });
 
   // Clear ended modals when leaving ended phase
   useEffect(() => {
@@ -143,6 +160,8 @@ function RoomPageContent() {
           </div>
         </div>
 
+        <ReactionOverlay reactions={reactions} bursts={bursts} />
+        <ReactionBar onReact={sendReaction} reactionCounts={reactionCounts} />
         <RoomDrawers {...drawerProps} />
         <RoomFloatingButtons
           showLeaderboardDrawer={showLeaderboardDrawer}
@@ -186,9 +205,15 @@ function RoomPageContent() {
           userId={user?.id}
           membershipId={myMembership?.id}
           displayName={myDisplayName}
+          isHost={isHost}
+          blockedIds={blockedIds}
+          blockPlayer={blockPlayer}
+          pendingReportCount={pendingReportCount}
         />
       </div>
 
+      <ReactionOverlay reactions={reactions} bursts={bursts} />
+      <ReactionBar onReact={sendReaction} reactionCounts={reactionCounts} />
       <RoomDrawers {...drawerProps} />
       <RoomModals {...modalProps} />
       <VIBoxJukebox

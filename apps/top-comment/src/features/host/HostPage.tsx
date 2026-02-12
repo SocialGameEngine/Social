@@ -33,6 +33,7 @@ import { setPromptLibrary, pauseSession } from "../session/sessionService";
 import { useHostRoom } from "./useHostRoom";
 import { useHostSession } from "./useHostSession";
 import { useHostComputations, useHostState } from "./hooks";
+import { useHostKeyboardShortcuts } from "../../hooks/useHostKeyboardShortcuts";
 import { useResponsiveLayout } from "../room/hooks/useResponsiveLayout";
 import type { PromptLibraryId } from "../../shared/promptLibraries";
 import type { Room } from "../../shared/types";
@@ -466,6 +467,12 @@ export function HostPage() {
     }
     primaryActionHandler();
   }, [session, storedRoomId, requireVenueAccount, setShowRoomCreateModal, handleOpenCreateModal, primaryActionHandler]);
+
+  // Keyboard shortcuts for host
+  useHostKeyboardShortcuts({
+    onPrimaryAction: handlePrimaryClick,
+    onPauseToggle: handlePauseToggle,
+  }, true);
 
   const handleOpenEditModal = useCallback(() => {
     if (!requireVenueAccount()) {

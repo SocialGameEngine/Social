@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { LobbyPanel } from './LobbyPanel';
 import { ChatPanel } from './ChatPanel';
+import { ModerationPanel } from '../moderation/ModerationPanel';
 import type { RoomMembership } from '../../../../shared/types';
 
-type SidebarTab = 'lobby' | 'chat';
+type SidebarTab = 'lobby' | 'chat' | 'mod';
 
 interface RoomSidebarProps {
   memberships: RoomMembership[] | null;
@@ -13,9 +14,14 @@ interface RoomSidebarProps {
   userId: string | undefined;
   membershipId: string | undefined;
   displayName: string | undefined;
+  isHost?: boolean;
+  blockedIds?: Set<string>;
+  blockPlayer?: (membershipId: string) => Promise<void>;
+  isMuted?: boolean;
+  pendingReportCount?: number;
 }
 
-function TabBar({ activeTab, setActiveTab }: { activeTab: SidebarTab; setActiveTab: (tab: SidebarTab) => void }) {
+function TabBar({ activeTab, setActiveTab, isHost, pendingReportCount }: { activeTab: SidebarTab; setActiveTab: (tab: SidebarTab) => void; isHost?: boolean; pendingReportCount?: number }) {
   return (
     <div className="flex border-b border-slate-700/50 shrink-0">
       <button
@@ -44,11 +50,31 @@ function TabBar({ activeTab, setActiveTab }: { activeTab: SidebarTab; setActiveT
         </svg>
         Chat
       </button>
+      {isHost && (
+        <button
+          onClick={() => setActiveTab('mod')}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
+            activeTab === 'mod'
+              ? 'text-rose-400 border-b-2 border-rose-400 bg-rose-400/5'
+              : 'text-slate-500 hover:text-slate-300'
+          }`}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          Mod
+          {(pendingReportCount ?? 0) > 0 && (
+            <span className="ml-0.5 text-[9px] font-bold bg-rose-500 text-white rounded-full w-4 h-4 flex items-center justify-center">
+              {pendingReportCount}
+            </span>
+          )}
+        </button>
+      )}
     </div>
   );
 }
 
-export function RoomSidebar({ memberships, isCollapsed, onToggle, roomId, userId, membershipId, displayName }: RoomSidebarProps) {
+export function RoomSidebar({ memberships, isCollapsed, onToggle, roomId, userId, membershipId, displayName, isHost, blockedIds, blockPlayer, isMuted, pendingReportCount }: RoomSidebarProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('lobby');
 
   return (
@@ -75,11 +101,13 @@ export function RoomSidebar({ memberships, isCollapsed, onToggle, roomId, userId
 
       {!isCollapsed && (
         <>
-          <TabBar activeTab={activeTab} setActiveTab={setActiveTab} />
+          <TabBar activeTab={activeTab} setActiveTab={setActiveTab} isHost={isHost} pendingReportCount={pendingReportCount} />
           {activeTab === 'lobby' ? (
-            <LobbyPanel memberships={memberships} />
+            <LobbyPanel memberships={memberships} roomId={roomId} myMembershipId={membershipId} blockPlayer={blockPlayer} />
+          ) : activeTab === 'chat' ? (
+            <ChatPanel roomId={roomId} userId={userId} membershipId={membershipId} displayName={displayName} blockedIds={blockedIds} blockPlayer={blockPlayer} isHost={isHost} isMuted={isMuted} />
           ) : (
-            <ChatPanel roomId={roomId} userId={userId} membershipId={membershipId} displayName={displayName} />
+            <ModerationPanel roomId={roomId} isHost={isHost ?? false} hostMembershipId={membershipId} memberships={memberships} />
           )}
         </>
       )}

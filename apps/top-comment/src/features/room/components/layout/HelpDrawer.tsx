@@ -230,6 +230,29 @@ export function HelpDrawer({ isOpen, onClose, initialPhase }: HelpDrawerProps) {
                 </div>
               );
             })}
+            {/* Keyboard Shortcuts section */}
+            <div className="mt-4 bg-slate-800/50 rounded-lg overflow-hidden">
+              <div className="p-3">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-slate-200 mb-2">
+                  ⌨️ Host Keyboard Shortcuts
+                </h3>
+                <ul className="space-y-1.5 text-sm text-slate-300">
+                  <li className="flex items-center gap-2">
+                    <kbd className="inline-flex items-center justify-center min-w-[2rem] px-1.5 py-0.5 rounded bg-slate-700 border border-slate-600 text-xs font-mono text-cyan-300">Space</kbd>
+                    <span>Primary action (advance phase)</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <kbd className="inline-flex items-center justify-center min-w-[2rem] px-1.5 py-0.5 rounded bg-slate-700 border border-slate-600 text-xs font-mono text-cyan-300">P</kbd>
+                    <span>Pause / Resume timer</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <kbd className="inline-flex items-center justify-center min-w-[2rem] px-1.5 py-0.5 rounded bg-slate-700 border border-slate-600 text-xs font-mono text-cyan-300">?</kbd>
+                    <span>Toggle this help drawer</span>
+                  </li>
+                </ul>
+                <p className="mt-2 text-xs text-slate-500">Shortcuts are disabled while typing in an input field.</p>
+              </div>
+            </div>
           </div>
         </div>
 

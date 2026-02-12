@@ -10,6 +10,8 @@ export interface RoomSettings {
   defaultSessionSettings: Partial<any>; // Will be typed properly when SessionSettings is available
   requireApproval: boolean; // Host must approve players joining
   allowAnonymous: boolean; // Allow anonymous players
+  profanityFilter?: 'strict' | 'moderate' | 'off';
+  slowMode?: boolean;
 }
 
 export interface Room {
@@ -41,6 +43,9 @@ export interface RoomMembership {
   bannedAt?: string;
   bannedBy?: string;
   status: 'pending' | 'approved' | 'active'; // For approval workflow
+  isMuted?: boolean;
+  mutedAt?: string;
+  muteExpiresAt?: string;
 }
 
 // Domain events for room operations

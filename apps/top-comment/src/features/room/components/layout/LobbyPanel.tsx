@@ -1,11 +1,37 @@
+import { useState, useCallback } from 'react';
 import { getMascotById } from '../../../../shared/mascots';
+import { ReportButton } from '../../../../shared/components/ReportButton';
+import { ReportModal } from '../../../../shared/components/ReportModal';
+import { BlockConfirmation } from '../../../../shared/components/BlockConfirmation';
+import { reportService, type ReportReason } from '../../../../services/reportService';
 import type { RoomMembership } from '../../../../shared/types';
 
 interface LobbyPanelProps {
   memberships: RoomMembership[] | null;
+  roomId?: string;
+  myMembershipId?: string;
+  blockPlayer?: (membershipId: string) => Promise<void>;
 }
 
-export function LobbyPanel({ memberships }: LobbyPanelProps) {
+export function LobbyPanel({ memberships, roomId, myMembershipId, blockPlayer }: LobbyPanelProps) {
+  const [reportTarget, setReportTarget] = useState<RoomMembership | null>(null);
+  const [blockTarget, setBlockTarget] = useState<{ membershipId: string; name: string } | null>(null);
+
+  const handleReport = useCallback(
+    async (reason: ReportReason, description?: string) => {
+      if (!roomId || !myMembershipId || !reportTarget) return;
+      await reportService.submitReport({
+        roomId,
+        reporterMembershipId: myMembershipId,
+        reportedMembershipId: reportTarget.id,
+        contentType: 'player',
+        reason,
+        description,
+      });
+    },
+    [roomId, myMembershipId, reportTarget]
+  );
+
   const sorted = memberships
     ? [...memberships].sort((a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime())
     : [];
@@ -61,6 +87,11 @@ export function LobbyPanel({ memberships }: LobbyPanelProps) {
                   </span>
                 )}
 
+                {/* Report button (not on self or host) */}
+                {!member.isHost && member.id !== myMembershipId && (
+                  <ReportButton onReport={() => setReportTarget(member)} />
+                )}
+
                 {/* Online indicator */}
                 <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
               </li>
@@ -68,6 +99,27 @@ export function LobbyPanel({ memberships }: LobbyPanelProps) {
           })}
         </ul>
       </div>
+      <ReportModal
+        isOpen={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        onSubmit={handleReport}
+        onBlock={reportTarget && blockPlayer ? () => {
+          setBlockTarget({ membershipId: reportTarget.id, name: reportTarget.playerName || 'Unknown' });
+        } : undefined}
+        targetName={reportTarget?.playerName}
+        contentType="player"
+      />
+      <BlockConfirmation
+        isOpen={!!blockTarget}
+        playerName={blockTarget?.name || ''}
+        onConfirm={async () => {
+          if (blockTarget && blockPlayer) {
+            await blockPlayer(blockTarget.membershipId);
+          }
+          setBlockTarget(null);
+        }}
+        onCancel={() => setBlockTarget(null)}
+      />
     </div>
   );
 }
