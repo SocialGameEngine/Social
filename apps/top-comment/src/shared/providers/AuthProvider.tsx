@@ -44,9 +44,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const fetchVenueAccount = useCallback(async (userId: string): Promise<VenueAccount | null> => {
     try {
-      // Use any type to bypass TypeScript issues for now
-      const { data, error } = await (supabase as any)
-        .from('venue_accounts')
+      const { data, error } = await supabase
+        .from('venue_accounts' as 'venue_accounts')
         .select('*')
         .eq('auth_user_id', userId)
         .maybeSingle();

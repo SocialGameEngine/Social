@@ -1,10 +1,10 @@
-import type { Session, Team } from "../../../shared/types";
+import type { Session } from "../../../shared/types";
 import type { Toast } from "../../../shared/hooks/useToast";
 import { advancePhase, startGame, pauseSession } from "../../session/sessionService";
 
 interface PrimaryActionDeps {
   session: Session | null;
-  players: Team[];
+  players: any[]; // RoomMembership array
   isPerformingAction: boolean;
   triggerPerformingAction: (value: boolean) => void;
   toast: Toast;

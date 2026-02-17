@@ -7,6 +7,7 @@ import { useGameState, useSessionOrchestrator, transformRoundSummariesForUI } fr
 import { useRoom } from "../../hooks/useRoom";
 import { VIBoxButton } from "../../shared/components/vibox/VIBoxButton";
 import { VIBoxJukebox } from "../../shared/components/vibox/VIBoxJukebox";
+import { MobileLayout } from "../../shared/components/MobileLayout";
 import { useActiveGroupAnswers, usePlayerLookup, useToast } from "../../shared/hooks";
 import { useAuth } from "../../shared/providers/AuthContext";
 import { useTheme } from "../../shared/providers/ThemeProvider";
@@ -25,14 +26,19 @@ import {
 import { CreateRoomModal } from "./components/CreateRoomModal";
 import { PromptLibrarySelector } from "./components/PromptLibrarySelector";
 import { BannedPlayersManager } from "./components/BannedPlayersManager";
+import { HostInteractionManager } from "./components/HostInteractionManager";
 import { handleCopyLink, handleCreateSession, handleUpdateSession, handleEndSession, handleHostVote, handlePrimaryAction } from "./Handlers";
 import { handleRoomKickPlayer, handleRoomBanPlayer } from "./Handlers/roomKickBanHandlers";
 import { setPromptLibrary, pauseSession } from "../session/sessionService";
 import { useHostRoom } from "./useHostRoom";
 import { useHostSession } from "./useHostSession";
 import { useHostComputations, useHostState } from "./hooks";
+import { useHostKeyboardShortcuts } from "../../hooks/useHostKeyboardShortcuts";
+import { useResponsiveLayout } from "../room/hooks/useResponsiveLayout";
+import { useAudienceSubmissions } from "../../hooks/useAudienceSubmissions";
+import { SubmissionReviewPanel } from "../room/components/submissions/SubmissionReviewPanel";
 import type { PromptLibraryId } from "../../shared/promptLibraries";
-import type { Room, Team } from "../../shared/types";
+import type { Room } from "../../shared/types";
 
 export function HostPage() {
   const { user, loading: authLoading, isVenueAccount, venueAccountLoading, refreshVenueAccount } = useAuth();
@@ -130,7 +136,7 @@ export function HostPage() {
 
   // Extract data from gameState for compatibility with existing code
   const session = gameState.session;
-  const players = useMemo(() => gameState.teams, [gameState.teams]);
+  const players = useMemo(() => gameState.memberships, [gameState.memberships]);
   const answers = gameState.answers;
   const roomJoinCode = storedRoomCode ?? session?.code ?? storedCode ?? "";
   const inviteLink = useMemo(() => {
@@ -163,25 +169,29 @@ export function HostPage() {
     );
   }, [storedRoomId, roomMemberships]);
 
-  const lobbyTeams = useMemo<Team[]>(() => {
+  const lobbyTeams = useMemo(() => {
     if (!storedRoomId) {
       return players;
     }
-    return roomLobbyMembers.map((member) => ({
-      id: member.id,
-      uid: member.userId ?? null,
-      teamName: member.playerName,
-      isHost: member.isHost,
-      score: 0,
-      joinedAt: member.joinedAt,
-      lastActiveAt: member.lastActiveAt,
-      mascotId: member.mascotId,
-    }));
-  }, [session, storedRoomId, roomLobbyMembers, players]);
+    return roomLobbyMembers;
+  }, [storedRoomId, roomLobbyMembers, players]);
 
   const lobbyPlayerCount = storedRoomId
     ? roomLobbyMembers.length
     : players.length;
+
+  // Host membership for audience submissions
+  const hostMembership = useMemo(() => {
+    return roomMemberships.find((m) => m.userId === user?.id && m.isHost);
+  }, [roomMemberships, user?.id]);
+
+  // Audience submissions (host review)
+  const {
+    submissions: allSubmissions,
+    pendingCount: pendingSubmissionCount,
+    approveSubmission,
+    rejectSubmission,
+  } = useAudienceSubmissions({ roomId: storedRoomId ?? undefined, membershipId: hostMembership?.id, isHost: true });
 
   // Handle room creation success
   const handleRoomCreateSuccess = (newRoom: Room) => {
@@ -473,6 +483,12 @@ export function HostPage() {
     primaryActionHandler();
   }, [session, storedRoomId, requireVenueAccount, setShowRoomCreateModal, handleOpenCreateModal, primaryActionHandler]);
 
+  // Keyboard shortcuts for host
+  useHostKeyboardShortcuts({
+    onPrimaryAction: handlePrimaryClick,
+    onPauseToggle: handlePauseToggle,
+  }, true);
+
   const handleOpenEditModal = useCallback(() => {
     if (!requireVenueAccount()) {
       return;
@@ -617,13 +633,21 @@ export function HostPage() {
     if (!session) {
       if (storedRoomId) {
         return (
-          <LobbyPhase
-            inviteLink={inviteLink}
-            storedCode={roomJoinCode}
-            sessionId={null}
-            handleCopyLink={copyLinkHandler}
-            sessionCode={roomJoinCode}
-          />
+          <div className="space-y-6">
+            <LobbyPhase
+              inviteLink={inviteLink}
+              storedCode={roomJoinCode}
+              sessionId={null}
+              handleCopyLink={copyLinkHandler}
+              sessionCode={roomJoinCode}
+            />
+            {room && (
+              <HostInteractionManager
+                room={{ id: room.id, code: room.code }}
+                memberships={roomMemberships}
+              />
+            )}
+          </div>
         );
       }
       return (
@@ -638,6 +662,7 @@ export function HostPage() {
     switch (session.status) {
       case "lobby":
         return (
+          <div className="space-y-6">
             <LobbyPhase
               inviteLink={inviteLink}
               storedCode={roomJoinCode}
@@ -645,6 +670,13 @@ export function HostPage() {
               handleCopyLink={copyLinkHandler}
               sessionCode={roomJoinCode}
             />
+            {room && (
+              <HostInteractionManager
+                room={{ id: room.id, code: room.code }}
+                memberships={roomMemberships}
+              />
+            )}
+          </div>
         );
 
       case "answer":
@@ -715,8 +747,58 @@ export function HostPage() {
     </Button>
   ) : null;
 
-  return (
-    <main className="min-h-screen px-4 py-8 bg-slate-950">
+  // Responsive layout hook for mobile detection
+  const { isMobile } = useResponsiveLayout();
+
+  // Bottom navigation content for mobile
+  const mobileBottomNav = (
+    <>
+      <button
+        type="button"
+        className="chaos-nav-item"
+        onClick={() => navigate('/')}
+      >
+        <div className="text-2xl">🏠</div>
+        <span className="chaos-nav-label">Home</span>
+      </button>
+      <button
+        type="button"
+        className="chaos-nav-item"
+        onClick={() => setShowVIBoxModal(true)}
+      >
+        <div className="text-2xl">🎵</div>
+        <span className="chaos-nav-label">VIBox</span>
+      </button>
+      <button
+        type="button"
+        className="chaos-nav-item"
+        onClick={() => window.open('/help', '_blank')}
+      >
+        <div className="text-xl">❓</div>
+        <span className="chaos-nav-label">Help</span>
+      </button>
+      <button
+        type="button"
+        className="chaos-nav-item"
+        onClick={() => navigate('/profile')}
+      >
+        <div className="text-2xl">
+          {user ? (
+            <span className="text-sm font-semibold">
+              {(user.user_metadata?.display_name?.[0] || user.email?.[0] || "U").toUpperCase()}
+            </span>
+          ) : (
+            '👤'
+          )}
+        </div>
+        <span className="chaos-nav-label">Profile</span>
+      </button>
+    </>
+  );
+
+  // Main content (shared between mobile and desktop)
+  const mainContent = (
+    <>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
         <Card className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between" isDark={isDark}>
           <div className="space-y-3">
@@ -725,6 +807,14 @@ export function HostPage() {
                 ← Back
               </Link>
               {presenterButton}
+              {storedRoomCode && (
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate(`/analytics/${storedRoomCode}`)}
+                >
+                  Analytics
+                </Button>
+              )}
               <VIBoxButton 
                 onClick={() => setShowVIBoxModal(true)}
                 variant="host"
@@ -964,14 +1054,14 @@ export function HostPage() {
                       className="flex items-center justify-between rounded-2xl px-4 py-3 bg-slate-700"
                     >
                       <span className="font-medium text-cyan-100">
-                        {player.teamName}
+                        {player.playerName}
                         {player.isHost ? " (Host)" : ""}
                       </span>
                       {!player.isHost ? (
                         <div className="flex gap-2">
                           <Button
                             variant="ghost"
-                            onClick={() => storedRoomId && roomKickPlayerHandler(player.id, player.uid || "", storedRoomId)}
+                            onClick={() => storedRoomId && roomKickPlayerHandler(player.id, player.userId || "", storedRoomId)}
                             className="text-sm text-orange-600"
                             disabled={kickingPlayerId !== null || banningPlayerId !== null}
                             isLoading={kickingPlayerId === player.id}
@@ -980,7 +1070,7 @@ export function HostPage() {
                           </Button>
                           <Button
                             variant="ghost"
-                            onClick={() => storedRoomId && roomBanPlayerHandler(player.id, player.uid || "", storedRoomId)}
+                            onClick={() => storedRoomId && roomBanPlayerHandler(player.id, player.userId || "", storedRoomId)}
                             className="text-sm text-rose-600"
                             disabled={kickingPlayerId !== null || banningPlayerId !== null}
                             isLoading={banningPlayerId === player.id}
@@ -999,6 +1089,30 @@ export function HostPage() {
                 </ul>
               </div>
             ) : null}
+            {/* Audience Question Submissions Review */}
+            {(storedRoomId || session) && (
+              <div className={`rounded-3xl shadow-lg border-[3px] overflow-hidden ${!isDark ? 'bg-white shadow-slate-300/40 border-slate-200' : 'bg-slate-800 shadow-fuchsia-500/20 border-slate-600'}`}>
+                <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                  <h3 className="text-lg font-semibold text-pink-400">
+                    Audience Questions
+                  </h3>
+                  {pendingSubmissionCount > 0 && (
+                    <span className="text-xs font-bold bg-emerald-500 text-white rounded-full px-2 py-0.5">
+                      {pendingSubmissionCount} pending
+                    </span>
+                  )}
+                </div>
+                <div className="max-h-[400px]">
+                  <SubmissionReviewPanel
+                    submissions={allSubmissions}
+                    pendingCount={pendingSubmissionCount}
+                    isLoading={false}
+                    onApprove={approveSubmission}
+                    onReject={rejectSubmission}
+                  />
+                </div>
+              </div>
+            )}
           </aside>
         </section>
       </div>
@@ -1139,7 +1253,7 @@ export function HostPage() {
         </p>
       </Modal>
       {/* Bottom Navigation Bar - Mobile only */}
-      <nav className="chaos-bottom-nav sm:hidden">
+      <nav className="bottom-nav sm:hidden">
         <button
           type="button"
           className="chaos-nav-item"
@@ -1182,6 +1296,28 @@ export function HostPage() {
         </button>
       </nav>
 
+      {/* End of mainContent fragment */}
+    </>
+  );
+
+  // Mobile layout with grid shell
+  if (isMobile) {
+    return (
+      <MobileLayout 
+        bottomNav={mobileBottomNav}
+        className="bg-slate-950"
+      >
+        <div className="px-4 py-4 overflow-y-auto">
+          {mainContent}
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  // Desktop layout (unchanged)
+  return (
+    <main className="min-h-screen px-4 py-8 bg-slate-950">
+      {mainContent}
     </main>
   );
 }

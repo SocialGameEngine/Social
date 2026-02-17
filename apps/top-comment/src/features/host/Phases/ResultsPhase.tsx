@@ -54,15 +54,29 @@ export function ResultsPhase({
       </div>
       <div className="space-y-4">
         {roundSummaries.length ? (
-          roundSummaries.map((summary) => (
-            <RoundSummaryCard
-              key={summary.group.id}
-              summary={summary}
-              voteCounts={voteCounts}
-              variant="host"
-              isDark={isDark}
-            />
-          ))
+          roundSummaries.map((summary) => {
+            // Add teamId compatibility for UI
+            const summaryWithTeamId = {
+              ...summary,
+              answers: summary.answers.map(answer => ({
+                ...answer,
+                teamId: answer.membershipId
+              })),
+              winners: summary.winners.map(answer => ({
+                ...answer,
+                teamId: answer.membershipId
+              }))
+            };
+            return (
+              <RoundSummaryCard
+                key={summary.group.id}
+                summary={summaryWithTeamId}
+                voteCounts={voteCounts}
+                variant="host"
+                isDark={isDark}
+              />
+            );
+          })
         ) : (
           <p className="text-sm text-slate-500">
             No answers submitted this round.

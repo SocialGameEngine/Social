@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { Timer, Card } from "@social/ui";
 import { BackgroundAnimation } from "../../components/BackgroundAnimation";
 import { TTSControls } from "../../components/TTSControls";
@@ -8,7 +8,6 @@ import { useInviteLink, usePlayerLookup, useSessionTimers, useVoteCalculations, 
 import { useTheme } from "../../shared/providers/ThemeProvider";
 import { phaseSubtitle, phaseHeadline } from "../../shared/constants";
 import classicPrompts from "../../shared/prompts.json";
-import type { Team } from "../../shared/types";
 import {
   LobbyPhase,
   AnswerPhase,
@@ -20,6 +19,12 @@ import { StatusSummaryCard } from "./Phases/StatusSummaryCard";
 import { VoiceProfileSelector } from "./components/VoiceProfileSelector";
 import { usePresenterTTS } from "./hooks/usePresenterTTS";
 import QRCodeBlock from "../../components/QRCodeBlock";
+import { useReactions } from "../../hooks/useReactions";
+import { PresenterReactionBar } from "./components/PresenterReactionBar";
+import { ReactionOverlay } from "../room/components/ReactionOverlay";
+import { ReconnectionOverlay } from "./components/ReconnectionOverlay";
+import { useConnectionHealth } from "../../shared/hooks/useConnectionHealth";
+import { savePresenterCache, loadPresenterCache, clearStalePresenterCaches } from "../../shared/utils/presenterCache";
 
 export function PresenterPage() {
   const params = useParams<{ sessionId: string }>();
@@ -78,6 +83,53 @@ export function PresenterPage() {
 
     return () => window.clearInterval(interval);
   }, [session?.paused]);
+
+  // Connection health monitoring
+  const { isConnected, secondsSinceLastUpdate, reconnectAttempts, onReconnect, markUpdated } = useConnectionHealth();
+
+  // Clear stale caches on mount
+  useEffect(() => {
+    clearStalePresenterCaches();
+  }, []);
+
+  // Load from cache on mount
+  useEffect(() => {
+    if (!sessionId) return;
+    const cached = loadPresenterCache(sessionId);
+    if (cached) {
+      console.log('Loaded presenter cache for session', sessionId);
+    }
+  }, [sessionId]);
+
+  // Save to cache when session state changes
+  useEffect(() => {
+    if (!session || !sessionId) return;
+    savePresenterCache(sessionId, {
+      sessionId,
+      sessionStatus: session.status,
+      roomCode: session.code,
+      leaderboard: gameState.leaderboard || [],
+      interactions: [],
+    });
+    markUpdated();
+  }, [session, sessionId, gameState.leaderboard, markUpdated]);
+
+  // Register reconnect handler
+  const handleReconnect = useCallback(() => {
+    // Force a re-fetch by triggering a state update
+    console.log('Reconnected - refreshing presenter data');
+    markUpdated();
+  }, [markUpdated]);
+
+  useEffect(() => {
+    onReconnect(handleReconnect);
+  }, [onReconnect, handleReconnect]);
+
+  // Live reactions for presenter view
+  const { reactions, reactionCounts, bursts } = useReactions({
+    roomId: session?.roomId,
+    membershipId: undefined, // Presenter doesn't send reactions
+  });
 
   const playerLookup = usePlayerLookup(teams);
   const inviteLink = useInviteLink(session);
@@ -220,11 +272,8 @@ export function PresenterPage() {
     return "";
   }, [session, totalGroups, activeGroupIndex]);
 
-  // Use gameState.leaderboard and merge with full team data for compatibility
-  const leaderboard = gameState.leaderboard.map(entry => {
-    const team = teams.find(t => t.id === entry.teamId);
-    return team ? { ...team, rank: entry.rank } : null;
-  }).filter(Boolean) as (Team & { rank: number })[];
+  // Use gameState.leaderboard directly - no team merging needed
+  const leaderboard = gameState.leaderboard;
 
   if (!hasSnapshot) {
     return (
@@ -385,7 +434,15 @@ export function PresenterPage() {
         </header>
 
         {renderPhaseContent()}
+
+        <PresenterReactionBar reactionCounts={reactionCounts} />
       </div>
+      <ReactionOverlay reactions={reactions} bursts={bursts} />
+      <ReconnectionOverlay
+        isConnected={isConnected}
+        secondsSinceLastUpdate={secondsSinceLastUpdate}
+        reconnectAttempts={reconnectAttempts}
+      />
     </main>
     </>
   );

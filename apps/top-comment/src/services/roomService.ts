@@ -330,7 +330,7 @@ export async function startSessionInRoom(request: StartSessionInRoomRequest): Pr
   });
 
   if (error) {
-    throw new Error(`Failed to start session: error.message}`);
+    throw new Error(`Failed to start session: ${error.message}`);
   }
 
   return data;
@@ -352,7 +352,7 @@ export async function endSessionInRoom(request: EndSessionInRoomRequest): Promis
   });
 
   if (error) {
-    throw new Error(`Failed to end session: error.message}`);
+    throw new Error(`Failed to end session: ${error.message}`);
   }
 
   return data;

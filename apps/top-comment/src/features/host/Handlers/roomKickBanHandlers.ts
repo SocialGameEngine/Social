@@ -14,7 +14,10 @@ export const handleRoomKickPlayer = ({
   refresh,
 }: RoomKickBanDeps) => {
   return async (playerId: string, userId: string, roomId: string) => {
-    if (!userId || !roomId) return;
+    if (!userId || !roomId) {
+      toast({ title: "Cannot kick: missing player data", variant: "error" });
+      return;
+    }
     
     setKickingPlayerId?.(playerId);
     
@@ -50,10 +53,8 @@ export const handleRoomBanPlayer = ({
   refresh,
 }: RoomKickBanDeps) => {
   return async (playerId: string, userId: string, roomId: string) => {
-    console.log('🔨 Ban attempt:', { playerId, userId, roomId });
-    
     if (!userId || !roomId) {
-      console.error('❌ Missing required data:', { userId, roomId });
+      toast({ title: "Cannot ban: missing player data", variant: "error" });
       return;
     }
     

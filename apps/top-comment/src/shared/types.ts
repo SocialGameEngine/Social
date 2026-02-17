@@ -4,7 +4,6 @@ import type {
   RoundGroup,
   RoundDefinition,
   Session,
-  Team,
   Answer,
   Vote,
   VoteCount,
@@ -19,6 +18,13 @@ import type {
   RoomMembership, 
   RoomAnalytics
 } from "../domain/types/room.types";
+import type {
+  InteractionType,
+  InteractionStatus,
+  Interaction,
+  InteractionResponse,
+  InteractionVote,
+} from "../domain/types/interaction.types";
 
 // Re-export core domain types as single source of truth
 export type {
@@ -27,7 +33,6 @@ export type {
   RoundGroup,
   RoundDefinition,
   Session,
-  Team,
   Answer,
   Vote,
   VoteCount,
@@ -45,22 +50,20 @@ export type {
   RoomAnalytics
 };
 
-// Team member type for sessions
-export interface TeamMember {
-  id: string;
-  teamId: string;
-  userId?: string;
-  playerName?: string;
-  mascotId?: number;
-  joinedAt: string;
-  isActive: boolean;
-}
+// Re-export interaction domain types
+export type {
+  InteractionType,
+  InteractionStatus,
+  Interaction,
+  InteractionResponse,
+  InteractionVote,
+};
 
 // Session analytics type
 export interface SessionAnalytics {
   sessionId: string;
   totalParticipants: number;
-  activeTeams: number;
+  activeMemberships: number; // Replaces activeTeams
   roundsCompleted: number;
   averageAnswerTime: number;
   engagementScore: number;
@@ -112,7 +115,7 @@ export interface JoinSessionRequest {
 
 export interface JoinSessionResponse {
   session: Session;
-  team: Team;
+  membership: RoomMembership; // Replaces team
   sessionId?: string; // Optional for compatibility
 }
 
@@ -126,7 +129,7 @@ export interface StartGameRequest {
 
 export interface SubmitAnswerRequest {
   sessionId: string;
-  teamId?: string; // Optional - can be inferred from context
+  membershipId?: string; // Replaces teamId - can be inferred from context
   answer?: string; // Optional for compatibility
   text?: string; // Optional for compatibility
 }
@@ -139,8 +142,8 @@ export interface SubmitAnswerResponse {
 
 export interface SubmitVoteRequest {
   sessionId: string;
-  teamId?: string; // Optional - can be inferred from context
-  votedForTeamId?: string; // Optional for compatibility
+  membershipId?: string; // Replaces teamId - can be inferred from context
+  votedForMembershipId?: string; // Replaces votedForTeamId - Optional for compatibility
   answerId?: string; // Optional for compatibility
 }
 

@@ -5,7 +5,7 @@ import type { SessionAnalytics } from "../../../shared/types";
 interface LeaderboardTeam {
   id: string;
   rank: number;
-  teamName: string;
+  playerName: string;
   score: number;
 }
 
@@ -29,7 +29,10 @@ export function EndedPhase({ leaderboard, analytics }: EndedPhaseProps) {
           Leaderboard
         </h4>
         <Leaderboard
-          leaderboard={leaderboard}
+          leaderboard={leaderboard.map(entry => ({
+            ...entry,
+            teamName: entry.playerName
+          }))}
           variant="host"
           isDark={isDark}
         />

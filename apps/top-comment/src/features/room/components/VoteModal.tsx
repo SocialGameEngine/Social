@@ -3,8 +3,7 @@ import { Button } from '../../../components/Button';
 import { Timer } from '../../../components/Timer';
 import { submitVote } from '../../session/sessionService';
 import { useAuth } from '../../../shared/providers/AuthContext';
-import { getMascotById } from '../../../shared/mascots';
-import type { Answer, Team } from '../../../shared/types';
+import type { Answer } from '../../../shared/types';
 
 interface VoteModalProps {
   isOpen: boolean;
@@ -12,8 +11,7 @@ interface VoteModalProps {
   sessionId: string;
   roundIndex: number;
   answers: Answer[];
-  teams: Team[];
-  onSubmit: () => void;
+    onSubmit: () => void;
   prompt?: string;
   endsAt?: string | null;
   paused?: boolean;
@@ -24,7 +22,6 @@ export function VoteModal({
   onClose,
   sessionId,
   answers,
-  teams,
   onSubmit,
   prompt,
   endsAt,
@@ -55,16 +52,7 @@ export function VoteModal({
     }
   }, [selectedAnswerId, user, sessionId, onSubmit]);
 
-  const getTeamName = (teamId: string) => {
-    const team = teams.find(t => t.id === teamId);
-    return team?.teamName || 'Unknown';
-  };
-
-  const getTeamMascot = (teamId: string) => {
-    const team = teams.find(t => t.id === teamId);
-    return team?.mascotId ? getMascotById(team.mascotId) : null;
-  };
-
+  
   if (!isOpen) return null;
 
   return (
@@ -124,8 +112,8 @@ export function VoteModal({
               {answers.length ? (
                 answers.map((answer) => {
                   const isSelected = selectedAnswerId === answer.id;
-                  const authorName = getTeamName(answer.teamId);
-                  const mascot = getTeamMascot(answer.teamId);
+                  // For now, just show the answer text without author info
+                  // TODO: Map membershipId to playerName when available
 
                   return (
                     <button
@@ -138,34 +126,7 @@ export function VoteModal({
                           : 'bg-gradient-to-br from-cyan-400 to-fuchsia-500 hover:scale-[1.02]'
                       }`}
                     >
-                      {/* Mascot on left */}
-                      <div className="flex-shrink-0">
-                        {mascot ? (
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-slate-700 border border-slate-500">
-                            <img
-                              src={mascot.path}
-                              alt={mascot.name}
-                              className="w-6 h-6 object-contain"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                const parent = e.currentTarget.parentElement;
-                                if (parent) {
-                                  parent.textContent = authorName.charAt(0).toUpperCase();
-                                  parent.className = 'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-slate-700 border border-slate-500 text-slate-300';
-                                }
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-slate-700 border border-slate-500 text-slate-300">
-                            {authorName.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-black text-sm tracking-tight text-black">{authorName}</span>
-                        </div>
                         <p className="text-sm font-black tracking-tight text-black leading-relaxed">{answer.text}</p>
                       </div>
                       {/* Heart vote button on right */}

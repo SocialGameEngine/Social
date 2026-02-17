@@ -13,7 +13,6 @@ import type {
   SetPromptLibraryRequest,
   SetPromptLibraryResponse,
   Answer,
-  Team,
   Session,
   SessionSettings,
   SessionAnalytics,
@@ -87,29 +86,13 @@ function mapSession(data: any): Session | null {
   return mappedSession;
 }
 
-// Helper to convert Supabase player to our Team type
-function mapTeam(data: any): Team | null {
-  if (!data) return null;
-  
-  return {
-    id: data.id,
-    uid: data.user_id || null,
-    teamName: data.display_name,
-    isHost: false,
-    score: data.score ?? 0,
-    joinedAt: data.joined_at ?? new Date().toISOString(),
-    lastActiveAt: data.last_active_at,
-    mascotId: undefined,
-  };
-}
-
 // Helper to convert Supabase answer to our Answer type
 function mapAnswer(data: any): Answer | null {
   if (!data) return null;
   
   return {
     id: data.id,
-    teamId: data.player_id,
+    membershipId: data.player_id,
     roundIndex: data.round_index,
     text: data.text,
     createdAt: data.created_at ?? new Date().toISOString(),
@@ -210,84 +193,13 @@ export function subscribeToSession(
   };
 }
 
-export function subscribeToTeams(
-  sessionId: string,
-  callback: (teams: Team[]) => void,
+export function subscribeToMemberships(
+  _sessionId: string,
+  callback: (memberships: any[]) => void,
 ) {
-  // Initial fetch
-  const fetchTeams = () => {
-    supabase
-      .from("top_comment_players")
-      .select("*")
-      .eq("session_id", sessionId)
-      .order("joined_at", { ascending: true })
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Error fetching players:", error);
-          callback([]);
-        } else {
-          const teams = data?.map(mapTeam).filter((team): team is Team => !!team) ?? [];
-          callback(teams);
-        }
-      });
-  };
-
-  // Initial fetch
-  fetchTeams();
-  
-  // Subscribe to teams table changes
-  const teamsChannel = supabase
-    .channel(`teams:${sessionId}`)
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "top_comment_players",
-        filter: `session_id=eq.${sessionId}`,
-      },
-      (payload) => {
-        // Handle different event types
-        if (payload.eventType === 'DELETE') {
-          // Team deleted - refetch immediately
-          fetchTeams();
-        } else if (payload.eventType === 'UPDATE') {
-          // Team updated - check if uid was set to null (all players left)
-          const newData = payload.new as any;
-          const oldData = payload.old as any;
-          
-          // If uid changed from non-null to null, team is now empty - refetch immediately
-          if (oldData?.uid && !newData?.uid) {
-            setTimeout(() => fetchTeams(), 50);
-          } else {
-            // Other updates can use a small delay
-            setTimeout(() => fetchTeams(), 100);
-          }
-        } else if (payload.eventType === 'INSERT') {
-          // New team added
-          setTimeout(() => fetchTeams(), 100);
-        } else {
-          // Unknown event type, refetch anyway
-          fetchTeams();
-        }
-      }
-    );
-
-  // Subscribe to teams table changes
-  teamsChannel.subscribe((status) => {
-    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-      console.error("Failed to subscribe to teams:", status);
-    }
-  });
-  
-  return () => {
-    // Clear fallback polling if it exists
-    const teamsFallbackInterval = (teamsChannel as any)._fallbackInterval;
-    if (teamsFallbackInterval) {
-      clearInterval(teamsFallbackInterval);
-    }
-    teamsChannel.unsubscribe();
-  };
+  // TODO: Implement proper membership subscription when available
+  // For now, this is a placeholder that returns empty data
+  callback([]);
 }
 
 export function subscribeToAnswers(

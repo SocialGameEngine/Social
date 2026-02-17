@@ -1,4 +1,5 @@
-import type { RoundDefinition, RoundGroup, Team, Answer } from '../types/domain.types';
+import type { RoundDefinition, RoundGroup, Answer } from '../types/domain.types';
+import type { RoomMembership } from '../types/room.types';
 
 /**
  * Pure service for managing round-related logic
@@ -49,10 +50,10 @@ export class RoundManager {
   /**
    * Find which group a team belongs to in the current round
    * @param groups - Array of round groups
-   * @param teamId - Team ID to find
+   * @param teamId - RoomMembership ID to find
    * @returns Group containing the team or null if not found
    */
-  static findTeamGroup(groups: RoundGroup[], teamId: string): RoundGroup | null {
+  static findRoomMembershipGroup(groups: RoundGroup[], teamId: string): RoundGroup | null {
     return groups.find(group => group.teamIds.includes(teamId)) ?? null;
   }
 
@@ -62,7 +63,7 @@ export class RoundManager {
    * @param teams - Array of all teams
    * @returns Array of teams in the group
    */
-  static getTeamsInGroup(group: RoundGroup, teams: Team[]): Team[] {
+  static getRoomMembershipsInGroup(group: RoundGroup, teams: RoomMembership[]): RoomMembership[] {
     return teams.filter(team => group.teamIds.includes(team.id));
   }
 
@@ -89,18 +90,18 @@ export class RoundManager {
    */
   static isGroupAnswerComplete(
     group: RoundGroup, 
-    teams: Team[], 
+    teams: RoomMembership[], 
     answers: Answer[], 
     roundIndex: number
   ): boolean {
-    const teamsInGroup = this.getTeamsInGroup(group, teams);
+    const teamsInGroup = this.getRoomMembershipsInGroup(group, teams);
     const groupAnswers = this.getGroupAnswers(answers, group.id, roundIndex);
-    const answeringTeamIds = new Set(groupAnswers.map(answer => answer.teamId));
+    const answeringMembershipIds = new Set(groupAnswers.map(answer => answer.membershipId));
     
     // Check if all non-host teams in the group have answered
     return teamsInGroup
       .filter(team => !team.isHost)
-      .every(team => answeringTeamIds.has(team.id));
+      .every(team => answeringMembershipIds.has(team.id));
   }
 
   /**
@@ -113,7 +114,7 @@ export class RoundManager {
    */
   static isRoundAnswerComplete(
     groups: RoundGroup[], 
-    teams: Team[], 
+    teams: RoomMembership[], 
     answers: Answer[], 
     roundIndex: number
   ): boolean {
@@ -153,13 +154,13 @@ export class RoundManager {
    * @param teams - Array of all teams
    * @returns Whether the round is valid
    */
-  static validateRound(round: RoundDefinition, teams: Team[]): boolean {
+  static validateRound(round: RoundDefinition, teams: RoomMembership[]): boolean {
     if (!round.groups || round.groups.length === 0) {
       return false;
     }
 
     // Check that all team IDs in groups exist
-    const allTeamIds = new Set(teams.map(team => team.id));
+    const allRoomMembershipIds = new Set(teams.map(team => team.id));
     
     for (const group of round.groups) {
       if (!group.teamIds || group.teamIds.length === 0) {
@@ -168,7 +169,7 @@ export class RoundManager {
       
       // Check that all team IDs in this group exist
       for (const teamId of group.teamIds) {
-        if (!allTeamIds.has(teamId)) {
+        if (!allRoomMembershipIds.has(teamId)) {
           return false;
         }
       }
@@ -216,11 +217,11 @@ export class RoundManager {
 
   /**
    * Check if a team is participating in the current round
-   * @param teamId - Team ID to check
+   * @param teamId - RoomMembership ID to check
    * @param groups - Array of round groups
    * @returns Whether the team is participating
    */
-  static isTeamInRound(teamId: string, groups: RoundGroup[]): boolean {
+  static isRoomMembershipInRound(teamId: string, groups: RoundGroup[]): boolean {
     return groups.some(group => group.teamIds.includes(teamId));
   }
 
@@ -230,16 +231,16 @@ export class RoundManager {
    * @param groups - Array of round groups
    * @returns Array of teams not in any group
    */
-  static getTeamsNotInRound(teams: Team[], groups: RoundGroup[]): Team[] {
-    const participatingTeamIds = new Set<string>();
+  static getRoomMembershipsNotInRound(teams: RoomMembership[], groups: RoundGroup[]): RoomMembership[] {
+    const participatingRoomMembershipIds = new Set<string>();
     
     groups.forEach(group => {
       group.teamIds.forEach(teamId => {
-        participatingTeamIds.add(teamId);
+        participatingRoomMembershipIds.add(teamId);
       });
     });
     
-    return teams.filter(team => !participatingTeamIds.has(team.id));
+    return teams.filter(team => !participatingRoomMembershipIds.has(team.id));
   }
 
   /**

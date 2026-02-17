@@ -17,7 +17,7 @@ export function useGameStateIntegration({ sessionId, userId }: UseGameStateInteg
 
   // Extract data from gameState for compatibility with existing code
   const session = gameState.session;
-  const teams = gameState.teams;
+  const teams = gameState.memberships; // Still called teams for compatibility
   const answers = gameState.answers;
   const votes = gameState.votes;
   const hasSnapshot = !gameState.isLoading;

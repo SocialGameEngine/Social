@@ -1,4 +1,4 @@
-import { PhaseCardButton } from '../../components/PhaseCardButton';
+import { PhaseButton } from '../../components/PhaseButton';
 import type { Session, RoomMembership } from '../../../../shared/types';
 
 interface LobbyPhaseProps {
@@ -6,15 +6,19 @@ interface LobbyPhaseProps {
   memberships: RoomMembership[] | null;
 }
 
-export function LobbyPhase(_props: LobbyPhaseProps) {
+export function LobbyPhase({ session: _session, memberships: _memberships }: LobbyPhaseProps) {
+  const handleStartSession = () => {
+    // TODO: Implement session start logic
+    console.log('Starting session...');
+  };
+
   return (
     <div className="w-full mb-8">
-      <PhaseCardButton
+      <PhaseButton 
         phase="lobby"
         hasSubmitted={false}
-        onClick={() => {}}
-        disabled={true}
-        prompt="Waiting for host to start..."
+        onClick={handleStartSession}
+        disabled={false}
       />
     </div>
   );

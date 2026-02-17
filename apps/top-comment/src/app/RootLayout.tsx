@@ -4,19 +4,7 @@ import { useState, useEffect, useRef } from "react";
 
 export function RootLayout() {
   const navigate = useNavigate();
-  // Safely use hooks with error handling
-  let user, isGuest, signOut;
-  try {
-    const authData = useAuth();
-    user = authData?.user;
-    isGuest = authData?.isGuest;
-    signOut = authData?.signOut;
-  } catch (error) {
-    console.warn('Auth hook error:', error);
-    user = null;
-    isGuest = false;
-    signOut = undefined;
-  }
+  const { user, isGuest, signOut } = useAuth();
 
   // Mobile scroll behavior - hide/show navbar
   const [isMobile, setIsMobile] = useState(false);
@@ -240,7 +228,7 @@ export function RootLayout() {
       </nav>
 
       {/* Main content with padding-top = navbar height */}
-      <main className="pt-16">
+      <main className="pt-0 md:pt-16">
         <Outlet />
       </main>
     </div>

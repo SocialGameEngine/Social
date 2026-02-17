@@ -1,7 +1,7 @@
-import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { BackgroundAnimation } from "../../components/BackgroundAnimation";
-import { JoinForm } from "../team/Phases";
+import { JoinForm } from "./JoinForm";
 import { useToast } from "../../shared/hooks";
 import { roomService } from "../../services/roomService";
 import { roomMembershipService } from "../../services/roomMembershipService";
@@ -15,13 +15,26 @@ interface JoinFormState {
 export function JoinPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading, signInAnonymously } = useAuth();
+  const [searchParams] = useSearchParams();
   
+  // Read ?code= from invite link URL
+  const codeFromUrl = searchParams.get("code")?.toUpperCase().trim() || "";
+
   // SIMPLIFIED: Only manage form state, no complex team state
   const [joinForm, setJoinForm] = useState<JoinFormState>({
-    code: "",
+    code: codeFromUrl,
     playerName: ""
   });
+
+  // Auto sign-in as guest if not authenticated (handles direct link / incognito)
+  useEffect(() => {
+    if (!authLoading && !user) {
+      signInAnonymously().catch((err) =>
+        console.error("Auto guest sign-in failed:", err)
+      );
+    }
+  }, [authLoading, user, signInAnonymously]);
   const [joinErrors, setJoinErrors] = useState<Record<string, string>>({});
   const [isJoining, setIsJoining] = useState(false);
 

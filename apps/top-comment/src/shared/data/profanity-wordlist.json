@@ -1,0 +1,31 @@
+{
+  "strict": [
+    "ass", "asshole", "bastard", "bitch", "bollocks", "bullshit",
+    "cock", "crap", "cunt", "damn", "dick", "dickhead",
+    "fag", "faggot", "fuck", "fucker", "fucking", "goddamn",
+    "hell", "jackass", "motherfucker", "nigger", "nigga",
+    "piss", "prick", "pussy", "retard", "retarded",
+    "shit", "shitty", "slut", "twat", "wanker", "whore",
+    "arse", "arsehole", "bellend", "bloody", "bugger",
+    "chink", "dyke", "kike", "spic", "wetback",
+    "anal", "blowjob", "boner", "boob", "boobs",
+    "butthole", "cameltoe", "clitoris", "dildo",
+    "douche", "douchebag", "erection", "fellatio",
+    "handjob", "hooker", "horny", "jizz",
+    "masturbat", "milf", "nipple", "orgasm",
+    "penis", "phallus", "porn", "queef",
+    "rimjob", "scrotum", "semen", "sex",
+    "skank", "smegma", "sperm", "testicle",
+    "tits", "titties", "vagina", "vulva",
+    "viagra", "vibrator"
+  ],
+  "moderate": [
+    "ass", "asshole", "bastard", "bitch", "bullshit",
+    "cock", "cunt", "dick", "dickhead",
+    "fag", "faggot", "fuck", "fucker", "fucking",
+    "motherfucker", "nigger", "nigga",
+    "prick", "pussy", "retard", "retarded",
+    "shit", "shitty", "slut", "twat", "wanker", "whore",
+    "chink", "dyke", "kike", "spic", "wetback"
+  ]
+}

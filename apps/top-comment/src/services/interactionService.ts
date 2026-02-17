@@ -1,0 +1,410 @@
+import { supabase } from "../supabase/client";
+import { censorText } from "../shared/utils/profanityFilter";
+import { createRateLimiter } from "../shared/utils/rateLimiter";
+import { RATE_LIMITS } from "../shared/constants/rateLimits";
+import type { Interaction, InteractionResponse, InteractionVote, HeadlineFibbageSettings, VotingOption, HeadlineResults } from "../domain/types/interaction.types";
+
+const responseLimiter = createRateLimiter(RATE_LIMITS.response.maxActions, RATE_LIMITS.response.windowMs);
+const voteLimiter = createRateLimiter(RATE_LIMITS.vote.maxActions, RATE_LIMITS.vote.windowMs);
+
+// --- Mappers ---
+
+function mapInteraction(data: any): Interaction {
+  return {
+    id: data.id,
+    roomId: data.room_id,
+    createdBy: data.created_by,
+    type: data.type,
+    status: data.status,
+    question: data.question,
+    description: data.description,
+    settings: data.settings,
+    responseCount: data.response_count || 0,
+    voteCount: data.vote_count || 0,
+    answerEndsAt: data.answer_ends_at,
+    answerSeconds: data.answer_seconds,
+    votingEndsAt: data.voting_ends_at,
+    votingSeconds: data.voting_seconds,
+    createdAt: data.created_at,
+    closedAt: data.closed_at,
+    targetType: data.target_type ?? 'broadcast',
+    targetMembershipId: data.target_membership_id ?? null,
+    sourceMembershipId: data.source_membership_id ?? null,
+    challengeStatus: data.challenge_status ?? null,
+    challengeExpiresAt: data.challenge_expires_at ?? null,
+    pointsWager: data.points_wager ?? 0,
+  };
+}
+
+function mapResponse(data: any): InteractionResponse {
+  const membership = data.room_memberships;
+  return {
+    id: data.id,
+    interactionId: data.interaction_id,
+    membershipId: data.membership_id,
+    text: data.text,
+    createdAt: data.created_at,
+    playerName: membership?.player_name,
+    mascotId: membership?.mascot_id,
+  };
+}
+
+function mapVote(data: any): InteractionVote {
+  return {
+    id: data.id,
+    interactionId: data.interaction_id,
+    membershipId: data.membership_id,
+    responseId: data.response_id,
+    createdAt: data.created_at,
+  };
+}
+
+// --- Interaction CRUD ---
+
+async function createInteraction(
+  roomId: string,
+  question: string,
+  description?: string
+): Promise<Interaction> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) throw new Error("User not authenticated");
+
+  const filteredQuestion = censorText(question);
+  const filteredDescription = description ? censorText(description) : null;
+
+  const { data, error } = await supabase
+    .from("interactions")
+    .insert({
+      room_id: roomId,
+      question: filteredQuestion,
+      description: filteredDescription,
+      created_by: userData.user.id,
+      answer_ends_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // 5 minutes from now
+      answer_seconds: 300,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to create interaction: ${error.message}`);
+  return mapInteraction(data);
+}
+
+async function closeInteraction(interactionId: string): Promise<void> {
+  const { error } = await supabase
+    .from("interactions")
+    .update({ status: "closed", closed_at: new Date().toISOString() })
+    .eq("id", interactionId);
+
+  if (error) throw new Error(`Failed to close interaction: ${error.message}`);
+}
+
+async function getActiveInteractions(roomId: string): Promise<Interaction[]> {
+  const { data, error } = await supabase
+    .from("interactions")
+    .select("*")
+    .eq("room_id", roomId)
+    .eq("status", "active")
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`Failed to fetch interactions: ${error.message}`);
+  return (data || []).map(mapInteraction);
+}
+
+async function getAllInteractions(roomId: string): Promise<Interaction[]> {
+  const { data, error } = await supabase
+    .from("interactions")
+    .select("*")
+    .eq("room_id", roomId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`Failed to fetch interactions: ${error.message}`);
+  return (data || []).map(mapInteraction);
+}
+
+// --- Response CRUD ---
+
+async function submitResponse(
+  interactionId: string,
+  membershipId: string,
+  text: string
+): Promise<InteractionResponse> {
+  if (!responseLimiter.canAct()) {
+    throw new Error('Slow down! You are submitting responses too fast.');
+  }
+
+  const filteredText = censorText(text);
+
+  const { data, error } = await supabase
+    .from("responses")
+    .upsert(
+      {
+        interaction_id: interactionId,
+        membership_id: membershipId,
+        text: filteredText,
+      },
+      { onConflict: "interaction_id,membership_id" }
+    )
+    .select("*, room_memberships:membership_id(player_name, mascot_id)")
+    .single();
+
+  if (error) throw new Error(`Failed to submit response: ${error.message}`);
+  return mapResponse(data);
+}
+
+async function getResponses(interactionId: string): Promise<InteractionResponse[]> {
+  const { data, error } = await supabase
+    .from("responses")
+    .select("*, room_memberships:membership_id(player_name, mascot_id)")
+    .eq("interaction_id", interactionId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(`Failed to get responses: ${error.message}`);
+  return (data || []).map(mapResponse);
+}
+
+async function getMyResponse(
+  interactionId: string,
+  membershipId: string
+): Promise<InteractionResponse | null> {
+  const { data, error } = await supabase
+    .from("responses")
+    .select("*, room_memberships:membership_id(player_name, mascot_id)")
+    .eq("interaction_id", interactionId)
+    .eq("membership_id", membershipId)
+    .maybeSingle();
+
+  if (error) throw new Error(`Failed to fetch response: ${error.message}`);
+  return data ? mapResponse(data) : null;
+}
+
+// --- Vote CRUD ---
+
+async function advanceToVoting(interactionId: string, votingSeconds = 300): Promise<boolean> {
+  const { data, error } = await supabase
+    .rpc('advance_interaction_to_voting', {
+      p_interaction_id: interactionId,
+      p_voting_seconds: votingSeconds
+    });
+
+  if (error) throw new Error(`Failed to advance to voting: ${error.message}`);
+  return data;
+}
+
+async function advanceToResults(interactionId: string): Promise<boolean> {
+  // First check current status to ensure we can advance to results
+  const { data: interaction, error: fetchError } = await supabase
+    .from("interactions")
+    .select("status")
+    .eq("id", interactionId)
+    .single();
+  
+  if (fetchError) throw new Error(`Failed to check interaction status: ${fetchError.message}`);
+  
+  // Can only advance from 'voting' to 'results'
+  if (interaction.status !== 'voting') {
+    throw new Error(`Cannot advance to results: interaction is in '${interaction.status}' phase, must be 'voting'`);
+  }
+
+  // Update to results phase
+  const { error: updateError } = await supabase
+    .from("interactions")
+    .update({ status: "results" })
+    .eq("id", interactionId);
+
+  if (updateError) throw new Error(`Failed to advance to results: ${updateError.message}`);
+  return true;
+}
+
+async function submitVote(interactionId: string, membershipId: string, responseId: string): Promise<InteractionVote> {
+  if (!voteLimiter.canAct()) {
+    throw new Error('Slow down! You are voting too fast.');
+  }
+
+  const { data, error } = await supabase
+    .from("interaction_votes")
+    .upsert(
+      {
+        interaction_id: interactionId,
+        membership_id: membershipId,
+        response_id: responseId,
+      },
+      { onConflict: "interaction_id,membership_id" }
+    )
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to submit vote: ${error.message}`);
+  return mapVote(data);
+}
+
+async function getVotes(interactionId: string): Promise<InteractionVote[]> {
+  const { data, error } = await supabase
+    .from("interaction_votes")
+    .select("*")
+    .eq("interaction_id", interactionId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(`Failed to get votes: ${error.message}`);
+  return (data || []).map(mapVote);
+}
+
+// --- Headline Fibbage Methods ---
+
+async function createHeadlineInteraction(params: {
+  roomId: string;
+  headlineId: string;
+  headlineBlank: string;
+  sourceName: string;
+  publishedAt: string;
+  answerSeconds?: number;
+  votingSeconds?: number;
+}): Promise<Interaction> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) throw new Error("User not authenticated");
+
+  const answerSeconds = params.answerSeconds ?? 90;
+  const votingSeconds = params.votingSeconds ?? 60;
+
+  const settings: HeadlineFibbageSettings = {
+    mode: "headline_fibbage",
+    headlineId: params.headlineId,
+    headlineBlank: params.headlineBlank,
+    sourceName: params.sourceName,
+    publishedAt: params.publishedAt,
+    answerMaxLen: 40,
+    profanityFilter: "basic",
+  };
+
+  const filteredHeadline = censorText(params.headlineBlank);
+
+  const { data, error } = await supabase
+    .from("interactions")
+    .insert({
+      room_id: params.roomId,
+      created_by: userData.user.id,
+      type: "headline_fibbage",
+      status: "active",
+      question: filteredHeadline,
+      description: `${params.sourceName} • ${new Date(params.publishedAt).toLocaleDateString()}`,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      settings: JSON.parse(JSON.stringify(settings)),
+      answer_seconds: answerSeconds,
+      answer_ends_at: new Date(Date.now() + answerSeconds * 1000).toISOString(),
+      voting_seconds: votingSeconds,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to create headline interaction: ${error.message}`);
+  return mapInteraction(data);
+}
+
+async function getVotingOptions(interactionId: string, membershipId: string): Promise<VotingOption[]> {
+  // Fetch all responses for this interaction
+  const responses = await getResponses(interactionId);
+
+  // Get the interaction to find the real answer from settings
+  const { data: interactionData, error: intError } = await supabase
+    .from('interactions')
+    .select('settings')
+    .eq('id', interactionId)
+    .single();
+
+  if (intError) throw new Error(`Failed to fetch interaction: ${intError.message}`);
+
+  const settings = interactionData.settings as any;
+  const realAnswer = settings?.headlineBlank ? settings.headlineBlank.replace(/____/g, settings.realAnswer || 'the real answer') : 'Real answer';
+
+  // Build options: player responses + real answer
+  const options: VotingOption[] = responses
+    .filter(r => r.membershipId !== membershipId) // Exclude own response
+    .map(r => ({
+      optionId: r.id,
+      text: r.text,
+      authorMembershipId: r.membershipId,
+    }));
+
+  // Add the real answer
+  options.push({
+    optionId: 'real_answer',
+    text: realAnswer,
+    isReal: true,
+    authorMembershipId: null,
+  });
+
+  // Shuffle
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+
+  return options;
+}
+
+async function getHeadlineResults(interactionId: string, _membershipId: string): Promise<HeadlineResults> {
+  // Fetch responses and votes
+  const responses = await getResponses(interactionId);
+  const votes = await getVotes(interactionId);
+
+  // Get the interaction settings for the real answer
+  const { data: interactionData, error: intError } = await supabase
+    .from('interactions')
+    .select('settings')
+    .eq('id', interactionId)
+    .single();
+
+  if (intError) throw new Error(`Failed to fetch interaction: ${intError.message}`);
+
+  const settings = interactionData.settings as any;
+  const realAnswer = settings?.headlineBlank ? settings.headlineBlank.replace(/____/g, settings.realAnswer || 'the real answer') : 'Real answer';
+
+  // Build vote counts per option
+  const voteCounts = new Map<string, number>();
+  for (const v of votes) {
+    voteCounts.set(v.responseId, (voteCounts.get(v.responseId) || 0) + 1);
+  }
+
+  // Build options from responses
+  const options = responses.map(r => ({
+    optionId: r.id,
+    text: r.text,
+    isReal: false,
+    authorMembershipId: r.membershipId,
+    voteCount: voteCounts.get(r.id) || 0,
+    fooledCount: voteCounts.get(r.id) || 0,
+  }));
+
+  // Add real answer option
+  options.push({
+    optionId: 'real_answer',
+    text: realAnswer,
+    isReal: true,
+    authorMembershipId: null as any,
+    voteCount: voteCounts.get('real_answer') || 0,
+    fooledCount: 0,
+  });
+
+  return { realAnswer, options };
+}
+
+async function submitHeadlineVote(interactionId: string, membershipId: string, responseId: string): Promise<void> {
+  await submitVote(interactionId, membershipId, responseId);
+}
+
+export const interactionService = {
+  createInteraction,
+  closeInteraction,
+  getActiveInteractions,
+  getAllInteractions,
+  submitResponse,
+  getResponses,
+  getMyResponse,
+  advanceToVoting,
+  advanceToResults,
+  submitVote,
+  getVotes,
+  createHeadlineInteraction,
+  getVotingOptions,
+  getHeadlineResults,
+  submitHeadlineVote,
+};

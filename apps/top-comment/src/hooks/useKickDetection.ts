@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { logger } from '../shared/utils/logger';
 import { useRoom } from './useRoom';
 
 interface UseKickDetectionProps {
@@ -25,7 +26,7 @@ export function useKickDetection({ roomId }: UseKickDetectionProps) {
   useEffect(() => {
     // Only check for kick if we had membership before and now don't
     if (roomId && hasEstablishedMembership && !myMembership) {
-      console.log('🚫 KICK DETECTED - membership not found, redirecting to join page...');
+      logger.debug('Kick detected - membership not found, redirecting to join page');
       // Player was removed from the room - use window.location for reliable redirect
       window.location.href = "/join";
     }
@@ -34,7 +35,7 @@ export function useKickDetection({ roomId }: UseKickDetectionProps) {
   // Detect if player was banned (membership exists but is_banned=true)
   useEffect(() => {
     if (myMembership && myMembership.isBanned) {
-      console.log('🚫 Player was banned - membership is_banned=true');
+      logger.debug('Player was banned - membership is_banned=true');
       // Player was banned from the room - use window.location for reliable redirect
       window.location.href = "/join";
     }

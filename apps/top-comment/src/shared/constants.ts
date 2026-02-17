@@ -1,8 +1,8 @@
 import type { Session } from "./types";
 
 export const phaseCopy: Record<Session["status"], string> = {
-  lobby: "Gather your teams and share the code.",
-  answer: "Teams are writing their responses.",
+  lobby: "Gather your players and share the code.",
+  answer: "Players are writing their responses.",
   vote: "Votes are coming in.",
   results: "Review the winning answer.",
   ended: "Session complete.",
@@ -50,7 +50,7 @@ export const phaseHeadline: Record<Session["status"], string> = {
 export const phaseSubtitle: Record<Session["status"], string> = {
   lobby: "Or visit event.playnow.social/play and enter the room code.",
   answer: "Type fast! You have 90 seconds to drop your best answer.",
-  vote: "Pick the funniest or boldest idea. No voting for your own team.",
+  vote: "Pick the funniest or boldest idea. No voting for your own answer.",
   results: "Celebrate the winner! Next round starts soon.",
   ended: "Thanks for playing. Ask your host for the next code.",
 };

@@ -29,11 +29,16 @@ export function VotePhase({
           activeGroupAnswers.map((answer, index) => {
             const voteTotal = voteCounts.get(answer.id) ?? 0;
             const isWinner = activeGroupWinnerIds.has(answer.id);
-            const author = teamLookup.get(answer.teamId) ?? "Unknown";
+            const author = teamLookup.get(answer.membershipId) ?? "Unknown";
+            // Add teamId for UI compatibility
+            const answerWithTeamId = {
+              ...answer,
+              teamId: answer.membershipId
+            };
             return (
               <div key={answer.id} className="group relative">
                 <AnswerCard
-                  answer={answer}
+                  answer={answerWithTeamId}
                   voteCount={voteTotal}
                   isWinner={isWinner}
                   authorName={author}

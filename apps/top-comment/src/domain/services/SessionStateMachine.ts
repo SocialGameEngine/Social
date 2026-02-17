@@ -42,8 +42,8 @@ export class SessionStateMachine {
   static getNextPhase(current: SessionStatus, context: StateMachineContext): SessionStatus | null {
     switch (current) {
       case 'lobby':
-        // Need at least 2 teams to start
-        return context.teamCount >= 2 ? 'answer' : null;
+        // Need at least 2 players to start
+        return context.playerCount >= 2 ? 'answer' : null;
 
       case 'answer':
         // Move to vote if we have answers
@@ -86,7 +86,7 @@ export class SessionStateMachine {
   ): StateMachineContext {
     if (!session) {
       return {
-        teamCount: 0,
+        playerCount: 0,
         hasAnswers: false,
         hasVotes: false,
         currentRoundComplete: false,
@@ -94,7 +94,7 @@ export class SessionStateMachine {
       };
     }
 
-    const nonHostTeams = teams.filter(team => !team.isHost);
+    const nonHostPlayers = teams.filter(t => !t.isHost);
     const currentRoundAnswers = answers.filter(a => a.roundIndex === session.roundIndex);
     const currentRoundVotes = votes.filter(v => v.roundIndex === session.roundIndex);
 
@@ -106,7 +106,7 @@ export class SessionStateMachine {
     const allRoundsComplete = session.roundIndex >= session.rounds.length - 1 && currentRoundComplete;
 
     return {
-      teamCount: nonHostTeams.length,
+      playerCount: nonHostPlayers.length,
       hasAnswers: currentRoundAnswers.length > 0,
       hasVotes: currentRoundVotes.length > 0,
       currentRoundComplete,
@@ -118,13 +118,13 @@ export class SessionStateMachine {
    * Validate a session transition with business rules
    * @param session - Current session
    * @param nextPhase - Desired next phase
-   * @param teamCount - Number of teams in session
+   * @param playerCount - Number of players in session
    * @returns Transition validation result
    */
   static validateTransition(
     session: Session | null,
     nextPhase: SessionStatus,
-    teamCount: number
+    playerCount: number
   ): TransitionValidation {
     if (!session) {
       return {
@@ -144,10 +144,10 @@ export class SessionStateMachine {
     // Business rule validations
     switch (nextPhase) {
       case 'answer':
-        if (teamCount < 2) {
+        if (playerCount < 2) {
           return {
             canTransition: false,
-            reason: 'Need at least 2 teams to start answering'
+            reason: 'Need at least 2 players to start answering'
           };
         }
         if (session.roundIndex >= session.rounds.length) {
@@ -215,7 +215,7 @@ export class SessionStateMachine {
       return false;
     }
 
-    const validation = this.validateTransition(session, nextPhase, context.teamCount);
+    const validation = this.validateTransition(session, nextPhase, context.playerCount);
     return validation.canTransition;
   }
 
