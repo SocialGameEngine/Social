@@ -4,16 +4,13 @@ import { Routes, Route, useLocation, BrowserRouter } from 'react-router-dom';
 import './index.css';
 import { ThemeProvider } from './shared/providers/ThemeProvider';
 import Navbar from './components/ui/Navbar';
-import Hero from './components/landing/Hero';
-import HowItWorks from './components/landing/HowItWorks';
-import WhyChoose from './components/landing/WhyChoose';
-import Pricing from './components/landing/Pricing';
+import { VenuePage } from './features/venues/VenuesPage';
+import { LandingPage } from './features/landing/LandingPage';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Footer from './components/ui/Footer';
-import FinalCTA from './components/landing/FinalCTA';
 import BackgroundAnimation from './components/ui/BackgroundAnimation';
 import { useEffect } from 'react';
 
@@ -39,17 +36,11 @@ function AppContent() {
       <Routes>
         <Route
           path="/"
-          element={
-            <>
-              <main className="container">
-                <Hero />
-              </main>
-              <HowItWorks />
-              <WhyChoose />
-              <Pricing />
-              <FinalCTA />
-            </>
-          }
+          element={<LandingPage />}
+        />
+        <Route
+          path="/venues"
+          element={<VenuePage />}
         />
         <Route
           path="/about"
