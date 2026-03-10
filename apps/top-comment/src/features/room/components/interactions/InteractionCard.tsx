@@ -1,16 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Interaction } from '../../../../shared/types';
 
-function PhaseChip({ label, status }: { label: string; status: string }) {
-  const cls =
-    status === 'active' ? 'chaos-chip chaos-chip--active'
-    : status === 'voting' ? 'chaos-chip chaos-chip--voting'
-    : status === 'results' ? 'chaos-chip chaos-chip--results'
-    : 'chaos-chip chaos-chip--closed';
-
-  return <span className={cls}>{label}</span>;
-}
-
 function CountdownChip({ endsAt }: { endsAt?: string | null }) {
   const [now, setNow] = useState(Date.now());
 
@@ -167,15 +157,6 @@ export function InteractionCard({
   // Card is only disabled when there's truly nothing to do
   const isDisabled = false; // Users can always interact to change answers/votes
 
-  const phaseLabel =
-  interaction.status === "active"
-    ? (interaction.type === "headline_fibbage" ? "LIE" : "ANSWER")
-    : interaction.status === "voting"
-      ? "VOTE"
-      : interaction.status === "results"
-        ? "RESULTS"
-        : "CLOSED";
-
   return (
   <div className="w-full flex justify-start px-2 mb-4">
     <div className="interaction-row relative flex items-stretch gap-2 w-[95%] max-w-[600px] scale-[0.96] origin-left">
@@ -232,10 +213,6 @@ export function InteractionCard({
           </div>
         </button>
 
-        {/* Phase chip: hovers over card bottom */}
-        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 pointer-events-none">
-          <PhaseChip status={interaction.status} label={phaseLabel} />
-        </div>
       </div>
 
       {/* Right action tile */}

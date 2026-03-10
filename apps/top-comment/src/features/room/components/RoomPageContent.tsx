@@ -13,9 +13,6 @@ import { RoomModals } from './RoomModals';
 import { RoomDrawers } from './RoomDrawers';
 import { RoomFloatingButtons } from './RoomFloatingButtons';
 import { RoomBottomNav } from './RoomBottomNav';
-import { ReactionBar } from './ReactionBar';
-import { ReactionOverlay } from './ReactionOverlay';
-import { useReactions } from '../../../hooks/useReactions';
 import { useBlocks } from '../../../hooks/useBlocks';
 import { useReports } from '../../../hooks/useReports';
 import { useChallenges } from '../../../hooks/useChallenges';
@@ -42,12 +39,9 @@ export function RoomPageContent() {
   const [showChatDrawer, setShowChatDrawer] = useState(false);
   const [showLeaderboardDrawer, setShowLeaderboardDrawer] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
-
-  // Live reactions
-  const { reactions, reactionCounts, bursts, sendReaction } = useReactions({
-    roomId: room?.id,
-    membershipId: myMembership?.id,
-  });
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showTopicsModal, setShowTopicsModal] = useState(false);
+  const [showPollsModal, setShowPollsModal] = useState(false);
 
   // Blocks & reports
   const { blockedIds, blockPlayer } = useBlocks({ membershipId: myMembership?.id, roomId: room?.id });
@@ -147,18 +141,29 @@ export function RoomPageContent() {
   };
 
   // Bottom nav for mobile
-  const bottomNavigation = (
+  const mobileMenu = (
     <RoomBottomNav
+      variant="menu"
       showLobbyDrawer={showLobbyDrawer}
       showVIBox={showVIBox}
       showHowToPlay={showHowToPlay}
-      onToggleLobby={handleToggleLobby}
-      onToggleVIBox={() => setShowVIBox(!showVIBox)}
-      onToggleHelp={() => setShowHowToPlay(!showHowToPlay)}
+      onToggleLobby={() => {
+        handleToggleLobby();
+        setShowMobileMenu(false);
+      }}
+      onToggleVIBox={() => {
+        setShowVIBox(!showVIBox);
+        setShowMobileMenu(false);
+      }}
+      onToggleHelp={() => {
+        setShowHowToPlay(!showHowToPlay);
+        setShowMobileMenu(false);
+      }}
     />
   );
 
   // Shared content area (session panel + interactions)
+  const isLobbyPhase = !session || session.status === 'lobby';
   const mainContent = (
     <div className="flex-1 overflow-y-auto relative z-10 pt-4">
       <SessionPanel
@@ -168,23 +173,124 @@ export function RoomPageContent() {
         onOpenLeaderboard={() => openEndedModal('leaderboard')}
         onOpenSelfie={() => openEndedModal('selfie')}
         onOpenModal={openModal}
+        onOpenTopics={() => setShowTopicsModal(true)}
+        onOpenPolls={() => setShowPollsModal(true)}
         isSticky={!isMobile}
       />
-      <InteractionSection
-        room={room}
-        memberships={memberships}
-        hasActiveSession={!!session && session.status !== 'ended'}
-      />
+      {!isLobbyPhase && (
+        <InteractionSection
+          room={room}
+          memberships={memberships}
+          hasActiveSession={!!session && session.status !== 'ended'}
+        />
+      )}
     </div>
   );
+
+  const topicsModal = showTopicsModal ? (
+    <div className="fixed inset-0 z-50">
+      <button
+        type="button"
+        aria-label="Close topics"
+        className="absolute inset-0 bg-slate-950/85"
+        onClick={() => setShowTopicsModal(false)}
+      />
+      <div className="relative h-full w-full overflow-y-auto px-4 py-6">
+        <div className="mx-auto w-full max-w-3xl">
+          <div className="flex items-center justify-between pb-4">
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
+              Topics
+            </h2>
+            <button
+              type="button"
+              onClick={() => setShowTopicsModal(false)}
+              className="rounded-full border border-cyan-400/40 bg-slate-900/60 px-4 py-2 text-sm font-bold uppercase tracking-wider text-cyan-200 hover:bg-slate-800/60"
+            >
+              Close
+            </button>
+          </div>
+          <InteractionSection
+            room={room}
+            memberships={memberships}
+            hasActiveSession={!!session && session.status !== 'ended'}
+          />
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  const pollsModal = showPollsModal ? (
+    <div className="fixed inset-0 z-50">
+      <button
+        type="button"
+        aria-label="Close polls"
+        className="absolute inset-0 bg-slate-950/85"
+        onClick={() => setShowPollsModal(false)}
+      />
+      <div className="relative h-full w-full overflow-y-auto px-4 py-6">
+        <div className="mx-auto w-full max-w-3xl">
+          <div className="flex items-center justify-between pb-4">
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
+              Polls
+            </h2>
+            <button
+              type="button"
+              onClick={() => setShowPollsModal(false)}
+              className="rounded-full border border-cyan-400/40 bg-slate-900/60 px-4 py-2 text-sm font-bold uppercase tracking-wider text-cyan-200 hover:bg-slate-800/60"
+            >
+              Close
+            </button>
+          </div>
+          <p className="text-sm sm:text-base text-cyan-100/90">
+            Polls content coming soon.
+          </p>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   // Mobile layout
   if (isMobile) {
     return (
       <MobileLayout 
-        bottomNav={shouldHideBottomNav ? undefined : bottomNavigation}
         className="bg-gradient-to-b from-slate-900 to-slate-800 text-white"
       >
+        {!shouldHideBottomNav && (
+          <>
+            <div className="sticky top-0 z-40 flex items-center justify-between px-4 py-3 backdrop-blur bg-slate-900/60 border-b border-cyan-400/20">
+              <div className="flex items-center gap-2">
+                <img src="/logo.png" alt="Pub Söcial" className="h-8 w-8 rounded-full" />
+                <span className="text-sm font-black tracking-wide text-white">Pub Söcial</span>
+              </div>
+              <button
+                type="button"
+                aria-label="Open menu"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-800/80 text-white shadow-lg shadow-cyan-500/20 backdrop-blur transition hover:bg-slate-700/80"
+                onClick={() => setShowMobileMenu((open) => !open)}
+              >
+                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
+
+            {showMobileMenu && (
+              <div className="fixed inset-0 z-40">
+                <button
+                  type="button"
+                  aria-label="Close menu"
+                  className="absolute inset-0 bg-slate-900/60"
+                  onClick={() => setShowMobileMenu(false)}
+                />
+                <div className="absolute right-4 top-16 w-56 rounded-2xl border border-cyan-400/30 bg-slate-900/90 p-2 shadow-xl shadow-fuchsia-500/10 backdrop-blur">
+                  <div className="chaos-menu">
+                    {mobileMenu}
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
         <BackgroundAnimation show={true} />
         <div className="flex-1 flex min-h-0">
           <div className="flex-1 flex flex-col min-h-0">
@@ -219,8 +325,6 @@ export function RoomPageContent() {
           onSubmit={async (q: string, c?: string) => { await submitQuestion(q, c); }}
         />
 
-        <ReactionOverlay reactions={reactions} bursts={bursts} />
-        <ReactionBar onReact={sendReaction} reactionCounts={reactionCounts} />
         <RoomDrawers {...drawerProps} />
         <RoomFloatingButtons
           showLeaderboardDrawer={showLeaderboardDrawer}
@@ -230,6 +334,8 @@ export function RoomPageContent() {
           onToggleChat={handleToggleChat}
         />
         <RoomModals {...modalProps} />
+        {topicsModal}
+        {pollsModal}
         <VIBoxJukebox
           isOpen={showVIBox}
           onClose={() => setShowVIBox(false)}
@@ -304,10 +410,10 @@ export function RoomPageContent() {
         onSubmit={async (q: string, c?: string) => { await submitQuestion(q, c); }}
       />
 
-      <ReactionOverlay reactions={reactions} bursts={bursts} />
-      <ReactionBar onReact={sendReaction} reactionCounts={reactionCounts} />
       <RoomDrawers {...drawerProps} />
       <RoomModals {...modalProps} />
+      {topicsModal}
+      {pollsModal}
       <VIBoxJukebox
         isOpen={showVIBox}
         onClose={() => setShowVIBox(false)}
