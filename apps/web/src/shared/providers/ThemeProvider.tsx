@@ -3,35 +3,21 @@
  * Manages theme state and provides theme toggle functionality
  */
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { lightTheme, darkTheme } from '../theme';
+import { darkTheme } from '../theme';
 import type { Theme } from '../theme';
 
 interface ThemeContextType {
   theme: Theme;
-  toggleTheme: () => void;
   isDark: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Load theme from localStorage or default to dark
-  const [theme, setTheme] = useState<Theme>(() => {
-    const stored = localStorage.getItem('app-theme');
-    return stored === 'light' ? lightTheme : darkTheme;
-  });
-
-  const isDark = theme.name === 'dark';
-
-  const toggleTheme = () => {
-    setTheme((current) => {
-      const newTheme = current.name === 'light' ? darkTheme : lightTheme;
-      localStorage.setItem('app-theme', newTheme.name);
-      return newTheme;
-    });
-  };
+  const theme = darkTheme;
+  const isDark = true;
 
   // Update CSS variables when theme changes
   useEffect(() => {
@@ -188,7 +174,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, isDark }}>
+    <ThemeContext.Provider value={{ theme, isDark }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -162,3 +162,7 @@ logs/*.txt
 *.sqlite
 *.sqlite3
 .vercel
+
+# Web app build artifacts (Vite bundles with hash suffixes)
+apps/web/index-*.js
+apps/web/index-*.css

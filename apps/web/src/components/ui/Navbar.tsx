@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { ThemeToggle } from './ThemeToggle'
 
 const BrandIcon = () => (
     <svg 
@@ -58,13 +57,10 @@ export default function Navbar() {
         </Link>
         
         <div className="links">
-          <Link to="/#how">How It Works</Link>
-          <Link to="/#features">Features</Link>
-          <Link to="/#pricing">Pricing</Link>
         </div>
         
         <div className="actions">
-          <ThemeToggle />
+          <Link to="/venues">For Venues</Link>
           <a href="https://event.playnow.social" className="brand-name">
             Demö
           </a>

@@ -62,6 +62,7 @@ export default function Footer() {
         <nav className="footer-col">
           <h4>Product</h4>
           <ul>
+            <li><Link to="/venues">For Venues</Link></li>
             <li><Link to="/#features">Features</Link></li>
             <li><Link to="/#pricing">Pricing</Link></li>
             <li><Link to="/#how">How It Works</Link></li>

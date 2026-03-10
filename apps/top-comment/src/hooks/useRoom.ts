@@ -67,7 +67,10 @@ export function useRoom(options: UseRoomOptions = {}) {
   // Refresh memberships
   const refreshMembers = useCallback(async () => {
     const targetRoomId = roomId || room?.id;
-    if (!targetRoomId) return;
+    
+    if (!targetRoomId) {
+      return;
+    }
 
     try {
       const membershipsData = await roomMembershipService.getRoomMembers({ roomId: targetRoomId });
