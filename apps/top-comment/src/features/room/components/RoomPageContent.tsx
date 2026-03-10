@@ -101,6 +101,19 @@ export function RoomPageContent() {
     closeEndedModal,
     markSubmitted,
     handleLeaveRoom,
+    userId: user?.id,
+    membershipId: myMembership?.id,
+    displayName: myDisplayName,
+    showLobbyDrawer,
+    showChatDrawer,
+    showLeaderboardDrawer,
+    isMobile,
+    isHost,
+    showHowToPlay,
+    onCloseLobby: () => setShowLobbyDrawer(false),
+    onCloseChat: () => setShowChatDrawer(false),
+    onCloseLeaderboard: () => setShowLeaderboardDrawer(false),
+    onCloseHelp: () => setShowHowToPlay(false),
   };
 
   // Shared modal props

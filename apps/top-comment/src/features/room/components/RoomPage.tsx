@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useRoom } from '../../../hooks/useRoom';
 import { useSession } from '../../session/hooks';
 import { RoomPageProvider } from '../context/RoomPageContext';
 import { useAuth } from '../../../shared/providers/AuthContext';
-import { RoomPageContent } from './RoomPageContent';
-import { RoomPageLoading } from './RoomPageLoading';
+import { RoomPageContent, RoomPageLoading } from './index';
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
-  const navigate = useNavigate();
   const { user, loading: authLoading, signInAnonymously } = useAuth();
   const [sessionId, setSessionId] = useState<string | null>(null);
   
