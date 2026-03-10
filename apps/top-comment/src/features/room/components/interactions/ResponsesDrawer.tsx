@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useResponses } from '../../../../hooks/useResponses';
 import type { Interaction } from '../../../../shared/types';
 
@@ -6,7 +7,7 @@ interface ResponsesDrawerProps {
   onClose: () => void;
   interaction: Interaction;
   onCloseInteraction: () => void;
-  onSendAnother: () => void;
+  onSubmitResponse: (text: string) => Promise<void>;
 }
 
 export function ResponsesDrawer({
@@ -14,9 +15,11 @@ export function ResponsesDrawer({
   onClose,
   interaction,
   onCloseInteraction,
-  onSendAnother,
+  onSubmitResponse,
 }: ResponsesDrawerProps) {
   const { responses, isLoading } = useResponses({ interactionId: interaction.id });
+  const [draft, setDraft] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
@@ -84,19 +87,37 @@ export function ResponsesDrawer({
         </div>
 
         {/* Footer Actions */}
-        <div className="sticky bottom-0 p-4 border-t border-slate-700/50 bg-slate-900 flex gap-3">
-          <button
-            onClick={onCloseInteraction}
-            className="flex-1 text-sm font-medium py-2.5 rounded-full border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 transition-colors"
-          >
-            Close Prompt
-          </button>
-          <button
-            onClick={onSendAnother}
-            className="flex-1 text-sm font-medium py-2.5 rounded-full border border-cyan-400/30 text-cyan-300 hover:bg-cyan-500/10 transition-colors"
-          >
-            Send Another
-          </button>
+        <div className="sticky bottom-0 p-4 border-t border-slate-700/50 bg-slate-900">
+          <div className="space-y-3">
+            <textarea
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder="Type your response..."
+              className="w-full min-h-[90px] rounded-xl border border-slate-700/60 bg-slate-800/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
+            />
+            <button
+              onClick={async () => {
+                if (!draft.trim() || isSubmitting) return;
+                setIsSubmitting(true);
+                try {
+                  await onSubmitResponse(draft.trim());
+                  setDraft('');
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}
+              className="w-full text-sm font-medium py-2.5 rounded-full border border-cyan-400/30 text-cyan-300 hover:bg-cyan-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!draft.trim() || isSubmitting}
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit Response'}
+            </button>
+            <button
+              onClick={onCloseInteraction}
+              className="w-full text-sm font-medium py-2.5 rounded-full border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 transition-colors"
+            >
+              Close Prompt
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -389,9 +389,8 @@ export function InteractionSection({
               onClose={() => setViewingResponses(null)}
               interaction={viewingResponses}
               onCloseInteraction={() => handleCloseInteraction(viewingResponses.id)}
-              onSendAnother={() => {
-                setViewingResponses(null);
-                setShowSendModal(true);
+              onSubmitResponse={async (text) => {
+                await handleSubmitResponse(viewingResponses.id, text);
               }}
             />
           )}

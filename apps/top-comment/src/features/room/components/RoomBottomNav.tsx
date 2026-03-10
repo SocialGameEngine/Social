@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/providers/AuthContext';
 
 interface RoomBottomNavProps {
+  variant?: 'bar' | 'menu';
   showLobbyDrawer: boolean;
   showVIBox: boolean;
   showHowToPlay: boolean;
@@ -12,6 +13,7 @@ interface RoomBottomNavProps {
 }
 
 export function RoomBottomNav({
+  variant = 'bar',
   showLobbyDrawer,
   showVIBox,
   showHowToPlay,
@@ -23,6 +25,8 @@ export function RoomBottomNav({
   const navigate = useNavigate();
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  const menuItemClass = `chaos-nav-item ${variant === 'menu' ? 'chaos-nav-item--menu' : ''}`;
+  const accountMenuPositionClass = variant === 'menu' ? 'top-full right-0 mt-2' : 'bottom-full right-0 mb-2';
 
   const handleSignOut = useCallback(async () => {
     if (!signOut) return;
@@ -49,13 +53,13 @@ export function RoomBottomNav({
 
   return (
     <>
-      <button type="button" className="chaos-nav-item" onClick={() => window.location.href = '/join'}>
+      <button type="button" className={menuItemClass} onClick={() => window.location.href = '/join'}>
         <div className="text-2xl">🚪</div>
         <span className="chaos-nav-label">Bail</span>
       </button>
       <button
         type="button"
-        className={`chaos-nav-item ${showLobbyDrawer ? 'opacity-100' : 'opacity-70'}`}
+        className={`${menuItemClass} ${showLobbyDrawer ? 'opacity-100' : 'opacity-70'}`}
         onClick={onToggleLobby}
       >
         <div className="text-2xl">👥</div>
@@ -63,7 +67,7 @@ export function RoomBottomNav({
       </button>
       <button 
         type="button" 
-        className={`chaos-nav-item ${showVIBox ? 'opacity-100' : 'opacity-70'}`}
+        className={`${menuItemClass} ${showVIBox ? 'opacity-100' : 'opacity-70'}`}
         onClick={onToggleVIBox}
       >
         <div className="text-2xl">🎵</div>
@@ -71,7 +75,7 @@ export function RoomBottomNav({
       </button>
       <button 
         type="button" 
-        className={`chaos-nav-item ${showHowToPlay ? 'opacity-100' : 'opacity-70'}`}
+        className={`${menuItemClass} ${showHowToPlay ? 'opacity-100' : 'opacity-70'}`}
         onClick={onToggleHelp}
       >
         <div className="text-2xl">❓</div>
@@ -80,7 +84,7 @@ export function RoomBottomNav({
       <div ref={accountMenuRef} className="relative">
         <button 
           type="button" 
-          className={`chaos-nav-item ${showAccountMenu ? 'opacity-100' : 'opacity-70'}`}
+          className={`${menuItemClass} ${showAccountMenu ? 'opacity-100' : 'opacity-70'}`}
           onClick={() => setShowAccountMenu(!showAccountMenu)}
         >
           <div className="text-2xl">
@@ -95,7 +99,7 @@ export function RoomBottomNav({
           <span className="chaos-nav-label">Profile</span>
         </button>
         {showAccountMenu && (
-          <div className="absolute bottom-full right-0 mb-2 w-64 rounded-xl bg-slate-800 border border-cyan-400/50 shadow-lg shadow-fuchsia-500/20 z-50 overflow-hidden">
+          <div className={`absolute ${accountMenuPositionClass} w-64 rounded-xl bg-slate-800 border border-cyan-400/50 shadow-lg shadow-fuchsia-500/20 z-50 overflow-hidden`}>
             <div className="p-4 space-y-3">
               {user ? (
                 <>

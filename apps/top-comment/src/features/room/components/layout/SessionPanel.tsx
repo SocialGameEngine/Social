@@ -8,6 +8,8 @@ interface SessionPanelProps {
   onOpenLeaderboard: () => void;
   onOpenSelfie: () => void;
   onOpenModal?: (type: 'answer' | 'vote') => void;
+  onOpenTopics?: () => void;
+  onOpenPolls?: () => void;
   isSticky?: boolean;
 }
 
@@ -18,6 +20,8 @@ export function SessionPanel({
   onOpenLeaderboard,
   onOpenSelfie,
   onOpenModal,
+  onOpenTopics,
+  onOpenPolls,
   isSticky = false,
 }: SessionPanelProps) {
   return (
@@ -34,6 +38,8 @@ export function SessionPanel({
           onOpenLeaderboard={onOpenLeaderboard}
           onOpenSelfie={onOpenSelfie}
           onOpenModal={onOpenModal}
+          onOpenTopics={onOpenTopics}
+          onOpenPolls={onOpenPolls}
         />
       </div>
     </div>

@@ -14,6 +14,8 @@ interface PhaseControllerProps {
   onOpenLeaderboard: () => void;
   onOpenSelfie: () => void;
   onOpenModal?: (type: 'answer' | 'vote') => void;
+  onOpenTopics?: () => void;
+  onOpenPolls?: () => void;
 }
 
 export function PhaseController({
@@ -23,13 +25,22 @@ export function PhaseController({
   onOpenLeaderboard,
   onOpenSelfie,
   onOpenModal,
+  onOpenTopics,
+  onOpenPolls,
 }: PhaseControllerProps) {
   const phase = getSessionPhase(session);
   const { submissions, markSubmitted } = useSubmissions(session?.id || null, phase);
 
   switch (phase) {
     case 'lobby':
-      return <LobbyPhase session={session} memberships={memberships} />;
+      return (
+        <LobbyPhase
+          session={session}
+          memberships={memberships}
+          onOpenTopics={onOpenTopics}
+          onOpenPolls={onOpenPolls}
+        />
+      );
 
     case 'answer':
       if (!session || !sessionId) return null;
@@ -73,6 +84,13 @@ export function PhaseController({
       );
 
     default:
-      return <LobbyPhase session={session} memberships={memberships} />;
+      return (
+        <LobbyPhase
+          session={session}
+          memberships={memberships}
+          onOpenTopics={onOpenTopics}
+          onOpenPolls={onOpenPolls}
+        />
+      );
   }
 }
