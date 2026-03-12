@@ -1,15 +1,17 @@
-import { Outlet, Link, useNavigate } from "react-router-dom";
+import { Outlet, Link } from "react-router-dom";
 import { useAuth } from "../shared/providers/AuthContext";
 import { useState, useEffect, useRef } from "react";
+import { AuthModal } from "../shared/components/AuthModal";
 
 export function RootLayout() {
-  const navigate = useNavigate();
   const { user, isGuest, signOut } = useAuth();
 
   // Mobile scroll behavior - hide/show navbar
   const [isMobile, setIsMobile] = useState(false);
   const [navbarHidden, setNavbarHidden] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const accountMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,14 +61,28 @@ export function RootLayout() {
     }
   }, [showAccountMenu]);
 
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false);
+  };
+
+  const handleSignIn = () => {
+    setAuthMode('login');
+    setShowAccountMenu(false);
+    setShowAuthModal(true);
+  };
+
+  const handleSignUp = () => {
+    setAuthMode('signup');
+    setShowAccountMenu(false);
+    setShowAuthModal(true);
+  };
+
   // Handle logout
   const handleSignOut = async () => {
     if (!signOut) return;
     try {
       await signOut();
       setShowAccountMenu(false);
-      // Redirect to landing page after sign out
-      navigate('/');
     } catch (error) {
       console.error('Sign out failed:', error);
     }
@@ -90,32 +106,30 @@ export function RootLayout() {
           {/* Account button — right beside reserved bail space */}
           <div className="flex-shrink-0 relative min-w-0" ref={accountMenuRef}>
             <button
-              onClick={() => setShowAccountMenu(!showAccountMenu)}
+              onClick={() => user ? setShowAccountMenu(!showAccountMenu) : handleSignIn()}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-600/80 hover:bg-slate-500/80 hover:scale-110 hover:shadow-lg hover:shadow-cyan-400/50 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-slate-950"
-              aria-label="Account menu"
+              aria-label={user ? "Account menu" : "Sign in"}
               aria-expanded={showAccountMenu}
             >
-              {user ? (
-                isGuest ? (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                    stroke="currentColor"
-                    className="w-5 h-5 text-slate-200"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                ) : (
-                  <span className="text-slate-200 text-sm font-semibold">
-                    {(user.user_metadata?.display_name?.[0] || user.email?.[0] || "U").toUpperCase()}
-                  </span>
-                )
+              {user && !isGuest ? (
+                <span className="text-slate-200 text-sm font-semibold">
+                  {(user.user_metadata?.display_name?.[0] || user.email?.[0] || "U").toUpperCase()}
+                </span>
+              ) : user && isGuest ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  className="w-5 h-5 text-cyan-400"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                  />
+                </svg>
               ) : (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -135,10 +149,10 @@ export function RootLayout() {
             </button>
 
             {/* Account Menu Dropdown — opens to the left of the button */}
-            {showAccountMenu && (
+            {showAccountMenu && user && (
               <div className="absolute top-full right-0 mt-2 w-64 rounded-xl bg-slate-800 border border-cyan-400/50 shadow-lg shadow-fuchsia-500/20 z-50 overflow-hidden">
                 <div className="p-4 space-y-3">
-                  {user ? (
+                  {user && !isGuest ? (
                     <>
                       <div className="space-y-1">
                         <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
@@ -159,13 +173,6 @@ export function RootLayout() {
                           </p>
                         )}
                       </div>
-                      {isGuest && (
-                        <div className="pt-2 border-t border-slate-700">
-                          <p className="text-xs text-slate-400">
-                            Guest mode
-                          </p>
-                        </div>
-                      )}
                       <div className="pt-2 border-t border-slate-700">
                         <button
                           onClick={handleSignOut}
@@ -190,14 +197,61 @@ export function RootLayout() {
                       </div>
                     </>
                   ) : (
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
-                        Not signed in
-                      </p>
-                      <p className="text-sm text-slate-400">
-                        Sign in to access your account
-                      </p>
-                    </div>
+                    <>
+                      <div className="space-y-1">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
+                          Guest Account
+                        </p>
+                        <p className="text-sm text-slate-400">
+                          You're playing as a guest
+                        </p>
+                      </div>
+                      <div className="pt-2 border-t border-slate-700">
+                        <p className="text-xs text-slate-400 mb-2">
+                          Want to save your progress?
+                        </p>
+                        <button
+                          onClick={handleSignIn}
+                          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-400 hover:to-fuchsia-400 rounded-lg transition-all shadow-md hover:shadow-lg mb-2"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                          </svg>
+                          Sign In
+                        </button>
+                        <div className="pt-2 border-t border-slate-700">
+                          <p className="text-xs text-slate-400 text-center">
+                            Don't have an account?{' '}
+                            <button
+                              onClick={handleSignUp}
+                              className="text-cyan-400 hover:text-cyan-300 underline font-medium"
+                            >
+                              Sign up
+                            </button>
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleSignOut}
+                          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-slate-700/50 rounded-lg transition-colors mt-2"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2}
+                            stroke="currentColor"
+                            className="w-4 h-4"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"
+                            />
+                          </svg>
+                          Sign Out
+                        </button>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -231,6 +285,13 @@ export function RootLayout() {
       <main className="pt-0 md:pt-16">
         <Outlet />
       </main>
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={handleAuthSuccess}
+          initialMode={authMode}
+        />
+      )}
     </div>
   );
 }

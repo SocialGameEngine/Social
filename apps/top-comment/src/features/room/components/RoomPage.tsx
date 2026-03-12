@@ -4,11 +4,11 @@ import { useRoom } from '../../../hooks/useRoom';
 import { useSession } from '../../session/hooks';
 import { RoomPageProvider } from '../context/RoomPageContext';
 import { useAuth } from '../../../shared/providers/AuthContext';
-import { RoomPageContent, RoomPageLoading } from './index';
+import { RoomPageContent } from './index';
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
-  const { user, loading: authLoading, signInAnonymously } = useAuth();
+  const { loading: authLoading } = useAuth();
   const [sessionId, setSessionId] = useState<string | null>(null);
   
   const { room, memberships, isLoading: roomLoading, error: roomError } = useRoom({
@@ -17,26 +17,12 @@ export function RoomPage() {
 
   const { session } = useSession(sessionId || undefined);
 
-  // Auto sign-in as guest if not authenticated (handles direct link / incognito)
-  useEffect(() => {
-    if (!authLoading && !user) {
-      signInAnonymously().catch((err) =>
-        console.error("Auto guest sign-in failed:", err)
-      );
-    }
-  }, [authLoading, user, signInAnonymously]);
-
   // Get sessionId from room when it updates
   useEffect(() => {
     if (room?.currentSessionId && room.currentSessionId !== sessionId) {
       setSessionId(room.currentSessionId);
     }
   }, [room?.currentSessionId, sessionId]);
-
-  // Check if user has a membership in this room
-  const myMembership = user ? memberships.find(m => m.userId === user.id) : null;
-  const isHost = room?.hostUid === user?.id;
-  const hasMembership = !!myMembership || isHost;
 
   if (authLoading || roomLoading) {
     return (
@@ -57,7 +43,7 @@ export function RoomPage() {
     );
   }
 
-  // Always render the provider - let the child components handle membership checks
+  // Always render the provider - let RoomPageContent handle membership checks
   return (
     <RoomPageProvider
       room={room}
@@ -65,7 +51,7 @@ export function RoomPage() {
       session={session}
       sessionId={sessionId}
     >
-      {hasMembership ? <RoomPageContent /> : <RoomPageLoading />}
+      <RoomPageContent />
     </RoomPageProvider>
   );
 }

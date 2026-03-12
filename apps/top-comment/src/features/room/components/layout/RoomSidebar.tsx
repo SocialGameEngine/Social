@@ -20,6 +20,8 @@ interface RoomSidebarProps {
   isMuted?: boolean;
   pendingReportCount?: number;
   onChallengePlayer?: (membershipId: string, playerName: string) => void;
+  isMember?: boolean;
+  onJoinRoom?: () => void;
 }
 
 function TabBar({ activeTab, setActiveTab, isHost, pendingReportCount }: { activeTab: SidebarTab; setActiveTab: (tab: SidebarTab) => void; isHost?: boolean; pendingReportCount?: number }) {
@@ -75,7 +77,7 @@ function TabBar({ activeTab, setActiveTab, isHost, pendingReportCount }: { activ
   );
 }
 
-export function RoomSidebar({ memberships, isCollapsed, onToggle, roomId, userId, membershipId, displayName, isHost, blockedIds, blockPlayer, isMuted, pendingReportCount, onChallengePlayer }: RoomSidebarProps) {
+export function RoomSidebar({ memberships, isCollapsed, onToggle, roomId, userId, membershipId, displayName, isHost, blockedIds, blockPlayer, isMuted, pendingReportCount, onChallengePlayer, isMember = true, onJoinRoom }: RoomSidebarProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('lobby');
 
   return (
@@ -102,13 +104,39 @@ export function RoomSidebar({ memberships, isCollapsed, onToggle, roomId, userId
 
       {!isCollapsed && (
         <>
-          <TabBar activeTab={activeTab} setActiveTab={setActiveTab} isHost={isHost} pendingReportCount={pendingReportCount} />
-          {activeTab === 'lobby' ? (
-            <LobbyPanel memberships={memberships} roomId={roomId} myMembershipId={membershipId} blockPlayer={blockPlayer} onChallengePlayer={onChallengePlayer} />
-          ) : activeTab === 'chat' ? (
-            <ChatPanel roomId={roomId} userId={userId} membershipId={membershipId} displayName={displayName} blockedIds={blockedIds} blockPlayer={blockPlayer} isHost={isHost} isMuted={isMuted} />
+          {isMember ? (
+            <>
+              <TabBar activeTab={activeTab} setActiveTab={setActiveTab} isHost={isHost} pendingReportCount={pendingReportCount} />
+              {activeTab === 'lobby' ? (
+                <LobbyPanel memberships={memberships} roomId={roomId} myMembershipId={membershipId} blockPlayer={blockPlayer} onChallengePlayer={onChallengePlayer} />
+              ) : activeTab === 'chat' ? (
+                <ChatPanel roomId={roomId} userId={userId} membershipId={membershipId} displayName={displayName} blockedIds={blockedIds} blockPlayer={blockPlayer} isHost={isHost} isMuted={isMuted} />
+              ) : (
+                <ModerationPanel roomId={roomId} isHost={isHost ?? false} hostMembershipId={membershipId} memberships={memberships} />
+              )}
+            </>
           ) : (
-            <ModerationPanel roomId={roomId} isHost={isHost ?? false} hostMembershipId={membershipId} memberships={memberships} />
+            <div className="flex-1 flex items-center justify-center p-6">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 mx-auto bg-amber-500/20 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-amber-400">Join to Participate</h3>
+                  <p className="text-sm text-slate-400">
+                    Join this room to access chat, lobby, and other interactive features
+                  </p>
+                </div>
+                <button
+                  onClick={onJoinRoom}
+                  className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-400 hover:to-fuchsia-400 text-white font-medium rounded-lg transition-all shadow-md hover:shadow-lg"
+                >
+                  Join Room
+                </button>
+              </div>
+            </div>
           )}
         </>
       )}

@@ -884,3 +884,29 @@ a {
 .animate-reaction-burst {
     animation: reaction-burst 1.2s ease-out forwards;
 }
+
+/* Aggressive removal of all max-height constraints */
+.twitter-embed,
+.twitter-embed *,
+.twitter-tweet,
+.twitter-tweet *,
+.twitter-tweet iframe,
+.twitter-tweet iframe * {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+/* Allow individual posts to extend for embeds */
+article.p-3 {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: auto !important;
+}
+
+article.p-3 .twitter-embed,
+article.p-3 .instagram-embed {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: auto !important;
+}

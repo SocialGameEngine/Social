@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRoomPage } from '../hooks/useRoomPage';
 import { useAuth } from '../../../shared/providers/AuthContext';
 import { VIBoxJukebox } from '../../../shared/components/vibox/VIBoxJukebox';
@@ -13,8 +13,12 @@ import { RoomModals } from './RoomModals';
 import { RoomDrawers } from './RoomDrawers';
 import { RoomFloatingButtons } from './RoomFloatingButtons';
 import { RoomBottomNav } from './RoomBottomNav';
+import { AuthModal } from '../../../shared/components/AuthModal';
+import { JoinRoomModal } from '../../../shared/components/JoinRoomModal';
 import { ReactionBar } from './ReactionBar';
 import { ReactionOverlay } from './ReactionOverlay';
+import { TabNavigation } from './TabNavigation';
+import { CommunityFeed } from './CommunityFeed';
 import { useReactions } from '../../../hooks/useReactions';
 import { useBlocks } from '../../../hooks/useBlocks';
 import { useReports } from '../../../hooks/useReports';
@@ -24,49 +28,87 @@ import { ChallengeNotification } from './challenges/ChallengeNotification';
 import { ChallengeModal } from './challenges/ChallengeModal';
 import { SubmitQuestionButton } from './submissions/SubmitQuestionButton';
 import { SubmitQuestionModal } from './submissions/SubmitQuestionModal';
+import { roomMembershipService } from '../../../services/roomMembershipService';
 
 export function RoomPageContent() {
   const { room, memberships, session, sessionId, state, openModal, closeModal, markSubmitted, openEndedModal, closeEndedModal, handleLeaveRoom } = useRoomPage();
   const { user } = useAuth();
   const { isMobile, isRailCollapsed, setIsRailCollapsed } = useResponsiveLayout();
 
-  // Check if user has a membership in this room (we know they have one if this component renders)
+  // Check if user has a membership in this room (for interactive features)
   const myMembership = user ? memberships?.find(m => m.userId === user.id) : null;
   const isHost = room?.hostUid === user?.id;
+  const hasMembership = !!myMembership || isHost;
 
-  // Derive chat/leaderboard props
-  const myDisplayName = myMembership?.playerName || user?.user_metadata?.display_name || 'Anonymous';
-  
+  // ALL hooks must be called before any conditional returns
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
   const [showVIBox, setShowVIBox] = useState(false);
   const [showLobbyDrawer, setShowLobbyDrawer] = useState(false);
   const [showChatDrawer, setShowChatDrawer] = useState(false);
   const [showLeaderboardDrawer, setShowLeaderboardDrawer] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [activeTab, setActiveTab] = useState<'host' | 'community'>('host');
+  const [challengeTarget, setChallengeTarget] = useState<{ id: string; name: string } | null>(null);
+  const [showSubmitQuestion, setShowSubmitQuestion] = useState(false);
 
-  // Live reactions
+  // Callback hooks
+  const handleAuthSuccess = useCallback(() => {
+    setShowAuthModal(false);
+    // Refresh the page to re-render with authenticated state
+    window.location.reload();
+  }, []);
+
+  const handleJoinRoom = useCallback(async (displayName: string) => {
+    if (!room?.code) return;
+    
+    try {
+      await roomMembershipService.joinRoom({
+        code: room.code,
+        playerName: displayName,
+      });
+      // Room will automatically refresh due to real-time subscriptions
+    } catch (error: any) {
+      throw error;
+    }
+  }, [room?.code]);
+
+  const requireMembership = useCallback(() => {
+    if (!hasMembership) {
+      setShowJoinModal(true);
+      return false;
+    }
+    return true;
+  }, [hasMembership]);
+
+  // Custom hooks that depend on user state
   const { reactions, reactionCounts, bursts, sendReaction } = useReactions({
     roomId: room?.id,
     membershipId: myMembership?.id,
   });
 
-  // Blocks & reports
+  const handleReaction = useCallback((emoji: any) => {
+    if (requireMembership()) {
+      sendReaction(emoji);
+    }
+  }, [requireMembership, sendReaction]);
+
   const { blockedIds, blockPlayer } = useBlocks({ membershipId: myMembership?.id, roomId: room?.id });
   const { pendingCount: pendingReportCount } = useReports({ roomId: room?.id, isHost });
 
-  // Challenges
   const {
     pendingChallenges,
     sendChallenge,
     acceptChallenge,
     declineChallenge,
   } = useChallenges({ roomId: room?.id, membershipId: myMembership?.id });
-  const [challengeTarget, setChallengeTarget] = useState<{ id: string; name: string } | null>(null);
 
-  // Audience submissions (player side only - host reviews in HostPage)
   const {
     submitQuestion,
   } = useAudienceSubmissions({ roomId: room?.id, membershipId: myMembership?.id, isHost: false });
-  const [showSubmitQuestion, setShowSubmitQuestion] = useState(false);
+
+  // Derived values
+  const myDisplayName = myMembership?.playerName || user?.user_metadata?.display_name || 'Anonymous';
 
   // Helper: get member name from membership id
   const getMemberName = (membershipId: string | null | undefined) => {
@@ -83,6 +125,32 @@ export function RoomPageContent() {
       });
     }
   }, [session?.status, state.endedModals, closeEndedModal]);
+
+  // Show auth modal for non-authenticated users
+  if (!user) {
+    return (
+      <>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 to-slate-800 text-white">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold mb-4">Room "{room?.code}"</h1>
+            <p className="text-slate-300 mb-6">Please sign in to view this room.</p>
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-400 hover:to-fuchsia-400 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl"
+            >
+              Sign In / Sign Up
+            </button>
+          </div>
+        </div>
+        {showAuthModal && (
+          <AuthModal
+            onClose={() => setShowAuthModal(false)}
+            onSuccess={handleAuthSuccess}
+          />
+        )}
+      </>
+    );
+  }
 
   // Configure which modals should hide the bottom navbar
   const modalsThatHideNav: Array<'leaderboard' | 'selfie'> = ['selfie'];
@@ -155,26 +223,46 @@ export function RoomPageContent() {
       onToggleLobby={handleToggleLobby}
       onToggleVIBox={() => setShowVIBox(!showVIBox)}
       onToggleHelp={() => setShowHowToPlay(!showHowToPlay)}
+      isMember={hasMembership}
+      onJoinRoom={() => setShowJoinModal(true)}
     />
   );
 
-  // Shared content area (session panel + interactions)
+  // Shared content area (session panel + interactions or community feed)
   const mainContent = (
-    <div className="flex-1 overflow-y-auto relative z-10 pt-4">
-      <SessionPanel
-        session={session}
-        sessionId={sessionId}
-        memberships={memberships}
-        onOpenLeaderboard={() => openEndedModal('leaderboard')}
-        onOpenSelfie={() => openEndedModal('selfie')}
-        onOpenModal={openModal}
-        isSticky={!isMobile}
+    <div className="flex-1 overflow-hidden relative z-10 flex flex-col">
+      <TabNavigation
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        className="flex-shrink-0"
       />
-      <InteractionSection
-        room={room}
-        memberships={memberships}
-        hasActiveSession={!!session && session.status !== 'ended'}
-      />
+      
+      {activeTab === 'host' ? (
+        <div className="flex-1 overflow-y-auto pt-4">
+          <SessionPanel
+            session={session}
+            sessionId={sessionId}
+            memberships={memberships}
+            onOpenLeaderboard={() => openEndedModal('leaderboard')}
+            onOpenSelfie={() => openEndedModal('selfie')}
+            onOpenModal={openModal}
+            isSticky={!isMobile}
+          />
+          <InteractionSection
+            room={room}
+            memberships={memberships}
+            hasActiveSession={!!session && session.status !== 'ended'}
+          />
+        </div>
+      ) : (
+        <CommunityFeed
+          roomId={room?.id || ''}
+          membershipId={myMembership?.id}
+          displayName={myDisplayName}
+          isMember={hasMembership}
+          onJoinRoom={() => setShowJoinModal(true)}
+        />
+      )}
     </div>
   );
 
@@ -208,7 +296,7 @@ export function RoomPageContent() {
           }}
           targetName={challengeTarget?.name || ''}
         />
-        {!isHost && (
+        {!isHost && hasMembership && (
           <div className="fixed bottom-20 left-4 z-30">
             <SubmitQuestionButton onClick={() => setShowSubmitQuestion(true)} />
           </div>
@@ -220,7 +308,6 @@ export function RoomPageContent() {
         />
 
         <ReactionOverlay reactions={reactions} bursts={bursts} />
-        <ReactionBar onReact={sendReaction} reactionCounts={reactionCounts} />
         <RoomDrawers {...drawerProps} />
         <RoomFloatingButtons
           showLeaderboardDrawer={showLeaderboardDrawer}
@@ -228,6 +315,8 @@ export function RoomPageContent() {
           showLobbyDrawer={showLobbyDrawer}
           onToggleLeaderboard={handleToggleLeaderboard}
           onToggleChat={handleToggleChat}
+          isMember={hasMembership}
+          onJoinRoom={() => setShowJoinModal(true)}
         />
         <RoomModals {...modalProps} />
         <VIBoxJukebox
@@ -236,11 +325,28 @@ export function RoomPageContent() {
           toast={(options) => console.log('Toast:', options)}
           mode="team"
         />
+        {showAuthModal && (
+          <AuthModal
+            onClose={() => {
+              console.log('AuthModal onClose called');
+              setShowAuthModal(false);
+            }}
+            onSuccess={handleAuthSuccess}
+          />
+        )}
+        {showJoinModal && (
+          <JoinRoomModal
+            isOpen={showJoinModal}
+            onClose={() => setShowJoinModal(false)}
+            roomCode={room?.code || ''}
+            onJoin={handleJoinRoom}
+          />
+        )}
       </MobileLayout>
     );
   }
 
-  // Desktop layout
+  
   return (
     <div className="min-h-[90dvh] flex flex-col bg-gradient-to-b from-slate-900 to-slate-800 text-white sm:overflow-hidden">
       <BackgroundAnimation show={true} />
@@ -269,6 +375,8 @@ export function RoomPageContent() {
           blockPlayer={blockPlayer}
           pendingReportCount={pendingReportCount}
           onChallengePlayer={(id: string, name: string) => setChallengeTarget({ id, name })}
+          isMember={hasMembership}
+          onJoinRoom={() => setShowJoinModal(true)}
         />
       </div>
 
@@ -295,7 +403,11 @@ export function RoomPageContent() {
       {/* Submit question button (for non-hosts) */}
       {!isHost && (
         <div className="fixed bottom-20 left-4 z-30">
-          <SubmitQuestionButton onClick={() => setShowSubmitQuestion(true)} />
+          <SubmitQuestionButton 
+            onClick={() => setShowSubmitQuestion(true)} 
+            isMember={hasMembership}
+            onJoinRoom={() => setShowJoinModal(true)}
+          />
         </div>
       )}
       <SubmitQuestionModal
@@ -305,7 +417,12 @@ export function RoomPageContent() {
       />
 
       <ReactionOverlay reactions={reactions} bursts={bursts} />
-      <ReactionBar onReact={sendReaction} reactionCounts={reactionCounts} />
+      <ReactionBar 
+        onReact={handleReaction} 
+        reactionCounts={reactionCounts} 
+        isMember={hasMembership}
+        onJoinRoom={() => setShowJoinModal(true)}
+      />
       <RoomDrawers {...drawerProps} />
       <RoomModals {...modalProps} />
       <VIBoxJukebox
@@ -314,6 +431,23 @@ export function RoomPageContent() {
         toast={(options) => console.log('Toast:', options)}
         mode="team"
       />
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => {
+            console.log('AuthModal onClose called (desktop)');
+            setShowAuthModal(false);
+          }}
+          onSuccess={handleAuthSuccess}
+        />
+      )}
+      {showJoinModal && (
+        <JoinRoomModal
+          isOpen={showJoinModal}
+          onClose={() => setShowJoinModal(false)}
+          roomCode={room?.code || ''}
+          onJoin={handleJoinRoom}
+        />
+      )}
     </div>
   );
 }

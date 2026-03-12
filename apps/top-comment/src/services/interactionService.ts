@@ -2,7 +2,7 @@ import { supabase } from "../supabase/client";
 import { censorText } from "../shared/utils/profanityFilter";
 import { createRateLimiter } from "../shared/utils/rateLimiter";
 import { RATE_LIMITS } from "../shared/constants/rateLimits";
-import type { Interaction, InteractionResponse, InteractionVote, HeadlineFibbageSettings, VotingOption, HeadlineResults } from "../domain/types/interaction.types";
+import type { Interaction, InteractionResponse, InteractionVote, HeadlineFibbageSettings, VotingOption, HeadlineResults, TopicResponseWithUpvotes, PollVote, PollResults, TopicSortBy } from "../domain/types/interaction.types";
 
 const responseLimiter = createRateLimiter(RATE_LIMITS.response.maxActions, RATE_LIMITS.response.windowMs);
 const voteLimiter = createRateLimiter(RATE_LIMITS.vote.maxActions, RATE_LIMITS.vote.windowMs);
@@ -33,6 +33,8 @@ function mapInteraction(data: any): Interaction {
     challengeStatus: data.challenge_status ?? null,
     challengeExpiresAt: data.challenge_expires_at ?? null,
     pointsWager: data.points_wager ?? 0,
+    pollOptions: data.poll_options || [],
+    sortBy: data.sort_by || 'newest',
   };
 }
 
@@ -391,6 +393,246 @@ async function submitHeadlineVote(interactionId: string, membershipId: string, r
   await submitVote(interactionId, membershipId, responseId);
 }
 
+// --- Topic Methods ---
+
+async function createTopic(
+  roomId: string,
+  question: string,
+  description?: string,
+  sortBy: TopicSortBy = 'newest'
+): Promise<Interaction> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) throw new Error("User not authenticated");
+
+  const filteredQuestion = censorText(question);
+  const filteredDescription = description ? censorText(description) : null;
+
+  const { data, error } = await supabase
+    .from("interactions")
+    .insert({
+      room_id: roomId,
+      question: filteredQuestion,
+      description: filteredDescription,
+      created_by: userData.user.id,
+      type: 'topic',
+      status: 'active',
+      sort_by: sortBy,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to create topic: ${error.message}`);
+  return mapInteraction(data);
+}
+
+async function toggleUpvote(
+  responseId: string,
+  membershipId: string
+): Promise<{ added: boolean }> {
+  // Check if upvote exists
+  const { data: existing, error: checkError } = await supabase
+    .from('topic_upvotes' as any)
+    .select('id')
+    .eq('response_id', responseId)
+    .eq('membership_id', membershipId)
+    .maybeSingle();
+
+  if (checkError) throw new Error(`Failed to check upvote: ${checkError.message}`);
+
+  if (existing) {
+    // Remove upvote
+    const { error: deleteError } = await supabase
+      .from('topic_upvotes' as any)
+      .delete()
+      .eq('id', (existing as any).id);
+
+    if (deleteError) throw new Error(`Failed to remove upvote: ${deleteError.message}`);
+    return { added: false };
+  } else {
+    // Add upvote
+    const { error: insertError } = await supabase
+      .from('topic_upvotes' as any)
+      .insert({
+        response_id: responseId,
+        membership_id: membershipId,
+      });
+
+    if (insertError) throw new Error(`Failed to add upvote: ${insertError.message}`);
+    return { added: true };
+  }
+}
+
+async function getTopicResponses(
+  interactionId: string,
+  membershipId: string,
+  sortBy: TopicSortBy = 'newest'
+): Promise<TopicResponseWithUpvotes[]> {
+  // Get all responses
+  const responses = await getResponses(interactionId);
+
+  // Get all upvotes for these responses
+  const responseIds = responses.map(r => r.id);
+  const { data: upvotes, error: upvoteError } = await supabase
+    .from('topic_upvotes' as any)
+    .select('*')
+    .in('response_id', responseIds);
+
+  if (upvoteError) throw new Error(`Failed to get upvotes: ${upvoteError.message}`);
+
+  // Count upvotes per response
+  const upvoteCounts = new Map<string, number>();
+  const userUpvotes = new Set<string>();
+
+  (upvotes || []).forEach((upvote: any) => {
+    upvoteCounts.set(upvote.response_id, (upvoteCounts.get(upvote.response_id) || 0) + 1);
+    if (upvote.membership_id === membershipId) {
+      userUpvotes.add(upvote.response_id);
+    }
+  });
+
+  // Map responses with upvote data
+  const responsesWithUpvotes: TopicResponseWithUpvotes[] = responses.map(r => ({
+    ...r,
+    upvoteCount: upvoteCounts.get(r.id) || 0,
+    hasUpvoted: userUpvotes.has(r.id),
+  }));
+
+  // Sort based on sortBy parameter
+  if (sortBy === 'upvotes') {
+    responsesWithUpvotes.sort((a, b) => b.upvoteCount - a.upvoteCount);
+  } else {
+    responsesWithUpvotes.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  return responsesWithUpvotes;
+}
+
+async function deleteResponse(responseId: string): Promise<void> {
+  const { error } = await supabase
+    .from('responses')
+    .delete()
+    .eq('id', responseId);
+
+  if (error) throw new Error(`Failed to delete response: ${error.message}`);
+}
+
+// --- Poll Methods ---
+
+async function createPoll(
+  roomId: string,
+  question: string,
+  options: string[],
+  description?: string
+): Promise<Interaction> {
+  if (options.length < 2 || options.length > 5) {
+    throw new Error('Poll must have between 2 and 5 options');
+  }
+
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) throw new Error("User not authenticated");
+
+  const filteredQuestion = censorText(question);
+  const filteredDescription = description ? censorText(description) : null;
+  const filteredOptions = options.map(opt => censorText(opt));
+
+  const { data, error } = await supabase
+    .from("interactions")
+    .insert({
+      room_id: roomId,
+      question: filteredQuestion,
+      description: filteredDescription,
+      created_by: userData.user.id,
+      type: 'poll',
+      status: 'active',
+      poll_options: filteredOptions,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to create poll: ${error.message}`);
+  return mapInteraction(data);
+}
+
+async function submitPollVote(
+  interactionId: string,
+  membershipId: string,
+  selectedOption: number
+): Promise<PollVote> {
+  if (!voteLimiter.canAct()) {
+    throw new Error('Slow down! You are voting too fast.');
+  }
+
+  const { data, error } = await supabase
+    .from('poll_votes' as any)
+    .upsert(
+      {
+        interaction_id: interactionId,
+        membership_id: membershipId,
+        selected_option: selectedOption,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'interaction_id,membership_id' }
+    )
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to submit poll vote: ${error.message}`);
+  return {
+    id: (data as any).id,
+    interactionId: (data as any).interaction_id,
+    membershipId: (data as any).membership_id,
+    selectedOption: (data as any).selected_option,
+    createdAt: (data as any).created_at,
+    updatedAt: (data as any).updated_at,
+  };
+}
+
+async function getPollResults(
+  interactionId: string,
+  membershipId: string
+): Promise<PollResults> {
+  // Get the interaction to get poll options
+  const { data: interactionData, error: intError } = await supabase
+    .from('interactions')
+    .select('poll_options')
+    .eq('id', interactionId)
+    .single();
+
+  if (intError) throw new Error(`Failed to fetch poll: ${intError.message}`);
+
+  const pollOptions = ((interactionData as any).poll_options || []) as string[];
+
+  // Get all votes for this poll
+  const { data: votes, error: voteError } = await supabase
+    .from('poll_votes' as any)
+    .select('*')
+    .eq('interaction_id', interactionId);
+
+  if (voteError) throw new Error(`Failed to get poll votes: ${voteError.message}`);
+
+  const totalVotes = votes?.length || 0;
+  const voteCounts = new Map<number, number>();
+  let userVote: number | undefined;
+
+  (votes || []).forEach((vote: any) => {
+    voteCounts.set(vote.selected_option, (voteCounts.get(vote.selected_option) || 0) + 1);
+    if (vote.membership_id === membershipId) {
+      userVote = vote.selected_option;
+    }
+  });
+
+  const options = pollOptions.map((text, index) => ({
+    text,
+    voteCount: voteCounts.get(index) || 0,
+    percentage: totalVotes > 0 ? ((voteCounts.get(index) || 0) / totalVotes) * 100 : 0,
+    isSelected: userVote === index,
+  }));
+
+  return { options, totalVotes, userVote };
+}
+
 export const interactionService = {
   createInteraction,
   closeInteraction,
@@ -407,4 +649,13 @@ export const interactionService = {
   getVotingOptions,
   getHeadlineResults,
   submitHeadlineVote,
+  // Topic methods
+  createTopic,
+  toggleUpvote,
+  getTopicResponses,
+  deleteResponse,
+  // Poll methods
+  createPoll,
+  submitPollVote,
+  getPollResults,
 };

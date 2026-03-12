@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { BackgroundAnimation } from "../../components/BackgroundAnimation";
 import { JoinForm } from "./JoinForm";
@@ -6,6 +6,7 @@ import { useToast } from "../../shared/hooks";
 import { roomService } from "../../services/roomService";
 import { roomMembershipService } from "../../services/roomMembershipService";
 import { useAuth } from "../../shared/providers/AuthContext";
+import { AuthModal } from "../../shared/components/AuthModal";
 
 interface JoinFormState {
   code: string;
@@ -15,8 +16,9 @@ interface JoinFormState {
 export function JoinPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, loading: authLoading, signInAnonymously } = useAuth();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const [showAuthModal, setShowAuthModal] = useState(false);
   
   // Read ?code= from invite link URL
   const codeFromUrl = searchParams.get("code")?.toUpperCase().trim() || "";
@@ -27,25 +29,13 @@ export function JoinPage() {
     playerName: ""
   });
 
-  // Auto sign-in as guest if not authenticated (handles direct link / incognito)
-  useEffect(() => {
-    if (!authLoading && !user) {
-      signInAnonymously().catch((err) =>
-        console.error("Auto guest sign-in failed:", err)
-      );
-    }
-  }, [authLoading, user, signInAnonymously]);
   const [joinErrors, setJoinErrors] = useState<Record<string, string>>({});
   const [isJoining, setIsJoining] = useState(false);
 
   // SIMPLIFIED: Direct join handler without team state management
   const handleJoin = useCallback(async (values: JoinFormState) => {
     if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to join a room",
-        variant: "error",
-      });
+      setShowAuthModal(true);
       return;
     }
 
@@ -120,7 +110,11 @@ export function JoinPage() {
     } finally {
       setIsJoining(false);
     }
-  }, [user, toast, navigate]);
+  }, [user, navigate]);
+
+  const handleAuthSuccess = useCallback(() => {
+    setShowAuthModal(false);
+  }, []);
 
   // Wrapper for form submission
   const handleSubmit = useCallback((event: React.FormEvent<HTMLFormElement>) => {
@@ -157,6 +151,12 @@ export function JoinPage() {
           />
         </div>
       </div>
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={handleAuthSuccess}
+        />
+      )}
     </>
   );
 }

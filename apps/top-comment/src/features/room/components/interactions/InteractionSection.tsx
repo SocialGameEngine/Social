@@ -15,6 +15,8 @@ const ResponsesDrawer = lazy(() => import('./ResponsesDrawer'));
 const HeadlineRespondModal = lazy(() => import('./HeadlineRespondModal'));
 const HeadlineVoteModal = lazy(() => import('./HeadlineVoteModal'));
 const HeadlineResultsModal = lazy(() => import('./HeadlineResultsModal'));
+const TopicModal = lazy(() => import('./TopicModal'));
+const PollModal = lazy(() => import('./PollModal'));
 
 interface InteractionSectionProps {
   room: Room | null;
@@ -40,6 +42,8 @@ export function InteractionSection({
   const [viewingResponses, setViewingResponses] = useState<Interaction | null>(null);
   const [viewingResults, setViewingResults] = useState<Interaction | null>(null);
   const [viewingHeadlineResults, setViewingHeadlineResults] = useState<Interaction | null>(null);
+  const [viewingTopic, setViewingTopic] = useState<Interaction | null>(null);
+  const [viewingPoll, setViewingPoll] = useState<Interaction | null>(null);
   
   // Store user's response texts locally by interaction ID
   const [userResponses, setUserResponses] = useState<Map<string, string>>(new Map());
@@ -251,6 +255,7 @@ export function InteractionSection({
                       ? votedIds.has(interaction.id)
                       : false;
 
+                // All interactions use InteractionCard for consistency
                 return (
                   <div
                     key={interaction.id}
@@ -263,6 +268,10 @@ export function InteractionSection({
                       onRespond={() => {
                         if (interaction.type === 'headline_fibbage') {
                           setRespondingToHeadline(interaction);
+                        } else if (interaction.type === 'topic') {
+                          setViewingTopic(interaction);
+                        } else if (interaction.type === 'poll') {
+                          setViewingPoll(interaction);
                         } else {
                           setRespondingTo(interaction);
                         }
@@ -411,6 +420,24 @@ export function InteractionSection({
               onClose={() => setViewingHeadlineResults(null)}
               interaction={viewingHeadlineResults}
               membership={myMembership}
+            />
+          )}
+
+          {viewingTopic && (
+            <TopicModal
+              isOpen={true}
+              onClose={() => setViewingTopic(null)}
+              interaction={viewingTopic}
+              membershipId={myMembership?.id || ''}
+            />
+          )}
+
+          {viewingPoll && (
+            <PollModal
+              isOpen={true}
+              onClose={() => setViewingPoll(null)}
+              interaction={viewingPoll}
+              membershipId={myMembership?.id || ''}
             />
           )}
         </Suspense>

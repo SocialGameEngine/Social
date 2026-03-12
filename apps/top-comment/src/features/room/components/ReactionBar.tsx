@@ -4,16 +4,22 @@ import { REACTION_EMOJIS, type ReactionEmoji } from '../../../shared/constants/r
 interface ReactionBarProps {
   onReact: (emoji: ReactionEmoji) => void;
   reactionCounts: Record<ReactionEmoji, number>;
+  isMember?: boolean;
+  onJoinRoom?: () => void;
 }
 
-export function ReactionBar({ onReact, reactionCounts }: ReactionBarProps) {
+export function ReactionBar({ onReact, reactionCounts, isMember = true, onJoinRoom }: ReactionBarProps) {
   const [tappedEmoji, setTappedEmoji] = useState<ReactionEmoji | null>(null);
 
   const handleTap = useCallback((emoji: ReactionEmoji) => {
-    onReact(emoji);
-    setTappedEmoji(emoji);
-    setTimeout(() => setTappedEmoji(null), 200);
-  }, [onReact]);
+    if (isMember) {
+      onReact(emoji);
+      setTappedEmoji(emoji);
+      setTimeout(() => setTappedEmoji(null), 200);
+    } else if (onJoinRoom) {
+      onJoinRoom();
+    }
+  }, [isMember, onReact, onJoinRoom]);
 
   return (
     <div className="flex items-center justify-center gap-2 px-3 py-2">
@@ -29,12 +35,14 @@ export function ReactionBar({ onReact, reactionCounts }: ReactionBarProps) {
             className={`
               relative flex flex-col items-center justify-center
               rounded-xl px-2.5 py-1.5
-              bg-slate-800/60 hover:bg-slate-700/80
-              border border-slate-700/50 hover:border-cyan-400/30
-              transition-all duration-150 active:scale-90
+              ${isMember 
+                ? 'bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700/50 hover:border-cyan-400/30 transition-all duration-150 active:scale-90' 
+                : 'bg-slate-700/40 hover:bg-slate-600/60 border border-slate-600/50 hover:border-amber-400/30 transition-all duration-150'
+              }
               ${isTapped ? 'scale-110 border-cyan-400/60 bg-cyan-900/40' : ''}
             `}
-            aria-label={`React with ${emoji}`}
+            aria-label={isMember ? `React with ${emoji}` : `Join room to react with ${emoji}`}
+            title={isMember ? undefined : "Join this room to participate"}
           >
             <span className={`text-xl transition-transform duration-150 ${isTapped ? 'scale-125' : ''}`}>
               {emoji}
