@@ -9,6 +9,8 @@ interface RoomBottomNavProps {
   onToggleLobby: () => void;
   onToggleVIBox: () => void;
   onToggleHelp: () => void;
+  isMember?: boolean;
+  onJoinRoom?: () => void;
 }
 
 export function RoomBottomNav({
@@ -18,6 +20,8 @@ export function RoomBottomNav({
   onToggleLobby,
   onToggleVIBox,
   onToggleHelp,
+  isMember = true,
+  onJoinRoom,
 }: RoomBottomNavProps) {
   const { user, isGuest, signOut } = useAuth();
   const navigate = useNavigate();
@@ -56,10 +60,11 @@ export function RoomBottomNav({
       <button
         type="button"
         className={`chaos-nav-item ${showLobbyDrawer ? 'opacity-100' : 'opacity-70'}`}
-        onClick={onToggleLobby}
+        onClick={() => isMember ? onToggleLobby() : onJoinRoom?.()}
+        title={isMember ? undefined : "Join this room to access lobby"}
       >
-        <div className="text-2xl">👥</div>
-        <span className="chaos-nav-label">Lobby</span>
+        <div className="text-2xl">{isMember ? '👥' : '🔒'}</div>
+        <span className="chaos-nav-label">{isMember ? 'Lobby' : 'Join'}</span>
       </button>
       <button 
         type="button" 

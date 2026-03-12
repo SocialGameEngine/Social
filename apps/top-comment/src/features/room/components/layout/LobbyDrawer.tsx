@@ -24,7 +24,7 @@ export function LobbyDrawer({ memberships, isOpen, onClose, roomId, myMembership
       />
 
       {/* Drawer - slides up from bottom */}
-      <div className="absolute bottom-0 left-0 right-0 max-h-[75vh] flex flex-col bg-slate-900 border-t border-slate-700/50 rounded-t-2xl shadow-2xl animate-slide-up">
+      <div className="absolute bottom-0 left-0 right-0 h-[85vh] max-h-[85vh] flex flex-col bg-slate-900 border-t border-slate-700/50 rounded-t-2xl shadow-2xl animate-slide-up">
         {/* Handle bar */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 rounded-full bg-slate-600" />

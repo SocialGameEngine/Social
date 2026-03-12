@@ -190,40 +190,19 @@ const barConfig = {
 // ============================================================================
 
 export function EntryPage() {
-  const { isGuest, signInAnonymously, user} = useAuth();
+  const { isGuest, user } = useAuth();
   const { isDark } = useTheme();
   const navigate = useNavigate();
 
   const showBackground = true;
 
-  const handleJoinGameClick = async (e: React.MouseEvent) => {
+  const handleJoinGameClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    // If user is not signed in, sign them in as guest first
-    if (!user) {
-      try {
-        await signInAnonymously();
-      } catch (error) {
-        console.error("Failed to sign in as guest:", error);
-        // Continue anyway - they can still try to join
-      }
-    }
-    // Navigate to join page
     navigate("/join");
   };
 
-  const handleCreateRoomClick = async (e: React.MouseEvent) => {
+  const handleCreateRoomClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    
-    // If user is not signed in, sign them in as guest first
-    if (!user) {
-      try {
-        await signInAnonymously();
-      } catch (error) {
-        console.error("Failed to sign in as guest:", error);
-      }
-    }
-    
-    // Navigate to host flow
     navigate("/host");
   };
   return (

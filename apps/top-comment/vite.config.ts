@@ -13,5 +13,21 @@ export default defineConfig({
       // Allow serving files from the project root
       strict: false,
     },
+    // Add cache busting headers for development
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    }
   },
+  build: {
+    // Add cache busting to filenames
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name].[hash].js`,
+        chunkFileNames: `assets/[name].[hash].js`,
+        assetFileNames: `assets/[name].[hash].[ext]`
+      }
+    }
+  }
 });
