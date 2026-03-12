@@ -144,7 +144,7 @@ export function HostPage() {
     if (!code) return "";
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     if (!origin) return "";
-    return `${origin}/join?code=${code}`;
+    return `${origin}/room/${code}`;
   }, [roomJoinCode]);
 
   const { room, memberships: roomMemberships, refreshMembers } = useRoom({
