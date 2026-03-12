@@ -62,7 +62,7 @@ export function useCommunityPosts({ roomId, membershipId, limit = 50 }: UseCommu
       setError(null);
 
       let query = supabase
-        .from('community_posts')
+        .from('community_posts' as any)
         .select(`
           *,
           room_memberships!inner(
@@ -115,7 +115,7 @@ export function useCommunityPosts({ roomId, membershipId, limit = 50 }: UseCommu
 
     try {
       const { data: postData, error: postError } = await supabase
-        .from('community_posts')
+        .from('community_posts' as any)
         .insert({
           room_id: roomId,
           membership_id: membershipId,
@@ -129,7 +129,7 @@ export function useCommunityPosts({ roomId, membershipId, limit = 50 }: UseCommu
       // Add embeds if provided
       if (embeds && embeds.length > 0) {
         const embedData = embeds.map(embed => ({
-          post_id: postData.id,
+          post_id: (postData as any).id,
           embed_type: embed.embed_type,
           url: embed.url,
           html_content: embed.html_content,
@@ -139,7 +139,7 @@ export function useCommunityPosts({ roomId, membershipId, limit = 50 }: UseCommu
         }));
 
         const { error: embedError } = await supabase
-          .from('post_embeds')
+          .from('post_embeds' as any)
           .insert(embedData);
 
         if (embedError) throw embedError;
@@ -161,7 +161,7 @@ export function useCommunityPosts({ roomId, membershipId, limit = 50 }: UseCommu
     try {
       // Check if already liked
       const { data: existingLike } = await supabase
-        .from('post_likes')
+        .from('post_likes' as any)
         .select('id')
         .eq('post_id', postId)
         .eq('membership_id', membershipId)
@@ -170,14 +170,14 @@ export function useCommunityPosts({ roomId, membershipId, limit = 50 }: UseCommu
       if (existingLike) {
         // Unlike
         await supabase
-          .from('post_likes')
+          .from('post_likes' as any)
           .delete()
           .eq('post_id', postId)
           .eq('membership_id', membershipId);
       } else {
         // Like
         await supabase
-          .from('post_likes')
+          .from('post_likes' as any)
           .insert({
             post_id: postId,
             membership_id: membershipId
@@ -203,7 +203,7 @@ export function useCommunityPosts({ roomId, membershipId, limit = 50 }: UseCommu
   const deletePost = useCallback(async (postId: string) => {
     try {
       const { error } = await supabase
-        .from('community_posts')
+        .from('community_posts' as any)
         .update({ is_deleted: true })
         .eq('id', postId);
 
@@ -234,7 +234,7 @@ export function useCommunityPosts({ roomId, membershipId, limit = 50 }: UseCommu
           if (payload.eventType === 'INSERT' && !payload.new.is_deleted) {
             // New post added - fetch the complete post with author info
             const { data } = await supabase
-              .from('community_posts')
+              .from('community_posts' as any)
               .select(`
                 *,
                 room_memberships!inner(
@@ -249,11 +249,19 @@ export function useCommunityPosts({ roomId, membershipId, limit = 50 }: UseCommu
 
             if (data) {
               const newPost: CommunityPost = {
-                ...data,
-                author_name: data.room_memberships.player_name || 'Anonymous',
-                author_avatar: data.room_memberships.user_metadata?.avatar_url,
-                embeds: data.post_embeds || [],
-                user_liked: data.post_likes?.some((like: any) => like.membership_id === membershipId) || false
+                id: (data as any).id,
+                room_id: (data as any).room_id,
+                membership_id: (data as any).membership_id,
+                content: (data as any).content,
+                likes: (data as any).likes || 0,
+                reply_count: (data as any).reply_count || 0,
+                created_at: (data as any).created_at,
+                updated_at: (data as any).updated_at,
+                is_deleted: (data as any).is_deleted || false,
+                author_name: (data as any).room_memberships?.player_name || 'Anonymous',
+                author_avatar: (data as any).room_memberships?.user_metadata?.avatar_url,
+                embeds: (data as any).post_embeds || [],
+                user_liked: (data as any).post_likes?.some((like: any) => like.membership_id === membershipId) || false
               };
 
               setPosts(prev => [newPost, ...prev]);
@@ -311,7 +319,7 @@ export function usePostReplies(postId: string, membershipId?: string) {
       setError(null);
 
       const { data, error: fetchError } = await supabase
-        .from('post_replies')
+        .from('post_replies' as any)
         .select(`
           *,
           room_memberships!inner(
@@ -346,7 +354,7 @@ export function usePostReplies(postId: string, membershipId?: string) {
 
     try {
       const { data, error } = await supabase
-        .from('post_replies')
+        .from('post_replies' as any)
         .insert({
           post_id: postId,
           membership_id: membershipId,
@@ -364,9 +372,16 @@ export function usePostReplies(postId: string, membershipId?: string) {
       if (error) throw error;
 
       const newReply: PostReply = {
-        ...data,
-        author_name: data.room_memberships.player_name || 'Anonymous',
-        author_avatar: data.room_memberships.user_metadata?.avatar_url,
+        id: (data as any).id,
+        post_id: (data as any).post_id,
+        membership_id: (data as any).membership_id,
+        content: (data as any).content,
+        likes: (data as any).likes || 0,
+        created_at: (data as any).created_at,
+        updated_at: (data as any).updated_at,
+        is_deleted: (data as any).is_deleted || false,
+        author_name: (data as any).room_memberships?.player_name || 'Anonymous',
+        author_avatar: (data as any).room_memberships?.user_metadata?.avatar_url,
         user_liked: false
       };
 
@@ -383,7 +398,7 @@ export function usePostReplies(postId: string, membershipId?: string) {
     try {
       // Check if already liked
       const { data: existingLike } = await supabase
-        .from('reply_likes')
+        .from('reply_likes' as any)
         .select('id')
         .eq('reply_id', replyId)
         .eq('membership_id', membershipId)
@@ -392,14 +407,14 @@ export function usePostReplies(postId: string, membershipId?: string) {
       if (existingLike) {
         // Unlike
         await supabase
-          .from('reply_likes')
+          .from('reply_likes' as any)
           .delete()
           .eq('reply_id', replyId)
           .eq('membership_id', membershipId);
       } else {
         // Like
         await supabase
-          .from('reply_likes')
+          .from('reply_likes' as any)
           .insert({
             reply_id: replyId,
             membership_id: membershipId
@@ -439,7 +454,7 @@ export function usePostReplies(postId: string, membershipId?: string) {
           if (payload.eventType === 'INSERT' && !payload.new.is_deleted) {
             // New reply added
             const { data } = await supabase
-              .from('post_replies')
+              .from('post_replies' as any)
               .select(`
                 *,
                 room_memberships!inner(
@@ -452,9 +467,16 @@ export function usePostReplies(postId: string, membershipId?: string) {
 
             if (data) {
               const newReply: PostReply = {
-                ...data,
-                author_name: data.room_memberships.player_name || 'Anonymous',
-                author_avatar: data.room_memberships.user_metadata?.avatar_url,
+                id: (data as any).id,
+                post_id: (data as any).post_id,
+                membership_id: (data as any).membership_id,
+                content: (data as any).content,
+                likes: (data as any).likes || 0,
+                created_at: (data as any).created_at,
+                updated_at: (data as any).updated_at,
+                is_deleted: (data as any).is_deleted || false,
+                author_name: (data as any).room_memberships?.player_name || 'Anonymous',
+                author_avatar: (data as any).room_memberships?.user_metadata?.avatar_url,
                 user_liked: false
               };
 

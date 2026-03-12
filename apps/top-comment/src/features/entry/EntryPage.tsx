@@ -190,7 +190,7 @@ const barConfig = {
 // ============================================================================
 
 export function EntryPage() {
-  const { isGuest, user } = useAuth();
+  const { isGuest } = useAuth();
   const { isDark } = useTheme();
   const navigate = useNavigate();
 

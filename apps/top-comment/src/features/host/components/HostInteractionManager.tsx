@@ -8,6 +8,8 @@ import type { Interaction, RoomMembership } from '../../../shared/types';
 const SendPromptModal = lazy(() => import('../../room/components/interactions/SendPromptModal'));
 const SendHeadlineModal = lazy(() => import('../../room/components/interactions/SendHeadlineModal'));
 const ResponsesDrawer = lazy(() => import('../../room/components/interactions/ResponsesDrawer'));
+const CreateTopicModal = lazy(() => import('../../room/components/interactions/CreateTopicModal'));
+const CreatePollModal = lazy(() => import('../../room/components/interactions/CreatePollModal'));
 
 interface HostInteractionManagerProps {
   room: { id: string; code: string };
@@ -19,6 +21,8 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
   const { interactions, createInteraction, closeInteraction } = useInteractions({ roomId: room.id });
   const [showSendModal, setShowSendModal] = useState(false);
   const [showHeadlineModal, setShowHeadlineModal] = useState(false);
+  const [showTopicModal, setShowTopicModal] = useState(false);
+  const [showPollModal, setShowPollModal] = useState(false);
   const [viewingResponses, setViewingResponses] = useState<Interaction | null>(null);
 
   const activeMemberCount = memberships?.filter((m) => !m.isBanned).length ?? 0;
@@ -69,6 +73,20 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
     []
   );
 
+  const handleCreateTopic = useCallback(
+    async (question: string, description?: string, sortBy?: any) => {
+      await interactionService.createTopic(room.id, question, description, sortBy);
+    },
+    [room.id]
+  );
+
+  const handleCreatePoll = useCallback(
+    async (question: string, options: string[], description?: string) => {
+      await interactionService.createPoll(room.id, question, options, description);
+    },
+    [room.id]
+  );
+
   return (
     <Card className="flex flex-col gap-4" isDark={isDark}>
       {/* Header */}
@@ -83,15 +101,31 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
               : `${interactions.length} active prompt${interactions.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="secondary"
+            size="sm"
+            onClick={() => setShowTopicModal(true)}
+          >
+            💬 Topic
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowPollModal(true)}
+          >
+            📊 Poll
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setShowHeadlineModal(true)}
           >
             🎭 Fibbage
           </Button>
           <Button
             variant="secondary"
+            size="sm"
             onClick={() => setShowSendModal(true)}
           >
             Send Prompt
@@ -210,6 +244,22 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
             isOpen={true}
             onClose={() => setShowHeadlineModal(false)}
             onSubmit={handleSendHeadline}
+          />
+        )}
+
+        {showTopicModal && (
+          <CreateTopicModal
+            isOpen={true}
+            onClose={() => setShowTopicModal(false)}
+            onSubmit={handleCreateTopic}
+          />
+        )}
+
+        {showPollModal && (
+          <CreatePollModal
+            isOpen={true}
+            onClose={() => setShowPollModal(false)}
+            onSubmit={handleCreatePoll}
           />
         )}
 

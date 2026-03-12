@@ -8,7 +8,7 @@ import { RoomPageContent } from './index';
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
-  const { user, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
   const [sessionId, setSessionId] = useState<string | null>(null);
   
   const { room, memberships, isLoading: roomLoading, error: roomError } = useRoom({

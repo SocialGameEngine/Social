@@ -1,10 +1,31 @@
 // Domain types for async interactions system
 // These types represent room-scoped interactions (prompts, etc.) independent of sessions
 
-export type InteractionType = 'prompt' | 'headline_fibbage' | 'challenge' | 'directed_reaction' | 'audience_question';
+export type InteractionType = 'prompt' | 'headline_fibbage' | 'challenge' | 'directed_reaction' | 'audience_question' | 'topic' | 'poll';
 export type ChallengeStatus = 'pending' | 'accepted' | 'declined' | 'expired';
 export type TargetType = 'broadcast' | 'player' | 'challenge';
 export type InteractionStatus = 'active' | 'voting' | 'results' | 'closed';
+export type TopicSortBy = 'newest' | 'upvotes';
+
+// Database types for new tables
+export interface Database {
+  public: {
+    topic_upvotes: {
+      id: string;
+      response_id: string;
+      membership_id: string;
+      created_at: string;
+    };
+    poll_votes: {
+      id: string;
+      interaction_id: string;
+      membership_id: string;
+      selected_option: number;
+      created_at: string;
+      updated_at: string;
+    };
+  };
+}
 
 export interface Interaction {
   id: string;
@@ -30,6 +51,9 @@ export interface Interaction {
   challengeStatus?: ChallengeStatus | null;
   challengeExpiresAt?: string | null;
   pointsWager?: number;
+  // Topic and Poll specific fields
+  pollOptions?: string[];
+  sortBy?: TopicSortBy;
 }
 
 export interface InteractionResponse {
@@ -77,4 +101,40 @@ export interface HeadlineResults {
       fooledCount: number;
     }
   >;
+}
+
+// Topic specific types
+export interface TopicUpvote {
+  id: string;
+  responseId: string;
+  membershipId: string;
+  createdAt: string;
+}
+
+export interface TopicResponseWithUpvotes extends InteractionResponse {
+  upvoteCount: number;
+  hasUpvoted: boolean;
+}
+
+// Poll specific types
+export interface PollVote {
+  id: string;
+  interactionId: string;
+  membershipId: string;
+  selectedOption: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PollOption {
+  text: string;
+  voteCount: number;
+  percentage: number;
+  isSelected?: boolean;
+}
+
+export interface PollResults {
+  options: PollOption[];
+  totalVotes: number;
+  userVote?: number;
 }

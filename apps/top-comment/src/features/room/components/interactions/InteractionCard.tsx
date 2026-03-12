@@ -152,6 +152,9 @@ export function InteractionCard({
     } else if (isHost) {
       if (interaction.status === 'closed' && onViewResults) {
         onViewResults();
+      } else if (interaction.type === 'topic' || interaction.type === 'poll') {
+        // For topics and polls, use onRespond to open the appropriate modal
+        if (onRespond) onRespond();
       } else if (onViewResponses) {
         onViewResponses();
       }
@@ -169,7 +172,10 @@ export function InteractionCard({
 
   const phaseLabel =
   interaction.status === "active"
-    ? (interaction.type === "headline_fibbage" ? "LIE" : "ANSWER")
+    ? (interaction.type === "headline_fibbage" ? "LIE" 
+       : interaction.type === "topic" ? "TOPIC"
+       : interaction.type === "poll" ? "VOTE"
+       : "ANSWER")
     : interaction.status === "voting"
       ? "VOTE"
       : interaction.status === "results"
