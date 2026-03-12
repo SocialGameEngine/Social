@@ -40,8 +40,91 @@ export function RoomPageContent() {
   const isHost = room?.hostUid === user?.id;
   const hasMembership = !!myMembership || isHost;
 
+  // ALL hooks must be called before any conditional returns
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showVIBox, setShowVIBox] = useState(false);
+  const [showLobbyDrawer, setShowLobbyDrawer] = useState(false);
+  const [showChatDrawer, setShowChatDrawer] = useState(false);
+  const [showLeaderboardDrawer, setShowLeaderboardDrawer] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [activeTab, setActiveTab] = useState<'host' | 'community'>('host');
+  const [challengeTarget, setChallengeTarget] = useState<{ id: string; name: string } | null>(null);
+  const [showSubmitQuestion, setShowSubmitQuestion] = useState(false);
+
+  // Callback hooks
+  const handleAuthSuccess = useCallback(() => {
+    setShowAuthModal(false);
+    // Refresh the page to re-render with authenticated state
+    window.location.reload();
+  }, []);
+
+  const handleJoinRoom = useCallback(async (displayName: string) => {
+    if (!room?.code) return;
+    
+    try {
+      await roomMembershipService.joinRoom({
+        code: room.code,
+        playerName: displayName,
+      });
+      // Room will automatically refresh due to real-time subscriptions
+    } catch (error: any) {
+      throw error;
+    }
+  }, [room?.code]);
+
+  const requireMembership = useCallback(() => {
+    if (!hasMembership) {
+      setShowJoinModal(true);
+      return false;
+    }
+    return true;
+  }, [hasMembership]);
+
+  // Custom hooks that depend on user state
+  const { reactions, reactionCounts, bursts, sendReaction } = useReactions({
+    roomId: room?.id,
+    membershipId: myMembership?.id,
+  });
+
+  const handleReaction = useCallback((emoji: any) => {
+    if (requireMembership()) {
+      sendReaction(emoji);
+    }
+  }, [requireMembership, sendReaction]);
+
+  const { blockedIds, blockPlayer } = useBlocks({ membershipId: myMembership?.id, roomId: room?.id });
+  const { pendingCount: pendingReportCount } = useReports({ roomId: room?.id, isHost });
+
+  const {
+    pendingChallenges,
+    sendChallenge,
+    acceptChallenge,
+    declineChallenge,
+  } = useChallenges({ roomId: room?.id, membershipId: myMembership?.id });
+
+  const {
+    submitQuestion,
+  } = useAudienceSubmissions({ roomId: room?.id, membershipId: myMembership?.id, isHost: false });
+
+  // Derived values
+  const myDisplayName = myMembership?.playerName || user?.user_metadata?.display_name || 'Anonymous';
+
+  // Helper: get member name from membership id
+  const getMemberName = (membershipId: string | null | undefined) => {
+    if (!membershipId || !memberships) return 'Unknown';
+    const m = memberships.find((mem) => mem.id === membershipId);
+    return m?.playerName || 'Anonymous';
+  };
+
+  // Clear ended modals when leaving ended phase
+  useEffect(() => {
+    if (session?.status !== 'ended') {
+      state.endedModals.forEach(modal => {
+        closeEndedModal(modal);
+      });
+    }
+  }, [session?.status, state.endedModals, closeEndedModal]);
 
   // Show auth modal for non-authenticated users
   if (!user) {
@@ -59,94 +142,15 @@ export function RoomPageContent() {
             </button>
           </div>
         </div>
-        </>
+        {showAuthModal && (
+          <AuthModal
+            onClose={() => setShowAuthModal(false)}
+            onSuccess={handleAuthSuccess}
+          />
+        )}
+      </>
     );
   }
-
-  const handleAuthSuccess = useCallback(() => {
-    setShowAuthModal(false);
-  }, []);
-
-  const handleJoinRoom = useCallback(async (displayName: string) => {
-    if (!room?.code) return;
-    
-    try {
-      await roomMembershipService.joinRoom({
-        code: room.code,
-        playerName: displayName,
-      });
-      // Room will automatically refresh due to real-time subscriptions
-    } catch (error: any) {
-      throw error;
-    }
-  }, [room?.code]);
-
-  // Helper to show join modal for non-members
-  const requireMembership = useCallback(() => {
-    if (!hasMembership) {
-      setShowJoinModal(true);
-      return false;
-    }
-    return true;
-  }, [hasMembership]);
-
-  // Derive chat/leaderboard props
-  const myDisplayName = myMembership?.playerName || user?.user_metadata?.display_name || 'Anonymous';
-  
-  const [showVIBox, setShowVIBox] = useState(false);
-  const [showLobbyDrawer, setShowLobbyDrawer] = useState(false);
-  const [showChatDrawer, setShowChatDrawer] = useState(false);
-  const [showLeaderboardDrawer, setShowLeaderboardDrawer] = useState(false);
-  const [showHowToPlay, setShowHowToPlay] = useState(false);
-  const [activeTab, setActiveTab] = useState<'host' | 'community'>('host');
-
-  // Live reactions
-  const { reactions, reactionCounts, bursts, sendReaction } = useReactions({
-    roomId: room?.id,
-    membershipId: myMembership?.id,
-  });
-
-  // Wrapper for reactions that checks membership
-  const handleReaction = useCallback((emoji: any) => {
-    if (requireMembership()) {
-      sendReaction(emoji);
-    }
-  }, [requireMembership, sendReaction]);
-
-  // Blocks & reports
-  const { blockedIds, blockPlayer } = useBlocks({ membershipId: myMembership?.id, roomId: room?.id });
-  const { pendingCount: pendingReportCount } = useReports({ roomId: room?.id, isHost });
-
-  // Challenges
-  const {
-    pendingChallenges,
-    sendChallenge,
-    acceptChallenge,
-    declineChallenge,
-  } = useChallenges({ roomId: room?.id, membershipId: myMembership?.id });
-  const [challengeTarget, setChallengeTarget] = useState<{ id: string; name: string } | null>(null);
-
-  // Audience submissions (player side only - host reviews in HostPage)
-  const {
-    submitQuestion,
-  } = useAudienceSubmissions({ roomId: room?.id, membershipId: myMembership?.id, isHost: false });
-  const [showSubmitQuestion, setShowSubmitQuestion] = useState(false);
-
-  // Helper: get member name from membership id
-  const getMemberName = (membershipId: string | null | undefined) => {
-    if (!membershipId || !memberships) return 'Unknown';
-    const m = memberships.find((mem) => mem.id === membershipId);
-    return m?.playerName || 'Anonymous';
-  };
-
-  // Clear ended modals when leaving ended phase
-  useEffect(() => {
-    if (session?.status !== 'ended') {
-      state.endedModals.forEach(modal => {
-        closeEndedModal(modal);
-      });
-    }
-  }, [session?.status, state.endedModals, closeEndedModal]);
 
   // Configure which modals should hide the bottom navbar
   const modalsThatHideNav: Array<'leaderboard' | 'selfie'> = ['selfie'];
@@ -323,7 +327,10 @@ export function RoomPageContent() {
         />
         {showAuthModal && (
           <AuthModal
-            onClose={() => setShowAuthModal(false)}
+            onClose={() => {
+              console.log('AuthModal onClose called');
+              setShowAuthModal(false);
+            }}
             onSuccess={handleAuthSuccess}
           />
         )}
@@ -339,7 +346,7 @@ export function RoomPageContent() {
     );
   }
 
-  // Desktop layout
+  
   return (
     <div className="min-h-[90dvh] flex flex-col bg-gradient-to-b from-slate-900 to-slate-800 text-white sm:overflow-hidden">
       <BackgroundAnimation show={true} />
@@ -426,7 +433,10 @@ export function RoomPageContent() {
       />
       {showAuthModal && (
         <AuthModal
-          onClose={() => setShowAuthModal(false)}
+          onClose={() => {
+            console.log('AuthModal onClose called (desktop)');
+            setShowAuthModal(false);
+          }}
           onSuccess={handleAuthSuccess}
         />
       )}

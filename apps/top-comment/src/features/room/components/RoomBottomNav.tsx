@@ -33,7 +33,7 @@ export function RoomBottomNav({
     try {
       await signOut();
       setShowAccountMenu(false);
-      navigate('/');
+      navigate('/join');
     } catch (error) {
       console.error('Sign out failed:', error);
     }

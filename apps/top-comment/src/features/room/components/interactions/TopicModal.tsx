@@ -6,7 +6,7 @@ import type { Interaction, TopicResponseWithUpvotes, TopicSortBy } from '../../.
 
 interface TopicModalProps {
   interaction: Interaction;
-  membershipId: string;
+  membershipId?: string;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -21,7 +21,7 @@ export function TopicModal({ interaction, membershipId, isOpen, onClose }: Topic
 
   const loadResponses = useCallback(async () => {
     try {
-      const data = await interactionService.getTopicResponses(interaction.id, membershipId, sortBy);
+      const data = await interactionService.getTopicResponses(interaction.id, membershipId || '', sortBy);
       setResponses(data);
     } catch (error) {
       console.error('Failed to load topic responses:', error);
@@ -39,7 +39,7 @@ export function TopicModal({ interaction, membershipId, isOpen, onClose }: Topic
   }, [isOpen, loadResponses]);
 
   const handleSubmitResponse = async () => {
-    if (!newResponse.trim() || isSubmitting) return;
+    if (!newResponse.trim() || isSubmitting || !membershipId) return;
 
     setIsSubmitting(true);
     try {
@@ -55,6 +55,8 @@ export function TopicModal({ interaction, membershipId, isOpen, onClose }: Topic
   };
 
   const handleToggleUpvote = async (responseId: string) => {
+    if (!membershipId) return;
+    
     try {
       await interactionService.toggleUpvote(responseId, membershipId);
       await loadResponses();
@@ -188,7 +190,14 @@ export function TopicModal({ interaction, membershipId, isOpen, onClose }: Topic
         {/* Response Input */}
         {!isClosed && (
           <div className={`pt-3 border-t ${!isDark ? 'border-slate-200' : 'border-slate-600'}`}>
-            {myResponse ? (
+            {!membershipId ? (
+              <div className={`text-center py-4 ${!isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                <p className="mb-2">👋 Join this room to participate in the discussion!</p>
+                <Button onClick={() => window.location.reload()} size="sm">
+                  Join Room
+                </Button>
+              </div>
+            ) : myResponse ? (
               <div className={`text-sm text-center py-2 ${!isDark ? 'text-slate-600' : 'text-slate-400'}`}>
                 You've already responded. You can delete your response and submit a new one.
               </div>

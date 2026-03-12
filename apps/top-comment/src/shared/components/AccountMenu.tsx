@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../providers/AuthContext';
 import { AuthModal } from './AuthModal';
 
@@ -8,6 +9,7 @@ interface AccountMenuProps {
 
 export function AccountMenu({ position = 'below' }: AccountMenuProps) {
   const { user, isGuest, signOut } = useAuth();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
@@ -18,10 +20,11 @@ export function AccountMenu({ position = 'below' }: AccountMenuProps) {
     try {
       await signOut();
       setIsOpen(false);
+      navigate('/join');
     } catch (error) {
       console.error('Sign out failed:', error);
     }
-  }, [signOut]);
+  }, [signOut, navigate]);
 
   const handleAuthSuccess = useCallback(() => {
     setShowAuthModal(false);

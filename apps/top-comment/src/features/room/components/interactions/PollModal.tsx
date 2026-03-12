@@ -6,7 +6,7 @@ import type { Interaction, PollResults } from '../../../../domain/types/interact
 
 interface PollModalProps {
   interaction: Interaction;
-  membershipId: string;
+  membershipId?: string;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -19,7 +19,7 @@ export function PollModal({ interaction, membershipId, isOpen, onClose }: PollMo
 
   const loadResults = useCallback(async () => {
     try {
-      const data = await interactionService.getPollResults(interaction.id, membershipId);
+      const data = await interactionService.getPollResults(interaction.id, membershipId || '');
       setResults(data);
     } catch (error) {
       console.error('Failed to load poll results:', error);
@@ -36,12 +36,12 @@ export function PollModal({ interaction, membershipId, isOpen, onClose }: PollMo
     }
   }, [isOpen, loadResults]);
 
-  const handleVote = async (optionIndex: number) => {
-    if (isVoting) return;
+  const handleSubmitVote = async (selectedOption: number) => {
+    if (!membershipId) return;
 
     setIsVoting(true);
     try {
-      await interactionService.submitPollVote(interaction.id, membershipId, optionIndex);
+      await interactionService.submitPollVote(interaction.id, membershipId, selectedOption);
       await loadResults();
     } catch (error: any) {
       console.error('Failed to submit vote:', error);
@@ -90,7 +90,7 @@ export function PollModal({ interaction, membershipId, isOpen, onClose }: PollMo
               return (
                 <button
                   key={index}
-                  onClick={() => !isClosed && handleVote(index)}
+                  onClick={() => !isClosed && handleSubmitVote(index)}
                   disabled={isClosed || isVoting}
                   className={`relative overflow-hidden rounded-lg border transition-all ${
                     isSelected
@@ -151,7 +151,14 @@ export function PollModal({ interaction, membershipId, isOpen, onClose }: PollMo
         {/* Vote Status */}
         {!isLoading && results && (
           <div className={`text-center text-sm ${!isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-            {isClosed ? (
+            {!membershipId ? (
+              <div className="py-2">
+                <p className="mb-2">👋 Join this room to vote in the poll!</p>
+                <Button onClick={() => window.location.reload()} size="sm">
+                  Join Room
+                </Button>
+              </div>
+            ) : isClosed ? (
               <span className="font-semibold">Poll closed</span>
             ) : results.userVote !== undefined ? (
               <span>Click any option to change your vote</span>
