@@ -22,7 +22,7 @@
       ]
     },
     {
-      "source": "/(.*\\.(js|css|ts|tsx|jsx|json))",
+      "source": "/(.*\\\\.(js|css|ts|tsx|jsx|json))",
       "headers": [
         {
           "key": "Cache-Control",
