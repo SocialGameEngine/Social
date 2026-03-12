@@ -10,6 +10,6 @@ export function useInviteLink(session: Session | null): string {
     if (!session?.code) return "";
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     if (!origin) return "";
-    return `${origin}/join?code=${session.code}`;
+    return `${origin}/room/${session.code}`;
   }, [session?.code]);
 }
