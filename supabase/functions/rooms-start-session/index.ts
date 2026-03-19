@@ -122,36 +122,13 @@ serve(async (req) => {
       .update({ current_session_id: session.id })
       .eq('id', requestData.roomId)
 
-    // Create players from room memberships
-    const players = memberships.map(membership => ({
-      id: crypto.randomUUID(),
-      session_id: session.id,
-      user_id: membership.user_id, // Always has UUID with anonymous auth
-      display_name: membership.player_name, // Using player_name field
-      score: 0,
-      joined_at: new Date().toISOString(),
-    }))
-
-    // Insert players
-    const { data: createdPlayers, error: playersError } = await supabase
-      .from('top_comment_players')
-      .insert(players)
-      .select()
-
-    if (playersError) {
-      // Rollback session creation
-      await supabase.from('top_comment_sessions').delete().eq('id', session.id)
-      await supabase.from('rooms').update({ current_session_id: null }).eq('id', requestData.roomId)
-      return new Response(
-        JSON.stringify({ error: playersError.message }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
+    // Players will join manually by clicking "Ready to Play" button
+    // No auto-join - they must explicitly join the session
 
     return new Response(
       JSON.stringify({
         session,
-        assignedPlayers: createdPlayers,
+        assignedPlayers: [], // Empty - players join manually
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )

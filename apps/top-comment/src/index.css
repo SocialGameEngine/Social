@@ -551,6 +551,34 @@ a {
   box-shadow: 0 10px 0 #000, 0 0 16px rgba(34,197,94,0.18);
 }
 
+/* Leave session button - smaller red chaos card */
+.chaos-leave-button {
+  color: #fff;
+  border-radius: 18px;
+  border: 2px solid rgba(0,0,0,0.85);
+  background: linear-gradient(135deg, rgba(239,68,68,0.95), rgba(220,38,38,0.9));
+  box-shadow: 0 10px 0 #000, 0 0 16px rgba(239,68,68,0.25);
+  padding: 10px 20px;
+  transform: rotate(-1deg);
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.chaos-leave-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(220,38,38,0.95), rgba(185,28,28,0.9));
+}
+
+.chaos-leave-button:active:not(:disabled) {
+  transform: rotate(-1deg) translateY(4px);
+  box-shadow: 0 6px 0 #000, 0 0 12px rgba(239,68,68,0.18);
+}
+
+.chaos-leave-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Animated chip for live/next indicators */
 .pulse-neon {
   animation: pulse-neon 2s ease-in-out infinite;

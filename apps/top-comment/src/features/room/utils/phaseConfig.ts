@@ -44,7 +44,7 @@ export function getPhaseConfig(phase: GamePhase): PhaseConfig {
 }
 
 export function isActionPhase(phase: GamePhase): boolean {
-  return phase === 'answer' || phase === 'vote';
+  return phase === 'lobby' || phase === 'answer' || phase === 'vote';
 }
 
 export function formatTimeRemaining(milliseconds: number): string {

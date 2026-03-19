@@ -5,11 +5,11 @@ import { Button, Card } from '@social/ui';
 import { interactionService } from '../../../services/interactionService';
 import type { Interaction, RoomMembership } from '../../../shared/types';
 
-const SendPromptModal = lazy(() => import('../../room/components/interactions/SendPromptModal'));
-const SendHeadlineModal = lazy(() => import('../../room/components/interactions/SendHeadlineModal'));
+const HostSendPromptModal = lazy(() => import('../components/HostSendPromptModal'));
+const HostSendHeadlineModal = lazy(() => import('../components/HostSendHeadlineModal'));
 const ResponsesDrawer = lazy(() => import('../../room/components/interactions/ResponsesDrawer'));
-const CreateTopicModal = lazy(() => import('../../room/components/interactions/CreateTopicModal'));
-const CreatePollModal = lazy(() => import('../../room/components/interactions/CreatePollModal'));
+const HostCreateTopicModal = lazy(() => import('../components/HostCreateTopicModal'));
+const HostCreatePollModal = lazy(() => import('../components/HostCreatePollModal'));
 
 interface HostInteractionManagerProps {
   room: { id: string; code: string };
@@ -232,7 +232,7 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
 
       <Suspense fallback={null}>
         {showSendModal && (
-          <SendPromptModal
+          <HostSendPromptModal
             isOpen={true}
             onClose={() => setShowSendModal(false)}
             onSend={handleSendPrompt}
@@ -240,7 +240,7 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
         )}
 
         {showHeadlineModal && (
-          <SendHeadlineModal
+          <HostSendHeadlineModal
             isOpen={true}
             onClose={() => setShowHeadlineModal(false)}
             onSubmit={handleSendHeadline}
@@ -248,7 +248,7 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
         )}
 
         {showTopicModal && (
-          <CreateTopicModal
+          <HostCreateTopicModal
             isOpen={true}
             onClose={() => setShowTopicModal(false)}
             onSubmit={handleCreateTopic}
@@ -256,7 +256,7 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
         )}
 
         {showPollModal && (
-          <CreatePollModal
+          <HostCreatePollModal
             isOpen={true}
             onClose={() => setShowPollModal(false)}
             onSubmit={handleCreatePoll}

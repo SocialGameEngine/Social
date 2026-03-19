@@ -1,17 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/providers/AuthContext';
 import { useRoom } from '../../../hooks/useRoom';
+import { roomService } from '../../../services/roomService';
 import type { CreateRoomRequest, Room } from '../../../shared/types';
 
 interface CreateRoomModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (room: Room) => void;
+  existingRoom?: Room | null;
 }
 
-export function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRoomModalProps) {
+export function CreateRoomModal({ isOpen, onClose, onSuccess, existingRoom }: CreateRoomModalProps) {
   const { user } = useAuth();
-  const { createRoom, isLoading, error } = useRoom();
+  const { createRoom } = useRoom();
+  const isEditing = !!existingRoom;
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -31,6 +36,30 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRoomModalP
     },
   });
 
+  // Populate form with existing room data when editing
+  useEffect(() => {
+    if (existingRoom) {
+      const existingSettings = existingRoom.settings as any;
+      setFormData({
+        name: existingRoom.name || '',
+        description: existingRoom.description || '',
+        maxPlayers: existingRoom.maxPlayers || 50,
+        settings: {
+          allowPlayerChat: existingSettings?.allowPlayerChat ?? true,
+          autoStartSession: existingSettings?.autoStartSession ?? false,
+          requireApproval: existingSettings?.requireApproval ?? false,
+          allowAnonymous: existingSettings?.allowAnonymous ?? true,
+          defaultSessionSettings: {
+            answerSecs: existingSettings?.defaultSessionSettings?.answerSecs ?? 90,
+            voteSecs: existingSettings?.defaultSessionSettings?.voteSecs ?? 30,
+            resultsSecs: existingSettings?.defaultSessionSettings?.resultsSecs ?? 12,
+            gameMode: (existingSettings?.defaultSessionSettings?.gameMode as 'classic') ?? 'classic',
+          },
+        },
+      });
+    }
+  }, [existingRoom]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -38,38 +67,61 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRoomModalP
       return;
     }
 
-    try {
-      const roomRequest: CreateRoomRequest = {
-        name: formData.name.trim() || undefined,
-        description: formData.description.trim() || undefined,
-        maxPlayers: formData.maxPlayers,
-        settings: formData.settings,
-      };
+    setIsLoading(true);
+    setError(null);
 
-      const room = await createRoom(roomRequest);
-      onSuccess?.(room);
-      onClose();
-      
-      // Reset form
-      setFormData({
-        name: '',
-        description: '',
-        maxPlayers: 50,
-        settings: {
-          allowPlayerChat: true,
-          autoStartSession: false,
-          requireApproval: false,
-          allowAnonymous: true,
-          defaultSessionSettings: {
-            answerSecs: 90,
-            voteSecs: 30,
-            resultsSecs: 12,
-            gameMode: 'classic' as const,
+    try {
+      if (isEditing && existingRoom) {
+        // Update existing room using roomService directly
+        const response = await roomService.updateRoom({
+          roomId: existingRoom.id,
+          name: formData.name.trim() || undefined,
+          description: formData.description.trim() || undefined,
+          settings: {
+            ...formData.settings,
+            maxPlayers: formData.maxPlayers,
           },
-        },
-      });
+        });
+        onSuccess?.(response.room);
+        onClose();
+      } else {
+        // Create new room
+        const roomRequest: CreateRoomRequest = {
+          name: formData.name.trim() || undefined,
+          description: formData.description.trim() || undefined,
+          maxPlayers: formData.maxPlayers,
+          settings: formData.settings,
+        };
+
+        const room = await createRoom(roomRequest);
+        onSuccess?.(room);
+        onClose();
+        
+        // Reset form
+        setFormData({
+          name: '',
+          description: '',
+          maxPlayers: 50,
+          settings: {
+            allowPlayerChat: true,
+            autoStartSession: false,
+            requireApproval: false,
+            allowAnonymous: true,
+            defaultSessionSettings: {
+              answerSecs: 90,
+              voteSecs: 30,
+              resultsSecs: 12,
+              gameMode: 'classic' as const,
+            },
+          },
+        });
+      }
     } catch (err) {
-      // Error is handled by the useRoom hook
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save room settings';
+      setError(errorMessage);
+      console.error('Error saving room:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -106,46 +158,52 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRoomModalP
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Create New Room</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-            disabled={isLoading}
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-0 md:p-4">
+      <div className="bg-slate-900 w-full h-full md:h-auto md:max-h-[90vh] md:rounded-lg md:max-w-2xl overflow-y-auto flex flex-col">
+        {/* Header - sticky on mobile */}
+        <div className="sticky top-0 bg-slate-900 border-b border-slate-700 p-4 md:p-6 md:border-0 flex-shrink-0">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl md:text-2xl font-bold text-white">{isEditing ? 'Room Settings' : 'Create New Room'}</h2>
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-200 p-2"
+              disabled={isLoading}
+              type="button"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Form content - scrollable */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+          <div className="p-4 md:p-6 space-y-6">
           {/* Basic Room Info */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-cyan-200 mb-2">
                 Room Name (Optional)
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="My Awesome Room"
                 disabled={isLoading}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-cyan-200 mb-2">
                 Description (Optional)
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed resize-none"
                 rows={3}
                 placeholder="A fun place to play trivia!"
                 disabled={isLoading}
@@ -153,7 +211,7 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRoomModalP
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-cyan-200 mb-2">
                 Max Players
               </label>
               <input
@@ -162,7 +220,7 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRoomModalP
                 max="100"
                 value={formData.maxPlayers}
                 onChange={(e) => handleInputChange('maxPlayers', parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isLoading}
               />
             </div>
@@ -170,7 +228,7 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRoomModalP
 
           {/* Room Settings */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Room Settings</h3>
+            <h3 className="text-lg font-bold text-white">Room Settings</h3>
             
             <div className="space-y-3">
               <label className="flex items-center">
@@ -181,7 +239,7 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRoomModalP
                   className="mr-2"
                   disabled={isLoading}
                 />
-                <span className="text-sm text-gray-700">Allow player chat</span>
+                <span className="text-sm text-cyan-100">Allow player chat</span>
               </label>
 
               <label className="flex items-center">
@@ -192,7 +250,7 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRoomModalP
                   className="mr-2"
                   disabled={isLoading}
                 />
-                <span className="text-sm text-gray-700">Require host approval to join</span>
+                <span className="text-sm text-cyan-100">Require host approval to join</span>
               </label>
 
               <label className="flex items-center">
@@ -203,18 +261,18 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRoomModalP
                   className="mr-2"
                   disabled={isLoading}
                 />
-                <span className="text-sm text-gray-700">Allow anonymous players</span>
+                <span className="text-sm text-cyan-100">Allow anonymous players</span>
               </label>
             </div>
           </div>
 
           {/* Default Session Settings */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Default Session Settings</h3>
+            <h3 className="text-lg font-bold text-white">Default Session Settings</h3>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-cyan-200 mb-2">
                   Answer Time (seconds)
                 </label>
                 <input
@@ -223,13 +281,13 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRoomModalP
                   max="300"
                   value={formData.settings.defaultSessionSettings.answerSecs}
                   onChange={(e) => handleSessionSettingsChange('answerSecs', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isLoading}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-cyan-200 mb-2">
                   Vote Time (seconds)
                 </label>
                 <input
@@ -238,13 +296,13 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRoomModalP
                   max="120"
                   value={formData.settings.defaultSessionSettings.voteSecs}
                   onChange={(e) => handleSessionSettingsChange('voteSecs', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isLoading}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-cyan-200 mb-2">
                   Results Time (seconds)
                 </label>
                 <input
@@ -253,7 +311,7 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRoomModalP
                   max="60"
                   value={formData.settings.defaultSessionSettings.resultsSecs}
                   onChange={(e) => handleSessionSettingsChange('resultsSecs', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isLoading}
                 />
               </div>
@@ -262,27 +320,28 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRoomModalP
 
           {/* Error Display */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+            <div className="bg-red-900/20 border border-red-400/50 text-red-400 px-4 py-3 rounded-lg">
               {error}
             </div>
           )}
+        </div>
 
-          {/* Actions */}
-          <div className="flex justify-end space-x-3 pt-4">
+          {/* Actions - sticky on mobile with extra padding for bottom nav */}
+          <div className="sticky bottom-0 bg-slate-900 border-t border-slate-700 p-4 pb-20 md:p-6 flex justify-end space-x-3 flex-shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+              className="px-4 py-2 text-slate-300 bg-slate-700 hover:bg-slate-600 rounded-md transition-colors"
               disabled={isLoading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 transition-colors disabled:opacity-50"
               disabled={isLoading || !user}
             >
-              {isLoading ? 'Creating...' : 'Create Room'}
+              {isLoading ? (isEditing ? 'Saving...' : 'Creating...') : (isEditing ? 'Save Settings' : 'Create Room')}
             </button>
           </div>
         </form>

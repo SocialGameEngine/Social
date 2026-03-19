@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { Button } from '@social/ui';
+import { HostModal } from './HostModal';
 
-interface SendHeadlineModalProps {
+interface HostSendHeadlineModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (params: {
@@ -35,7 +37,7 @@ const SAMPLE_HEADLINES = [
   },
 ];
 
-export default function SendHeadlineModal({ isOpen, onClose, onSubmit }: SendHeadlineModalProps) {
+export default function HostSendHeadlineModal({ isOpen, onClose, onSubmit }: HostSendHeadlineModalProps) {
   const [selectedHeadline, setSelectedHeadline] = useState(SAMPLE_HEADLINES[0]);
   const [answerSeconds, setAnswerSeconds] = useState(90);
   const [votingSeconds, setVotingSeconds] = useState(60);
@@ -61,40 +63,30 @@ export default function SendHeadlineModal({ isOpen, onClose, onSubmit }: SendHea
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex sm:items-center sm:justify-center sm:p-4">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        onClick={!isSubmitting ? onClose : undefined}
-      />
-      
-      {/* Modal Content */}
-      <div className="relative w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-2xl overflow-y-auto shadow-2xl bg-slate-900">
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-slate-700/50 bg-slate-900">
-          <h2 className="text-lg font-bold text-white">Start Headline Fibbage</h2>
-          <button
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="text-slate-400 hover:text-slate-200 transition-colors"
-            aria-label="Close"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <HostModal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title="Start Headline Fibbage"
+      maxWidth="2xl"
+      disabled={isSubmitting}
+    >
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">📰</span>
+          <h2 className="text-2xl font-bold text-white">
+            Start Headline Fibbage
+          </h2>
         </div>
 
-        {/* Content */}
-        <div className="space-y-4 p-4 sm:p-5">
-        
-        <form onSubmit={handleSubmit}>
+        <p className="text-sm text-slate-400">
+          Send a headline with a blank word for members to fill in with funny lies.
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Headline Selection */}
-          <div className="mb-6">
-            <label className="block text-xs font-semibold uppercase tracking-wide text-cyan-200 mb-2">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-cyan-200">
               Choose a Headline
             </label>
             <div className="space-y-3">
@@ -131,9 +123,9 @@ export default function SendHeadlineModal({ isOpen, onClose, onSubmit }: SendHea
           </div>
 
           {/* Timing Settings */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-cyan-200 mb-1">
+              <label className="text-sm font-semibold text-cyan-200">
                 Answer Time (seconds)
               </label>
               <input
@@ -146,7 +138,7 @@ export default function SendHeadlineModal({ isOpen, onClose, onSubmit }: SendHea
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-cyan-200 mb-1">
+              <label className="text-sm font-semibold text-cyan-200">
                 Voting Time (seconds)
               </label>
               <input
@@ -161,7 +153,7 @@ export default function SendHeadlineModal({ isOpen, onClose, onSubmit }: SendHea
           </div>
 
           {/* Preview */}
-          <div className="mb-6 p-4 bg-slate-800 rounded-lg">
+          <div className="p-4 bg-slate-800 rounded-lg">
             <h3 className="text-sm font-medium text-cyan-200 mb-2">Preview</h3>
             <div className="text-lg font-semibold text-white mb-1">
               {selectedHeadline.blank}
@@ -174,28 +166,26 @@ export default function SendHeadlineModal({ isOpen, onClose, onSubmit }: SendHea
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="sticky bottom-0 border-t border-slate-700/50 bg-slate-900 p-4">
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 px-4 py-2 border border-slate-600 text-slate-300 rounded-md hover:bg-slate-700"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Starting...' : 'Start Headline'}
-              </button>
-            </div>
+          <div className="flex gap-3 pt-4 border-t border-slate-700">
+            <Button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              isLoading={isSubmitting}
+              className="flex-1"
+            >
+              {isSubmitting ? 'Starting...' : 'Start Headline'}
+            </Button>
           </div>
         </form>
-        </div>
       </div>
-    </div>
+    </HostModal>
   );
 }

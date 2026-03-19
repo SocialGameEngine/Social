@@ -3,6 +3,91 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { Button, Card, Modal, QRCodeBlock } from "@social/ui";
 
+// Active Phase Layout Component
+interface ActivePhaseLayoutProps {
+  phaseTitle: string;
+  phaseContent: React.ReactNode;
+  sessionControls: React.ReactNode;
+  sessionPlayers: React.ReactNode;
+  room: any;
+  roomMemberships: any[];
+  pendingSubmissions: React.ReactNode;
+}
+
+function ActivePhaseLayout({
+  phaseTitle,
+  phaseContent,
+  sessionControls,
+  sessionPlayers,
+  room,
+  roomMemberships,
+  pendingSubmissions,
+  copyLinkHandler,
+  roomJoinCode,
+  inviteLink,
+}: ActivePhaseLayoutProps & {
+  copyLinkHandler: (link: string) => void;
+  roomJoinCode: string;
+  inviteLink: string;
+}) {
+  const { isDark } = useTheme();
+
+  return (
+    <div className="space-y-6">
+      <Card className="space-y-5" isDark={isDark}>
+        <div className="flex items-center justify-between">
+          <h3 className={`text-xl font-semibold ${!isDark ? 'text-slate-900' : 'text-pink-400'}`}>
+            {phaseTitle}
+          </h3>
+          <div className="flex gap-2">
+            {sessionControls}
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-1">
+          <button
+            type="button"
+            onClick={() => copyLinkHandler(inviteLink)}
+            className={`flex flex-col rounded-2xl border p-4 text-left shadow-sm transition hover:shadow-md ${!isDark ? 'border-slate-200 bg-white hover:border-brand-primary text-slate-900' : 'border-cyan-400/50 bg-slate-800 hover:border-cyan-400 text-white'}`}
+          >
+            <span className={`text-xs font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-300'}`}>
+              Shareable link
+            </span>
+            <span className={`mt-1 break-all font-medium ${!isDark ? 'text-brand-primary' : 'text-cyan-400'}`}>
+              {inviteLink || roomJoinCode}
+            </span>
+          </button>
+        </div>
+        {phaseContent}
+        {/* Session Players */}
+        <div className={`border-t pt-5 ${!isDark ? 'border-slate-200' : 'border-cyan-400/20'}`}>
+          {sessionPlayers}
+        </div>
+      </Card>
+      
+      {/* Interactions Panel: Room member management */}
+      {room && (
+        <Card className="space-y-5" isDark={isDark}>
+          <div className={`border-t pt-5 ${!isDark ? 'border-slate-200' : 'border-cyan-400/20'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className={`text-sm font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-400'}`}>Interactions Panel</h4>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm">
+                  Settings
+                </Button>
+              </div>
+            </div>
+            <HostInteractionManager
+              room={{ id: room.id, code: room.code }}
+              memberships={roomMemberships}
+            />
+          </div>
+        </Card>
+      )}
+      {pendingSubmissions}
+    </div>
+  );
+}
+
 import { useGameState, useSessionOrchestrator, transformRoundSummariesForUI } from "../../application";
 import { useRoom } from "../../hooks/useRoom";
 import { VIBoxButton } from "../../shared/components/vibox/VIBoxButton";
@@ -33,6 +118,7 @@ import { setPromptLibrary, pauseSession } from "../session/sessionService";
 import { useHostRoom } from "./useHostRoom";
 import { useHostSession } from "./useHostSession";
 import { useHostComputations, useHostState } from "./hooks";
+import { useSessionPlayers } from "./hooks/useSessionPlayers";
 import { useHostKeyboardShortcuts } from "../../hooks/useHostKeyboardShortcuts";
 import { useResponsiveLayout } from "../room/hooks/useResponsiveLayout";
 import { useAudienceSubmissions } from "../../hooks/useAudienceSubmissions";
@@ -58,6 +144,7 @@ export function HostPage() {
     roomId: storedRoomId,
     roomCode: storedRoomCode,
     setHostRoom,
+    loading: roomLoading,
   } = useHostRoom();
   const [showBannedPlayersModal, setShowBannedPlayersModal] = useState(false);
   const [showVIBoxModal, setShowVIBoxModal] = useState(false);
@@ -138,7 +225,15 @@ export function HostPage() {
   const session = gameState.session;
   const players = useMemo(() => gameState.memberships, [gameState.memberships]);
   const answers = gameState.answers;
-  const roomJoinCode = storedRoomCode ?? session?.code ?? storedCode ?? "";
+
+  const { room, memberships: roomMemberships, refreshMembers } = useRoom({
+    roomId: storedRoomId ?? undefined,
+  });
+
+  // Fetch session players from top_comment_players table
+  const { players: sessionPlayers } = useSessionPlayers(sessionId);
+
+  const roomJoinCode = storedRoomCode ?? room?.code ?? storedCode ?? "";
   const inviteLink = useMemo(() => {
     const code = roomJoinCode;
     if (!code) return "";
@@ -146,10 +241,6 @@ export function HostPage() {
     if (!origin) return "";
     return `${origin}/room/${code}`;
   }, [roomJoinCode]);
-
-  const { room, memberships: roomMemberships, refreshMembers } = useRoom({
-    roomId: storedRoomId ?? undefined,
-  });
 
   // Sync sessionId from room if it exists but we don't have it locally
   useEffect(() => {
@@ -159,6 +250,14 @@ export function HostPage() {
       setHostSession({ sessionId: room.currentSessionId, code: room.code });
     }
   }, [room, sessionId, setSessionId, setHostSession]);
+
+  // Sync stored session code with room code to prevent code mismatch on refresh
+  useEffect(() => {
+    if (room?.code && sessionId && storedCode && storedCode !== room.code) {
+      // Update stored session to use room code instead of session code
+      setHostSession({ sessionId, code: room.code });
+    }
+  }, [room?.code, sessionId, storedCode, setHostSession]);
 
   const roomLobbyMembers = useMemo(() => {
     if (!storedRoomId) return [];
@@ -210,12 +309,12 @@ export function HostPage() {
 
   // Show room creation modal when there's no session and user has venue account
   useEffect(() => {
-    if (!storedRoomId && !venueAccountLoading && isVenueAccount) {
+    if (!storedRoomId && !venueAccountLoading && !roomLoading && isVenueAccount) {
       setShowRoomCreateModal(true);
-    } else if (!storedRoomId && !venueAccountLoading && !isVenueAccount) {
+    } else if (!storedRoomId && !venueAccountLoading && !roomLoading && !isVenueAccount) {
       setShowRoomCreateModal(false);
     }
-  }, [storedRoomId, venueAccountLoading, isVenueAccount]);
+  }, [storedRoomId, venueAccountLoading, roomLoading, isVenueAccount]);
 
   // Set sessionRef.current to latest session for auto advance actions.
   useEffect(() => {
@@ -293,18 +392,19 @@ export function HostPage() {
     isVenueAccount,
     toast,
     setCreateErrors,
-    isCreating, // Added this prop
+    isCreating,
     setIsCreating,
     setSessionId,
     setHostSession,
     setShowCreateModal,
     onSessionCreated: () => {
-      // Only show prompt library modal for Classic mode
-      if (createForm.gameMode === "classic") {
-        setShowPromptLibraryModal(true);
+      // Refresh room data to get currentSessionId
+      if (storedRoomId) {
+        refreshMembers();
       }
     },
     roomId: storedRoomId,
+    roomCode: storedRoomCode,
     gameMode: createForm.gameMode,
     selectedLibraries: createForm.selectedLibraries,
     totalRounds: createForm.totalRounds,
@@ -319,9 +419,14 @@ export function HostPage() {
     isUpdating: isUpdatingSession,
     setIsUpdating: setIsUpdatingSession,
     sessionId: session?.id ?? "",
-    onUpdated: ({ sessionId, code }) => {
+    onUpdated: ({ sessionId }) => {
       setSessionId(sessionId);
-      setHostSession({ sessionId, code });
+      // Always use room code to prevent room code from changing
+      if (storedRoomCode) {
+        setHostSession({ sessionId, code: storedRoomCode });
+      } else {
+        console.warn("Room code not available during session update");
+      }
     },
     setShowEditModal,
     gameMode: createForm.gameMode,
@@ -534,7 +639,12 @@ export function HostPage() {
 
       // Set the session in local storage
       setSessionId(joinSessionId);
-      setHostSession({ sessionId: joinSessionId, code: sessionData.code });
+      // Always use room code to prevent room code from changing
+      if (storedRoomCode) {
+        setHostSession({ sessionId: joinSessionId, code: storedRoomCode });
+      } else {
+        console.warn("Room code not available when joining session");
+      }
       setShowJoinModal(false);
       toast({ title: 'Joined session successfully', variant: 'success' });
     } catch (error) {
@@ -617,6 +727,159 @@ export function HostPage() {
       </Card>
     ) : null;
 
+  // Session control buttons for lobby and ended states
+  const sessionControlButtons = session && (session.status === "lobby" || session.status === "ended") ? (
+    <div className="flex flex-wrap gap-2">
+      {session.status === "lobby" ? (
+        <>
+          <Button
+            variant="secondary"
+            onClick={handleOpenCreateModal}
+            disabled={true}
+            title="End the current session before starting a new one."
+          >
+            New Session
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={handleOpenEditModal}
+            disabled={isUpdatingSession}
+          >
+            Session Settings
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => setShowJoinModal(true)}
+          >
+            Load Session
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={showEndSessionModalHandler}
+            disabled={isEndingSession}
+          >
+            End Session
+          </Button>
+        </>
+      ) : (
+        <>
+          <Button
+            variant="secondary"
+            onClick={handleOpenCreateModal}
+          >
+            New Session
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => setShowJoinModal(true)}
+          >
+            Load Session
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={handleLeaveSession}
+          >
+            Leave Session
+          </Button>
+        </>
+      )}
+    </div>
+  ) : null;
+
+  // Session Panel: Session-specific controls (answer, vote, results phases)
+  const activePhaseSessionControls = session && (session.status === "answer" || session.status === "vote" || session.status === "results") ? (
+    <div className="flex flex-wrap gap-2">
+      <Button
+        variant="ghost"
+        onClick={handlePauseToggle}
+        disabled={isPausingSession}
+      >
+        {session.paused ? "Resume" : "Pause"}
+      </Button>
+      <Button
+        variant="ghost"
+        onClick={showEndSessionModalHandler}
+        disabled={isEndingSession}
+      >
+        End Session
+      </Button>
+      <Button
+        variant="ghost"
+        onClick={() => setShowJoinModal(true)}
+      >
+        Load Session
+      </Button>
+    </div>
+  ) : null;
+
+  
+  // Lobby controls for when there's no active session
+  const lobbyControls = !session && storedRoomId ? (
+    <div className="flex flex-wrap gap-2">
+      <Button
+        variant="secondary"
+        onClick={handleOpenCreateModal}
+      >
+        Create Session
+      </Button>
+      <Button
+        variant="ghost"
+        onClick={() => setShowJoinModal(true)}
+      >
+        Load Session
+      </Button>
+    </div>
+  ) : null;
+
+  
+  // Session players list using top_comment_players table for real-time updates
+  const sessionPlayersList = session ? (
+    <div className={`space-y-4 rounded-3xl p-5 shadow-lg border-[3px] ${!isDark ? 'bg-white shadow-slate-300/40 border-slate-200' : 'bg-slate-800 shadow-fuchsia-500/20 border-slate-600'}`}>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-pink-400">
+          Session Players ({sessionPlayers.length})
+        </h3>
+      </div>
+      <ul className="space-y-2">
+        {sessionPlayers.map((player) => (
+          <li
+            key={player.id}
+            className="flex items-center justify-between rounded-2xl px-4 py-3 bg-slate-700"
+          >
+            <span className="font-medium text-cyan-100">
+              {player.displayName || 'Anonymous'}
+            </span>
+            <span className="text-sm text-cyan-400">
+              {player.score} pts
+            </span>
+          </li>
+        ))}
+        {!sessionPlayers.length ? (
+          <li className="rounded-2xl px-4 py-3 text-sm bg-slate-700 text-cyan-300">
+            Players will appear here when they join the session.
+          </li>
+        ) : null}
+      </ul>
+    </div>
+  ) : null;
+
+  // Action buttons content for lobby
+  const lobbyActionButtons = session && session.status === "lobby" ? (
+    <div className="flex flex-wrap gap-3">
+      <Button
+        onClick={handlePrimaryClick}
+        disabled={
+          isPerformingAction ||
+          isUpdatingPromptLibrary ||
+          lobbyPlayerCount === 0
+        }
+        isLoading={isPerformingAction}
+      >
+        {actionLabel[session.status]}
+      </Button>
+    </div>
+  ) : null;
+
   // Render phase-specific content
   const renderPhaseContent = () => {
     if (sessionId && !session) {
@@ -639,13 +902,29 @@ export function HostPage() {
               storedCode={roomJoinCode}
               sessionId={null}
               handleCopyLink={copyLinkHandler}
-              sessionCode={roomJoinCode}
+              promptLibraryContent={null}
+              sessionControls={lobbyControls}
+              sessionPlayers={null}
+              actionButtons={null}
             />
+                        {/* Interactions Panel: Room member management */}
             {room && (
-              <HostInteractionManager
-                room={{ id: room.id, code: room.code }}
-                memberships={roomMemberships}
-              />
+              <Card className="space-y-5" isDark={isDark}>
+                <div className={`border-t pt-5 ${!isDark ? 'border-slate-200' : 'border-cyan-400/20'}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className={`text-sm font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-400'}`}>Interactions Panel</h4>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm">
+                        Settings
+                      </Button>
+                    </div>
+                  </div>
+                  <HostInteractionManager
+                    room={{ id: room.id, code: room.code }}
+                    memberships={roomMemberships}
+                  />
+                </div>
+              </Card>
             )}
           </div>
         );
@@ -668,80 +947,192 @@ export function HostPage() {
               storedCode={roomJoinCode}
               sessionId={sessionId}
               handleCopyLink={copyLinkHandler}
-              sessionCode={roomJoinCode}
+              promptLibraryContent={promptLibraryCard}
+              sessionControls={sessionControlButtons}
+              sessionPlayers={sessionPlayersList}
+              actionButtons={lobbyActionButtons}
             />
+                        {/* Interactions Panel: Room member management */}
             {room && (
-              <HostInteractionManager
-                room={{ id: room.id, code: room.code }}
-                memberships={roomMemberships}
-              />
+              <Card className="space-y-5" isDark={isDark}>
+                <div className={`border-t pt-5 ${!isDark ? 'border-slate-200' : 'border-cyan-400/20'}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className={`text-sm font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-400'}`}>Interactions Panel</h4>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm">
+                        Settings
+                      </Button>
+                    </div>
+                  </div>
+                  <HostInteractionManager
+                    room={{ id: room.id, code: room.code }}
+                    memberships={roomMemberships}
+                  />
+                </div>
+              </Card>
             )}
           </div>
         );
 
       case "answer":
         return (
-          <AnswerPhase
-            sessionRoundIndex={session.roundIndex}
-            totalGroups={totalGroups}
-            roundGroups={roundGroups}
-            teamLookup={playerLookup}
-            sessionEndsAt={session.endsAt}
-            answerSecs={session.settings.answerSecs ?? 90}
-            sessionPaused={session.paused}
-            promptLibraryId={session.promptLibraryId}
+          <ActivePhaseLayout
+            phaseTitle={`Answer Phase - Round ${session.roundIndex + 1}`}
+            phaseContent={
+              <AnswerPhase
+                sessionRoundIndex={session.roundIndex}
+                totalGroups={totalGroups}
+                roundGroups={roundGroups}
+                teamLookup={playerLookup}
+                sessionEndsAt={session.endsAt}
+                answerSecs={session.settings.answerSecs ?? 90}
+                sessionPaused={session.paused}
+                promptLibraryId={session.promptLibraryId}
+              />
+            }
+            sessionControls={activePhaseSessionControls}
+            sessionPlayers={sessionPlayersList}
+            room={room}
+            roomMemberships={roomMemberships}
+            pendingSubmissions={pendingSubmissionCount > 0 ? (
+              <SubmissionReviewPanel
+                submissions={allSubmissions}
+                pendingCount={pendingSubmissionCount}
+                isLoading={false}
+                onApprove={approveSubmission}
+                onReject={rejectSubmission}
+              />
+            ) : null}
+            copyLinkHandler={copyLinkHandler}
+            roomJoinCode={roomJoinCode}
+            inviteLink={inviteLink}
           />
         );
 
       case "vote":
         return (
-          <VotePhase
-            totalGroups={totalGroups}
-            activeGroupIndex={activeGroupIndex}
-            activeGroup={activeGroup}
-            roundGroups={roundGroups}
-            activeGroupAnswers={activeGroupAnswers}
-            voteCounts={voteCounts}
-            activeGroupVote={activeGroupVote}
-            handleHostVote={hostVoteHandler}
-            isSubmittingVote={isSubmittingVote}
-            roundSummaries={roundSummaries}
-            sessionEndsAt={session.endsAt}
-            voteSecs={session.settings.voteSecs ?? 90}
-            sessionPaused={session.paused}
-            votes={gameState.votes}
-            teams={players}
-            currentRoundIndex={session.roundIndex}
+          <ActivePhaseLayout
+            phaseTitle={`Vote Phase - Round ${session.roundIndex + 1}`}
+            phaseContent={
+              <VotePhase
+                totalGroups={totalGroups}
+                activeGroupIndex={activeGroupIndex}
+                activeGroup={activeGroup}
+                roundGroups={roundGroups}
+                activeGroupAnswers={activeGroupAnswers}
+                voteCounts={voteCounts}
+                activeGroupVote={activeGroupVote}
+                handleHostVote={hostVoteHandler}
+                isSubmittingVote={isSubmittingVote}
+                roundSummaries={roundSummaries}
+                sessionEndsAt={session.endsAt}
+                voteSecs={session.settings.voteSecs ?? 90}
+                sessionPaused={session.paused}
+                votes={gameState.votes}
+                teams={players}
+                currentRoundIndex={session.roundIndex}
+              />
+            }
+            sessionControls={activePhaseSessionControls}
+            sessionPlayers={sessionPlayersList}
+            room={room}
+            roomMemberships={roomMemberships}
+            pendingSubmissions={pendingSubmissionCount > 0 ? (
+              <SubmissionReviewPanel
+                submissions={allSubmissions}
+                pendingCount={pendingSubmissionCount}
+                isLoading={false}
+                onApprove={approveSubmission}
+                onReject={rejectSubmission}
+              />
+            ) : null}
+            copyLinkHandler={copyLinkHandler}
+            roomJoinCode={roomJoinCode}
+            inviteLink={inviteLink}
           />
         );
 
       case "results":
         return (
-          <ResultsPhase
-            sessionRoundIndex={session.roundIndex}
-            roundSummaries={roundSummaries}
-            voteCounts={voteCounts}
-            sessionEndsAt={session.endsAt}
-            resultsSecs={session.settings.resultsSecs ?? 12}
-            sessionPaused={session.paused}
+          <ActivePhaseLayout
+            phaseTitle={`Results - Round ${session.roundIndex + 1}`}
+            phaseContent={
+              <ResultsPhase
+                sessionRoundIndex={session.roundIndex}
+                roundSummaries={roundSummaries}
+                voteCounts={voteCounts}
+                sessionEndsAt={session.endsAt}
+                resultsSecs={session.settings.resultsSecs ?? 12}
+                sessionPaused={session.paused}
+              />
+            }
+            sessionControls={activePhaseSessionControls}
+            sessionPlayers={sessionPlayersList}
+            room={room}
+            roomMemberships={roomMemberships}
+            pendingSubmissions={pendingSubmissionCount > 0 ? (
+              <SubmissionReviewPanel
+                submissions={allSubmissions}
+                pendingCount={pendingSubmissionCount}
+                isLoading={false}
+                onApprove={approveSubmission}
+                onReject={rejectSubmission}
+              />
+            ) : null}
+            copyLinkHandler={copyLinkHandler}
+            roomJoinCode={roomJoinCode}
+            inviteLink={inviteLink}
           />
         );
 
       case "ended":
-        return <EndedPhase leaderboard={leaderboard} analytics={analytics} />;
+        return (
+          <div className="space-y-6">
+            <LobbyPhase
+              inviteLink={inviteLink}
+              storedCode={roomJoinCode}
+              sessionId={sessionId}
+              handleCopyLink={copyLinkHandler}
+              promptLibraryContent={<EndedPhase leaderboard={leaderboard} analytics={analytics} />}
+              sessionControls={sessionControlButtons}
+              sessionPlayers={sessionPlayersList}
+              actionButtons={null}
+            />
+                        {/* Interactions Panel: Room member management */}
+            {room && (
+              <Card className="space-y-5" isDark={isDark}>
+                <div className={`border-t pt-5 ${!isDark ? 'border-slate-200' : 'border-cyan-400/20'}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className={`text-sm font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-400'}`}>Interactions Panel</h4>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm">
+                        Settings
+                      </Button>
+                    </div>
+                  </div>
+                  <HostInteractionManager
+                    room={{ id: room.id, code: room.code }}
+                    memberships={roomMemberships}
+                  />
+                </div>
+              </Card>
+            )}
+          </div>
+        );
 
       default:
         return null;
     }
   };
 
-  // Presenter view button if session exists
-  const presenterButton = session ? (
+  // Presenter view button - always show when room exists, but only enable when session exists
+  const presenterButton = storedRoomId ? (
     <Button
       variant="ghost"
       onClick={() =>
-        window.open(`/presenter/${session.id}`, "_blank", "noopener")
+        session && window.open(`/presenter/${session.id}`, "_blank", "noopener")
       }
+      disabled={!session}
     >
       Presenter View
     </Button>
@@ -808,12 +1199,23 @@ export function HostPage() {
               </Link>
               {presenterButton}
               {storedRoomCode && (
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate(`/analytics/${storedRoomCode}`)}
-                >
-                  Analytics
-                </Button>
+                <>
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate(`/analytics/${storedRoomCode}`)}
+                  >
+                    Analytics
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setShowRoomCreateModal(true);
+                    }}
+                  >
+                    Room Settings
+                  </Button>
+                </>
               )}
               <VIBoxButton 
                 onClick={() => setShowVIBoxModal(true)}
@@ -888,136 +1290,7 @@ export function HostPage() {
 
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,_2fr)_minmax(0,_1fr)]">
           <div className="flex flex-col gap-6">
-            {promptLibraryCard}
             {renderPhaseContent()}
-            <div className="flex flex-wrap gap-3">
-              <Button
-                onClick={handlePrimaryClick}
-                disabled={
-                  session
-                    ? isPerformingAction ||
-                    isUpdatingPromptLibrary ||
-                  session.status === "ended" ||
-                  (session.status === "lobby" && lobbyPlayerCount === 0)
-                  : false
-                }
-                isLoading={session ? isPerformingAction : false}
-              >
-                {session ? actionLabel[session.status] : storedRoomId ? "Create session" : "Create room"}
-              </Button>
-              {session && session.status !== "lobby" && session.status !== "ended" && (
-                <Button
-                  variant="secondary"
-                  onClick={handlePauseToggle}
-                  disabled={isPausingSession}
-                  isLoading={isPausingSession}
-                >
-                  {isPausingSession ? (
-                    // Loading spinner
-                    <svg
-                      className="animate-spin w-4 h-4"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                  ) : session.paused ? (
-                    // Play icon for resume
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2}
-                      stroke="currentColor"
-                      className="w-4 h-4"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"
-                      />
-                    </svg>
-                  ) : (
-                    // Pause icon for pause
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2}
-                      stroke="currentColor"
-                      className="w-4 h-4"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15.75 5.25v13.5m-7.5-13.5v13.5"
-                      />
-                    </svg>
-                  )}
-                  <span className="ml-2">
-                    {isPausingSession ? "Loading..." : session.paused ? "Resume" : "Pause"}
-                  </span>
-                </Button>
-              )}
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={handleOpenCreateModal}
-                  disabled={!!(session && session.status !== "ended")}
-                  title={session && session.status !== "ended" ? "End the current session before starting a new one." : undefined}
-                >
-                  New session
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={handleOpenEditModal}
-                  disabled={!session || session.status !== "lobby" || isUpdatingSession}
-                  title={
-                    !session
-                      ? "Create or join a session first"
-                      : session.status !== "lobby"
-                        ? "Room settings can only be changed before the session starts."
-                        : undefined
-                  }
-                >
-                  Room settings
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowJoinModal(true)}
-                >
-                  Join session
-                </Button>
-                {session ? (
-                  session.status === "ended" ? (
-                    <Button variant="ghost" onClick={handleLeaveSession}>
-                      Leave session
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      onClick={showEndSessionModalHandler}
-                      disabled={isEndingSession}
-                    >
-                      End session
-                    </Button>
-                  )
-                ) : null}
-              </div>
-            </div>
           </div>
 
           <aside className="flex flex-col gap-6">
@@ -1121,6 +1394,7 @@ export function HostPage() {
         isOpen={showRoomCreateModal}
         onClose={() => setShowRoomCreateModal(false)}
         onSuccess={handleRoomCreateSuccess}
+        existingRoom={room}
       />
 
       <CreateSessionModal
@@ -1136,7 +1410,7 @@ export function HostPage() {
       <CreateSessionModal
         open={showEditModal}
         onClose={() => setShowEditModal(false)}
-        title="Room settings"
+        title="Session settings"
         submitLabel={isUpdatingSession ? "Saving..." : "Save settings"}
         createForm={createForm}
         setCreateForm={setCreateForm}

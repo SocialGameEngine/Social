@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Modal, Button } from '@social/ui';
-import { useTheme } from '../../../../shared/providers/ThemeProvider';
+import { Button } from '../../../../components/Button';
 import { interactionService } from '../../../../services/interactionService';
 import type { Interaction, PollResults } from '../../../../domain/types/interaction.types';
 
@@ -12,7 +11,6 @@ interface PollModalProps {
 }
 
 export function PollModal({ interaction, membershipId, isOpen, onClose }: PollModalProps) {
-  const { isDark } = useTheme();
   const [results, setResults] = useState<PollResults | null>(null);
   const [isVoting, setIsVoting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,32 +51,57 @@ export function PollModal({ interaction, membershipId, isOpen, onClose }: PollMo
 
   const isClosed = interaction.status === 'closed';
 
+  if (!isOpen) return null;
+
   return (
-    <Modal open={isOpen} onClose={onClose} isDark={isDark} title="Poll">
-      <div className="flex flex-col gap-4 p-6 max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex sm:items-center sm:justify-center sm:p-4">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      
+      {/* Modal Content */}
+      <div className="relative w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-lg overflow-y-auto shadow-2xl bg-slate-900">
         {/* Header */}
-        <div className="flex items-start gap-3">
-          <span className="text-3xl">📊</span>
-          <div className="flex-1">
-            <h3 className={`text-xl font-bold ${!isDark ? 'text-slate-900' : 'text-white'}`}>
-              {interaction.question}
-            </h3>
-            {interaction.description && (
-              <p className={`text-sm mt-2 ${!isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-                {interaction.description}
-              </p>
-            )}
-            <div className={`flex items-center gap-3 mt-2 text-xs ${!isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-              <span>{results?.totalVotes || 0} vote{results?.totalVotes !== 1 ? 's' : ''}</span>
-              {isClosed && <span className="font-bold text-red-500">CLOSED</span>}
+        <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-slate-700/50 bg-slate-900">
+          <h2 className="text-lg font-bold text-white">Poll</h2>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-200 transition-colors"
+            aria-label="Close"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="space-y-4 p-4 sm:p-5">
+          {/* Header */}
+          <div className="flex items-start gap-3">
+            <span className="text-3xl">📊</span>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-white">
+                {interaction.question}
+              </h3>
+              {interaction.description && (
+                <p className="text-sm mt-2 text-slate-400">
+                  {interaction.description}
+                </p>
+              )}
+              <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
+                <span>{results?.totalVotes || 0} vote{results?.totalVotes !== 1 ? 's' : ''}</span>
+                {isClosed && <span className="font-bold text-red-500">CLOSED</span>}
+              </div>
             </div>
           </div>
-        </div>
 
         {/* Poll Options - Horizontal Bar Chart */}
         <div className="flex flex-col gap-2">
           {isLoading ? (
-            <div className={`text-center py-8 text-sm ${!isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+            <div className="text-center py-8 text-sm text-slate-400">
               Loading poll...
             </div>
           ) : (
@@ -95,8 +118,6 @@ export function PollModal({ interaction, membershipId, isOpen, onClose }: PollMo
                   className={`relative overflow-hidden rounded-lg border transition-all ${
                     isSelected
                       ? 'border-cyan-500 bg-cyan-500/10'
-                      : !isDark
-                      ? 'border-slate-300 bg-white hover:border-slate-400'
                       : 'border-slate-600 bg-slate-800 hover:border-slate-500'
                   } ${isClosed ? 'cursor-default' : 'cursor-pointer'} ${
                     isVoting ? 'opacity-50' : ''
@@ -107,8 +128,6 @@ export function PollModal({ interaction, membershipId, isOpen, onClose }: PollMo
                     className={`absolute left-0 top-0 h-full transition-all duration-500 ${
                       isSelected
                         ? 'bg-cyan-500/30'
-                        : !isDark
-                        ? 'bg-slate-200'
                         : 'bg-slate-600'
                     }`}
                     style={{ width: `${barWidth}%` }}
@@ -116,9 +135,7 @@ export function PollModal({ interaction, membershipId, isOpen, onClose }: PollMo
 
                   {/* Content */}
                   <div className="relative flex items-center justify-between px-4 py-3">
-                    <span className={`text-sm font-medium text-left flex-1 ${
-                      !isDark ? 'text-slate-900' : 'text-white'
-                    }`}>
+                    <span className={`text-sm font-medium text-left flex-1 text-white`}>
                       {option.text}
                     </span>
                     
@@ -127,15 +144,13 @@ export function PollModal({ interaction, membershipId, isOpen, onClose }: PollMo
                       <span className={`text-sm font-bold ${
                         isSelected
                           ? 'text-cyan-500'
-                          : !isDark
-                          ? 'text-slate-600'
-                          : 'text-slate-300'
+                          : 'text-slate-400'
                       }`}>
                         {option.voteCount}
                       </span>
                       {option.percentage > 0 && (
                         <span className={`text-xs font-medium ${
-                          !isDark ? 'text-slate-500' : 'text-slate-400'
+                          'text-slate-400'
                         }`}>
                           ({option.percentage.toFixed(0)}%)
                         </span>
@@ -148,9 +163,11 @@ export function PollModal({ interaction, membershipId, isOpen, onClose }: PollMo
           )}
         </div>
 
+        </div>
+
         {/* Vote Status */}
         {!isLoading && results && (
-          <div className={`text-center text-sm ${!isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+          <div className="text-center text-sm text-slate-400">
             {!membershipId ? (
               <div className="py-2">
                 <p className="mb-2">👋 Join this room to vote in the poll!</p>
@@ -168,18 +185,18 @@ export function PollModal({ interaction, membershipId, isOpen, onClose }: PollMo
           </div>
         )}
 
-        {/* Close Button */}
-        <div className="flex gap-3 mt-4">
+        {/* Footer */}
+        <div className="sticky bottom-0 border-t border-slate-700/50 bg-slate-900 p-4">
           <Button
             variant="secondary"
             onClick={onClose}
-            className="flex-1"
+            className="w-full"
           >
             Close
           </Button>
         </div>
       </div>
-    </Modal>
+    </div>
   );
 }
 

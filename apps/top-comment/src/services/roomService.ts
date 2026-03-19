@@ -251,7 +251,7 @@ export async function getRoomAnalytics(request: GetRoomAnalyticsRequest): Promis
 }
 
 // Generate a unique room code
-async function generateUniqueRoomCode(): Promise<string> {
+export async function generateUniqueRoomCode(): Promise<string> {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let attempts = 0;
   const maxAttempts = 100;
