@@ -19,7 +19,7 @@ async function handleCreateSession(req: Request, uid: string, supabase: any): Pr
 
   const libraryId =
     mode === "mashup"
-      ? librariesToRotate[0]
+      ? librariesToRotate?.[0] || "classic"
       : (promptLibraryId || "classic");
 
   if (mode === "classic") {
@@ -100,40 +100,9 @@ async function handleCreateSession(req: Request, uid: string, supabase: any): Pr
       }
     }
 
-    if (room) {
-      const { data: memberships, error: membershipsError } = await supabase
-        .from('room_memberships')
-        .select('id, user_id, player_name, status, is_banned, is_host')
-        .eq('room_id', room.id)
-        .eq('is_banned', false)
-        .eq('is_host', false)
-        .in('status', ['active', 'approved']);
-
-      if (membershipsError) {
-        throw membershipsError;
-      }
-
-      const players = (memberships ?? [])
-        .filter((membership: { user_id?: string | null }) => Boolean(membership.user_id))
-        .map((membership: { user_id: string; player_name: string }) => ({
-          id: crypto.randomUUID(),
-          session_id: session.id,
-          user_id: membership.user_id,
-          display_name: membership.player_name,
-          score: 0,
-          joined_at: new Date().toISOString(),
-        }));
-
-      if (players.length) {
-        const { error: playersError } = await supabase
-          .from('top_comment_players')
-          .insert(players);
-
-        if (playersError) {
-          throw playersError;
-        }
-      }
-    }
+    // Players must opt-in to join the session - no auto-assignment
+    // This allows room members to use other features without being forced into the game
+    console.log('🎮 Session created without auto-assignment - players must opt-in');
     
     // Create analytics record
     await supabase

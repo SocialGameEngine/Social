@@ -21,7 +21,7 @@ export function BackgroundAnimation({ show, className }: BackgroundAnimationProp
       const bubble = document.createElement("div");
       bubble.className = "beer-bubble";
 
-      const size = Math.random() * 10 + 2;
+      const size = Math.random() * 150 + 30;
       bubble.style.width = bubble.style.height = `${size}px`;
       bubble.style.left = `${Math.random() * 100}%`;
 
@@ -35,7 +35,7 @@ export function BackgroundAnimation({ show, className }: BackgroundAnimationProp
       bubbles.push(bubble);
     };
 
-    for (let i = 0; i < 50; i++) createBubble();
+    for (let i = 0; i < 4; i++) createBubble();
 
     return () => bubbles.forEach(b => b.remove());
   }, [show]);
@@ -61,9 +61,7 @@ export function BackgroundAnimation({ show, className }: BackgroundAnimationProp
         )} />
       </div>
 
-      {/* Animated blurred light — soft glows that drift */}
-      <div className="bg-glow-orb" style={{ zIndex: 1 }} aria-hidden />
-      <div className="bg-glow-orb bg-glow-orb-2" style={{ zIndex: 1 }} aria-hidden />
+      {/* Removed pulsing glow orbs - cleaner background */}
 
       {/* 2. Bubbles — rendered AFTER background, no chance of black flash */}
       <div
@@ -78,19 +76,19 @@ export function BackgroundAnimation({ show, className }: BackgroundAnimationProp
           position: absolute;
           bottom: -100px;
           border-radius: 50%;
-          background: ${theme.colors.bubble.gradient};
-          border: 1px solid ${theme.colors.bubble.border};
+          background: radial-gradient(circle at 30% 30%, rgba(255,0,255,0.1), rgba(6,182,212,0.05) 50%, transparent 70%);
+          border: 1px solid rgba(255,0,255,0.05);
           box-shadow: 
-            ${theme.colors.bubble.shadow},
-            ${theme.colors.bubble.innerShadow};
+            0 0 20px rgba(255,0,255,0.05),
+            inset 0 0 10px rgba(6,182,212,0.02);
           filter: blur(0.4px);
           will-change: transform, opacity;
         }
 
         @keyframes beer-rise {
           0%   { transform: translateY(0) translateX(0) scale(0.3); opacity: 0; }
-          10%  { opacity: 0.9; }
-          90%  { transform: translateY(-110vh) translateX(40px) rotate(15deg) scale(1.2); opacity: 0.8; }
+          10%  { opacity: 1; }
+          90%  { transform: translateY(-110vh) translateX(40px) rotate(15deg) scale(1.2); opacity: 1; }
           100% { transform: translateY(-130vh) translateX(50px) rotate(20deg) scale(1.3); opacity: 0; }
         }
 

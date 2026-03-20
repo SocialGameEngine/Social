@@ -1,6 +1,5 @@
 import type { Session, RoomMembership } from '../../../shared/types';
-import { LobbyDrawer } from './layout/LobbyDrawer';
-import { ChatDrawer } from './layout/ChatDrawer';
+import { ChatLobbyDrawer } from './layout/ChatLobbyDrawer';
 import { LeaderboardHistoryDrawer } from './layout/LeaderboardHistoryDrawer';
 import { HelpDrawer } from './layout/HelpDrawer';
 
@@ -12,12 +11,10 @@ interface RoomDrawersProps {
   userId: string | undefined;
   membershipId: string | undefined;
   displayName: string;
-  showLobbyDrawer: boolean;
-  showChatDrawer: boolean;
+  showChatLobbyDrawer: boolean;
   showLeaderboardDrawer: boolean;
   showHowToPlay: boolean;
-  onCloseLobby: () => void;
-  onCloseChat: () => void;
+  onCloseChatLobby: () => void;
   onCloseLeaderboard: () => void;
   onCloseHelp: () => void;
   blockPlayer?: (membershipId: string) => Promise<void>;
@@ -31,12 +28,10 @@ export function RoomDrawers({
   userId,
   membershipId,
   displayName,
-  showLobbyDrawer,
-  showChatDrawer,
+  showChatLobbyDrawer,
   showLeaderboardDrawer,
   showHowToPlay,
-  onCloseLobby,
-  onCloseChat,
+  onCloseChatLobby,
   onCloseLeaderboard,
   onCloseHelp,
   sessionId,
@@ -45,22 +40,17 @@ export function RoomDrawers({
 }: RoomDrawersProps) {
   return (
     <>
-      <LobbyDrawer
+      <ChatLobbyDrawer
         memberships={memberships}
-        isOpen={showLobbyDrawer}
-        onClose={onCloseLobby}
-        roomId={roomId}
-        myMembershipId={membershipId}
-        blockPlayer={blockPlayer}
-        onChallengePlayer={onChallengePlayer}
-      />
-      <ChatDrawer
-        isOpen={showChatDrawer}
-        onClose={onCloseChat}
+        isOpen={showChatLobbyDrawer}
+        onClose={onCloseChatLobby}
         roomId={roomId}
         userId={userId}
         membershipId={membershipId}
         displayName={displayName}
+        myMembershipId={membershipId}
+        blockPlayer={blockPlayer}
+        onChallengePlayer={onChallengePlayer}
       />
       <LeaderboardHistoryDrawer
         isOpen={showLeaderboardDrawer}

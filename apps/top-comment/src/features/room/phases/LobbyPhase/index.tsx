@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../../shared/providers/AuthContext';
 import { sessionPlayerService } from '../../../../services/sessionPlayerService';
+import { joinRoomSession } from '../../../session/sessionService';
 import { PhaseButton } from '../../components/PhaseButton';
 import { Modal } from '../../../../components/Modal';
 import { Button } from '../../../../components/Button';
+import { useToast } from '../../../../shared/hooks/useToast';
 import type { Session, RoomMembership } from '../../../../shared/types';
 import type { SessionPlayer } from '../../../../services/sessionPlayerService';
 
@@ -14,6 +16,7 @@ interface LobbyPhaseProps {
 
 export function LobbyPhase({ session, memberships }: LobbyPhaseProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [sessionPlayer, setSessionPlayer] = useState<SessionPlayer | null>(null);
   const [isJoining, setIsJoining] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -44,20 +47,40 @@ export function LobbyPhase({ session, memberships }: LobbyPhaseProps) {
   }, [session?.id, user?.id]);
 
   const handleJoinSession = useCallback(async () => {
-    if (!session?.id || isJoining) return;
+    if (!session?.id || !session?.roomId || isJoining) return;
 
     setIsJoining(true);
     try {
-      await sessionPlayerService.joinSessionAsPlayer({
+      const result = await joinRoomSession({
         sessionId: session.id,
-        displayName,
+        roomId: session.roomId,
+        playerName: displayName
       });
+
+      if (result.success) {
+        toast({ 
+          title: "Joined game!", 
+          variant: "success",
+          description: "You're ready to play"
+        });
+      } else {
+        toast({ 
+          title: "Failed to join", 
+          variant: "error",
+          description: result.message
+        });
+      }
     } catch (error) {
       console.error('Failed to join session:', error);
+      toast({ 
+        title: "Failed to join game", 
+        variant: "error",
+        description: error instanceof Error ? error.message : "Unknown error"
+      });
     } finally {
       setIsJoining(false);
     }
-  }, [session?.id, displayName, isJoining]);
+  }, [session?.id, session?.roomId, displayName, isJoining, toast]);
 
   const handleLeaveSession = useCallback(async () => {
     if (!session?.id || !sessionPlayer?.id || isLeaving) return;
@@ -103,11 +126,13 @@ export function LobbyPhase({ session, memberships }: LobbyPhaseProps) {
 
   return (
     <div className="w-full mb-8">
-      <PhaseButton 
+      <PhaseButton
         phase="lobby"
         hasSubmitted={isInSession}
         onClick={handleJoinSession}
-        disabled={isJoining || isInSession}
+        disabled={isJoining}
+        customText={isInSession ? "Ready to Play" : "Join Game"}
+        customSubText={isInSession ? "You're in the game!" : "Click to join the session"}
       />
       {isInSession && (
         <div className="pt-3 flex justify-center">

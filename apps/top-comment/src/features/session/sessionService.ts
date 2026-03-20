@@ -81,6 +81,7 @@ function mapSession(data: any): Session | null {
     totalPausedMs: data.total_paused_ms ?? 0,
     endedByHost: data.ended_by_host ?? false,
     autoAssignedPlayers: data.auto_assigned_players || [],
+    roomId: data.room_id,
   };
   
   return mappedSession;
@@ -571,5 +572,20 @@ export const leaveSession = async (payload: { sessionId: string; teamId: string 
 
   if (error) throw error;
   if (!data) throw new Error("No response data from leave session");
+  return data;
+};
+
+export const joinRoomSession = async (payload: { sessionId: string; roomId: string; playerName?: string }) => {
+  const { data, error } = await supabase.functions.invoke<{ 
+    success: boolean; 
+    message: string; 
+    player: any 
+  }>(
+    "top-comment-sessions-join-room",
+    { body: payload }
+  );
+
+  if (error) throw error;
+  if (!data) throw new Error("No response data from join room session");
   return data;
 };

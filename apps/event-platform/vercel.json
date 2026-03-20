@@ -1,5 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "dev": false
+    }
+  },
   "buildCommand": "cd ../.. && pnpm turbo run build --filter=@social/event-platform",
   "outputDirectory": "dist",
   "framework": "vite",

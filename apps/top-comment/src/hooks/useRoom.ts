@@ -323,6 +323,8 @@ export function useRoom(options: UseRoomOptions = {}) {
     const targetRoomId = room?.id || roomId;
     if (!targetRoomId) return;
 
+    console.log('🔔 Setting up room subscription for:', targetRoomId);
+
     const channel = supabase
       .channel(`room:${targetRoomId}`)
       .on(
@@ -333,13 +335,18 @@ export function useRoom(options: UseRoomOptions = {}) {
           table: 'rooms',
           filter: `id=eq.${targetRoomId}`,
         },
-        () => {
+        (payload) => {
+          console.log('🔄 Room update received:', payload);
+          console.log('🔄 New currentSessionId:', payload.new?.current_session_id);
           loadRoom(undefined, true); // Silent refresh - no loading state
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Room subscription status:', status);
+      });
 
     return () => {
+      console.log('🔕 Cleaning up room subscription for:', targetRoomId);
       supabase.removeChannel(channel);
     };
   }, [room?.id, roomId, loadRoom]);

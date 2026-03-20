@@ -19,10 +19,12 @@ export function RoomPage() {
 
   // Get sessionId from room when it updates
   useEffect(() => {
+    console.log('🏠 Room updated:', { roomId: room?.id, roomSessionId: room?.currentSessionId, localSessionId: sessionId });
     if (room?.currentSessionId && room.currentSessionId !== sessionId) {
+      console.log('🔄 Updating sessionId from', sessionId, 'to', room.currentSessionId);
       setSessionId(room.currentSessionId);
     }
-  }, [room?.currentSessionId, sessionId]);
+  }, [room, sessionId]); // Fixed: include entire room object instead of just currentSessionId
 
   if (authLoading || roomLoading) {
     return (

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '../../../../components/Button';
+import { FullscreenModal } from '../../../../shared/components/FullscreenModal';
 import { interactionService } from '../../../../services/interactionService';
 import type { Interaction, PollResults } from '../../../../domain/types/interaction.types';
 
@@ -54,149 +55,126 @@ export function PollModal({ interaction, membershipId, isOpen, onClose }: PollMo
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex sm:items-center sm:justify-center sm:p-4">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
-      {/* Modal Content */}
-      <div className="relative w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-lg overflow-y-auto shadow-2xl bg-slate-900">
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-slate-700/50 bg-slate-900">
-          <h2 className="text-lg font-bold text-white">Poll</h2>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 transition-colors"
-            aria-label="Close"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="space-y-4 p-4 sm:p-5">
-          {/* Header */}
-          <div className="flex items-start gap-3">
-            <span className="text-3xl">📊</span>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold text-white">
-                {interaction.question}
-              </h3>
-              {interaction.description && (
-                <p className="text-sm mt-2 text-slate-400">
-                  {interaction.description}
-                </p>
-              )}
-              <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
-                <span>{results?.totalVotes || 0} vote{results?.totalVotes !== 1 ? 's' : ''}</span>
-                {isClosed && <span className="font-bold text-red-500">CLOSED</span>}
-              </div>
-            </div>
-          </div>
-
-        {/* Poll Options - Horizontal Bar Chart */}
-        <div className="flex flex-col gap-2">
-          {isLoading ? (
-            <div className="text-center py-8 text-sm text-slate-400">
-              Loading poll...
-            </div>
-          ) : (
-            results?.options.map((option, index) => {
-              const isSelected = option.isSelected;
-              const maxVotes = Math.max(...(results.options.map(o => o.voteCount) || [1]));
-              const barWidth = maxVotes > 0 ? (option.voteCount / maxVotes) * 100 : 0;
-
-              return (
-                <button
-                  key={index}
-                  onClick={() => !isClosed && handleSubmitVote(index)}
-                  disabled={isClosed || isVoting}
-                  className={`relative overflow-hidden rounded-lg border transition-all ${
-                    isSelected
-                      ? 'border-cyan-500 bg-cyan-500/10'
-                      : 'border-slate-600 bg-slate-800 hover:border-slate-500'
-                  } ${isClosed ? 'cursor-default' : 'cursor-pointer'} ${
-                    isVoting ? 'opacity-50' : ''
-                  }`}
-                >
-                  {/* Vote bar background */}
-                  <div
-                    className={`absolute left-0 top-0 h-full transition-all duration-500 ${
-                      isSelected
-                        ? 'bg-cyan-500/30'
-                        : 'bg-slate-600'
-                    }`}
-                    style={{ width: `${barWidth}%` }}
-                  />
-
-                  {/* Content */}
-                  <div className="relative flex items-center justify-between px-4 py-3">
-                    <span className={`text-sm font-medium text-left flex-1 text-white`}>
-                      {option.text}
-                    </span>
-                    
-                    {/* Vote count on the right */}
-                    <div className="flex items-center gap-2 ml-4">
-                      <span className={`text-sm font-bold ${
-                        isSelected
-                          ? 'text-cyan-500'
-                          : 'text-slate-400'
-                      }`}>
-                        {option.voteCount}
-                      </span>
-                      {option.percentage > 0 && (
-                        <span className={`text-xs font-medium ${
-                          'text-slate-400'
-                        }`}>
-                          ({option.percentage.toFixed(0)}%)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              );
-            })
+    <FullscreenModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Poll"
+    >
+      {/* Header */}
+      <div className="flex items-start gap-3">
+        <span className="text-3xl">📊</span>
+        <div className="flex-1">
+          <h3 className="text-xl font-bold text-white">
+            {interaction.question}
+          </h3>
+          {interaction.description && (
+            <p className="text-sm mt-2 text-slate-400">
+              {interaction.description}
+            </p>
           )}
-        </div>
-
-        </div>
-
-        {/* Vote Status */}
-        {!isLoading && results && (
-          <div className="text-center text-sm text-slate-400">
-            {!membershipId ? (
-              <div className="py-2">
-                <p className="mb-2">👋 Join this room to vote in the poll!</p>
-                <Button onClick={() => window.location.reload()} size="sm">
-                  Join Room
-                </Button>
-              </div>
-            ) : isClosed ? (
-              <span className="font-semibold">Poll closed</span>
-            ) : results.userVote !== undefined ? (
-              <span>Click any option to change your vote</span>
-            ) : (
-              <span>Tap an option to vote</span>
-            )}
+          <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
+            <span>{results?.totalVotes || 0} vote{results?.totalVotes !== 1 ? 's' : ''}</span>
+            {isClosed && <span className="font-bold text-red-500">CLOSED</span>}
           </div>
-        )}
-
-        {/* Footer */}
-        <div className="sticky bottom-0 border-t border-slate-700/50 bg-slate-900 p-4">
-          <Button
-            variant="secondary"
-            onClick={onClose}
-            className="w-full"
-          >
-            Close
-          </Button>
         </div>
       </div>
-    </div>
+
+      {/* Poll Options - Horizontal Bar Chart */}
+      <div className="flex flex-col gap-2">
+        {isLoading ? (
+          <div className="text-center py-8 text-sm text-slate-400">
+            Loading poll...
+          </div>
+        ) : (
+          results?.options.map((option, index) => {
+            const isSelected = option.isSelected;
+            const maxVotes = Math.max(...(results.options.map(o => o.voteCount) || [1]));
+            const barWidth = maxVotes > 0 ? (option.voteCount / maxVotes) * 100 : 0;
+
+            return (
+              <button
+                key={index}
+                onClick={() => !isClosed && handleSubmitVote(index)}
+                disabled={isClosed || isVoting}
+                className={`relative overflow-hidden rounded-lg border transition-all ${
+                  isSelected
+                    ? 'border-cyan-500 bg-cyan-500/10'
+                    : 'border-slate-600 bg-slate-800 hover:border-slate-500'
+                } ${isClosed ? 'cursor-default' : 'cursor-pointer'} ${
+                  isVoting ? 'opacity-50' : ''
+                }`}
+              >
+                {/* Vote bar background */}
+                <div
+                  className={`absolute left-0 top-0 h-full transition-all duration-500 ${
+                    isSelected
+                      ? 'bg-cyan-500/30'
+                      : 'bg-slate-600'
+                  }`}
+                  style={{ width: `${barWidth}%` }}
+                />
+
+                {/* Content */}
+                <div className="relative flex items-center justify-between px-4 py-3">
+                  <span className={`text-sm font-medium text-left flex-1 text-white`}>
+                    {option.text}
+                  </span>
+                  
+                  {/* Vote count on the right */}
+                  <div className="flex items-center gap-2 ml-4">
+                    <span className={`text-sm font-bold ${
+                      isSelected
+                        ? 'text-cyan-500'
+                        : 'text-slate-400'
+                    }`}>
+                      {option.voteCount}
+                    </span>
+                    {option.percentage > 0 && (
+                      <span className={`text-xs font-medium ${
+                        'text-slate-400'
+                      }`}>
+                        ({option.percentage.toFixed(0)}%)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+
+      {/* Vote Status */}
+      {!isLoading && results && (
+        <div className="text-center text-sm text-slate-400">
+          {!membershipId ? (
+            <div className="py-2">
+              <p className="mb-2">👋 Join this room to vote in the poll!</p>
+              <Button onClick={() => window.location.reload()} size="sm">
+                Join Room
+              </Button>
+            </div>
+          ) : isClosed ? (
+            <span className="font-semibold">Poll closed</span>
+          ) : results.userVote !== undefined ? (
+            <span>Click any option to change your vote</span>
+          ) : (
+            <span>Tap an option to vote</span>
+          )}
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="border-t border-slate-700/50 pt-4">
+        <Button
+          variant="secondary"
+          onClick={onClose}
+          className="w-full"
+        >
+          Close
+        </Button>
+      </div>
+    </FullscreenModal>
   );
 }
 
