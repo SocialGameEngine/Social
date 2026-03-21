@@ -8,22 +8,32 @@ import { generateUniqueRoomCode } from './roomService';
  */
 export async function getOrCreateVenueRoom(authUserId: string): Promise<Room> {
   try {
-    // First, try to find existing room for this venue
-    // Note: This will need to be updated when we add room_id to venue_accounts table
-    const { data: existingRooms, error: fetchError } = await supabase
-      .from('rooms' as any)
-      .select('*')
-      .eq('host_uid', authUserId)
-      .limit(1);
+    // First, get the venue account's room_id
+    const { data: venueAccount, error: venueError } = await supabase
+      .from('venue_accounts' as any)
+      .select('room_id')
+      .eq('auth_user_id', authUserId)
+      .single();
 
-    if (fetchError) {
-      console.error('Error fetching venue room:', fetchError);
-      throw new Error('Failed to fetch venue room');
+    if (venueError) {
+      console.error('Error fetching venue account:', venueError);
+      throw new Error('Failed to fetch venue account');
     }
 
-    // If venue already has a room, return it
-    if (existingRooms && existingRooms.length > 0 && existingRooms[0]) {
-      return existingRooms[0] as unknown as Room;
+    // If venue has a room_id, get that room
+    if (venueAccount?.room_id) {
+      const { data: room, error: roomError } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('id', venueAccount.room_id)
+        .single();
+
+      if (roomError) {
+        console.error('Error fetching venue room:', roomError);
+        throw new Error('Failed to fetch venue room');
+      }
+
+      return room as unknown as Room;
     }
 
     // Create new room for venue

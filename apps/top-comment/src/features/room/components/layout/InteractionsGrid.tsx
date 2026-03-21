@@ -14,10 +14,6 @@ interface InteractionsGridProps {
   topicsParticipants?: number;
   promptsParticipants?: number;
   fibbageParticipants?: number;
-  pollsHasActivity?: boolean;
-  topicsHasActivity?: boolean;
-  promptsHasActivity?: boolean;
-  fibbageHasActivity?: boolean;
   isLoading?: boolean;
 }
 
@@ -34,10 +30,6 @@ export function InteractionsGrid({
   topicsParticipants = 0,
   promptsParticipants = 0,
   fibbageParticipants = 0,
-  pollsHasActivity = false,
-  topicsHasActivity = false,
-  promptsHasActivity = false,
-  fibbageHasActivity = false,
   isLoading = false,
 }: InteractionsGridProps) {
   if (isLoading) {
@@ -61,7 +53,6 @@ export function InteractionsGrid({
           variant="interaction"
           onClick={onOpenPolls}
           participantCount={pollsParticipants}
-          hasRecentActivity={pollsHasActivity}
         />
         <InteractionTypeButton
           icon={
@@ -74,7 +65,6 @@ export function InteractionsGrid({
           variant="interaction"
           onClick={onOpenTopics}
           participantCount={topicsParticipants}
-          hasRecentActivity={topicsHasActivity}
         />
         <InteractionTypeButton
           icon={
@@ -87,7 +77,6 @@ export function InteractionsGrid({
           variant="interaction"
           onClick={onOpenPrompts}
           participantCount={promptsParticipants}
-          hasRecentActivity={promptsHasActivity}
         />
         <InteractionTypeButton
           icon={
@@ -100,7 +89,6 @@ export function InteractionsGrid({
           variant="interaction"
           onClick={onOpenFibbage}
           participantCount={fibbageParticipants}
-          hasRecentActivity={fibbageHasActivity}
         />
       </div>
     </div>

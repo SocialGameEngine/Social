@@ -9,6 +9,7 @@ interface ModalProps {
   title: string;
   onClose: () => void;
   footer?: ReactNode;
+  titleColor?: string;
 }
 
 export function Modal({
@@ -16,6 +17,7 @@ export function Modal({
   onClose,
   title,
   footer,
+  titleColor,
   children,
 }: PropsWithChildren<ModalProps>) {
   const { isDark } = useTheme();
@@ -38,7 +40,7 @@ export function Modal({
       <div className={`w-full max-w-lg rounded-3xl p-6 shadow-2xl ${!isDark ? 'bg-white' : 'bg-slate-800'}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 flex justify-center">
-            <h2 className={`text-xl font-semibold ${!isDark ? 'text-slate-900' : 'text-pink-400'}`}>{title}</h2>
+            <h2 className={`text-xl font-semibold ${titleColor || (!isDark ? 'text-slate-900' : 'text-pink-400')}`}>{title}</h2>
           </div>
           <Button
             variant="ghost"

@@ -9,6 +9,7 @@ interface ModalProps {
   onClose: () => void;
   footer?: ReactNode;
   isDark?: boolean;
+  titleColor?: string;
 }
 
 export function Modal({
@@ -17,6 +18,7 @@ export function Modal({
   title,
   footer,
   isDark = false,
+  titleColor,
   children,
 }: PropsWithChildren<ModalProps>) {
   useEffect(() => {
@@ -37,7 +39,7 @@ export function Modal({
       <div className={`modal-content ${isDark ? 'modal-content-dark' : 'modal-content-light'}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 flex justify-center">
-            <h2 className="modal-title text-xl font-semibold">{title}</h2>
+            <h2 className={`modal-title text-xl font-semibold ${titleColor || ''}`}>{title}</h2>
           </div>
           <Button
             variant="ghost"

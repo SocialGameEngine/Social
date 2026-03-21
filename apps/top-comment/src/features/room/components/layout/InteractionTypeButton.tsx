@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
+import { useState, useEffect } from 'react';
 
 interface InteractionTypeButtonProps {
   icon: ReactNode;
@@ -9,7 +9,6 @@ interface InteractionTypeButtonProps {
   onClick: () => void;
   isLive?: boolean;
   participantCount?: number;
-  hasRecentActivity?: boolean;
 }
 
 export function InteractionTypeButton({
@@ -20,15 +19,43 @@ export function InteractionTypeButton({
   onClick,
   isLive,
   participantCount,
-  hasRecentActivity,
 }: InteractionTypeButtonProps) {
   const variantClass = `section-button--${variant}`;
+  const [animateClass, setAnimateClass] = useState('');
+  const [isPressed, setIsPressed] = useState(false);
+
+  // Force animation restart when participantCount changes
+  useEffect(() => {
+    if (isPressed) return; // Don't animate while pressed
+    
+    setAnimateClass('');
+    
+    // Start animation
+    setTimeout(() => {
+      setAnimateClass('animate-[card-activity_0.6s_ease-out]');
+    }, 50);
+  }, [participantCount, isPressed]);
+
+  const handleMouseDown = () => {
+    setIsPressed(true);
+    setAnimateClass(''); // Stop animation during press
+  };
+
+  const handleMouseUp = () => {
+    setIsPressed(false);
+    // Restart animation when released
+    setTimeout(() => {
+      setAnimateClass('animate-[card-activity_0.6s_ease-out]');
+    }, 50);
+  };
 
   return (
-    <motion.button
-      whileTap={{ scale: 0.95 }}
+    <button
       onClick={onClick}
-      className={`section-button ${variantClass} relative`}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp} // Reset if mouse leaves
+      className={`section-button ${variantClass} relative ${animateClass}`}
     >
       {/* Live indicator */}
       {isLive && (
@@ -47,11 +74,6 @@ export function InteractionTypeButton({
         </div>
       )}
       
-      {/* Recent activity pulse */}
-      {hasRecentActivity && !isLive && (
-        <div className="absolute inset-0 rounded-[24px] border-2 border-cyan-400 animate-pulse pointer-events-none" />
-      )}
-      
       <div className="section-button__icon flex items-center justify-center text-white">
         {icon}
       </div>
@@ -59,6 +81,6 @@ export function InteractionTypeButton({
       {count !== undefined && count > 0 && (
         <div className="section-button__count">{count}</div>
       )}
-    </motion.button>
+    </button>
   );
 }

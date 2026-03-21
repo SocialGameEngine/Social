@@ -16,7 +16,6 @@ import { RoomModals } from './RoomModals';
 import { RoomDrawers } from './RoomDrawers';
 import { AuthModal } from '../../../shared/components/AuthModal';
 import { JoinRoomModal } from '../../../shared/components/JoinRoomModal';
-import { ReactionBar } from './ReactionBar';
 import { ReactionOverlay } from './ReactionOverlay';
 import { TabNavigation } from './TabNavigation';
 import { CommunityFeed } from './CommunityFeed';
@@ -29,6 +28,7 @@ import { ChallengeNotification } from './challenges/ChallengeNotification';
 import { ChallengeModal } from './challenges/ChallengeModal';
 import { SubmitQuestionButton } from './submissions/SubmitQuestionButton';
 import { SubmitQuestionModal } from './submissions/SubmitQuestionModal';
+import { isCurrentUserModerator } from '../../../shared/utils/moderatorUtils';
 import { roomMembershipService } from '../../../services/roomMembershipService';
 import { interactionService } from '../../../services/interactionService';
 import { PollsBottomSheet } from './bottomsheets/PollsBottomSheet';
@@ -46,8 +46,95 @@ export function RoomPageContentNew() {
 
   // Check if user has a membership in this room
   const myMembership = user ? memberships?.find(m => m.userId === user.id) : null;
-  const isHost = room?.hostUid === user?.id;
-  const hasMembership = !!myMembership || isHost;
+  const hasMembership = !!myMembership;
+  
+  // Check if user is a moderator
+  const isModerator = room ? isCurrentUserModerator(room, user) : false;
+
+  // Mock data generator for participant counts (slowed down by 90%)
+  const [mockData, setMockData] = useState({
+    pollsParticipants: 0,
+    topicsParticipants: 0, 
+    promptsParticipants: 0,
+    fibbageParticipants: 0,
+    pollsHasActivity: false,
+    topicsHasActivity: false,
+    promptsHasActivity: false,
+    fibbageHasActivity: false,
+  });
+
+  // Update different interaction types at different intervals (staggered)
+  useEffect(() => {
+    if (!session) return;
+
+    // Start with activity enabled for testing
+    setMockData({
+      pollsParticipants: 5,
+      topicsParticipants: 4,
+      promptsParticipants: 3,
+      fibbageParticipants: 7,
+      pollsHasActivity: true, // Start with activity for testing
+      topicsHasActivity: true,
+      promptsHasActivity: true,
+      fibbageHasActivity: true,
+    });
+
+    const intervals = [
+      // Polls update every 10 seconds (was 1 second)
+      setInterval(() => {
+        setMockData(prev => ({
+          ...prev,
+          pollsParticipants: Math.floor(Math.random() * 10) + 3,
+          pollsHasActivity: true, // 100% activity when number changes
+        }));
+        // Reset activity after 3 seconds
+        setTimeout(() => {
+          setMockData(prev => ({ ...prev, pollsHasActivity: false }));
+        }, 3000);
+      }, 10000),
+      
+      // Topics update every 12 seconds (was 1 second)  
+      setInterval(() => {
+        setMockData(prev => ({
+          ...prev,
+          topicsParticipants: Math.floor(Math.random() * 8) + 2,
+          topicsHasActivity: true, // 100% activity when number changes
+        }));
+        // Reset activity after 3 seconds
+        setTimeout(() => {
+          setMockData(prev => ({ ...prev, topicsHasActivity: false }));
+        }, 3000);
+      }, 12000),
+      
+      // Prompts update every 8 seconds (was 1 second)
+      setInterval(() => {
+        setMockData(prev => ({
+          ...prev,
+          promptsParticipants: Math.floor(Math.random() * 6) + 1,
+          promptsHasActivity: true, // 100% activity when number changes
+        }));
+        // Reset activity after 3 seconds
+        setTimeout(() => {
+          setMockData(prev => ({ ...prev, promptsHasActivity: false }));
+        }, 3000);
+      }, 8000),
+      
+      // Fibbage updates every 15 seconds (was 1 second)
+      setInterval(() => {
+        setMockData(prev => ({
+          ...prev,
+          fibbageParticipants: Math.floor(Math.random() * 12) + 4,
+          fibbageHasActivity: true, // 100% activity when number changes
+        }));
+        // Reset activity after 3 seconds
+        setTimeout(() => {
+          setMockData(prev => ({ ...prev, fibbageHasActivity: false }));
+        }, 3000);
+      }, 15000),
+    ];
+
+    return () => intervals.forEach(clearInterval);
+  }, [session]);
 
   // Bottom sheet states
   const [showPollsSheet, setShowPollsSheet] = useState(false);
@@ -92,28 +179,16 @@ export function RoomPageContentNew() {
     }
   }, [room?.code]);
 
-  const requireMembership = useCallback(() => {
-    if (!hasMembership) {
-      setShowJoinModal(true);
-      return false;
-    }
-    return true;
-  }, [hasMembership]);
-
+  
   // Custom hooks
-  const { reactions, reactionCounts, bursts, sendReaction } = useReactions({
+  const { reactions, bursts } = useReactions({
     roomId: room?.id,
     membershipId: myMembership?.id,
   });
 
-  const handleReaction = useCallback((emoji: any) => {
-    if (requireMembership()) {
-      sendReaction(emoji);
-    }
-  }, [requireMembership, sendReaction]);
 
   const { blockedIds, blockPlayer } = useBlocks({ membershipId: myMembership?.id, roomId: room?.id });
-  const { pendingCount: pendingReportCount } = useReports({ roomId: room?.id, isHost });
+  const { pendingCount: pendingReportCount } = useReports({ roomId: room?.id });
 
   const {
     pendingChallenges,
@@ -265,16 +340,12 @@ export function RoomPageContentNew() {
             promptsCount={prompts.length}
             fibbageCount={fibbageGames.length}
             // TODO: Replace mock social proof data with real room-level interaction stats
-// Current: Random participant counts and activity indicators
-// Should be: Room members who have used each interaction type + recent room activity
-pollsParticipants={session ? Math.floor(Math.random() * 10) + 3 : 0}
-            topicsParticipants={session ? Math.floor(Math.random() * 8) + 2 : 0}
-            promptsParticipants={session ? Math.floor(Math.random() * 6) + 1 : 0}
-            fibbageParticipants={session ? Math.floor(Math.random() * 12) + 4 : 0}
-            pollsHasActivity={!!session && Math.random() > 0.5}
-            topicsHasActivity={!!session && Math.random() > 0.7}
-            promptsHasActivity={!!session && Math.random() > 0.6}
-            fibbageHasActivity={!!session && Math.random() > 0.4}
+            // Current: Staggered participant counts 
+            // Should be: Room members who have used each interaction type + recent room activity
+            pollsParticipants={mockData.pollsParticipants}
+            topicsParticipants={mockData.topicsParticipants}
+            promptsParticipants={mockData.promptsParticipants}
+            fibbageParticipants={mockData.fibbageParticipants}
           />
           
           {/* Section 3: Social Section */}
@@ -360,7 +431,7 @@ pollsParticipants={session ? Math.floor(Math.random() * 10) + 3 : 0}
           }}
           targetName={challengeTarget?.name || ''}
         />
-        {!isHost && hasMembership && (
+        {hasMembership && (
           <div className="fixed bottom-20 left-4 z-30">
             <SubmitQuestionButton onClick={() => setShowSubmitQuestion(true)} />
           </div>
@@ -416,13 +487,14 @@ pollsParticipants={session ? Math.floor(Math.random() * 10) + 3 : 0}
         </div>
         <RoomSidebar
           memberships={memberships}
+          room={room}
           isCollapsed={isRailCollapsed}
           onToggle={() => setIsRailCollapsed(!isRailCollapsed)}
           roomId={room?.id}
           userId={user?.id}
           membershipId={myMembership?.id}
           displayName={myDisplayName}
-          isHost={isHost}
+          isModerator={isModerator}
           blockedIds={blockedIds}
           blockPlayer={blockPlayer}
           pendingReportCount={pendingReportCount}
@@ -479,7 +551,7 @@ pollsParticipants={session ? Math.floor(Math.random() * 10) + 3 : 0}
         targetName={challengeTarget?.name || ''}
       />
 
-      {!isHost && (
+      {hasMembership && (
         <div className="fixed bottom-20 left-4 z-30">
           <SubmitQuestionButton 
             onClick={() => setShowSubmitQuestion(true)} 
@@ -495,12 +567,6 @@ pollsParticipants={session ? Math.floor(Math.random() * 10) + 3 : 0}
       />
 
       <ReactionOverlay reactions={reactions} bursts={bursts} />
-      <ReactionBar 
-        onReact={handleReaction} 
-        reactionCounts={reactionCounts} 
-        isMember={hasMembership}
-        onJoinRoom={() => setShowJoinModal(true)}
-      />
       <RoomDrawers {...drawerProps} />
       <RoomModals {...modalProps} />
       <VIBoxJukebox

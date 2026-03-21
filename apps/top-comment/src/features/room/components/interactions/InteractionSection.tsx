@@ -4,6 +4,7 @@ import { useAuth } from '../../../../shared/providers/AuthContext';
 import { useVotes } from '../../../../hooks/useVotes';
 import { interactionService } from '../../../../services/interactionService';
 import { InteractionCard } from './InteractionCard';
+import { isCurrentUserModerator } from '../../../../shared/utils/moderatorUtils';
 import type { Interaction, InteractionResponse, RoomMembership, Room } from '../../../../shared/types';
 
 const SendPromptModal = lazy(() => import('./SendPromptModal'));
@@ -22,12 +23,14 @@ interface InteractionSectionProps {
   room: Room | null;
   memberships: RoomMembership[] | null;
   hasActiveSession: boolean;
+  session?: any; // Add session prop
 }
 
 export function InteractionSection({
   room,
   memberships,
   hasActiveSession,
+  session,
 }: InteractionSectionProps) {
   const { user } = useAuth();
   const { interactions, createInteraction, closeInteraction } = useInteractions({ roomId: room?.id });
@@ -48,6 +51,33 @@ export function InteractionSection({
   // Store user's response texts locally by interaction ID
   const [userResponses, setUserResponses] = useState<Map<string, string>>(new Map());
   const [respondedIds, setRespondedIds] = useState<Set<string>>(new Set());
+  
+  // Track recent activity for each interaction
+  const [recentActivity, setRecentActivity] = useState<Map<string, boolean>>(new Map());
+  
+  // Simulate recent activity on interactions (for demo purposes)
+  useEffect(() => {
+    if (!hasActiveSession) return;
+    
+    const interval = setInterval(() => {
+      // Pick a random interaction to show activity
+      if (interactions.length > 0) {
+        const randomInteraction = interactions[Math.floor(Math.random() * interactions.length)];
+        setRecentActivity(prev => new Map(prev).set(randomInteraction.id, true));
+        
+        // Clear activity after 3 seconds
+        setTimeout(() => {
+          setRecentActivity(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(randomInteraction.id);
+            return newMap;
+          });
+        }, 3000);
+      }
+    }, 5000); // Every 5 seconds
+    
+    return () => clearInterval(interval);
+  }, [hasActiveSession, interactions]);
   const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
   const [votingResponses, setVotingResponses] = useState<InteractionResponse[]>([]);
   const [resultsResponses, setResultsResponses] = useState<InteractionResponse[]>([]);
@@ -106,7 +136,7 @@ export function InteractionSection({
     interactionService.getResponses(viewingResults.id).then(setResultsResponses);
   }, [viewingResults]);
 
-  const isHost = myMembership?.isHost ?? false;
+  const isModerator = isCurrentUserModerator(room, user);
 
   const handleSendPrompt = useCallback(
     async (question: string, description?: string) => {
@@ -179,7 +209,7 @@ export function InteractionSection({
   );
 
   const hasInteractions = interactions.length > 0;
-  const showEmptyHostCard = !hasInteractions && !hasActiveSession && isHost;
+  const showEmptyHostCard = !hasInteractions && !hasActiveSession && isModerator;
 
   return (
     <div className="relative z-10 w-2xl mb-8">
@@ -263,8 +293,9 @@ export function InteractionSection({
                   >
                     <InteractionCard
                       interaction={interaction}
-                      isHost={isHost}
+                      isModerator={isModerator}
                       hasActed={hasActed}
+                      hasRecentActivity={recentActivity.get(interaction.id) || false}
                       onRespond={() => {
                         if (interaction.type === 'headline_fibbage') {
                           setRespondingToHeadline(interaction);
@@ -297,7 +328,7 @@ export function InteractionSection({
                 );
               })}
 
-            {isHost && (
+            {isModerator && (
               <button
                 onClick={() => setShowSendModal(true)}
                 className="w-full chaos-interaction-card pl-4 pr-2 py-2 shadow-xl border-2 border-black/80 transform transition-all hover:scale-[1.04] active:scale-[0.96] opacity-60"
@@ -312,7 +343,7 @@ export function InteractionSection({
         )}
 
         {/* Results Section (Host Only) */}
-        {isHost && interactions.some(i => i.status === 'results') && (
+        {isModerator && interactions.some(i => i.status === 'results') && (
           <div className="mt-6">
             <h3 className="text-lg font-black text-black mb-3">📊 Results</h3>
             <div className="space-y-6">
@@ -322,8 +353,9 @@ export function InteractionSection({
                 <InteractionCard
                   key={interaction.id}
                   interaction={interaction}
-                  isHost={isHost}
+                  isModerator={isModerator}
                   hasActed={respondedIds.has(interaction.id) || votedIds.has(interaction.id)}
+                  hasRecentActivity={recentActivity.get(interaction.id) || false}
                   onRespond={() => setRespondingTo(interaction)}
                   onVote={() => setVotingFor(interaction)}
                   onViewResponses={() => setViewingResponses(interaction)}

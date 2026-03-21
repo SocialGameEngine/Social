@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/providers/AuthContext';
 import { useRoom } from '../../../hooks/useRoom';
 import { roomService } from '../../../services/roomService';
+import { supabase } from '../../../supabase/client';
 import type { CreateRoomRequest, Room } from '../../../shared/types';
 
 interface CreateRoomModalProps {
@@ -9,9 +10,10 @@ interface CreateRoomModalProps {
   onClose: () => void;
   onSuccess?: (room: Room) => void;
   existingRoom?: Room | null;
+  updateVenueRoomId?: boolean; // New prop for venue room creation
 }
 
-export function CreateRoomModal({ isOpen, onClose, onSuccess, existingRoom }: CreateRoomModalProps) {
+export function CreateRoomModal({ isOpen, onClose, onSuccess, existingRoom, updateVenueRoomId }: CreateRoomModalProps) {
   const { user } = useAuth();
   const { createRoom } = useRoom();
   const isEditing = !!existingRoom;
@@ -94,6 +96,25 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess, existingRoom }: Cr
         };
 
         const room = await createRoom(roomRequest);
+        
+        // If this is a venue room creation, update the venue account with room_id
+        if (updateVenueRoomId && user) {
+          try {
+            const { error: updateError } = await (supabase as any).rpc('update_venue_room_id', {
+              p_user_id: user.id,
+              p_room_id: room.id
+            });
+            
+            if (updateError) {
+              console.error('Failed to update venue room_id:', updateError);
+              // Don't fail the whole operation, just log the error
+            }
+          } catch (error) {
+            console.error('Exception updating venue room_id:', error);
+            // Don't fail the whole operation, just log the error
+          }
+        }
+        
         onSuccess?.(room);
         onClose();
         

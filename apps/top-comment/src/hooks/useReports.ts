@@ -8,19 +8,18 @@ import {
 
 interface UseReportsOptions {
   roomId: string | undefined;
-  isHost: boolean;
 }
 
-export function useReports({ roomId, isHost }: UseReportsOptions) {
+export function useReports({ roomId }: UseReportsOptions) {
   const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const pendingCount = reports.filter((r) => r.status === 'pending').length;
 
-  // Load reports (host only)
+  // Load reports (for moderators)
   useEffect(() => {
-    if (!roomId || !isHost) {
+    if (!roomId) {
       setReports([]);
       return;
     }
@@ -31,11 +30,11 @@ export function useReports({ roomId, isHost }: UseReportsOptions) {
       .then(setReports)
       .catch((err) => console.error('Failed to load reports:', err))
       .finally(() => setIsLoading(false));
-  }, [roomId, isHost]);
+  }, [roomId]);
 
   // Real-time subscription for new reports
   useEffect(() => {
-    if (!roomId || !isHost) return;
+    if (!roomId) return;
 
     const channel = supabase
       .channel(`reports:${roomId}`)
@@ -75,7 +74,7 @@ export function useReports({ roomId, isHost }: UseReportsOptions) {
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [roomId, isHost]);
+  }, [roomId]);
 
   const reviewReport = useCallback(
     async (reportId: string, action: ReportAction, reviewerMembershipId: string) => {

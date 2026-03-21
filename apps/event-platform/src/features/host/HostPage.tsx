@@ -52,6 +52,38 @@ export function HostPage() {
   const { user, loading: authLoading, isVenueAccount, venueAccountLoading, refreshVenueAccount } = useAuth();
   const { addToast } = useToast();
   const { isDark } = useTheme(); 
+  const navigate = useNavigate();
+
+  // PROTECTION: Only Venue Accounts can access /host
+  useEffect(() => {
+    if (!authLoading && !venueAccountLoading) {
+      if (!user) {
+        navigate("/venue-auth");
+        return;
+      }
+      
+      if (user.is_anonymous) {
+        addToast({ 
+          title: "Venue Account Required", 
+          description: "Please sign in with your venue credentials to access the host panel",
+          variant: "error" 
+        });
+        navigate("/venue-auth");
+        return;
+      }
+      
+      if (!isVenueAccount) {
+        addToast({ 
+          title: "Access Denied", 
+          description: "This area is reserved for Venue Accounts only",
+          variant: "error" 
+        });
+        navigate("/venue-auth");
+        return;
+      }
+    }
+  }, [user, authLoading, venueAccountLoading, isVenueAccount, navigate, addToast]);
+
   const {
     sessionId: storedSessionId,
     code: storedCode,
@@ -59,7 +91,6 @@ export function HostPage() {
     clearHostSession,
   } = useHostSession();
   const { setCurrentPhase } = useCurrentPhase();
-  const navigate = useNavigate();
 
   const { data: libraries } = usePromptLibraries();
   const [selectedCategoryIndices, setSelectedCategoryIndices] = useState<number[]>([]);

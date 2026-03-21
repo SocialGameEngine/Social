@@ -18,7 +18,7 @@ export function PlayerAuthPage() {
   } | null>(null);
   const { signIn, signUp, signInAnonymously } = useAuth();
   const navigate = useNavigate();
-  const redirectPath = "/";
+  const redirectPath = "/join";
 
   // Auto-dismiss notifications after 3 seconds
   useEffect(() => {
@@ -113,7 +113,7 @@ export function PlayerAuthPage() {
     }
   };
 
-  const headerTitle = isLogin ? "Welcome Back" : "Join Söcial";
+  const headerTitle = isLogin ? "Player Log-In" : "Create Player Account";
   const headerSubtitle = isLogin
     ? "Sign in to save your game history"
     : "Create an account to track your wins";

@@ -1,7 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { BackgroundAnimation } from "../../components/BackgroundAnimation";
 import { Card } from "@social/ui";
-import { useAuth } from "../../shared/providers/AuthContext";
 import { useTheme } from "../../shared/providers/ThemeProvider";
 
 // ============================================================================
@@ -180,17 +179,16 @@ const barConfig = {
   },
   
   buttons: {
-    startGame: "Start a Game",
-    joinGame: "Join a Game",
+    startGame: "Venue Access",
+    joinGame: "Join Game",
     createAccount: "Create Account",
-    signIn: "Sign In / Sign Up",
+    signIn: "Player Account",
   },
 };
 
 // ============================================================================
 
 export function EntryPage() {
-  const { isGuest, signInAnonymously, user } = useAuth();
   const { isDark } = useTheme();
   const navigate = useNavigate();
 
@@ -198,16 +196,8 @@ export function EntryPage() {
 
   const handleJoinGameClick = async (e: React.MouseEvent) => {
     e.preventDefault();
-    // If user is not signed in, sign them in as guest first
-    if (!user) {
-      try {
-        await signInAnonymously();
-      } catch (error) {
-        console.error("Failed to sign in as guest:", error);
-        // Continue anyway - they can still try to join
-      }
-    }
-    navigate("/join");
+    // Route players to player authentication first
+    navigate("/auth");
   };
   return (
     <>
@@ -301,7 +291,7 @@ export function EntryPage() {
           </Card>
 
           <div className="grid gap-6 md:grid-cols-3">
-            <Card className="md:col-span-2 space-y-6" isDark={isDark}>
+            <Card className="space-y-6" isDark={isDark}>
               <div className="space-y-2 text-center">
                 <p className={`text-xs font-semibold uppercase tracking-[0.4em] ${!isDark ? 'text-amber-500' : 'text-cyan-400'}`}>
                   {barConfig.content.tagline}
@@ -312,7 +302,7 @@ export function EntryPage() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Link
-                  to="/host"
+                  to="/venue-auth"
                   className={`group inline-flex items-center justify-center rounded-2xl px-6 py-4 text-lg font-semibold transition hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${!isDark ? barConfig.colors.buttons.startGame.light.gradient : barConfig.colors.buttons.startGame.dark.gradient} ${!isDark ? barConfig.colors.buttons.startGame.light.text : barConfig.colors.buttons.startGame.dark.text} ${!isDark ? barConfig.colors.buttons.startGame.light.shadow : barConfig.colors.buttons.startGame.dark.shadow} ${!isDark ? barConfig.colors.buttons.startGame.light.focus : barConfig.colors.buttons.startGame.dark.focus} ${!isDark ? barConfig.colors.buttons.startGame.light.hover : barConfig.colors.buttons.startGame.dark.hover}`}
                 >
                   <span className="flex items-center gap-2">
@@ -342,13 +332,25 @@ export function EntryPage() {
 
             <Card className={`space-y-4 ${!isDark ? 'bg-amber-50/60' : 'bg-slate-800/60'}`} isDark={isDark}>
               <p className={`text-xs font-bold uppercase tracking-[0.4em] ${!isDark ? 'text-amber-600' : 'text-cyan-400'}`}>
-                Account
+                Players
               </p>
               <Link
                 to="/auth"
                 className={`inline-flex w-full items-center justify-center rounded-2xl px-6 py-3 text-base font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${!isDark ? barConfig.colors.buttons.auth.light.border : barConfig.colors.buttons.auth.dark.border} ${!isDark ? barConfig.colors.buttons.auth.light.background : barConfig.colors.buttons.auth.dark.background} ${!isDark ? barConfig.colors.buttons.auth.light.text : barConfig.colors.buttons.auth.dark.text} ${!isDark ? barConfig.colors.buttons.auth.light.shadow : barConfig.colors.buttons.auth.dark.shadow} ${!isDark ? barConfig.colors.buttons.auth.light.hoverBorder : barConfig.colors.buttons.auth.dark.hoverBorder} ${!isDark ? barConfig.colors.buttons.auth.light.hoverBackground : barConfig.colors.buttons.auth.dark.hoverBackground} ${!isDark ? barConfig.colors.buttons.auth.light.hoverText : barConfig.colors.buttons.auth.dark.hoverText} ${!isDark ? barConfig.colors.buttons.auth.light.hoverShadow : barConfig.colors.buttons.auth.dark.hoverShadow} ${!isDark ? barConfig.colors.buttons.auth.light.hoverScale : barConfig.colors.buttons.auth.dark.hoverScale} ${!isDark ? barConfig.colors.buttons.auth.light.focus : barConfig.colors.buttons.auth.dark.focus}`}
               >
-                {isGuest ? barConfig.buttons.createAccount : barConfig.buttons.signIn}
+                Player Account
+              </Link>
+            </Card>
+
+            <Card className={`space-y-4 ${!isDark ? 'bg-red-50/60' : 'bg-slate-800/60'}`} isDark={isDark}>
+              <p className={`text-xs font-bold uppercase tracking-[0.4em] ${!isDark ? 'text-red-600' : 'text-pink-400'}`}>
+                Venues
+              </p>
+              <Link
+                to="/venue-auth"
+                className={`inline-flex w-full items-center justify-center rounded-2xl px-6 py-3 text-base font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 border ${!isDark ? 'border-red-300 bg-white text-red-700 hover:bg-red-50' : 'border-pink-500 bg-slate-800 text-pink-300 hover:bg-slate-700'}`}
+              >
+                Venue Account
               </Link>
             </Card>
           </div>

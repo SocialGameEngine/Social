@@ -1,21 +1,25 @@
-import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../shared/providers/AuthContext";
 import { useState, useEffect, useRef } from "react";
+import { PlayerAuthModal } from "../features/auth/PlayerAuthModal";
+import { VenueAuthModal } from "../features/auth/VenueAuthModal";
 
 export function RootLayout() {
   const navigate = useNavigate();
   // Safely use hooks with error handling
-  let user, isGuest, signOut;
+  let user, isGuest, signOut, isVenueAccount;
   try {
     const authData = useAuth();
     user = authData?.user;
     isGuest = authData?.isGuest;
     signOut = authData?.signOut;
+    isVenueAccount = authData?.isVenueAccount;
   } catch (error) {
     console.warn('Auth hook error:', error);
     user = null;
     isGuest = false;
     signOut = undefined;
+    isVenueAccount = false;
   }
 
   
@@ -23,6 +27,8 @@ export function RootLayout() {
   const [isMobile, setIsMobile] = useState(false);
   const [navbarHidden, setNavbarHidden] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [showPlayerAuthModal, setShowPlayerAuthModal] = useState(false);
+  const [showVenueAuthModal, setShowVenueAuthModal] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -154,7 +160,7 @@ export function RootLayout() {
                     <>
                       <div className="space-y-1">
                         <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
-                          Account
+                          {isVenueAccount ? "Venue Account" : "Player Account"}
                         </p>
                         {user.user_metadata?.display_name ? (
                           <p className="text-sm font-semibold text-pink-400">
@@ -178,7 +184,61 @@ export function RootLayout() {
                           </p>
                         </div>
                       )}
-                      <div className="pt-2 border-t border-slate-700">
+                      <div className="pt-2 border-t border-slate-700 space-y-2">
+                        {isVenueAccount ? (
+                          <button
+                            onClick={() => {
+                              setShowAccountMenu(false);
+                              navigate("/host");
+                            }}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-pink-400 hover:text-pink-300 hover:bg-slate-700/50 rounded-lg transition-colors"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={2}
+                              stroke="currentColor"
+                              className="w-4 h-4"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                            Host Panel
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setShowAccountMenu(false);
+                              navigate("/join");
+                            }}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:bg-slate-700/50 rounded-lg transition-colors"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={2}
+                              stroke="currentColor"
+                              className="w-4 h-4"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                              />
+                            </svg>
+                            Join Game
+                          </button>
+                        )}
                         <button
                           onClick={handleSignOut}
                           className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-slate-700/50 rounded-lg transition-colors"
@@ -202,13 +262,68 @@ export function RootLayout() {
                       </div>
                     </>
                   ) : (
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
-                        Not signed in
-                      </p>
-                      <p className="text-sm text-slate-400">
-                        Sign in to access your account
-                      </p>
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
+                          Not signed in
+                        </p>
+                        <p className="text-sm text-slate-400">
+                          Choose your account type to get started
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => {
+                            setShowAccountMenu(false);
+                            setShowPlayerAuthModal(true);
+                          }}
+                          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:bg-slate-700/50 rounded-lg transition-colors"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2}
+                            stroke="currentColor"
+                            className="w-4 h-4"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                            />
+                          </svg>
+                          Player Sign In
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowAccountMenu(false);
+                            setShowVenueAuthModal(true);
+                          }}
+                          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-pink-400 hover:text-pink-300 hover:bg-slate-700/50 rounded-lg transition-colors"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2}
+                            stroke="currentColor"
+                            className="w-4 h-4"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          Venue Sign In
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -243,6 +358,16 @@ export function RootLayout() {
       <main className="pt-16">
         <Outlet />
       </main>
+
+      {/* Authentication Modals */}
+      <PlayerAuthModal 
+        open={showPlayerAuthModal} 
+        onClose={() => setShowPlayerAuthModal(false)} 
+      />
+      <VenueAuthModal 
+        open={showVenueAuthModal} 
+        onClose={() => setShowVenueAuthModal(false)} 
+      />
     </div>
   );
 }

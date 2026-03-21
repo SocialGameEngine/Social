@@ -83,7 +83,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         if (!cancelled) {
           setUser(session?.user ?? null);
           setLoading(false);
@@ -92,6 +92,30 @@ export function AuthProvider({ children }: PropsWithChildren) {
           if (!session?.user) {
             setVenueAccount(null);
             setVenueAccountLoading(false);
+          } else {
+            // Load venue account when user signs in with timeout
+            setVenueAccountLoading(true);
+            try {
+              const venueAcc = await Promise.race([
+                fetchVenueAccount(session.user.id),
+                new Promise<never>((_, reject) => 
+                  setTimeout(() => reject(new Error("Venue account loading timeout")), 10000)
+                )
+              ]);
+              
+              if (!cancelled) {
+                setVenueAccount(venueAcc);
+                setVenueAccountLoading(false);
+              }
+            } catch (error) {
+              console.error("Failed to load venue account:", error);
+              if (!cancelled) {
+                // Sign user out if venue account fails to load
+                await supabase.auth.signOut();
+                setVenueAccount(null);
+                setVenueAccountLoading(false);
+              }
+            }
           }
         }
       }
@@ -128,6 +152,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const signIn = async (email: string, password: string) => {
     await signInWithEmail(email, password);
+    
+    // Create player account after successful sign in if it doesn't exist
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      try {
+        await (supabase as any).rpc('get_or_create_player_account', {
+          p_user_id: user.id,
+          p_display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Player',
+        });
+      } catch (error) {
+        console.error('Failed to create player account:', error);
+        // Don't throw error - the auth was successful
+      }
+    }
   };
 
   const signUp = async (
@@ -135,7 +173,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     password: string,
     displayName?: string,
   ) => {
-    await createUserWithEmail(email, password, displayName);
+    return await createUserWithEmail(email, password, displayName);
   };
 
   const signOut = async () => {

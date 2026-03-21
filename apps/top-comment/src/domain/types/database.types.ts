@@ -6,7 +6,9 @@ import type { RoomStatus } from './room.types';
 export interface RoomRow {
   id: string;
   code: string;
-  host_uid: string;
+  moderator_ids: string[] | null;
+  creator_id: string | null;
+  host_uid: string | null; // Legacy - keep for backward compatibility
   name: string | null;
   description: string | null;
   status: RoomStatus;
@@ -26,7 +28,8 @@ export interface RoomMembershipRow {
   mascot_id: number | null;
   joined_at: string | null;
   last_active_at: string | null;
-  is_host: boolean | null;
+  is_host: boolean | null; // Legacy - keep for backward compatibility
+  is_mod: boolean | null; // Legacy - keep for backward compatibility
   is_banned: boolean | null;
   ban_reason: string | null;
   banned_at: string | null;

@@ -21,10 +21,25 @@ export function JoinFlowOrchestrator() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [searchParams] = useSearchParams();
-  const { signInAnonymously, user } = useAuth();
+  const { signInAnonymously, user, isVenueAccount, loading: authLoading } = useAuth();
   
   const [step, setStep] = useState<JoinStep>("room-code");
   const [hasCheckedGuestAuth, setHasCheckedGuestAuth] = useState(false);
+
+  // PROTECTION: Only Player Accounts can access /join
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (isVenueAccount) {
+        addToast({ 
+          title: "Access Denied", 
+          description: "Venue Accounts cannot join games as players. Please use the host panel.",
+          variant: "error" 
+        });
+        navigate("/host");
+        return;
+      }
+    }
+  }, [user, authLoading, isVenueAccount, navigate, addToast]);
 
   // Sign in as guest if not already signed in (for QR code joins)
   useEffect(() => {

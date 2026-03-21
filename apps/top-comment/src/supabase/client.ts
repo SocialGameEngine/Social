@@ -33,6 +33,7 @@ export async function createUserWithEmail(
     email,
     password,
     options: {
+      emailRedirectTo: `${window.location.origin}/join`,
       data: {
         display_name: displayName,
       },

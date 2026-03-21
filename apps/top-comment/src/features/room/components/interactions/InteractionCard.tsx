@@ -31,8 +31,9 @@ function CountdownChip({ endsAt }: { endsAt?: string | null }) {
 
 interface InteractionCardProps {
   interaction: Interaction;
-  isHost: boolean;
+  isModerator: boolean;
   hasActed: boolean;
+  hasRecentActivity?: boolean; // Add recent activity prop
   onRespond?: () => void;
   onVote?: () => void;
   onViewResponses?: () => void;
@@ -42,8 +43,9 @@ interface InteractionCardProps {
 
 export function InteractionCard({
   interaction,
-  isHost,
+  isModerator,
   hasActed,
+  hasRecentActivity,
   onRespond,
   onVote,
   onViewResponses,
@@ -149,7 +151,7 @@ export function InteractionCard({
     if (interaction.status === 'results') {
       // Everyone can view results
       if (onViewResults) onViewResults();
-    } else if (isHost) {
+    } else if (isModerator) {
       if (interaction.status === 'closed' && onViewResults) {
         onViewResults();
       } else if (interaction.type === 'topic' || interaction.type === 'poll') {
@@ -184,6 +186,11 @@ export function InteractionCard({
 
   return (
   <div className="w-full flex justify-start px-2 mb-4">
+    {/* Activity pulse effect */}
+    {hasRecentActivity && (
+      <div className="absolute -inset-3 rounded-lg border-4 border-cyan-400 animate-pulse pointer-events-none z-40 shadow-lg shadow-cyan-400/50" />
+    )}
+    
     <div className="interaction-row relative flex items-stretch gap-2 w-[95%] max-w-[600px] scale-[0.96] origin-left">
       <div className="chaos-chip-rail">
         <div className="chaos-chip-stack-left">
@@ -209,14 +216,40 @@ export function InteractionCard({
           type="button"
           onClick={handleClick}
           disabled={isDisabled}
+          key={`card-${interaction.responseCount}-${interaction.voteCount}`}
           className={[
             "chaos-interaction-card relative overflow-visible w-full",
             "grid grid-rows-[var(--chip-rail-safe)_1fr_var(--phase-chip-safe)]",
             "min-h-[80px] sm:min-h-[100px]",
             "px-1",
             hasActed ? "interacted" : "",
+            "animate-[card-activity_0.6s_ease-out]",
           ].join(" ")}
         >
+          {/* Row 1: Response/Vote count indicator */}
+          <div className="row-start-1 flex justify-end items-start pt-1 pr-2">
+            {(interaction.responseCount > 0 || interaction.voteCount > 0) && (
+              <div className="flex items-center gap-1">
+                {interaction.responseCount > 0 && (
+                  <span 
+                    key={`response-${interaction.responseCount}`}
+                    className="text-xs font-bold text-white bg-blue-500 rounded-full w-5 h-5 flex items-center justify-center animate-[scale-in_0.3s_ease-out]"
+                  >
+                    {interaction.responseCount}
+                  </span>
+                )}
+                {interaction.voteCount > 0 && (
+                  <span 
+                    key={`vote-${interaction.voteCount}`}
+                    className="text-xs font-bold text-white bg-green-500 rounded-full w-5 h-5 flex items-center justify-center animate-[scale-in_0.3s_ease-out]"
+                  >
+                    {interaction.voteCount}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Row 2: only this row is centered */}
           <div className="row-start-2 grid place-items-center">
             <div className="w-full text-center">

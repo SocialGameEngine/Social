@@ -8,7 +8,7 @@ export interface RoomSettings {
   allowPlayerChat: boolean;
   autoStartSession: boolean;
   defaultSessionSettings: Partial<any>; // Will be typed properly when SessionSettings is available
-  requireApproval: boolean; // Host must approve players joining
+  requireApproval: boolean; // Moderator must approve players joining
   allowAnonymous: boolean; // Allow anonymous players
   profanityFilter?: 'strict' | 'moderate' | 'off';
   slowMode?: boolean;
@@ -17,7 +17,8 @@ export interface RoomSettings {
 export interface Room {
   id: string;
   code: string; // 6-character room code
-  hostUid: string;
+  moderatorIds: string[]; // Array of user IDs who have moderator privileges
+  creatorId: string; // Original room creator (for reference only)
   name: string; // Optional room name
   description?: string;
   status: RoomStatus;
@@ -37,7 +38,6 @@ export interface RoomMembership {
   mascotId?: number;
   joinedAt: string;
   lastActiveAt: string;
-  isHost: boolean;
   isBanned: boolean;
   banReason?: string;
   bannedAt?: string;

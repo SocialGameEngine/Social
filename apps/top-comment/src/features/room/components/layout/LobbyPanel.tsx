@@ -7,10 +7,12 @@ import { ChallengeButton } from '../challenges/ChallengeButton';
 import { BadgeDisplay } from '../../../../shared/components/BadgeDisplay';
 import { reportService, type ReportReason } from '../../../../services/reportService';
 import type { RoomMembership } from '../../../../shared/types';
+import { isUserModerator } from '../../../../shared/utils/moderatorUtils';
 import type { PlayerBadge } from '../../../../services/badgeService';
 
 interface LobbyPanelProps {
   memberships: RoomMembership[] | null;
+  room?: { moderatorIds?: string[] } | null; // Add room prop for moderator checking
   roomId?: string;
   myMembershipId?: string;
   blockPlayer?: (membershipId: string) => Promise<void>;
@@ -18,7 +20,7 @@ interface LobbyPanelProps {
   roomBadges?: Record<string, PlayerBadge[]>;
 }
 
-export function LobbyPanel({ memberships, roomId, myMembershipId, blockPlayer, onChallengePlayer, roomBadges }: LobbyPanelProps) {
+export function LobbyPanel({ memberships, room, roomId, myMembershipId, blockPlayer, onChallengePlayer, roomBadges }: LobbyPanelProps) {
   const [reportTarget, setReportTarget] = useState<RoomMembership | null>(null);
   const [blockTarget, setBlockTarget] = useState<{ membershipId: string; name: string } | null>(null);
 
@@ -90,21 +92,21 @@ export function LobbyPanel({ memberships, roomId, myMembershipId, blockPlayer, o
                   </div>
                 </div>
 
-                {/* Host badge */}
-                {member.isHost && (
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">
-                    Host
+                {/* Moderator badge */}
+                {isUserModerator(room, member.userId) && (
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-purple-400 bg-purple-400/10 px-1.5 py-0.5 rounded">
+                    Mod
                   </span>
                 )}
 
-                {/* Challenge + Report buttons (not on self or host) */}
-                {!member.isHost && member.id !== myMembershipId && onChallengePlayer && (
+                {/* Challenge + Report buttons (not on self or moderator) */}
+                {!isUserModerator(room, member.userId) && member.id !== myMembershipId && onChallengePlayer && (
                   <ChallengeButton
                     onChallenge={() => onChallengePlayer(member.id, member.playerName || 'Anonymous')}
                     playerName={member.playerName || 'Anonymous'}
                   />
                 )}
-                {!member.isHost && member.id !== myMembershipId && (
+                {!isUserModerator(room, member.userId) && member.id !== myMembershipId && (
                   <ReportButton onReport={() => setReportTarget(member)} />
                 )}
 

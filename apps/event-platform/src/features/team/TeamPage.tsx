@@ -25,12 +25,27 @@ import {
 import { JoinForm, EndedPhase } from "./Phases";
 
 export function TeamPage() {
-  const { loading: authLoading, user, signInAnonymously } = useAuth();
+  const { loading: authLoading, user, signInAnonymously, isVenueAccount } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { teamSession, setTeamSession, clearTeamSession } = useTeamSession();
   const { setCurrentPhase } = useCurrentPhase();
   const { isDark } = useTheme();
+
+  // PROTECTION: Only Player Accounts can access /room
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (isVenueAccount) {
+        toast({ 
+          title: "Access Denied", 
+          description: "Venue Accounts cannot join games as players. Please use the host panel.",
+          variant: "error" 
+        });
+        navigate("/host");
+        return;
+      }
+    }
+  }, [user, authLoading, isVenueAccount, navigate, toast]);
 
   const teamState = useTeamState(teamSession);
   const {

@@ -2,6 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes scale-in {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes card-activity {
+  0% { 
+    transform: rotate(0deg); 
+    filter: hue-rotate(0deg);
+    box-shadow: 0 16px 0 #000, 0 0 24px rgba(34,211,238,0.25);
+  }
+  20% { 
+    transform: rotate(-0.25deg); 
+    filter: hue-rotate(-8deg);
+    box-shadow: 0 16px 0 #000, 0 0 24px rgba(34,211,238,0.25);
+  }
+  40% { 
+    transform: rotate(0.25deg); 
+    filter: hue-rotate(-15deg);
+    box-shadow: 0 16px 0 #000, 0 0 24px rgba(34,211,238,0.25);
+  }
+  60% { 
+    transform: rotate(-0.25deg); 
+    filter: hue-rotate(-15deg);
+    box-shadow: 0 16px 0 #000, 0 0 24px rgba(34,211,238,0.25);
+  }
+  80% { 
+    transform: rotate(0.25deg); 
+    filter: hue-rotate(-8deg);
+    box-shadow: 0 16px 0 #000, 0 0 24px rgba(34,211,238,0.25);
+  }
+  100% { 
+    transform: rotate(0deg); 
+    filter: hue-rotate(0deg);
+    box-shadow: 0 16px 0 #000, 0 0 24px rgba(34,211,238,0.25);
+  }
+}
+
 :root {
     color-scheme: dark;
     --color-text-primary: #ffffff;
@@ -694,8 +741,8 @@ a {
 }
 
 .section-button:active {
-  transform: rotate(-1.2deg) translateY(6px);
-  box-shadow: 0 10px 0 #000;
+  transform: rotate(-1.2deg) translateY(6px) !important;
+  box-shadow: 0 10px 0 #000, 0 0 16px rgba(34,211,238,0.18) !important;
 }
 
 /* Interaction Section Buttons - Cyan Chaos */

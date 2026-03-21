@@ -117,7 +117,7 @@ export function VenueAuthPage() {
             />
           </div>
           <h1 className="text-3xl font-black text-brand-primary sm:text-4xl">
-            Venue Login
+            Venue Log-In
           </h1>
           <p className={`mt-2 ${!isDark ? 'text-slate-600' : 'text-slate-400'}`}>
             Sign in with your venue credentials to host games

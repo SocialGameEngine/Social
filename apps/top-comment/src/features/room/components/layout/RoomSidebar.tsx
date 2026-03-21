@@ -8,13 +8,14 @@ type SidebarTab = 'lobby' | 'chat' | 'mod';
 
 interface RoomSidebarProps {
   memberships: RoomMembership[] | null;
+  room?: { moderatorIds?: string[] } | null; // Add room prop for moderator checking
   isCollapsed: boolean;
   onToggle: () => void;
   roomId: string | undefined;
   userId: string | undefined;
   membershipId: string | undefined;
   displayName: string | undefined;
-  isHost?: boolean;
+  isModerator: boolean;
   blockedIds?: Set<string>;
   blockPlayer?: (membershipId: string) => Promise<void>;
   isMuted?: boolean;
@@ -24,7 +25,7 @@ interface RoomSidebarProps {
   onJoinRoom?: () => void;
 }
 
-function TabBar({ activeTab, setActiveTab, isHost, pendingReportCount }: { activeTab: SidebarTab; setActiveTab: (tab: SidebarTab) => void; isHost?: boolean; pendingReportCount?: number }) {
+function TabBar({ activeTab, setActiveTab, pendingReportCount }: { activeTab: SidebarTab; setActiveTab: (tab: SidebarTab) => void; pendingReportCount?: number }) {
   return (
     <div className="flex border-b border-slate-700/50 shrink-0">
       <button
@@ -53,7 +54,6 @@ function TabBar({ activeTab, setActiveTab, isHost, pendingReportCount }: { activ
         </svg>
         Chat
       </button>
-      {isHost && (
         <button
           onClick={() => setActiveTab('mod')}
           className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
@@ -72,12 +72,11 @@ function TabBar({ activeTab, setActiveTab, isHost, pendingReportCount }: { activ
             </span>
           )}
         </button>
-      )}
     </div>
   );
 }
 
-export function RoomSidebar({ memberships, isCollapsed, onToggle, roomId, userId, membershipId, displayName, isHost, blockedIds, blockPlayer, isMuted, pendingReportCount, onChallengePlayer, isMember = true, onJoinRoom }: RoomSidebarProps) {
+export function RoomSidebar({ memberships, room, isCollapsed, onToggle, roomId, userId, membershipId, displayName, isModerator, blockedIds, blockPlayer, isMuted, pendingReportCount, onChallengePlayer, isMember = true, onJoinRoom }: RoomSidebarProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('lobby');
 
   return (
@@ -106,13 +105,13 @@ export function RoomSidebar({ memberships, isCollapsed, onToggle, roomId, userId
         <>
           {isMember ? (
             <>
-              <TabBar activeTab={activeTab} setActiveTab={setActiveTab} isHost={isHost} pendingReportCount={pendingReportCount} />
+              <TabBar activeTab={activeTab} setActiveTab={setActiveTab} pendingReportCount={pendingReportCount} />
               {activeTab === 'lobby' ? (
-                <LobbyPanel memberships={memberships} roomId={roomId} myMembershipId={membershipId} blockPlayer={blockPlayer} onChallengePlayer={onChallengePlayer} />
+                <LobbyPanel memberships={memberships} room={room} roomId={roomId} myMembershipId={membershipId} blockPlayer={blockPlayer} onChallengePlayer={onChallengePlayer} />
               ) : activeTab === 'chat' ? (
-                <ChatPanel roomId={roomId} userId={userId} membershipId={membershipId} displayName={displayName} blockedIds={blockedIds} blockPlayer={blockPlayer} isHost={isHost} isMuted={isMuted} />
+                <ChatPanel roomId={roomId} userId={userId} membershipId={membershipId} displayName={displayName} blockedIds={blockedIds} blockPlayer={blockPlayer} isMod={isModerator} isMuted={isMuted} />
               ) : (
-                <ModerationPanel roomId={roomId} isHost={isHost ?? false} hostMembershipId={membershipId} memberships={memberships} />
+                <ModerationPanel roomId={roomId} isMod={isModerator} modMembershipId={membershipId} memberships={memberships} />
               )}
             </>
           ) : (
