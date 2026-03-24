@@ -7,6 +7,9 @@ import { ToastProvider, Toaster } from "@social/ui";
 import { ThemeProvider } from "../shared/providers/ThemeProvider";
 import { CurrentPhaseProvider } from "../shared/providers/CurrentPhaseContext";
 import { TTSProvider } from "../shared/providers/TTSProvider";
+import { useAuth } from "../shared/providers/AuthContext";
+import { BootScreen } from "../shared/components/BootScreen";
+import type { BootState } from "../hooks/async/types";
 
 const createQueryClient = () =>
   new QueryClient({
@@ -19,6 +22,28 @@ const createQueryClient = () =>
     },
   });
 
+function AppBootGuard({ children }: PropsWithChildren) {
+  const { loading, venueAccountLoading, user } = useAuth();
+
+  const getBootState = (): BootState => {
+    if (loading) {
+      return { status: "auth_resolving", error: null };
+    }
+    if (user && venueAccountLoading) {
+      return { status: "venue_loading", error: null };
+    }
+    return { status: "ready", error: null };
+  };
+
+  const bootState = getBootState();
+
+  if (bootState.status !== "ready") {
+    return <BootScreen state={bootState} />;
+  }
+
+  return <>{children}</>;
+}
+
 export function AppProviders({ children }: PropsWithChildren) {
   const queryClient = useMemo(() => createQueryClient(), []);
 
@@ -26,14 +51,16 @@ export function AppProviders({ children }: PropsWithChildren) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <CurrentPhaseProvider>
-            <TTSProvider>
-              <ToastProvider>
-                {children}
-                <Toaster />
-              </ToastProvider>
-            </TTSProvider>
-          </CurrentPhaseProvider>
+          <AppBootGuard>
+            <CurrentPhaseProvider>
+              <TTSProvider>
+                <ToastProvider>
+                  {children}
+                  <Toaster />
+                </ToastProvider>
+              </TTSProvider>
+            </CurrentPhaseProvider>
+          </AppBootGuard>
         </AuthProvider>
       </ThemeProvider>
       <ReactQueryDevtools initialIsOpen={false} />
