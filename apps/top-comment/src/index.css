@@ -866,8 +866,8 @@ a {
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 0; /* CRITICAL: prevents 1fr section from expanding beyond container */
-    position: relative;
-    z-index: 10;
+    -webkit-overflow-scrolling: touch;
+    /* z-index removed to prevent stacking context isolation - modals need to appear above fixed elements */
 }
 
 .bottom-nav {

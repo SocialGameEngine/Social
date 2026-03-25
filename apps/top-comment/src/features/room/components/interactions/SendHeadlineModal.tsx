@@ -64,7 +64,7 @@ export default function SendHeadlineModal({ isOpen, onClose, onSubmit }: SendHea
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex sm:items-center sm:justify-center sm:p-4">
+    <div className="fixed inset-0 z-[100] flex sm:items-center sm:justify-center sm:p-4">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/80 backdrop-blur-sm"

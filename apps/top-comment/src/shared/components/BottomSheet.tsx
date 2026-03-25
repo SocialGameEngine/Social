@@ -81,7 +81,7 @@ export function BottomSheet({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex items-end"
+      className="fixed inset-0 z-[100] flex items-end"
       onClick={onClose}
     >
       <motion.div
@@ -91,7 +91,7 @@ export function BottomSheet({
       
       <motion.div
         variants={{
-          hidden: { y: '100%' },
+          hidden: { y: 300 },
           visible: { y: 0 },
         }}
         initial="hidden"

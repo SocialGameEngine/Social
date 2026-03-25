@@ -11,10 +11,9 @@ function makeRound(groups: RoundGroup[], prompt?: string): RoundDefinition {
   return { prompt, groups };
 }
 
-function makeMembership(id: string, isHost = false): RoomMembership {
+function makeMembership(id: string): RoomMembership {
   return { 
     id, 
-    isHost, 
     roomId: 'test-room', 
     userId: id, 
     playerName: `Player ${id}`, 
@@ -102,8 +101,8 @@ describe('RoundManager', () => {
   });
 
   describe('isGroupAnswerComplete', () => {
-    it('returns true when all non-host teams answered', () => {
-      const teams = [makeMembership('t1'), makeMembership('t2'), makeMembership('host', true)];
+    it('returns true when all teams answered', () => {
+      const teams = [makeMembership('t1'), makeMembership('t2')];
       const answers = [makeAnswer('a1', 't1', 'g1'), makeAnswer('a2', 't2', 'g1')];
       expect(RoundManager.isGroupAnswerComplete(g1, teams, answers, 0)).toBe(true);
     });

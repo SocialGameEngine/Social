@@ -27,7 +27,7 @@ export function useRoom(options: UseRoomOptions = {}) {
   // Get my membership
   const myMembership = user ? memberships.find(m => m.userId === user.id) : null;
 
-  const isHost = myMembership?.isHost || false;
+  const isHost = user ? room?.moderatorIds.includes(user.id) || room?.creatorId === user.id : false;
 
   // Load room data
   const loadRoom = useCallback(async (overrideRoomId?: string, silent = false) => {

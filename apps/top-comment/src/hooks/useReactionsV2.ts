@@ -51,7 +51,7 @@ export function useReactionsV2({ roomId, membershipId }: UseReactionsOptions): A
   );
   const [bursts, setBursts] = useState<ReactionBurst[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected");
-  const [error, setError] = useState<Error | null>(null);
+  const [error] = useState<Error | null>(null);
   const [subscriptionError, setSubscriptionError] = useState<Error | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   

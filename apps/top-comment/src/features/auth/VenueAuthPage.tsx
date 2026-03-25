@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../shared/providers/AuthContext";
 import { useTheme } from "../../shared/providers/ThemeProvider";
 import { Button, FormField, Card } from "@social/ui";
-import { ensureVenueAccountProfile } from "../../supabase/client";
 
 export function VenueAuthPage() {
   const { isDark } = useTheme();
@@ -14,7 +13,7 @@ export function VenueAuthPage() {
     message: string;
     type: "success" | "error";
   } | null>(null);
-  const { signIn, refreshVenueAccount } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
 
   // Auto-dismiss notifications after 3 seconds
@@ -30,34 +29,15 @@ export function VenueAuthPage() {
     setLoading(true);
 
     try {
-      // Sign in with Supabase auth
+      // Sign in with Supabase auth only
       await signIn(email, password);
-      
-      // Wait a moment for auth state to settle
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Try to load venue account from database
-      const venueAccount = await refreshVenueAccount();
-      
-      // If no venue account exists, try to create one
-      if (!venueAccount) {
-        const response = await ensureVenueAccountProfile({
-          fullName: email,
-        });
-        
-        if (!response?.venueAccount?.is_active) {
-          throw new Error("Venue account is not active. Please contact your Söcial representative.");
-        }
-      } else if (!venueAccount.isActive) {
-        throw new Error("Venue account is not active. Please contact your Söcial representative.");
-      }
 
       setNotification({
-        message: "Venue sign in successful!",
+        message: "Sign in successful!",
         type: "success",
       });
 
-      // Navigate to host page
+      // Navigate to host page - venue account resolution happens there
       setTimeout(() => navigate("/host"), 500);
       
     } catch (error: unknown) {

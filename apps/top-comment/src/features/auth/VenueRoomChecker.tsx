@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../shared/providers/AuthContext';
+import { useVenueAccountResolver } from '../host/useVenueAccountResolver';
 import { supabase } from '../../supabase/client';
 import { CreateRoomModal } from '../host/components/CreateRoomModal';
 import { useSearchParams } from 'react-router-dom';
@@ -9,7 +10,8 @@ interface VenueRoomCheckerProps {
 }
 
 export function VenueRoomChecker({ onRoomCreated }: VenueRoomCheckerProps) {
-  const { user, venueAccount, venueAccountLoading } = useAuth();
+  const { user } = useAuth();
+  const { venueAccount, loading: venueAccountLoading } = useVenueAccountResolver();
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [checking, setChecking] = useState(true);
   const [hasChecked, setHasChecked] = useState(false);
@@ -19,44 +21,29 @@ export function VenueRoomChecker({ onRoomCreated }: VenueRoomCheckerProps) {
     const checkVenueRoom = async () => {
       if (hasChecked) return; // Prevent multiple checks
 
-      console.log('🔍 VenueRoomChecker: Starting check...');
-      console.log('🔍 User:', user?.id);
-      console.log('🔍 Venue Account:', venueAccount ? 'loaded' : 'not loaded');
-      console.log('🔍 Venue Account Loading:', venueAccountLoading);
-      
       // Wait for both user and venue account to be loaded
       // AuthProvider handles timeout and will sign out if venue account fails to load
       if (!user || venueAccountLoading) {
-        console.log('🔍 User or venue account not loaded, waiting...');
         return; // Just return, will retry when context updates
       }
 
       try {
-        // Check URL parameter first
-        const forceCreateRoom = searchParams.get('createRoom') === 'true';
-        
         // Check if venue needs a room created
         const { data: needsRoom, error } = await (supabase as any).rpc('check_venue_needs_room', {
           p_user_id: user.id
         });
 
-        console.log('🔍 Function result:', { needsRoom, error });
-
         if (error) {
-          console.error('🔍 Function error:', error);
           return;
         }
 
-        // Show create room modal only if venue actually needs a room
+        // Show create room modal only if venue actually needs a room AND user is a venue account
         // URL parameter is just for forcing the check, not forcing the modal
-        if (needsRoom) {
-          console.log('🔍 Showing create room modal - venue needs room');
+        if (needsRoom && venueAccount?.isActive) {
           setShowCreateRoom(true);
-        } else {
-          console.log('🔍 No room needed, modal not shown');
         }
       } catch (error) {
-        console.error('🔍 Error checking venue room:', error);
+        // Handle error silently
       } finally {
         setChecking(false);
         setHasChecked(true);
@@ -64,7 +51,7 @@ export function VenueRoomChecker({ onRoomCreated }: VenueRoomCheckerProps) {
     };
 
     checkVenueRoom();
-  }, [user, searchParams, hasChecked]);
+  }, [user, venueAccount, venueAccountLoading, searchParams, hasChecked]);
 
   const handleRoomCreated = (room: any) => {
     setShowCreateRoom(false);

@@ -10,7 +10,7 @@ export async function getOrCreateVenueRoom(authUserId: string): Promise<Room> {
   try {
     // First, get the venue account's room_id
     const { data: venueAccount, error: venueError } = await supabase
-      .from('venue_accounts' as any)
+      .from('venue_accounts')
       .select('room_id')
       .eq('auth_user_id', authUserId)
       .single();

@@ -54,7 +54,25 @@ export class PlayerAccountService {
         return { success: false, error: 'Failed to create player account' };
       }
 
-      return { success: true, data: data[0] as PlayerAccount };
+      // Map database columns to PlayerAccount type
+      const account: PlayerAccount = {
+        id: data[0].account_id,
+        user_id: data[0].account_user_id,
+        display_name: data[0].account_display_name,
+        player_level: data[0].account_player_level || 1,
+        total_points: data[0].account_total_points || 0,
+        total_games_played: data[0].account_total_games_played || 0,
+        total_wins: data[0].account_total_wins || 0,
+        avatar_url: data[0].account_avatar_url,
+        favorite_genres: data[0].account_favorite_genres || [],
+        preferred_difficulty: (data[0].account_preferred_difficulty as 'easy' | 'medium' | 'hard') || 'medium',
+        notifications_enabled: data[0].account_notifications_enabled ?? true,
+        status: (data[0].account_status as 'active' | 'inactive' | 'suspended') || 'active',
+        created_at: data[0].account_created_at,
+        updated_at: data[0].account_updated_at,
+        last_login_at: data[0].account_last_login_at,
+      };
+      return { success: true, data: account };
     } catch (error) {
       return { 
         success: false, 
@@ -272,7 +290,7 @@ export class PlayerAccountService {
         return { success: false, error: error.message };
       }
 
-      return { success: true, data: data as PlayerAccount[] };
+      return { success: true, data: data as any };
     } catch (error) {
       return { 
         success: false, 
@@ -298,7 +316,7 @@ export class PlayerAccountService {
         return { success: false, error: error.message };
       }
 
-      return { success: true, data: data as PlayerAccount[] };
+      return { success: true, data: data as any };
     } catch (error) {
       return { 
         success: false, 

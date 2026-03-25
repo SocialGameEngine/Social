@@ -21,7 +21,7 @@ interface UseAsyncSubscriptionOptions<T> {
 export function useAsyncSubscription<T>(
   options: UseAsyncSubscriptionOptions<T>
 ): AsyncSubscriptionResult<T> {
-  const { channel, initialData = null, enabled = true, onData, onError, staleThreshold = 30000 } = options;
+  const { channel, initialData = null, enabled = true, onError, staleThreshold = 30000 } = options;
 
   const [data, setData] = useState<T | null>(initialData);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected");

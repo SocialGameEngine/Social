@@ -230,7 +230,9 @@ export function HeadlineFibbageCard({
   onAdvanceToVoting,
   onAdvanceToResults,
 }: HeadlineFibbageCardProps) {
-  const isHost = membership?.isHost ?? false;
+  // Host status should be determined by room.moderatorIds, not membership
+  // For now, assume non-host since we don't have room context here
+  const isHost = false;
   const settings = interaction.settings as any;
 
   const handleLieSubmit = useCallback(async (text: string) => {

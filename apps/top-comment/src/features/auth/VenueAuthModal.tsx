@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../shared/providers/AuthContext";
 import { Button, FormField } from "@social/ui";
-import { ensureVenueAccountProfile, supabase } from "../../supabase/client";
 
 interface VenueAuthModalProps {
   open: boolean;
@@ -17,7 +16,7 @@ export function VenueAuthModal({ open, onClose }: VenueAuthModalProps) {
     message: string;
     type: "success" | "error";
   } | null>(null);
-  const { signIn, refreshVenueAccount, user } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
 
   // Reset form when modal opens/closes
@@ -42,91 +41,18 @@ export function VenueAuthModal({ open, onClose }: VenueAuthModalProps) {
     setLoading(true);
 
     try {
-      // Sign in with Supabase auth
+      // Sign in with Supabase auth only
       await signIn(email, password);
       
-      // Wait a moment for auth state to settle
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Try to load venue account from database
-      const venueAccount = await refreshVenueAccount();
-      
-      // If no venue account exists, try to create one
-      if (!venueAccount) {
-        const response = await ensureVenueAccountProfile({
-          fullName: email,
-        });
-        
-        if (!response?.venueAccount?.is_active) {
-          throw new Error("Venue account is not active. Please contact your Söcial representative.");
-        }
-      } else if (!venueAccount.isActive) {
-        throw new Error("Venue account is not active. Please contact your Söcial representative.");
-      }
-
-      // Get venue account details directly to check room_id
-      // Wait for user context to be loaded
-      if (!user && !venueAccount) {
-        console.log('🔍 Venue Auth: User context not loaded yet, skipping venue room check');
-        setNotification({
-          message: "Venue sign in successful!",
-          type: "success",
-        });
-        setTimeout(() => {
-          onClose();
-          navigate("/host");
-        }, 500);
-        return;
-      }
-      
-      const userId = venueAccount?.authUserId || user?.id;
-      
-      if (!userId) {
-        console.error('🔍 Venue Auth Error - User ID not found!');
-        throw new Error("User ID not found");
-      }
-      
-      const { data: venueData, error: venueError } = await supabase
-        .from('venue_accounts')
-        .select('room_id')
-        .eq('auth_user_id', userId)
-        .single();
-
-      if (!venueError && venueData?.room_id) {
-        // Get room details
-        const { data: roomData, error: roomError } = await supabase
-          .from('rooms')
-          .select('code')
-          .eq('id', venueData.room_id)
-          .single();
-
-        if (!roomError && roomData?.code) {
-          console.log('🔍 Venue Auth: Found room code:', roomData.code);
-          console.log('🔍 Venue Auth: Navigating to:', `/host?roomCode=${roomData.code}`);
-          
-          setNotification({
-            message: "Venue sign in successful!",
-            type: "success",
-          });
-
-          // Navigate to host page with room code to update stored room
-          setTimeout(() => {
-            onClose();
-            navigate(`/host?roomCode=${roomData.code}`);
-          }, 500);
-          return;
-        }
-      }
-
       setNotification({
-        message: "Venue sign in successful!",
+        message: "Sign in successful!",
         type: "success",
       });
 
-      // If no room_id, navigate to host page to trigger room creation
+      // Navigate to host page - venue account resolution happens there
       setTimeout(() => {
         onClose();
-        navigate("/host?createRoom=true");
+        navigate("/host");
       }, 500);
       
     } catch (error: unknown) {

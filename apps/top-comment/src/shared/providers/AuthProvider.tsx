@@ -1,123 +1,41 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { PropsWithChildren } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   supabase,
   signInWithEmail,
-  createUserWithEmail,
   signInAnonymouslyUser,
 } from "../../supabase/client";
 import { AuthContext } from "./AuthContext";
-import type { VenueAccount } from "./AuthContext";
-
-interface VenueAccountRow {
-  id: string;
-  auth_user_id: string;
-  email: string;
-  full_name: string;
-  phone: string | null;
-  role: "bar_owner" | "staff";
-  avatar_url: string | null;
-  created_at: string;
-  last_active_at: string | null;
-  is_active: boolean;
-}
-
-const mapVenueAccount = (row: VenueAccountRow): VenueAccount => ({
-  id: row.id,
-  authUserId: row.auth_user_id,
-  email: row.email,
-  fullName: row.full_name,
-  phone: row.phone,
-  role: row.role,
-  avatarUrl: row.avatar_url ?? undefined,
-  createdAt: row.created_at,
-  lastActiveAt: row.last_active_at ?? undefined,
-  isActive: row.is_active,
-});
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [venueAccount, setVenueAccount] = useState<VenueAccount | null>(null);
-  const [venueAccountLoading, setVenueAccountLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Don't block UI - load auth in background
+  const [error, setError] = useState<Error | null>(null);
 
-  const fetchVenueAccount = useCallback(async (userId: string): Promise<VenueAccount | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('venue_accounts' as 'venue_accounts')
-        .select('*')
-        .eq('auth_user_id', userId)
-        .maybeSingle();
-
-      if (error) {
-        // If table doesn't exist or other error, return null
-        console.error("Venue account query failed:", error);
-        return null;
-      }
-
-      return data ? mapVenueAccount(data as VenueAccountRow) : null;
-    } catch (error) {
-      // Handle any unexpected errors
-      console.error("Unexpected error fetching venue account:", error);
-      return null;
-    }
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
-    // Get initial session - do NOT automatically sign in as guest
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!cancelled) {
-        if (session?.user) {
-          // User is already authenticated
-          setUser(session.user);
-        } else {
-          // No user - stay signed out (user must explicitly sign in)
-          setUser(null);
-        }
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session }, error: sessionError }) => {
+      if (cancelled) return;
+
+      if (sessionError) {
+        setError(sessionError);
         setLoading(false);
+        return;
       }
+
+      setUser(session?.user ?? null);
+      setLoading(false);
     });
 
-    // Listen for auth changes
+    // Subscribe to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (!cancelled) {
-          setUser(session?.user ?? null);
-          setLoading(false);
-          
-          // Clear venue account when user signs out
-          if (!session?.user) {
-            setVenueAccount(null);
-            setVenueAccountLoading(false);
-          } else {
-            // Load venue account when user signs in with timeout
-            setVenueAccountLoading(true);
-            try {
-              const venueAcc = await Promise.race([
-                fetchVenueAccount(session.user.id),
-                new Promise<never>((_, reject) => 
-                  setTimeout(() => reject(new Error("Venue account loading timeout")), 10000)
-                )
-              ]);
-              
-              if (!cancelled) {
-                setVenueAccount(venueAcc);
-                setVenueAccountLoading(false);
-              }
-            } catch (error) {
-              console.error("Failed to load venue account:", error);
-              if (!cancelled) {
-                // Sign user out if venue account fails to load
-                await supabase.auth.signOut();
-                setVenueAccount(null);
-                setVenueAccountLoading(false);
-              }
-            }
-          }
-        }
+      (_event, session) => {
+        if (cancelled) return;
+        setUser(session?.user ?? null);
       }
     );
 
@@ -127,56 +45,41 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
   }, []);
 
-  // Removed automatic venue account loading - now only loaded on demand via refreshVenueAccount
-
-  const refreshVenueAccount = useCallback(async () => {
-    if (!user || user.is_anonymous) {
-      setVenueAccount(null);
-      setVenueAccountLoading(false);
-      return null;
-    }
-
-    setVenueAccountLoading(true);
-    try {
-      const account = await fetchVenueAccount(user.id);
-      setVenueAccount(account);
-      return account;
-    } catch (error) {
-      console.error("Failed to refresh venue account:", error);
-      setVenueAccount(null);
-      return null;
-    } finally {
-      setVenueAccountLoading(false);
-    }
-  }, [user, fetchVenueAccount]);
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmail(email, password);
-    
-    // Create player account after successful sign in if it doesn't exist
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      try {
-        await (supabase as any).rpc('get_or_create_player_account', {
-          p_user_id: user.id,
-          p_display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Player',
-        });
-      } catch (error) {
-        console.error('Failed to create player account:', error);
-        // Don't throw error - the auth was successful
-      }
+    setError(null);
+    try {
+      await signInWithEmail(email, password);
+    } catch (err) {
+      const errorObj = err instanceof Error ? err : new Error(String(err));
+      setError(errorObj);
+      throw errorObj;
     }
   };
 
-  const signUp = async (
-    email: string,
-    password: string,
-    displayName?: string,
-  ) => {
-    return await createUserWithEmail(email, password, displayName);
+  const signUp = async (email: string, password: string, displayName?: string) => {
+    setError(null);
+    try {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: displayName,
+          },
+        },
+      });
+
+      if (signUpError) throw signUpError;
+    } catch (err) {
+      const errorObj = err instanceof Error ? err : new Error(String(err));
+      setError(errorObj);
+      throw errorObj;
+    }
   };
 
   const signOut = async () => {
+    setError(null);
     try {
       // Try global sign out first
       await supabase.auth.signOut({ scope: 'global' });
@@ -192,42 +95,44 @@ export function AuthProvider({ children }: PropsWithChildren) {
     
     // Always clear local state regardless of API success
     if (typeof window !== "undefined") {
-      window.localStorage.removeItem("sidebets_host_session");
+      window.localStorage.removeItem("host_session_v2");
+      window.localStorage.removeItem("host_room_v2");
     }
     setUser(null);
-    setVenueAccount(null);
-    setVenueAccountLoading(false);
   };
 
   const signInAnonymously = async () => {
-    await signInAnonymouslyUser();
+    setError(null);
+    try {
+      await signInAnonymouslyUser();
+    } catch (err) {
+      const errorObj = err instanceof Error ? err : new Error(String(err));
+      setError(errorObj);
+      throw errorObj;
+    }
   };
 
-  const isGuest = user?.is_anonymous ?? false;
-  const isVenueAccount = Boolean(venueAccount?.isActive);
+  const isAuthenticated = Boolean(user && !user.is_anonymous);
+  const isAnonymous = user?.is_anonymous ?? false;
 
   const value = useMemo(
     () => ({
       user,
       loading,
-      venueAccount,
-      venueAccountLoading,
-      refreshVenueAccount,
-      isVenueAccount,
+      error,
+      isAuthenticated,
+      isAnonymous,
       signIn,
       signUp,
       signOut,
       signInAnonymously,
-      isGuest,
     }),
     [
       user,
       loading,
-      venueAccount,
-      venueAccountLoading,
-      refreshVenueAccount,
-      isVenueAccount,
-      isGuest,
+      error,
+      isAuthenticated,
+      isAnonymous,
     ],
   );
 

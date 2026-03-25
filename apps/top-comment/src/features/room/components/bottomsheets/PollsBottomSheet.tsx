@@ -7,6 +7,7 @@ interface PollsBottomSheetProps {
   onClose: () => void;
   polls: Interaction[];
   membershipId?: string;
+  onJoinRoom?: () => void;
 }
 
 export function PollsBottomSheet({
@@ -14,6 +15,7 @@ export function PollsBottomSheet({
   onClose,
   polls,
   membershipId,
+  onJoinRoom,
 }: PollsBottomSheetProps) {
   return (
     <InteractionListBottomSheet
@@ -50,6 +52,7 @@ export function PollsBottomSheet({
             membershipId={membershipId}
             isOpen={true}
             onClose={onBack}
+            onJoinRoom={onJoinRoom}
           />
         </div>
       )}

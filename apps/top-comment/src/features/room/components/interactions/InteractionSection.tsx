@@ -30,7 +30,7 @@ export function InteractionSection({
   room,
   memberships,
   hasActiveSession,
-  session,
+  session: _session,
 }: InteractionSectionProps) {
   const { user } = useAuth();
   const { interactions, createInteraction, closeInteraction } = useInteractions({ roomId: room?.id });
@@ -460,7 +460,7 @@ export function InteractionSection({
               isOpen={true}
               onClose={() => setViewingTopic(null)}
               interaction={viewingTopic}
-              membershipId={myMembership?.id || ''}
+              membershipId={myMembership?.id}
             />
           )}
 
@@ -469,7 +469,7 @@ export function InteractionSection({
               isOpen={true}
               onClose={() => setViewingPoll(null)}
               interaction={viewingPoll}
-              membershipId={myMembership?.id || ''}
+              membershipId={myMembership?.id}
             />
           )}
         </Suspense>

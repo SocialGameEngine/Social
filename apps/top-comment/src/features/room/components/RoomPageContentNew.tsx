@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRoomPage } from '../hooks/useRoomPage';
 import { useAuth } from '../../../shared/providers/AuthContext';
 import { useInteractions } from '../../../hooks/useInteractions';
-import { VIBoxJukebox } from '../../../shared/components/vibox/VIBoxJukebox';
+import { VIBoxJukebox } from '../../../shared/components/vibox';
 import { BackgroundAnimation } from '../../../components/BackgroundAnimation';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { SessionPanel } from './layout/SessionPanel';
@@ -17,8 +17,7 @@ import { RoomDrawers } from './RoomDrawers';
 import { AuthModal } from '../../../shared/components/AuthModal';
 import { JoinRoomModal } from '../../../shared/components/JoinRoomModal';
 import { ReactionOverlay } from './ReactionOverlay';
-import { TabNavigation } from './TabNavigation';
-import { CommunityFeed } from './CommunityFeed';
+import { CommunityModal } from './CommunityModal';
 import { useReactions } from '../../../hooks/useReactions';
 import { useBlocks } from '../../../hooks/useBlocks';
 import { useReports } from '../../../hooks/useReports';
@@ -150,7 +149,7 @@ export function RoomPageContentNew() {
   const [showChatDrawer, setShowChatDrawer] = useState(false);
   const [showLeaderboardDrawer, setShowLeaderboardDrawer] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
-  const [activeTab, setActiveTab] = useState<'host' | 'community'>('host');
+  const [showCommunityModal, setShowCommunityModal] = useState(false);
   const [challengeTarget, setChallengeTarget] = useState<{ id: string; name: string } | null>(null);
   const [showSubmitQuestion, setShowSubmitQuestion] = useState(false);
 
@@ -307,68 +306,53 @@ export function RoomPageContentNew() {
   };
   
   
-  // Main content with new 4-section layout
+  // Main content with 4-section layout
   const mainContent = (
     <div className="flex-1 overflow-hidden relative z-10 flex flex-col">
-      <TabNavigation
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        className="flex-shrink-0"
-      />
-      
-      {activeTab === 'host' ? (
-        <div className="flex-1 overflow-y-auto pt-4">
-          {/* Section 1: Session */}
-          <SessionPanel
-            session={session}
-            sessionId={sessionId}
-            memberships={memberships}
-            onOpenLeaderboard={() => openEndedModal('leaderboard')}
-            onOpenSelfie={() => openEndedModal('selfie')}
-            onOpenModal={openModal}
-            isSticky={!isMobile}
-          />
-          
-          {/* Section 2: Interactions Grid */}
-          <InteractionsGrid
-            onOpenPolls={() => setShowPollsSheet(true)}
-            onOpenTopics={() => setShowTopicsSheet(true)}
-            onOpenPrompts={() => setShowPromptsSheet(true)}
-            onOpenFibbage={() => setShowFibbageSheet(true)}
-            pollsCount={polls.length}
-            topicsCount={topics.length}
-            promptsCount={prompts.length}
-            fibbageCount={fibbageGames.length}
-            // TODO: Replace mock social proof data with real room-level interaction stats
-            // Current: Staggered participant counts 
-            // Should be: Room members who have used each interaction type + recent room activity
-            pollsParticipants={mockData.pollsParticipants}
-            topicsParticipants={mockData.topicsParticipants}
-            promptsParticipants={mockData.promptsParticipants}
-            fibbageParticipants={mockData.fibbageParticipants}
-          />
-          
-          {/* Section 3: Social Section */}
-          <SocialSection
-            onOpenLeaderboard={handleToggleLeaderboard}
-            onOpenChat={handleToggleChat}
-          />
-          
-          {/* Section 4: Misc Section */}
-          <MiscSection
-            onOpenVIBox={() => setShowVIBox(!showVIBox)}
-            onOpenHelp={() => setShowHowToPlay(!showHowToPlay)}
-          />
-        </div>
-      ) : (
-        <CommunityFeed
-          roomId={room?.id || ''}
-          membershipId={myMembership?.id}
-          displayName={myDisplayName}
-          isMember={hasMembership}
-          onJoinRoom={() => setShowJoinModal(true)}
+      <div className="flex-1 overflow-y-auto pt-4">
+        {/* Section 1: Session */}
+        <SessionPanel
+          session={session}
+          sessionId={sessionId}
+          memberships={memberships}
+          onOpenLeaderboard={() => openEndedModal('leaderboard')}
+          onOpenSelfie={() => openEndedModal('selfie')}
+          onOpenModal={openModal}
+          isSticky={!isMobile}
         />
-      )}
+        
+        {/* Section 2: Interactions Grid */}
+        <InteractionsGrid
+          onOpenPolls={() => setShowPollsSheet(true)}
+          onOpenTopics={() => setShowTopicsSheet(true)}
+          onOpenPrompts={() => setShowPromptsSheet(true)}
+          onOpenFibbage={() => setShowFibbageSheet(true)}
+          pollsCount={polls.length}
+          topicsCount={topics.length}
+          promptsCount={prompts.length}
+          fibbageCount={fibbageGames.length}
+          // TODO: Replace mock social proof data with real room-level interaction stats
+          // Current: Staggered participant counts 
+          // Should be: Room members who have used each interaction type + recent room activity
+          pollsParticipants={mockData.pollsParticipants}
+          topicsParticipants={mockData.topicsParticipants}
+          promptsParticipants={mockData.promptsParticipants}
+          fibbageParticipants={mockData.fibbageParticipants}
+        />
+        
+        {/* Section 3: Social Section */}
+        <SocialSection
+          onOpenLeaderboard={handleToggleLeaderboard}
+          onOpenChat={handleToggleChat}
+          onOpenCommunity={() => setShowCommunityModal(true)}
+        />
+        
+        {/* Section 4: Misc Section */}
+        <MiscSection
+          onOpenVIBox={() => setShowVIBox(!showVIBox)}
+          onOpenHelp={() => setShowHowToPlay(!showHowToPlay)}
+        />
+      </div>
     </div>
   );
 
@@ -382,6 +366,9 @@ export function RoomPageContentNew() {
         <BackgroundAnimation show={true} />
         <div className="flex-1 flex min-h-0">
           <div className="flex-1 flex flex-col min-h-0">
+            <RoomHeader
+              roomCode={room?.code}
+            />
             {mainContent}
           </div>
         </div>
@@ -392,6 +379,7 @@ export function RoomPageContentNew() {
           onClose={() => setShowPollsSheet(false)}
           polls={polls}
           membershipId={myMembership?.id}
+          onJoinRoom={() => setShowJoinModal(true)}
         />
         
         <TopicsBottomSheet
@@ -399,6 +387,7 @@ export function RoomPageContentNew() {
           onClose={() => setShowTopicsSheet(false)}
           topics={topics}
           membershipId={myMembership?.id}
+          onJoinRoom={() => setShowJoinModal(true)}
         />
         
         <PromptsBottomSheet
@@ -465,6 +454,17 @@ export function RoomPageContentNew() {
             onJoin={handleJoinRoom}
           />
         )}
+        {showCommunityModal && (
+          <CommunityModal
+            isOpen={showCommunityModal}
+            onClose={() => setShowCommunityModal(false)}
+            roomId={room?.id || ''}
+            membershipId={myMembership?.id}
+            displayName={myDisplayName}
+            isMember={hasMembership}
+            onJoinRoom={() => setShowJoinModal(true)}
+          />
+        )}
       </MobileLayout>
     );
   }
@@ -477,11 +477,6 @@ export function RoomPageContentNew() {
         <div className="flex-1 flex flex-col min-h-0 sm:overflow-hidden">
           <RoomHeader
             roomCode={room?.code}
-            showVIBox={showVIBox}
-            showHowToPlay={showHowToPlay}
-            onToggleVIBox={() => setShowVIBox(!showVIBox)}
-            onToggleHelp={() => setShowHowToPlay(!showHowToPlay)}
-            onLeaveRoom={handleLeaveRoom}
           />
           {mainContent}
         </div>
@@ -510,6 +505,7 @@ export function RoomPageContentNew() {
         onClose={() => setShowPollsSheet(false)}
         polls={polls}
         membershipId={myMembership?.id}
+        onJoinRoom={() => setShowJoinModal(true)}
       />
       
       <TopicsBottomSheet
@@ -517,6 +513,7 @@ export function RoomPageContentNew() {
         onClose={() => setShowTopicsSheet(false)}
         topics={topics}
         membershipId={myMembership?.id}
+        onJoinRoom={() => setShowJoinModal(true)}
       />
       
       <PromptsBottomSheet
@@ -587,6 +584,17 @@ export function RoomPageContentNew() {
           onClose={() => setShowJoinModal(false)}
           roomCode={room?.code || ''}
           onJoin={handleJoinRoom}
+        />
+      )}
+      {showCommunityModal && (
+        <CommunityModal
+          isOpen={showCommunityModal}
+          onClose={() => setShowCommunityModal(false)}
+          roomId={room?.id || ''}
+          membershipId={myMembership?.id}
+          displayName={myDisplayName}
+          isMember={hasMembership}
+          onJoinRoom={() => setShowJoinModal(true)}
         />
       )}
     </div>

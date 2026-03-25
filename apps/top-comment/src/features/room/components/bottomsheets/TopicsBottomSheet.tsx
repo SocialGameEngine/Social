@@ -7,6 +7,7 @@ interface TopicsBottomSheetProps {
   onClose: () => void;
   topics: Interaction[];
   membershipId?: string;
+  onJoinRoom?: () => void;
 }
 
 export function TopicsBottomSheet({
@@ -14,6 +15,7 @@ export function TopicsBottomSheet({
   onClose,
   topics,
   membershipId,
+  onJoinRoom,
 }: TopicsBottomSheetProps) {
   return (
     <InteractionListBottomSheet
@@ -50,6 +52,7 @@ export function TopicsBottomSheet({
             onClose={onBack}
             interaction={topic}
             membershipId={membershipId || ''}
+            onJoinRoom={onJoinRoom}
           />
         </div>
       )}

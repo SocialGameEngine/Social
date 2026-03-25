@@ -7,9 +7,8 @@
  * 1. useRoom → useRoomV2
  * 2. useSession → useSession (from hooks-v2)
  * 3. Add skeleton loading states
- * 4. Add connection status indicators
- * 5. Add error states with retry
- * 6. Add stale data banners
+ * 4. Add error states with retry
+ * 5. Real-time updates work automatically via subscriptions
  * 
  * BEFORE implementing, review this example and adapt to your specific needs.
  */
@@ -25,13 +24,11 @@ import { PlayerAuthModal } from '../../auth/PlayerAuthModal';
 import { VenueAuthModal } from '../../auth/VenueAuthModal';
 import { RoomSkeleton } from '../../../shared/components/skeletons/RoomSkeleton';
 import { ErrorState } from '../../../shared/components/ErrorState';
-import { ConnectionIndicator } from '../../../shared/components/ConnectionIndicator';
-import { StaleDataBanner } from '../../../shared/components/StaleDataBanner';
 import { AsyncErrorBoundary } from '../../../shared/components/AsyncErrorBoundary';
 
 export function RoomPageV2() {
   const { roomCode } = useParams<{ roomCode: string }>();
-  const { loading: authLoading, user, isGuest, signOut, isVenueAccount } = useAuth();
+  const { loading: authLoading, user, isAnonymous, signOut } = useAuth();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showPlayerAuthModal, setShowPlayerAuthModal] = useState(false);
@@ -43,16 +40,14 @@ export function RoomPageV2() {
     status: roomStatus,
     data: roomData,
     error: roomError,
-    connectionStatus: roomConnectionStatus,
     retry: retryRoom,
-    isStale: roomIsStale,
   } = useRoomV2({ roomCode });
 
   // V2 HOOK: useSession from hooks-v2 returns AsyncSubscriptionResult
   const {
-    status: sessionStatus,
+    status: _sessionStatus,
     data: session,
-    connectionStatus: sessionConnectionStatus,
+    connectionStatus: _sessionConnectionStatus,
   } = useSession(sessionId || undefined);
 
   // Extract room data (V2 returns data object, not flat properties)
@@ -72,11 +67,6 @@ export function RoomPageV2() {
   const handlePlayerSignIn = () => {
     setShowAccountMenu(false);
     setShowPlayerAuthModal(true);
-  };
-
-  const handleVenueSignIn = () => {
-    setShowAccountMenu(false);
-    setShowVenueAuthModal(true);
   };
 
   const handleSignOut = async () => {
@@ -123,35 +113,20 @@ export function RoomPageV2() {
   // V2 ASYNC ERROR BOUNDARY: Wrap content to catch async errors
   return (
     <AsyncErrorBoundary>
-      {/* V2 CONNECTION STATUS: Show connection indicator for real-time updates */}
-      <div className="fixed top-4 left-4 z-50">
-        <ConnectionIndicator 
-          status={roomConnectionStatus} 
-          onReconnect={retryRoom}
-        />
-      </div>
-
-      {/* V2 STALE DATA BANNER: Show when room data is stale */}
-      {roomIsStale && (
-        <div className="fixed top-16 left-4 right-4 z-40">
-          <StaleDataBanner onRefresh={retryRoom} />
-        </div>
-      )}
-
-      {/* Account Button - Fixed top right (unchanged) */}
-      <div className="fixed top-4 right-4 z-50">
-        <div className="relative" ref={accountMenuRef}>
+      {/* Account Button - Fixed top right, z-20 so modals (z-[100]) appear above it */}
+      <div className="fixed top-4 right-4 z-20" ref={accountMenuRef}>
+        <div>
           <button
             onClick={() => user ? setShowAccountMenu(!showAccountMenu) : handlePlayerSignIn()}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-600/80 hover:bg-slate-500/80 hover:scale-110 hover:shadow-lg hover:shadow-cyan-400/50 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-slate-950"
             aria-label={user ? "Account menu" : "Sign in"}
             aria-expanded={showAccountMenu}
           >
-            {user && !isGuest ? (
+            {user && !isAnonymous ? (
               <span className="text-slate-200 text-sm font-semibold">
                 {(user.user_metadata?.display_name?.[0] || user.email?.[0] || "U").toUpperCase()}
               </span>
-            ) : user && isGuest ? (
+            ) : user && isAnonymous ? (
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -186,13 +161,13 @@ export function RoomPageV2() {
 
           {/* Account Menu Dropdown (unchanged) */}
           {showAccountMenu && (
-            <div className="absolute top-full right-0 mt-2 w-64 rounded-xl bg-slate-800 border border-cyan-400/50 shadow-lg shadow-fuchsia-500/20 z-50 overflow-hidden">
+            <div className="absolute top-full right-0 mt-2 w-64 rounded-xl bg-slate-800 border border-cyan-400/50 shadow-lg shadow-fuchsia-500/20 z-[100] overflow-hidden">
               <div className="p-4 space-y-3">
                 {user ? (
                   <>
                     <div className="space-y-1">
                       <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
-                        {isVenueAccount ? "Venue Account" : "Player Account"}
+                        Player Account
                       </p>
                       {user.user_metadata?.display_name && (
                         <p className="text-sm font-semibold text-pink-400">
@@ -220,18 +195,17 @@ export function RoomPageV2() {
         room={room}
         memberships={memberships}
         session={session}
-        sessionStatus={sessionStatus}
-        sessionConnectionStatus={sessionConnectionStatus}
+        sessionId={sessionId}
       >
         <RoomPageContent />
       </RoomPageProvider>
 
       {/* Auth Modals (unchanged) */}
       {showPlayerAuthModal && (
-        <PlayerAuthModal onClose={() => setShowPlayerAuthModal(false)} />
+        <PlayerAuthModal open={showPlayerAuthModal} onClose={() => setShowPlayerAuthModal(false)} />
       )}
       {showVenueAuthModal && (
-        <VenueAuthModal onClose={() => setShowVenueAuthModal(false)} />
+        <VenueAuthModal open={showVenueAuthModal} onClose={() => setShowVenueAuthModal(false)} />
       )}
     </AsyncErrorBoundary>
   );
@@ -242,20 +216,19 @@ export function RoomPageV2() {
  * 
  * ✅ Replace useRoom with useRoomV2
  * ✅ Replace useSession with hooks-v2 version
- * ✅ Update destructuring to use { status, data, error, connectionStatus }
+ * ✅ Update destructuring to use { status, data, error }
  * ✅ Replace generic loading with RoomSkeleton
  * ✅ Add ErrorState component with retry
- * ✅ Add ConnectionIndicator for real-time status
- * ✅ Add StaleDataBanner for stale data
  * ✅ Wrap in AsyncErrorBoundary
  * ✅ Update RoomPageProvider props to match new data structure
+ * ✅ Real-time updates work automatically via subscriptions
  * 
  * TESTING CHECKLIST:
  * 
- * □ Test loading state shows skeleton
+ * Testing Checklist:
+ * □ Test skeleton shows during loading
  * □ Test error state shows error with retry
- * □ Test connection indicator shows Live/Reconnecting/Offline
- * □ Test stale data banner appears after 30s
  * □ Test retry functionality works
+ * □ Test real-time updates work automatically
  * □ Test all existing functionality still works
  */

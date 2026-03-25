@@ -10,9 +10,10 @@ interface TopicModalProps {
   membershipId?: string;
   isOpen: boolean;
   onClose: () => void;
+  onJoinRoom?: () => void;
 }
 
-export function TopicModal({ interaction, membershipId, isOpen, onClose }: TopicModalProps) {
+export function TopicModal({ interaction, membershipId, isOpen, onClose, onJoinRoom }: TopicModalProps) {
   const { isDark } = useTheme();
   const [responses, setResponses] = useState<TopicResponseWithUpvotes[]>([]);
   const [newResponse, setNewResponse] = useState('');
@@ -197,7 +198,7 @@ export function TopicModal({ interaction, membershipId, isOpen, onClose }: Topic
           {!membershipId ? (
             <div className={`text-center py-4 ${!isDark ? 'text-slate-600' : 'text-slate-400'}`}>
               <p className="mb-2">👋 Join this room to participate in the discussion!</p>
-              <Button onClick={() => window.location.reload()} size="sm">
+              <Button onClick={onJoinRoom} size="sm">
                 Join Room
               </Button>
             </div>

@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
-import { Button, FormField } from "@social/ui";
-import { useTheme } from "../providers/ThemeProvider";
+import { Button } from "@social/ui";
+import { generatePlayerName } from "../utils/nameGenerator";
 
 interface JoinRoomModalProps {
   isOpen: boolean;
@@ -10,8 +10,7 @@ interface JoinRoomModalProps {
 }
 
 export function JoinRoomModal({ isOpen, onClose, roomCode, onJoin }: JoinRoomModalProps) {
-  const { isDark } = useTheme();
-  const [displayName, setDisplayName] = useState("");
+  const [displayName, setDisplayName] = useState(generatePlayerName());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -47,15 +46,20 @@ export function JoinRoomModal({ isOpen, onClose, roomCode, onJoin }: JoinRoomMod
   };
 
   const handleClose = useCallback(() => {
-    setDisplayName("");
+    setDisplayName(generatePlayerName());
     setError("");
     onClose();
   }, [onClose]);
 
+  const handleRandomize = useCallback(() => {
+    setDisplayName(generatePlayerName());
+    setError("");
+  }, []);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="relative w-full max-w-md bg-slate-800 rounded-2xl border border-cyan-400/50 shadow-2xl shadow-fuchsia-500/20 max-h-[90vh] overflow-y-auto">
         <button
           onClick={handleClose}
@@ -74,17 +78,28 @@ export function JoinRoomModal({ isOpen, onClose, roomCode, onJoin }: JoinRoomMod
           </header>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <FormField
-              label="Your Display Name"
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Enter your name"
-              required
-              isDark={isDark}
-              error={error}
-              maxLength={15}
-            />
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-300">
+                Your Display Name
+              </label>
+              <div className="flex gap-2">
+                <div className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white">
+                  {displayName}
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleRandomize}
+                  disabled={loading}
+                  className="px-3 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
+                  title="Get a new random name"
+                >
+                  🎲
+                </Button>
+              </div>
+              {error && (
+                <p className="text-sm text-rose-400">{error}</p>
+              )}
+            </div>
 
             <div className="text-xs text-slate-400">
               <p>• This name will be shown to other players</p>

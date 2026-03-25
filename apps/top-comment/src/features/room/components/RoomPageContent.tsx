@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRoomPage } from '../hooks/useRoomPage';
 import { useAuth } from '../../../shared/providers/AuthContext';
-import { VIBoxJukebox } from '../../../shared/components/vibox/VIBoxJukebox';
+import { VIBoxJukeboxModal } from '../../../shared/components/vibox/VIBoxJukeboxModal';
 import { BackgroundAnimation } from '../../../components/BackgroundAnimation';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { SessionPanel } from './layout/SessionPanel';
@@ -27,7 +27,6 @@ import { ChallengeNotification } from './challenges/ChallengeNotification';
 import { ChallengeModal } from './challenges/ChallengeModal';
 import { SubmitQuestionButton } from './submissions/SubmitQuestionButton';
 import { SubmitQuestionModal } from './submissions/SubmitQuestionModal';
-import { isCurrentUserModerator } from '../../../shared/utils/moderatorUtils';
 import { roomMembershipService } from '../../../services/roomMembershipService';
 
 export function RoomPageContent() {
@@ -39,8 +38,9 @@ export function RoomPageContent() {
   const myMembership = user ? memberships?.find(m => m.userId === user.id) : null;
   const hasMembership = !!myMembership;
   
-  // Check if user is a moderator
-  const isModerator = room ? isCurrentUserModerator(room, user) : false;
+  // Room page is for participants only - no moderator/host functionality here
+  // Even venue accounts are participants when joining someone else's room
+  const isModerator = false;
 
   // ALL hooks must be called before any conditional returns
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -310,7 +310,7 @@ export function RoomPageContent() {
           onJoinRoom={() => setShowJoinModal(true)}
         />
         <RoomModals {...modalProps} />
-        <VIBoxJukebox
+        <VIBoxJukeboxModal
           isOpen={showVIBox}
           onClose={() => setShowVIBox(false)}
           toast={(options) => console.log('Toast:', options)}
@@ -345,11 +345,6 @@ export function RoomPageContent() {
         <div className="flex-1 flex flex-col min-h-0 sm:overflow-hidden">
           <RoomHeader
             roomCode={room?.code}
-            showVIBox={showVIBox}
-            showHowToPlay={showHowToPlay}
-            onToggleVIBox={() => setShowVIBox(!showVIBox)}
-            onToggleHelp={() => setShowHowToPlay(!showHowToPlay)}
-            onLeaveRoom={handleLeaveRoom}
           />
           {mainContent}
         </div>
@@ -411,7 +406,7 @@ export function RoomPageContent() {
       <ReactionOverlay reactions={reactions} bursts={bursts} />
       <RoomDrawers {...drawerProps} />
       <RoomModals {...modalProps} />
-      <VIBoxJukebox
+      <VIBoxJukeboxModal
         isOpen={showVIBox}
         onClose={() => setShowVIBox(false)}
         toast={(options) => console.log('Toast:', options)}

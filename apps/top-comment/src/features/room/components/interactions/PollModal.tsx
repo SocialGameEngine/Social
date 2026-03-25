@@ -9,9 +9,10 @@ interface PollModalProps {
   membershipId?: string;
   isOpen: boolean;
   onClose: () => void;
+  onJoinRoom?: () => void;
 }
 
-export function PollModal({ interaction, membershipId, isOpen, onClose }: PollModalProps) {
+export function PollModal({ interaction, membershipId, isOpen, onClose, onJoinRoom }: PollModalProps) {
   const [results, setResults] = useState<PollResults | null>(null);
   const [isVoting, setIsVoting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -150,7 +151,7 @@ export function PollModal({ interaction, membershipId, isOpen, onClose }: PollMo
           {!membershipId ? (
             <div className="py-2">
               <p className="mb-2">👋 Join this room to vote in the poll!</p>
-              <Button onClick={() => window.location.reload()} size="sm">
+              <Button onClick={onJoinRoom} size="sm">
                 Join Room
               </Button>
             </div>

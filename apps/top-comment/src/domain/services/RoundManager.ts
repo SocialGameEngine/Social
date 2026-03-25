@@ -98,9 +98,9 @@ export class RoundManager {
     const groupAnswers = this.getGroupAnswers(answers, group.id, roundIndex);
     const answeringMembershipIds = new Set(groupAnswers.map(answer => answer.membershipId));
     
-    // Check if all non-host teams in the group have answered
+    // Check if all teams in the group have answered
+    // (Host status is determined by room.moderatorIds, not membership property)
     return teamsInGroup
-      .filter(team => !team.isHost)
       .every(team => answeringMembershipIds.has(team.id));
   }
 
@@ -160,7 +160,7 @@ export class RoundManager {
     }
 
     // Check that all team IDs in groups exist
-    const allRoomMembershipIds = new Set(teams.map(team => team.id));
+    const allRoomMembershipIds = new Set(teams.map(t => t.id));
     
     for (const group of round.groups) {
       if (!group.teamIds || group.teamIds.length === 0) {

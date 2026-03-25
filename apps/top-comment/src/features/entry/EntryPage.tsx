@@ -190,7 +190,7 @@ const barConfig = {
 // ============================================================================
 
 export function EntryPage() {
-  const { isGuest } = useAuth();
+  const { isAnonymous } = useAuth();
   const { isDark } = useTheme();
   const navigate = useNavigate();
 
@@ -344,7 +344,7 @@ export function EntryPage() {
                 to="/auth"
                 className={`inline-flex w-full items-center justify-center rounded-2xl px-6 py-3 text-base font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${!isDark ? barConfig.colors.buttons.auth.light.border : barConfig.colors.buttons.auth.dark.border} ${!isDark ? barConfig.colors.buttons.auth.light.background : barConfig.colors.buttons.auth.dark.background} ${!isDark ? barConfig.colors.buttons.auth.light.text : barConfig.colors.buttons.auth.dark.text} ${!isDark ? barConfig.colors.buttons.auth.light.shadow : barConfig.colors.buttons.auth.dark.shadow} ${!isDark ? barConfig.colors.buttons.auth.light.hoverBorder : barConfig.colors.buttons.auth.dark.hoverBorder} ${!isDark ? barConfig.colors.buttons.auth.light.hoverBackground : barConfig.colors.buttons.auth.dark.hoverBackground} ${!isDark ? barConfig.colors.buttons.auth.light.hoverText : barConfig.colors.buttons.auth.dark.hoverText} ${!isDark ? barConfig.colors.buttons.auth.light.hoverShadow : barConfig.colors.buttons.auth.dark.hoverShadow} ${!isDark ? barConfig.colors.buttons.auth.light.hoverScale : barConfig.colors.buttons.auth.dark.hoverScale} ${!isDark ? barConfig.colors.buttons.auth.light.focus : barConfig.colors.buttons.auth.dark.focus}`}
               >
-                {isGuest ? barConfig.buttons.createAccount : barConfig.buttons.signIn}
+                {isAnonymous ? barConfig.buttons.createAccount : barConfig.buttons.signIn}
               </Link>
             </Card>
           </div>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useAuth } from '../shared/providers/AuthContext';
+import { useVenueAccountResolver } from '../features/host/useVenueAccountResolver';
 import { getOrCreateVenueRoom, getVenueRoom } from '../services/venueRoomService';
 import type { Room } from '../shared/types';
 
@@ -8,7 +8,7 @@ import type { Room } from '../shared/types';
  * Ensures each venue account has exactly one room
  */
 export function useVenueRoom() {
-  const { venueAccount, venueAccountLoading } = useAuth();
+  const { venueAccount, loading: venueAccountLoading } = useVenueAccountResolver();
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true); // Start with true to prevent race conditions
   const [error, setError] = useState<string | null>(null);

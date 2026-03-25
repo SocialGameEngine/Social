@@ -38,12 +38,12 @@ export function useOptimisticAnswer(sessionId: string, roundIndex: number) {
       // Optimistically update to the new value
       const optimisticAnswer: OptimisticAnswer = {
         id: `temp-${Date.now()}`,
-        membershipId: newAnswer.membershipId,
-        roundIndex: newAnswer.roundIndex,
-        text: newAnswer.text,
+        membershipId: newAnswer.membershipId || '',
+        roundIndex: roundIndex,
+        text: newAnswer.answer || '',
         createdAt: new Date().toISOString(),
         masked: false,
-        groupId: newAnswer.groupId || 'g0',
+        groupId: 'g0',
         isPending: true, // Mark as pending
       };
 
@@ -57,7 +57,7 @@ export function useOptimisticAnswer(sessionId: string, roundIndex: number) {
     },
 
     // Rollback on error
-    onError: (err, newAnswer, context) => {
+    onError: (err, _newAnswer, context) => {
       // Restore previous answers
       if (context?.previousAnswers) {
         queryClient.setQueryData(
@@ -70,12 +70,12 @@ export function useOptimisticAnswer(sessionId: string, roundIndex: number) {
       toast({
         title: "Couldn't submit answer",
         description: err instanceof Error ? err.message : "Please try again",
-        variant: "destructive",
+        variant: "error",
       });
     },
 
     // Refetch on success to get server data
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Invalidate and refetch
       queryClient.invalidateQueries({ 
         queryKey: ['answers', sessionId, roundIndex] 
@@ -85,7 +85,7 @@ export function useOptimisticAnswer(sessionId: string, roundIndex: number) {
       toast({
         title: "Answer submitted!",
         description: "Your answer has been recorded",
-        variant: "default",
+        variant: "success",
       });
     },
   });

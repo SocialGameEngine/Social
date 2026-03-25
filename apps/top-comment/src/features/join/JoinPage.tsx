@@ -17,7 +17,7 @@ interface JoinFormState {
 export function JoinPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, isGuest, signOut, isVenueAccount } = useAuth();
+  const { user, isAnonymous, signOut } = useAuth();
   const [searchParams] = useSearchParams();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
@@ -185,11 +185,11 @@ export function JoinPage() {
             aria-label={user ? "Account menu" : "Sign in"}
             aria-expanded={showAccountMenu}
           >
-            {user && !isGuest ? (
+            {user && !isAnonymous ? (
               <span className="text-slate-200 text-sm font-semibold">
                 {(user.user_metadata?.display_name?.[0] || user.email?.[0] || "U").toUpperCase()}
               </span>
-            ) : user && isGuest ? (
+            ) : user && isAnonymous ? (
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -230,7 +230,7 @@ export function JoinPage() {
                   <>
                     <div className="space-y-1">
                       <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
-                        {isVenueAccount ? "Venue Account" : "Player Account"}
+                        Player Account
                       </p>
                       {user.user_metadata?.display_name ? (
                         <p className="text-sm font-semibold text-pink-400">
@@ -247,7 +247,7 @@ export function JoinPage() {
                         </p>
                       )}
                     </div>
-                    {isGuest && (
+                    {isAnonymous && (
                       <div className="pt-2 border-t border-slate-700">
                         <p className="text-xs text-slate-400">
                           Guest mode

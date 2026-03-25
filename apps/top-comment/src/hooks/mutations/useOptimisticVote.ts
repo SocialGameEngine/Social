@@ -38,10 +38,10 @@ export function useOptimisticVote(sessionId: string, roundIndex: number) {
       // Optimistically update to the new value
       const optimisticVote: OptimisticVote = {
         id: `temp-${Date.now()}`,
-        voterId: newVote.voterId,
-        roundIndex: newVote.roundIndex,
-        groupId: newVote.groupId || 'g0',
-        answerId: newVote.answerId,
+        voterId: newVote.membershipId || '',
+        roundIndex: roundIndex,
+        groupId: 'g0',
+        answerId: newVote.answerId || '',
         createdAt: new Date().toISOString(),
         isPending: true, // Mark as pending
       };
@@ -56,7 +56,7 @@ export function useOptimisticVote(sessionId: string, roundIndex: number) {
     },
 
     // Rollback on error
-    onError: (err, newVote, context) => {
+    onError: (_err, _newVote, context) => {
       // Restore previous votes
       if (context?.previousVotes) {
         queryClient.setQueryData(
@@ -69,7 +69,7 @@ export function useOptimisticVote(sessionId: string, roundIndex: number) {
       toast({
         title: "Vote didn't count",
         description: "Please try voting again",
-        variant: "destructive",
+        variant: "error",
       });
     },
 

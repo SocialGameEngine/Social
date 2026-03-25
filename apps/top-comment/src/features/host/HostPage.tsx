@@ -92,7 +92,7 @@ function ActivePhaseLayout({
 }
 
 import { useGameState, useSessionOrchestrator, transformRoundSummariesForUI } from "../../application";
-import { useRoom } from "../../hooks/useRoom";
+import { useRoomV2 } from "../../hooks/useRoomV2";
 import { VIBoxButton } from "../../shared/components/vibox/VIBoxButton";
 import { VIBoxJukebox } from "../../shared/components/vibox/VIBoxJukebox";
 import { MobileLayout } from "../../shared/components/MobileLayout";
@@ -118,19 +118,23 @@ import { HostInteractionManager } from "./components/HostInteractionManager";
 import { handleCopyLink, handleCreateSession, handleUpdateSession, handleEndSession, handleHostVote, handlePrimaryAction } from "./Handlers";
 import { handleRoomKickPlayer, handleRoomBanPlayer } from "./Handlers/roomKickBanHandlers";
 import { setPromptLibrary, pauseSession } from "../session/sessionService";
-import { useHostRoom } from "./useHostRoom";
-import { useHostSession } from "./useHostSession";
+import { useHostRoomV2 } from "./useHostRoomV2";
+import { useHostSessionV2 } from "./useHostSessionV2";
 import { useHostComputations, useHostState } from "./hooks";
 import { useSessionPlayers } from "./hooks/useSessionPlayers";
+import { useHostRoomRecovery } from "./hooks/useHostRoomRecovery";
 import { useHostKeyboardShortcuts } from "../../hooks/useHostKeyboardShortcuts";
 import { useResponsiveLayout } from "../room/hooks/useResponsiveLayout";
 import { useAudienceSubmissions } from "../../hooks/useAudienceSubmissions";
 import { SubmissionReviewPanel } from "../room/components/submissions/SubmissionReviewPanel";
 import type { PromptLibraryId } from "../../shared/promptLibraries";
 import type { Room } from "../../shared/types";
+import { useVenueAccountResolver } from './useVenueAccountResolver';
 
 export function HostPage() {
-  const { user, loading: authLoading, isVenueAccount, venueAccountLoading, refreshVenueAccount, isGuest, signOut } = useAuth();
+  const { user, loading: authLoading, isAnonymous, signOut } = useAuth();
+  const { venueAccount, loading: venueAccountLoading, refresh: refreshVenueAccount } = useVenueAccountResolver();
+  const isVenueAccount = Boolean(venueAccount?.isActive);
   const { toast } = useToast();
   const { isDark } = useTheme(); 
   const navigate = useNavigate();
@@ -140,23 +144,57 @@ export function HostPage() {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showPlayerAuthModal, setShowPlayerAuthModal] = useState(false);
   const [showVenueAuthModal, setShowVenueAuthModal] = useState(false);
-  const [venueRoomCreated, setVenueRoomCreated] = useState<string | null>(null);
+  const [, setVenueRoomCreated] = useState<string | null>(null);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   
-  // Add room creation state
-  const [showRoomCreateModal, setShowRoomCreateModal] = useState(false);
+  // Modal mode state - null (closed), "create" (auto-opened for new venue), or "settings" (manually opened)
+  type HostRoomModalMode = null | "create" | "settings";
+  const [roomModalMode, setRoomModalMode] = useState<HostRoomModalMode>(null);
+  
+  // Backward compatibility wrapper
+  const showRoomCreateModal = roomModalMode !== null;
+  const setShowRoomCreateModal = (show: boolean) => {
+    // Legacy calls that just want to show/hide without mode context
+    // Default to "create" mode when showing
+    setRoomModalMode(show ? "create" : null);
+  };
+  
+  // Always call hooks (React rules), but conditionally use data
+  const hostSessionData = useHostSessionV2();
+  const hostRoomData = useHostRoomV2();
+  
+  // Only use hook data when user is authenticated
+  const shouldUseHostHooks = !authLoading && user && !user.is_anonymous;
+  
   const {
     sessionId: storedSessionId,
     code: storedCode,
+    isValidated: _sessionValidated,
+    recoveryState: _sessionRecoveryState,
     setHostSession,
     clearHostSession,
-  } = useHostSession();
+  } = shouldUseHostHooks ? hostSessionData : {
+    sessionId: null,
+    code: null,
+    isValidated: false,
+    recoveryState: { status: "expired", error: null },
+    setHostSession: hostSessionData.setHostSession, // Always use real function
+    clearHostSession: hostSessionData.clearHostSession, // Always use real function
+  };
+  
   const {
     roomId: storedRoomId,
-    roomCode: storedRoomCode,
+    code: storedRoomCode,
+    isValidated: _roomValidated,
+    recoveryState: _roomRecoveryState,
     setHostRoom,
-    loading: roomLoading,
-  } = useHostRoom();
+  } = shouldUseHostHooks ? hostRoomData : {
+    roomId: null,
+    code: null,
+    isValidated: false,
+    recoveryState: { status: "expired", error: null },
+    setHostRoom: hostRoomData.setHostRoom, // CRITICAL: Always use real function so recovery works
+  };
   const [showBannedPlayersModal, setShowBannedPlayersModal] = useState(false);
   const [showVIBoxModal, setShowVIBoxModal] = useState(false);
   const [showVenueAuthPrompt, setShowVenueAuthPrompt] = useState(false);
@@ -205,25 +243,31 @@ export function HostPage() {
     isPerformingActionRef,
   } = hostState;
 
-  const canCreateSession = !authLoading && !venueAccountLoading && isVenueAccount;
+  // Use host room recovery for room-based architecture
+  const roomRecovery = useHostRoomRecovery({
+    user,
+    authLoading,
+    isVenueAccount,
+    venueAccountLoading,
+    roomId: storedRoomId,
+    setRoomId: () => {}, // Not used - recovery calls setHostRoom directly
+    setHostRoom,
+    setShowRoomCreateModal,
+  });
+
+  // Derive complete bootstrap state - must wait for room existence to be resolved
+  const isBootstrapComplete = !authLoading && !venueAccountLoading && 
+    (roomRecovery.roomExistenceState === 'room_found' || 
+     roomRecovery.roomExistenceState === 'no_room_confirmed' || 
+     roomRecovery.roomExistenceState === 'error');
+
+  const canCreateSession = isBootstrapComplete && isVenueAccount;
 
   // Use the new application hooks - this replaces 4 separate hooks and multiple useMemo calls!
   const gameState = useGameState({ 
     sessionId: sessionId ?? undefined, 
     userId: user?.id 
   });
-
-  // Use host recovery - DISABLED for room-based architecture
-  // useHostRecovery({
-  //   user,
-  //   authLoading,
-  //   isVenueAccount,
-  //   venueAccountLoading,
-  //   sessionId,
-  //   setSessionId,
-  //   setHostSession,
-  //   setShowCreateModal,
-  // });
 
   // Add session orchestrator for automatic phase advancement
   const orchestrator = useSessionOrchestrator({
@@ -237,14 +281,26 @@ export function HostPage() {
   const players = useMemo(() => gameState.memberships, [gameState.memberships]);
   const answers = gameState.answers;
 
-  const { room, memberships: roomMemberships, refreshMembers } = useRoom({
-    roomId: storedRoomId ?? undefined,  // This now comes from useHostRoom (venue room)
+  // V2 HOOK: Use async room hook
+  const {
+    status: _roomStatus,
+    data: roomData,
+    error: _roomError,
+    connectionStatus: _roomConnectionStatus,
+    retry: _retryRoom,
+    refreshMembers,
+  } = useRoomV2({
+    roomId: storedRoomId ?? undefined,  // This now comes from useHostRoomV2 (venue room)
   });
+
+  // Extract room data from v2 hook
+  const room = roomData?.room;
+  const roomMemberships = roomData?.memberships || [];
 
   // Fetch session players from top_comment_players table
   const { players: sessionPlayers } = useSessionPlayers(sessionId);
 
-  const roomJoinCode = storedRoomCode ?? room?.code ?? storedCode ?? "";
+  const roomJoinCode = (user && !user.is_anonymous) ? (storedRoomCode ?? room?.code ?? storedCode ?? "") : "";
   const inviteLink = useMemo(() => {
     const code = roomJoinCode;
     if (!code) return "";
@@ -306,13 +362,14 @@ export function HostPage() {
   }, [showAccountMenu]);
 
   const roomLobbyMembers = useMemo(() => {
-    if (!storedRoomId) return [];
+    if (!storedRoomId || !room) return [];
+    // Check if member is NOT a moderator (host)
     return roomMemberships.filter((member) =>
-      !member.isHost && 
+      !room.moderatorIds.includes(member.userId) && 
       !member.isBanned && 
       (member.status === "active" || member.status === "approved")
     );
-  }, [storedRoomId, roomMemberships]);
+  }, [storedRoomId, roomMemberships, room]);
 
   const lobbyTeams = useMemo(() => {
     if (!storedRoomId) {
@@ -327,8 +384,11 @@ export function HostPage() {
 
   // Host membership for audience submissions
   const hostMembership = useMemo(() => {
-    return roomMemberships.find((m) => m.userId === user?.id && m.isHost);
-  }, [roomMemberships, user?.id]);
+    if (!user || !room) return undefined;
+    // Check if user is a moderator (host)
+    const isModerator = room.moderatorIds.includes(user.id);
+    return roomMemberships.find((m) => m.userId === user.id && isModerator);
+  }, [roomMemberships, user, room]);
 
   // Audience submissions (host review)
   const {
@@ -341,8 +401,17 @@ export function HostPage() {
   // Handle room creation success
   const handleRoomCreateSuccess = (newRoom: Room) => {
     setShowRoomCreateModal(false);
-    setHostRoom({ roomId: newRoom.id, roomCode: newRoom.code });
+    setHostRoom({ roomId: newRoom.id, code: newRoom.code });
   };
+
+  // Clear stored data when user signs out
+  useEffect(() => {
+    if (!user || user.is_anonymous) {
+      // Clear any stored session/room data when user is not authenticated
+      clearHostSession();
+      setHostRoom({ roomId: '', code: '' });
+    }
+  }, [user, clearHostSession, setHostRoom]);
 
   // Automatically load venue account when HostPage mounts
   useEffect(() => {
@@ -353,14 +422,39 @@ export function HostPage() {
     }
   }, [user, venueAccountLoading, isVenueAccount, refreshVenueAccount]);
 
-  // Show room creation modal when there's no session and user has venue account
+  // Auto-open create modal ONLY when room existence is conclusively "no_room_confirmed"
+  // This effect handles AUTOMATIC modal opening, NOT manual settings button
   useEffect(() => {
-    if (!storedRoomId && !venueAccountLoading && !roomLoading && isVenueAccount) {
-      setShowRoomCreateModal(true);
-    } else if (!storedRoomId && !venueAccountLoading && !roomLoading && !isVenueAccount) {
-      setShowRoomCreateModal(false);
+    // Never auto-open for unauthenticated users
+    if (!user || user.is_anonymous) {
+      if (roomModalMode === 'create') {
+        setRoomModalMode(null);
+      }
+      return;
     }
-  }, [storedRoomId, venueAccountLoading, roomLoading, isVenueAccount]);
+    
+    // CRITICAL: Only make decisions when bootstrap is COMPLETE
+    if (!isBootstrapComplete) {
+      // Force modal closed during bootstrap to prevent flicker
+      if (roomModalMode === 'create') {
+        setRoomModalMode(null);
+      }
+      return;
+    }
+    
+    // At this point, bootstrap is complete - make final decision based on room existence state
+    // ONLY auto-open when room existence is conclusively "no_room_confirmed"
+    const shouldAutoOpenCreate = isVenueAccount && 
+      roomRecovery.roomExistenceState === 'no_room_confirmed';
+    
+    // Only auto-open in "create" mode, never close "settings" mode
+    if (shouldAutoOpenCreate && roomModalMode === null) {
+      setRoomModalMode('create');
+    } else if (!shouldAutoOpenCreate && roomModalMode === 'create') {
+      setRoomModalMode(null);
+    }
+    // IMPORTANT: Never auto-close "settings" mode - user must close manually
+  }, [user, isBootstrapComplete, roomRecovery.roomExistenceState, isVenueAccount, roomModalMode, authLoading, venueAccountLoading]);
 
   // Set sessionRef.current to latest session for auto advance actions.
   useEffect(() => {
@@ -670,15 +764,9 @@ export function HostPage() {
   // Handle URL parameters for room updates
   useEffect(() => {
     const roomCode = searchParams.get('roomCode');
-    console.log('🔍 URL Parameter Handler:', { 
-      roomCode, 
-      storedRoomCode, 
-      shouldUpdate: roomCode && roomCode !== storedRoomCode 
-    });
     
     if (roomCode && roomCode !== storedRoomCode) {
-      console.log('🔍 Updating stored room to:', roomCode);
-      setHostRoom({ roomId: roomCode, roomCode: roomCode });
+      setHostRoom({ roomId: roomCode, code: roomCode });
     }
   }, [searchParams, storedRoomCode, setHostRoom]);
 
@@ -1260,11 +1348,11 @@ export function HostPage() {
             aria-label={user ? "Account menu" : "Sign in"}
             aria-expanded={showAccountMenu}
           >
-            {user && !isGuest ? (
+            {user && !isAnonymous ? (
               <span className="text-slate-200 text-sm font-semibold">
                 {(user.user_metadata?.display_name?.[0] || user.email?.[0] || "U").toUpperCase()}
               </span>
-            ) : user && isGuest ? (
+            ) : user && isAnonymous ? (
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -1322,7 +1410,7 @@ export function HostPage() {
                         </p>
                       )}
                     </div>
-                    {isGuest && (
+                    {isAnonymous && (
                       <div className="pt-2 border-t border-slate-700">
                         <p className="text-xs text-slate-400">
                           Guest mode
@@ -1425,7 +1513,7 @@ export function HostPage() {
                 ← Back
               </Link>
               {presenterButton}
-              {storedRoomCode && (
+              {storedRoomCode && user && !user.is_anonymous && (
                 <>
                   <Button
                     variant="ghost"
@@ -1437,7 +1525,8 @@ export function HostPage() {
                     variant="ghost"
                     onClick={() => {
                       setShowEditModal(false);
-                      setShowRoomCreateModal(true);
+                      setRoomModalMode('settings');
+                      console.log('Room Settings modal opened');
                     }}
                   >
                     Room Settings
@@ -1548,16 +1637,19 @@ export function HostPage() {
                   </div>
                 </div>
                 <ul className="space-y-2">
-                  {lobbyTeams.map((player) => (
+                  {lobbyTeams.map((player) => {
+                    // Check if player is a moderator (host)
+                    const isPlayerHost = room?.moderatorIds.includes(player.userId) || false;
+                    return (
                     <li
                       key={player.id}
                       className="flex items-center justify-between rounded-2xl px-4 py-3 bg-slate-700"
                     >
                       <span className="font-medium text-cyan-100">
                         {player.playerName}
-                        {player.isHost ? " (Host)" : ""}
+                        {isPlayerHost ? " (Host)" : ""}
                       </span>
-                      {!player.isHost ? (
+                      {!isPlayerHost ? (
                         <div className="flex gap-2">
                           <Button
                             variant="ghost"
@@ -1580,7 +1672,8 @@ export function HostPage() {
                         </div>
                       ) : null}
                     </li>
-                  ))}
+                    );
+                  })}
                   {!lobbyTeams.length ? (
                     <li className="rounded-2xl px-4 py-3 text-sm bg-slate-700 text-cyan-300">
                       Players will appear here as they join.
@@ -1619,7 +1712,7 @@ export function HostPage() {
 
       <CreateRoomModal
         isOpen={showRoomCreateModal}
-        onClose={() => setShowRoomCreateModal(false)}
+        onClose={() => setRoomModalMode(null)}
         onSuccess={handleRoomCreateSuccess}
         existingRoom={room}
       />
@@ -1779,7 +1872,7 @@ export function HostPage() {
           setVenueRoomCreated(roomCodeOrId);
           
           // Update stored room to the new venue room
-          setHostRoom({ roomId: roomCodeOrId, roomCode: roomCodeOrId });
+          setHostRoom({ roomId: roomCodeOrId, code: roomCodeOrId });
         }}
       />
 

@@ -27,7 +27,7 @@ export function BlockConfirmation({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-xs mx-4 bg-slate-800 border border-slate-700 rounded-xl shadow-xl p-5 space-y-4">
         <div className="text-center space-y-2">
           <div className="text-3xl">🚫</div>

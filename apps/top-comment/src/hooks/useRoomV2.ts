@@ -325,7 +325,6 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
       return;
     }
 
-    console.log('🔔 Setting up room subscription for:', targetRoomId);
     setConnectionStatus("connecting");
 
     const channel = supabase
@@ -339,12 +338,10 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
           filter: `id=eq.${targetRoomId}`,
         },
         () => {
-          console.log('🔄 Room update received');
           loadRoom(true);
         }
       )
       .subscribe((status) => {
-        console.log('📡 Room subscription status:', status);
         if (status === 'SUBSCRIBED') {
           setConnectionStatus('connected');
           reconnectAttempts.current = 0;
@@ -359,7 +356,6 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
     roomChannelRef.current = channel;
 
     return () => {
-      console.log('🔕 Cleaning up room subscription for:', targetRoomId);
       supabase.removeChannel(channel);
       roomChannelRef.current = null;
     };
@@ -394,7 +390,6 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('📡 Membership subscription active');
         } else if (status === 'CHANNEL_ERROR') {
           setSubscriptionError(new Error('Membership subscription error'));
         }

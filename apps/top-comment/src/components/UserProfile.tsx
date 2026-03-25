@@ -6,7 +6,7 @@ interface UserProfileProps {
 }
 
 export function UserProfile({ className = "" }: UserProfileProps) {
-  const { user, isGuest, signOut } = useAuth();
+  const { user, isAnonymous, signOut } = useAuth();
 
   if (!user) return null;
 
@@ -21,19 +21,19 @@ export function UserProfile({ className = "" }: UserProfileProps) {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary text-sm font-semibold text-white">
-        {isGuest
+        {isAnonymous
           ? "G"
           : (user.user_metadata?.display_name?.[0] || user.email?.[0] || "U").toUpperCase()}
       </div>
       <div className="flex flex-col">
         <span className="text-sm font-medium text-slate-900">
-          {isGuest ? "Guest Team" : user.user_metadata?.display_name || user.email}
+          {isAnonymous ? "Guest Team" : user.user_metadata?.display_name || user.email}
         </span>
         <span className="text-xs text-slate-500">
-          {isGuest ? "No data saved" : "Account linked"}
+          {isAnonymous ? "No data saved" : "Account linked"}
         </span>
       </div>
-      {!isGuest && (
+      {!isAnonymous && (
         <Button
           variant="ghost"
           size="sm"

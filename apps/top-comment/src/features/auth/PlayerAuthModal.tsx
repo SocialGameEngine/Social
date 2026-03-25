@@ -20,8 +20,6 @@ export function PlayerAuthModal({ open, onClose }: PlayerAuthModalProps) {
     message: string;
     type: "success" | "error";
   } | null>(null);
-  const [creatingAccount, setCreatingAccount] = useState(false);
-  const [accountCreationFailed, setAccountCreationFailed] = useState(false);
   const [displayNameError, setDisplayNameError] = useState<string | null>(null);
   const [isCheckingName, setIsCheckingName] = useState(false);
   const { signIn, signUp, signInAnonymously } = useAuth();
@@ -37,7 +35,6 @@ export function PlayerAuthModal({ open, onClose }: PlayerAuthModalProps) {
       setDisplayName("");
       setNotification(null);
       setIsLogin(true);
-      setAccountCreationFailed(false);
       setDisplayNameError(null);
       setIsCheckingName(false);
     }
@@ -79,86 +76,19 @@ export function PlayerAuthModal({ open, onClose }: PlayerAuthModalProps) {
     }
   }, [notification]);
 
-  // Create player account after successful authentication
-  const createPlayerAccount = async (userId: string, displayName: string) => {
-    console.log('🔵 Attempting to create player account for user:', userId, 'with name:', displayName);
-    setCreatingAccount(true);
-    try {
-      let data = null;
-      let error = null;
-      let attempt = 0;
-
-      // Keep trying indefinitely until account is created or error occurs
-      while (!data || data.length === 0) {
-        attempt++;
-        console.log(`🔄 Attempt ${attempt} to create player account...`);
-        
-        // Use the database function to create player account
-        const result = await (supabase as any).rpc('get_or_create_player_account', {
-          p_user_id: userId,
-          p_display_name: displayName || 'Player',
-        });
-        
-        data = result.data;
-        error = result.error;
-        
-        if (error) {
-          console.error('❌ Failed to create player account:', error);
-          console.error('Error details:', JSON.stringify(error, null, 2));
-          
-          // Handle duplicate display name error
-          if (error.message?.includes('already taken') || error.message?.includes('Display name')) {
-            setNotification({
-              message: "Display name is already taken. Please choose a different name.",
-              type: "error",
-            });
-            setAccountCreationFailed(true);
-            return;
-          }
-          
-          break;
-        } else if (data && data.length > 0) {
-          console.log('✅ Player account created successfully:', data);
-          break;
-        } else {
-          // Wait 2 seconds before retrying
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-      }
-      
-      if (!data || data.length === 0) {
-        console.warn('⚠️ Could not create player account after multiple attempts');
-      }
-    } catch (error) {
-      console.error('❌ Exception creating player account:', error);
-    } finally {
-      setCreatingAccount(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    console.log('🟡 handleSubmit called, isLogin:', isLogin, 'email:', email);
 
     try {
       if (isLogin) {
-        console.log('🟡 Attempting sign in...');
         await signIn(email, password);
         setNotification({
           message: "Sign in successful!",
           type: "success",
         });
-        console.log('🟡 Sign in successful, getting user...');
-        // Create player account after login if it doesn't exist
-        const { data: { user } } = await supabase.auth.getUser();
-        console.log('🟡 Got user:', user?.id);
-        if (user) {
-          console.log('🟡 Calling createPlayerAccount for login...');
-          await createPlayerAccount(user.id, user.user_metadata?.display_name || displayName);
-        }
       } else {
-        console.log('🟡 Attempting sign up...');
         if (password !== confirmPassword) {
           setNotification({ message: "Passwords do not match", type: "error" });
           setLoading(false);
@@ -173,7 +103,7 @@ export function PlayerAuthModal({ open, onClose }: PlayerAuthModalProps) {
           return;
         }
 
-        // Check display name availability (real-time validation should have already checked)
+        // Check display name availability
         if (displayNameError) {
           setNotification({
             message: displayNameError,
@@ -182,46 +112,24 @@ export function PlayerAuthModal({ open, onClose }: PlayerAuthModalProps) {
           setLoading(false);
           return;
         }
-        // Sign up
+        
+        // Sign up - player account will be created when user joins a room
         try {
-          const signUpData = await signUp(email, password, displayName);
+          await signUp(email, password, displayName);
           setNotification({
-            message: "Account created successfully!",
+            message: "Account created! Please check your email to verify.",
             type: "success",
           });
-          console.log('🟡 Sign up successful, got data:', signUpData);
-          
-          // Create player account after signup using the returned user
-          if (signUpData.user) {
-            console.log('🟡 Calling createPlayerAccount for signup with user:', signUpData.user.id);
-            await createPlayerAccount(signUpData.user.id, displayName);
-          } else if (signUpData.user === null && signUpData.session === null) {
-            console.log('🟡 User needs to confirm email - account created but not logged in');
-            // Account created but user needs to confirm email
-            // Player account will be created when they log in
-          } else {
-            console.error('❌ Unexpected signup response:', signUpData);
-          }
         } catch (signupError: any) {
           // If user already exists, try signing in instead
           if (signupError.message?.includes('already registered') || signupError.message?.includes('already exists')) {
-            console.log('🟡 User already exists, trying sign in instead...');
             try {
               await signIn(email, password);
               setNotification({
                 message: "Signed in successfully!",
                 type: "success",
               });
-              
-              // Get user after sign in
-              const { data: { user } } = await supabase.auth.getUser();
-              if (user) {
-                console.log('🟡 Sign in successful, got user:', user);
-                console.log('🟡 Calling createPlayerAccount for sign in with user:', user.id);
-                await createPlayerAccount(user.id, displayName);
-              }
             } catch (signInError) {
-              console.error('❌ Sign in failed:', signInError);
               setNotification({
                 message: "Invalid password for existing account",
                 type: "error",
@@ -229,35 +137,17 @@ export function PlayerAuthModal({ open, onClose }: PlayerAuthModalProps) {
               return;
             }
           } else {
-            // Other signup error
             throw signupError;
           }
         }
       }
       
-      // Close modal and navigate after successful auth and account creation
-      if (!creatingAccount && !accountCreationFailed) {
-        setLoading(false);
-        setTimeout(() => {
-          onClose();
-          navigate(redirectPath);
-        }, 800);
-      } else if (accountCreationFailed) {
-        // Keep modal open if account creation failed
-        setLoading(false);
-      } else {
-        // If still creating account, wait for it to complete
-        const checkInterval = setInterval(() => {
-          if (!creatingAccount) {
-            clearInterval(checkInterval);
-            setLoading(false);
-            setTimeout(() => {
-              onClose();
-              navigate(redirectPath);
-            }, 800);
-          }
-        }, 100);
-      }
+      // Close modal and navigate after successful auth
+      setLoading(false);
+      setTimeout(() => {
+        onClose();
+        navigate(redirectPath);
+      }, 800);
       
     } catch (error: unknown) {
       let errorMessage = "Authentication failed";
@@ -286,7 +176,6 @@ export function PlayerAuthModal({ open, onClose }: PlayerAuthModalProps) {
       setNotification({ message: errorMessage, type: "error" });
     } finally {
       setLoading(false);
-      setCreatingAccount(false);
     }
   };
 
@@ -436,22 +325,8 @@ export function PlayerAuthModal({ open, onClose }: PlayerAuthModalProps) {
               </div>
             )}
 
-            <Button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-700 text-white" disabled={loading || creatingAccount}>
-              {creatingAccount ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Creating player account...
-                </span>
-              ) : loading ? (
-                "Please wait..."
-              ) : isLogin ? (
-                "Sign In"
-              ) : (
-                "Sign Up"
-              )}
+            <Button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-700 text-white" disabled={loading}>
+              {loading ? "Please wait..." : isLogin ? "Sign In" : "Sign Up"}
             </Button>
           </form>
 
