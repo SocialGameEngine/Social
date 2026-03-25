@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRoomPage } from '../hooks/useRoomPage';
 import { useAuth } from '../../../shared/providers/AuthContext';
-import { VIBoxJukeboxModal } from '../../../shared/components/vibox/VIBoxJukeboxModal';
+import { VIBoxJukebox } from '../../../shared/components/vibox';
 import { BackgroundAnimation } from '../../../components/BackgroundAnimation';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { SessionPanel } from './layout/SessionPanel';
@@ -310,10 +310,10 @@ export function RoomPageContent() {
           onJoinRoom={() => setShowJoinModal(true)}
         />
         <RoomModals {...modalProps} />
-        <VIBoxJukeboxModal
+        <VIBoxJukebox
           isOpen={showVIBox}
           onClose={() => setShowVIBox(false)}
-          toast={(options) => console.log('Toast:', options)}
+          toast={(options: { title: string; variant: "success" | "error" | "info" }) => console.log('Toast:', options)}
           mode="team"
         />
         {showAuthModal && (
@@ -406,10 +406,10 @@ export function RoomPageContent() {
       <ReactionOverlay reactions={reactions} bursts={bursts} />
       <RoomDrawers {...drawerProps} />
       <RoomModals {...modalProps} />
-      <VIBoxJukeboxModal
+      <VIBoxJukebox
         isOpen={showVIBox}
         onClose={() => setShowVIBox(false)}
-        toast={(options) => console.log('Toast:', options)}
+        toast={(options: { title: string; variant: "success" | "error" | "info" }) => console.log('Toast:', options)}
         mode="team"
       />
       {showAuthModal && (
