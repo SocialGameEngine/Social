@@ -23,7 +23,8 @@
         "VITE_STRIPE_PUBLISHABLE_KEY",
         "OPENAI_API_KEY",
         "VITE_OPENAI_API_KEY"
-      ]
+      ],
+      "inputs": ["!apps/event-platform/**"]
     },
     "dev": {
       "cache": false,

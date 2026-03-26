@@ -57,7 +57,9 @@ export function InteractionCard({
   // Phase-aware CTA label
   const baseAction =
     interaction.status === "active"
-      ? (interaction.type === "headline_fibbage" ? "LIE" : "ANSWER")
+      ? (interaction.type === "headline_fibbage" ? "LIE" 
+         : interaction.type === "trivia" ? "ANSWER"
+         : "ANSWER")
       : interaction.status === "voting"
         ? "VOTE"
         : interaction.status === "results"
@@ -67,9 +69,13 @@ export function InteractionCard({
   const ctaLabel =
     interaction.status === "results"
       ? "VIEW"
-      : hasActed
-        ? "CHANGE"
-        : baseAction;
+      : interaction.type === "trivia"
+        ? hasActed
+          ? "VIEW RESULT"
+          : "ANSWER"
+        : hasActed
+          ? "CHANGE"
+          : baseAction;
 
   const getCtaIcon = () => {
     if (interaction.status === "results") {
@@ -177,6 +183,7 @@ export function InteractionCard({
     ? (interaction.type === "headline_fibbage" ? "LIE" 
        : interaction.type === "topic" ? "TOPIC"
        : interaction.type === "poll" ? "VOTE"
+       : interaction.type === "trivia" ? "TRIVIA"
        : "ANSWER")
     : interaction.status === "voting"
       ? "VOTE"
@@ -195,7 +202,9 @@ export function InteractionCard({
       <div className="chaos-chip-rail">
         <div className="chaos-chip-stack-left">
           <span className="chaos-chip chaos-chip--type">
-            {interaction.type === "headline_fibbage" ? "FIBBAGE" : "PROMPT"}
+            {interaction.type === "headline_fibbage" ? "FIBBAGE" 
+             : interaction.type === "trivia" ? "TRIVIA"
+             : "PROMPT"}
           </span>
         </div>
 
@@ -256,6 +265,8 @@ export function InteractionCard({
               <p className="text-base font-black tracking-tight text-black leading-tight line-clamp-1">
                 {interaction.type === "headline_fibbage"
                   ? `🎭 ${(interaction.settings as any)?.headlineBlank || interaction.question}` 
+                  : interaction.type === "trivia"
+                  ? `🧠 ${(interaction.settings as any)?.snapshot?.prompt || interaction.question}`
                   : interaction.question}
               </p>
 
@@ -265,6 +276,13 @@ export function InteractionCard({
                   {(interaction.settings as any)?.publishedAt
                     ? new Date((interaction.settings as any).publishedAt).toLocaleDateString()
                     : ""}
+                </p>
+              )}
+              
+              {interaction.type === "trivia" && (
+                <p className="text-xs text-gray-600 mt-1">
+                  {(interaction.settings as any)?.snapshot?.categoryKey || "General"} • {" "}
+                  {(interaction.settings as any)?.snapshot?.difficulty || "medium"}
                 </p>
               )}
             </div>

@@ -3,7 +3,7 @@
  * Manages theme state and provides theme toggle functionality
  */
 
-import { createContext, useContext, useEffect } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { darkTheme } from '../theme';
 import type { Theme } from '../theme';
@@ -11,13 +11,18 @@ import type { Theme } from '../theme';
 interface ThemeContextType {
   theme: Theme;
   isDark: boolean;
+  toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [isDark, setIsDark] = useState(true);
   const theme = darkTheme;
-  const isDark = true;
+
+  const toggleTheme = () => {
+    setIsDark(!isDark);
+  };
 
   // Update CSS variables when theme changes
   useEffect(() => {
@@ -171,10 +176,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     // Set data-theme attribute for CSS selectors
     root.setAttribute('data-theme', theme.name);
-  }, [theme]);
+  }, [theme, isDark]);
 
   return (
-    <ThemeContext.Provider value={{ theme, isDark }}>
+    <ThemeContext.Provider value={{ theme, isDark, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

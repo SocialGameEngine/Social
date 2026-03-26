@@ -10,6 +10,7 @@ const HostSendHeadlineModal = lazy(() => import('../components/HostSendHeadlineM
 const ResponsesDrawer = lazy(() => import('../../room/components/interactions/ResponsesDrawer'));
 const HostCreateTopicModal = lazy(() => import('../components/HostCreateTopicModal'));
 const HostCreatePollModal = lazy(() => import('../components/HostCreatePollModal'));
+const HostCreateTriviaModal = lazy(() => import('../components/HostCreateTriviaModal'));
 
 interface HostInteractionManagerProps {
   room: { id: string; code: string };
@@ -23,6 +24,7 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
   const [showHeadlineModal, setShowHeadlineModal] = useState(false);
   const [showTopicModal, setShowTopicModal] = useState(false);
   const [showPollModal, setShowPollModal] = useState(false);
+  const [showTriviaModal, setShowTriviaModal] = useState(false);
   const [viewingResponses, setViewingResponses] = useState<Interaction | null>(null);
 
   const activeMemberCount = memberships?.filter((m) => !m.isBanned).length ?? 0;
@@ -87,6 +89,19 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
     [room.id]
   );
 
+  const handleCreateTrivia = useCallback(
+    async (questionId: string, answerSeconds?: number, scoring?: any, policy?: any) => {
+      await interactionService.createTriviaInteraction({
+        roomId: room.id,
+        questionId,
+        answerSeconds,
+        scoring,
+        policy,
+      });
+    },
+    [room.id]
+  );
+
   return (
     <Card className="flex flex-col gap-4" isDark={isDark}>
       {/* Header */}
@@ -119,6 +134,13 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
           <Button
             variant="secondary"
             size="sm"
+            onClick={() => setShowTriviaModal(true)}
+          >
+            🧠 Trivia
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setShowHeadlineModal(true)}
           >
             🎭 Fibbage
@@ -143,9 +165,11 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className={`font-semibold text-sm ${!isDark ? 'text-slate-900' : 'text-white'}`}>
-                    {interaction.type === 'headline_fibbage' 
+                  <p className={`text-sm ${!isDark ? 'text-slate-700' : 'text-cyan-100'} line-clamp-2`}>
+                    {interaction.type === 'headline_fibbage'
                       ? `🎭 ${(interaction.settings as any)?.headlineBlank || interaction.question}`
+                      : interaction.type === 'trivia'
+                      ? `🧠 ${(interaction.settings as any)?.snapshot?.prompt || interaction.question}`
                       : interaction.question
                     }
                   </p>
@@ -154,8 +178,13 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
                       {(interaction.settings as any)?.sourceName} • {(interaction.settings as any)?.publishedAt ? new Date((interaction.settings as any).publishedAt).toLocaleDateString() : ''}
                     </p>
                   )}
+                  {interaction.type === 'trivia' && (
+                    <p className={`text-xs ${!isDark ? 'text-slate-500' : 'text-slate-400'} mt-1`}>
+                      {(interaction.settings as any)?.snapshot?.categoryKey || 'General'} • {(interaction.settings as any)?.snapshot?.difficulty || 'medium'}
+                    </p>
+                  )}
                   <div className={`flex items-center gap-3 mt-1.5 text-xs ${!isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                    <span>{interaction.responseCount}/{activeMemberCount} {interaction.type === 'headline_fibbage' ? 'lies' : 'responses'}</span>
+                    <span>{interaction.responseCount}/{activeMemberCount} {interaction.type === 'headline_fibbage' ? 'lies' : interaction.type === 'trivia' ? 'answers' : 'responses'}</span>
                     {interaction.status === 'voting' && <span>{interaction.voteCount} votes</span>}
                     <span>{getTimeAgo(interaction.createdAt)}</span>
                     <span className={`font-bold ${
@@ -166,19 +195,41 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
                       {interaction.status === 'voting' ? 'Voting' : 
                        interaction.status === 'results' ? 'Results' :
                        interaction.status === 'closed' ? 'Closed' : 
-                       interaction.type === 'headline_fibbage' ? 'Lie Submission' : 'Active'}
+                       interaction.type === 'headline_fibbage' ? 'Lie Submission' : 
+                       interaction.type === 'trivia' ? 'Answer Phase' :
+                       'Active'}
                     </span>
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   {interaction.status === 'active' && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => handleStartVoting(interaction.id)}
-                    >
-                      Start Voting
-                    </Button>
+                    <>
+                      {interaction.type === 'trivia' ? (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleShowResults(interaction.id)}
+                        >
+                          Show Results
+                        </Button>
+                      ) : interaction.type === 'headline_fibbage' ? (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleStartVoting(interaction.id)}
+                        >
+                          Start Voting
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleStartVoting(interaction.id)}
+                        >
+                          Start Voting
+                        </Button>
+                      )}
+                    </>
                   )}
                   {interaction.status === 'voting' && (
                     <Button
@@ -260,6 +311,14 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
             isOpen={true}
             onClose={() => setShowPollModal(false)}
             onSubmit={handleCreatePoll}
+          />
+        )}
+
+        {showTriviaModal && (
+          <HostCreateTriviaModal
+            isOpen={true}
+            onClose={() => setShowTriviaModal(false)}
+            onSubmit={handleCreateTrivia}
           />
         )}
 

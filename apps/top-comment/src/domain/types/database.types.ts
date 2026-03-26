@@ -64,3 +64,74 @@ export interface InteractionRow {
   created_at: string;
   updated_at: string;
 }
+
+// Trivia table types
+export interface TriviaSubmissionRow {
+  id: string;
+  interaction_id: string | null;
+  room_id: string;
+  member_id: string;
+  submitted_at: string | null;
+  latency_ms: number | null;
+  payload: Record<string, unknown>;
+  status: string;
+}
+
+export interface TriviaEvaluationRow {
+  id: string;
+  submission_id: string | null;
+  interaction_id: string | null;
+  room_id: string;
+  member_id: string;
+  result: string;
+  points_awarded: number;
+  method: string;
+  confidence: number | null;
+  matched_alias: string | null;
+  reasoning_short: string | null;
+  grader_version: string;
+  judged_at: string;
+}
+
+export interface TriviaQuestionRow {
+  id: string;
+  pack_id: string | null;
+  format: string;
+  category_key: string;
+  difficulty: string;
+  prompt: string;
+  explanation: string | null;
+  hint: string | null;
+  media: Record<string, unknown> | null;
+  status: string;
+  tags: string[] | null;
+  created_by: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface TriviaQuestionPackRow {
+  id: string;
+  name: string;
+  description: string | null;
+  status: string;
+  created_by: string | null;
+  created_at: string | null;
+}
+
+export interface TriviaQuestionOptionRow {
+  id: string;
+  question_id: string | null;
+  option_id: string;
+  option_text: string;
+  is_correct: boolean;
+  sort_order: number | null;
+}
+
+export interface TriviaQuestionAliasRow {
+  id: string;
+  question_id: string | null;
+  alias_text: string;
+  alias_normalized: string;
+  match_type: string;
+}

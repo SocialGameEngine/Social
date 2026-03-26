@@ -102,7 +102,7 @@ export function CommentWall({ answers, onSubmit, venueName }: CommentWallProps) 
                   <div className="flex items-center space-x-2 mb-2">
                     <span className="font-medium text-gray-900">Anonymous</span>
                     <span className="text-gray-500 text-sm">
-                      {formatTime(answer.created_at)}
+                      {answer.created_at ? formatTime(answer.created_at) : 'Just now'}
                     </span>
                   </div>
                   <p className="text-gray-800 whitespace-pre-wrap">

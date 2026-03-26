@@ -34,6 +34,7 @@ import { PollsBottomSheet } from './bottomsheets/PollsBottomSheet';
 import { TopicsBottomSheet } from './bottomsheets/TopicsBottomSheet';
 import { PromptsBottomSheet } from './bottomsheets/PromptsBottomSheet';
 import { FibbageBottomSheet } from './bottomsheets/FibbageBottomSheet';
+import { TriviaBottomSheet } from './bottomsheets/TriviaBottomSheet';
 
 export function RoomPageContentNew() {
   const { room, memberships, session, sessionId, state, openModal, closeModal, markSubmitted, openEndedModal, closeEndedModal, handleLeaveRoom } = useRoomPage();
@@ -56,10 +57,12 @@ export function RoomPageContentNew() {
     topicsParticipants: 0, 
     promptsParticipants: 0,
     fibbageParticipants: 0,
+    triviaParticipants: 0,
     pollsHasActivity: false,
     topicsHasActivity: false,
     promptsHasActivity: false,
     fibbageHasActivity: false,
+    triviaHasActivity: false,
   });
 
   // Update different interaction types at different intervals (staggered)
@@ -71,11 +74,13 @@ export function RoomPageContentNew() {
       pollsParticipants: 5,
       topicsParticipants: 4,
       promptsParticipants: 3,
-      fibbageParticipants: 7,
-      pollsHasActivity: true, // Start with activity for testing
+      fibbageParticipants: 6,
+      triviaParticipants: 4,
+      pollsHasActivity: true,
       topicsHasActivity: true,
       promptsHasActivity: true,
       fibbageHasActivity: true,
+      triviaHasActivity: true,
     });
 
     const intervals = [
@@ -130,6 +135,18 @@ export function RoomPageContentNew() {
           setMockData(prev => ({ ...prev, fibbageHasActivity: false }));
         }, 3000);
       }, 15000),
+      // Trivia updates every 20 seconds
+      setInterval(() => {
+        setMockData(prev => ({
+          ...prev,
+          triviaParticipants: Math.floor(Math.random() * 8) + 2,
+          triviaHasActivity: true,
+        }));
+        // Reset activity after 3 seconds
+        setTimeout(() => {
+          setMockData(prev => ({ ...prev, triviaHasActivity: false }));
+        }, 3000);
+      }, 20000),
     ];
 
     return () => intervals.forEach(clearInterval);
@@ -140,6 +157,7 @@ export function RoomPageContentNew() {
   const [showTopicsSheet, setShowTopicsSheet] = useState(false);
   const [showPromptsSheet, setShowPromptsSheet] = useState(false);
   const [showFibbageSheet, setShowFibbageSheet] = useState(false);
+  const [showTriviaSheet, setShowTriviaSheet] = useState(false);
 
   // Existing states
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -158,6 +176,7 @@ export function RoomPageContentNew() {
   const topics = useMemo(() => interactions.filter(i => i.type === 'topic'), [interactions]);
   const prompts = useMemo(() => interactions.filter(i => i.type === 'prompt'), [interactions]);
   const fibbageGames = useMemo(() => interactions.filter(i => i.type === 'headline_fibbage'), [interactions]);
+  const trivia = useMemo(() => interactions.filter(i => i.type === 'trivia'), [interactions]);
 
   // Callback hooks
   const handleAuthSuccess = useCallback(() => {
@@ -327,10 +346,12 @@ export function RoomPageContentNew() {
           onOpenTopics={() => setShowTopicsSheet(true)}
           onOpenPrompts={() => setShowPromptsSheet(true)}
           onOpenFibbage={() => setShowFibbageSheet(true)}
+          onOpenTrivia={() => setShowTriviaSheet(true)}
           pollsCount={polls.length}
           topicsCount={topics.length}
           promptsCount={prompts.length}
           fibbageCount={fibbageGames.length}
+          triviaCount={trivia.length}
           // TODO: Replace mock social proof data with real room-level interaction stats
           // Current: Staggered participant counts 
           // Should be: Room members who have used each interaction type + recent room activity
@@ -338,6 +359,7 @@ export function RoomPageContentNew() {
           topicsParticipants={mockData.topicsParticipants}
           promptsParticipants={mockData.promptsParticipants}
           fibbageParticipants={mockData.fibbageParticipants}
+          triviaParticipants={mockData.triviaParticipants}
         />
         
         {/* Section 3: Social Section */}
@@ -402,6 +424,13 @@ export function RoomPageContentNew() {
           onClose={() => setShowFibbageSheet(false)}
           fibbageGames={fibbageGames}
           membership={myMembership || null}
+        />
+        
+        <TriviaBottomSheet
+          isOpen={showTriviaSheet}
+          onClose={() => setShowTriviaSheet(false)}
+          trivia={trivia}
+          membershipId={myMembership?.id}
         />
 
         <ChallengeNotification
@@ -528,6 +557,13 @@ export function RoomPageContentNew() {
         onClose={() => setShowFibbageSheet(false)}
         fibbageGames={fibbageGames}
         membership={myMembership || null}
+      />
+      
+      <TriviaBottomSheet
+        isOpen={showTriviaSheet}
+        onClose={() => setShowTriviaSheet(false)}
+        trivia={trivia}
+        membershipId={myMembership?.id}
       />
 
       <ChallengeNotification

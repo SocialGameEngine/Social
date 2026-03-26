@@ -6,14 +6,17 @@ interface InteractionsGridProps {
   onOpenTopics: () => void;
   onOpenPrompts: () => void;
   onOpenFibbage: () => void;
+  onOpenTrivia: () => void;
   pollsCount?: number;
   topicsCount?: number;
   promptsCount?: number;
   fibbageCount?: number;
+  triviaCount?: number;
   pollsParticipants?: number;
   topicsParticipants?: number;
   promptsParticipants?: number;
   fibbageParticipants?: number;
+  triviaParticipants?: number;
   isLoading?: boolean;
 }
 
@@ -22,14 +25,17 @@ export function InteractionsGrid({
   onOpenTopics,
   onOpenPrompts,
   onOpenFibbage,
+  onOpenTrivia,
   pollsCount = 0,
   topicsCount = 0,
   promptsCount = 0,
   fibbageCount = 0,
+  triviaCount = 0,
   pollsParticipants = 0,
   topicsParticipants = 0,
   promptsParticipants = 0,
   fibbageParticipants = 0,
+  triviaParticipants = 0,
   isLoading = false,
 }: InteractionsGridProps) {
   if (isLoading) {
@@ -89,6 +95,19 @@ export function InteractionsGrid({
           variant="interaction"
           onClick={onOpenFibbage}
           participantCount={fibbageParticipants}
+        />
+        <InteractionTypeButton
+          icon={
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 16.5c-1.554 0-4.5-1.554-4.5-4.5s2.946-4.5 4.5-4.5c1.654 0 4.5 1.554 4.5 4.5s-2.846 4.5-4.5 4.5zm0-9.5a1.5 1.5 0 013 1.5v9a1.5 1.5 0 001.5 1.5h9a1.5 1.5 0 001.5-1.5v-9a1.5 1.5 0 00-3 0zm-6 0a1.5 1.5 0 013 1.5v9a1.5 1.5 0 001.5-1.5h-9a1.5 1.5 0 00-3 0zM9 14a1 1 0 11-2 0 1 1 0 012 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9h.01M9 12h.01" />
+            </svg>
+          }
+          label="Trivia"
+          count={triviaCount}
+          variant="interaction"
+          onClick={onOpenTrivia}
+          participantCount={triviaParticipants}
         />
       </div>
     </div>
