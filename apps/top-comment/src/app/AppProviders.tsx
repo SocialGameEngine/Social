@@ -19,6 +19,11 @@ const createQueryClient = () =>
     },
   });
 
+function AppBootGuard({ children }: PropsWithChildren) {
+  // Auth loads in background - no need to block UI
+  return <>{children}</>;
+}
+
 export function AppProviders({ children }: PropsWithChildren) {
   const queryClient = useMemo(() => createQueryClient(), []);
 
@@ -26,14 +31,16 @@ export function AppProviders({ children }: PropsWithChildren) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <CurrentPhaseProvider>
-            <TTSProvider>
-              <ToastProvider>
-                {children}
-                <Toaster />
-              </ToastProvider>
-            </TTSProvider>
-          </CurrentPhaseProvider>
+          <AppBootGuard>
+            <CurrentPhaseProvider>
+              <TTSProvider>
+                <ToastProvider>
+                  {children}
+                  <Toaster />
+                </ToastProvider>
+              </TTSProvider>
+            </CurrentPhaseProvider>
+          </AppBootGuard>
         </AuthProvider>
       </ThemeProvider>
       <ReactQueryDevtools initialIsOpen={false} />

@@ -44,7 +44,6 @@ describe('useKickDetection hook logic', () => {
       playerName: 'Test Player',
       joinedAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
-      isHost: false,
       isBanned: false,
       status: 'active',
     };
@@ -65,7 +64,6 @@ describe('useKickDetection hook logic', () => {
       playerName: 'Test Player',
       joinedAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
-      isHost: false,
       isBanned: true,
       status: 'active',
     };
@@ -86,7 +84,6 @@ describe('useKickDetection hook logic', () => {
       playerName: 'Test Player',
       joinedAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
-      isHost: false,
       isBanned: false,
       status: 'active',
     };
@@ -134,7 +131,6 @@ describe('useKickDetection hook logic', () => {
       playerName: 'Test Player',
       joinedAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
-      isHost: false,
       isBanned: false,
       status: 'active',
     };
@@ -147,13 +143,12 @@ describe('useKickDetection hook logic', () => {
 
   it('handles edge case of banned status', () => {
     const bannedMembership: RoomMembership = {
-      id: 'member-banned',
+      id: 'member-456',
       roomId: 'room-123',
-      userId: 'user-123',
+      userId: 'user-456',
       playerName: 'Banned Player',
       joinedAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
-      isHost: false,
       isBanned: true,
       status: 'active', // Can still be 'active' even if banned
     };

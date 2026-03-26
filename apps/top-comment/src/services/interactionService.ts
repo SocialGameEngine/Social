@@ -2,7 +2,8 @@ import { supabase } from "../supabase/client";
 import { censorText } from "../shared/utils/profanityFilter";
 import { createRateLimiter } from "../shared/utils/rateLimiter";
 import { RATE_LIMITS } from "../shared/constants/rateLimits";
-import type { Interaction, InteractionResponse, InteractionVote, HeadlineFibbageSettings, VotingOption, HeadlineResults, TopicResponseWithUpvotes, PollVote, PollResults, TopicSortBy } from "../domain/types/interaction.types";
+import type { Interaction, InteractionResponse, InteractionVote, HeadlineFibbageSettings, VotingOption, HeadlineResults, TopicResponseWithUpvotes, PollVote, PollResults, TopicSortBy, TriviaInteractionSettings, TriviaSubmission, TriviaReveal } from "../domain/types/interaction.types";
+import type { TriviaSubmissionRow, TriviaEvaluationRow } from "../domain/types/database.types";
 
 const responseLimiter = createRateLimiter(RATE_LIMITS.response.maxActions, RATE_LIMITS.response.windowMs);
 const voteLimiter = createRateLimiter(RATE_LIMITS.vote.maxActions, RATE_LIMITS.vote.windowMs);
@@ -633,6 +634,196 @@ async function getPollResults(
   return { options, totalVotes, userVote };
 }
 
+// --- Trivia Methods ---
+
+async function createTriviaInteraction(params: {
+  roomId: string;
+  questionId: string;
+  answerSeconds?: number;
+  scoring?: {
+    pointsCorrect?: number;
+    pointsPartial?: number;
+    speedBonusEnabled?: boolean;
+    maxSpeedBonus?: number;
+  };
+  policy?: {
+    allowAnswerChangeUntilClose?: boolean;
+    lateSubmissions?: 'reject' | 'mark_late';
+    showCorrectAnswerAtReveal?: boolean;
+    showExplanationAtReveal?: boolean;
+  };
+}): Promise<Interaction> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) throw new Error("User not authenticated");
+
+  const answerSeconds = params.answerSeconds ?? 60;
+  const closesAt = new Date(Date.now() + answerSeconds * 1000).toISOString();
+  const revealsAt = new Date(Date.now() + (answerSeconds + 10) * 1000).toISOString(); // 10s after close
+
+  const timing = {
+    opensAt: new Date().toISOString(),
+    closesAt,
+    revealsAt,
+  };
+
+  const scoring = {
+    pointsCorrect: params.scoring?.pointsCorrect ?? 100,
+    pointsPartial: params.scoring?.pointsPartial ?? 50,
+    speedBonusEnabled: params.scoring?.speedBonusEnabled ?? false,
+    maxSpeedBonus: params.scoring?.maxSpeedBonus ?? 0,
+  };
+
+  const policy = {
+    allowAnswerChangeUntilClose: params.policy?.allowAnswerChangeUntilClose ?? false,
+    lateSubmissions: params.policy?.lateSubmissions ?? 'reject',
+    showCorrectAnswerAtReveal: params.policy?.showCorrectAnswerAtReveal ?? true,
+    showExplanationAtReveal: params.policy?.showExplanationAtReveal ?? true,
+  };
+
+  // Use the database function to create interaction with snapshot
+  const { data, error } = await supabase
+    .rpc('create_trivia_interaction', {
+      p_room_id: params.roomId,
+      p_created_by: userData.user.id,
+      p_question_id: params.questionId,
+      p_timing: timing,
+      p_scoring: scoring,
+      p_policy: policy,
+    });
+
+  if (error) throw new Error(`Failed to create trivia interaction: ${error.message}`);
+  if (!data) throw new Error('Failed to create trivia interaction: No data returned');
+
+  // Fetch the created interaction with all fields
+  const { data: interaction, error: fetchError } = await supabase
+    .from('interactions')
+    .select('*')
+    .eq('id', data as unknown as string)
+    .single();
+
+  if (fetchError) throw new Error(`Failed to fetch created interaction: ${fetchError.message}`);
+  return mapInteraction(interaction);
+}
+
+async function submitTriviaAnswer(
+  interactionId: string,
+  membershipId: string,
+  payload: { format: 'multiple_choice'; selectedOptionId: string } | { format: 'written_answer'; rawText: string }
+): Promise<any> {
+  // Use the database function to submit answer and get immediate grading result
+  const { data, error } = await supabase
+    .rpc('submit_trivia_answer', {
+      p_interaction_id: interactionId,
+      p_member_id: membershipId,
+      p_payload: payload,
+    });
+
+  if (error) throw new Error(`Failed to submit trivia answer: ${error.message}`);
+  if (!data) throw new Error('Failed to submit trivia answer: No data returned');
+  // Return the immediate grading result
+  return data;
+}
+
+
+async function getTriviaSubmission(
+  interactionId: string,
+  membershipId: string
+): Promise<TriviaSubmission | null> {
+  // Use raw SQL query with proper typing
+  const { data, error } = await supabase
+    .from('trivia_submissions')
+    .select('id, interaction_id, room_id, member_id, submitted_at, latency_ms, payload, status')
+    .eq('interaction_id', interactionId)
+    .eq('member_id', membershipId)
+    .maybeSingle() as any; // Temporary until types are generated
+
+  if (error) throw new Error(`Failed to fetch trivia submission: ${error.message}`);
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    interactionId: data.interaction_id,
+    roomId: data.room_id,
+    memberId: data.member_id,
+    submittedAt: data.submitted_at,
+    latencyMs: data.latency_ms,
+    payload: data.payload,
+    status: data.status,
+  };
+}
+
+async function getTriviaReveal(interactionId: string, _membershipId: string): Promise<TriviaReveal> {
+  // Get the interaction to extract snapshot data
+  const { data: interaction, error: intError } = await supabase
+    .from('interactions')
+    .select('settings')
+    .eq('id', interactionId)
+    .single();
+
+  if (intError) throw new Error(`Failed to fetch interaction: ${intError.message}`);
+
+  const settings = interaction.settings as unknown as TriviaInteractionSettings;
+  const snapshot = settings.snapshot;
+
+  // Get all submissions for this interaction
+  const { data: submissions, error: subError } = await supabase
+    .from('trivia_submissions')
+    .select('id, interaction_id, room_id, member_id, submitted_at, latency_ms, payload, status')
+    .eq('interaction_id', interactionId) as any;
+
+  if (subError) throw new Error(`Failed to fetch submissions: ${subError.message}`);
+
+  // Get all evaluations for this interaction
+  const { data: evaluations, error: evalError } = await supabase
+    .from('trivia_evaluations')
+    .select('*')
+    .eq('interaction_id', interactionId) as any;
+
+  if (evalError) throw new Error(`Failed to fetch evaluations: ${evalError.message}`);
+
+  // Calculate statistics
+  const totalResponses = submissions?.length || 0;
+  const correctResponses = evaluations?.filter((e: TriviaEvaluationRow) => e.result === 'correct').length || 0;
+  const averageResponseTime = submissions?.reduce((acc: number, s: TriviaSubmissionRow) => acc + (s.latency_ms || 0), 0) / Math.max(totalResponses, 1) || 0;
+
+  // Build answer distribution
+  const distribution: Record<string, number> = {};
+  submissions?.forEach((s: TriviaSubmissionRow) => {
+    const payload = s.payload as { format: string; selectedOptionId?: string; rawText?: string };
+    const key = payload.format === 'multiple_choice' 
+      ? payload.selectedOptionId 
+      : payload.rawText;
+    if (key) distribution[key] = (distribution[key] || 0) + 1;
+  });
+
+  // Get correct answer
+  let correctAnswer = '';
+  if (snapshot.multipleChoice) {
+    correctAnswer = snapshot.multipleChoice.correctOptionId;
+  } else if (snapshot.writtenAnswer) {
+    correctAnswer = snapshot.writtenAnswer.acceptedAliases[0] || '';
+  }
+
+  // TODO: Implement leaderboard delta calculation
+  const leaderboardDelta = {
+    topPlayers: [],
+    personalDelta: undefined,
+  };
+
+  return {
+    interactionId,
+    correctAnswer,
+    explanation: snapshot.explanation || '',
+    statistics: {
+      totalResponses,
+      correctResponses,
+      averageResponseTime,
+      distribution,
+    },
+    leaderboardDelta,
+  };
+}
+
 export const interactionService = {
   createInteraction,
   closeInteraction,
@@ -658,4 +849,9 @@ export const interactionService = {
   createPoll,
   submitPollVote,
   getPollResults,
+  // Trivia methods
+  createTriviaInteraction,
+  submitTriviaAnswer,
+  getTriviaSubmission,
+  getTriviaReveal,
 };

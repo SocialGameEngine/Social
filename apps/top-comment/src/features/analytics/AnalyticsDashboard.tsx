@@ -11,7 +11,7 @@ import { DateRangePicker } from "./components/DateRangePicker";
 
 export function AnalyticsDashboard() {
   const { roomCode } = useParams<{ roomCode: string }>();
-  const { user, isVenueAccount } = useAuth();
+  const { user } = useAuth();
 
   const { room, isLoading: roomLoading } = useRoom({ roomCode });
 
@@ -28,9 +28,9 @@ export function AnalyticsDashboard() {
     refresh,
   } = useVenueAnalytics({ roomId: room?.id });
 
-  // Access control: must be venue account or room host
-  const isHost = room?.hostUid === user?.id;
-  if (!roomLoading && room && !isHost && !isVenueAccount) {
+  // Access control: must be room host
+  const isHost = room?.creatorId === user?.id;
+  if (!roomLoading && room && !isHost) {
     return <Navigate to="/" replace />;
   }
 

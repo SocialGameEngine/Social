@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Button, FormField, Modal } from "@social/ui";
+import { Button } from "../../../components/Button";
+import { FormField } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 import { usePromptLibraries } from "../../../shared/hooks/usePromptLibraries";
 import type { PromptLibraryId } from "../../../shared/promptLibraries";
@@ -49,34 +50,38 @@ export function CreateSessionModal({
 
   const canSubmit = createForm.gameMode === "classic" || (createForm.gameMode === "mashup" && createForm.selectedLibraries.length >= 2);
 
+  if (!open) return null;
+
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={title ?? "Create a Söcial session"}
-      isDark={isDark}
-      footer={
-        <div className="flex w-full items-center justify-between">
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            form="create-session-form"
-            type="submit"
-            isLoading={isCreating}
-            disabled={!canCreateSession || isCreating || !canSubmit}
-            title={
-              !canCreateSession
-                ? "Please wait for authentication to complete"
-                : undefined
-            }
+    <div className="fixed inset-0 z-50 flex sm:items-center sm:justify-center sm:p-4">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        onClick={!isCreating ? onClose : undefined}
+      />
+      
+      {/* Modal Content */}
+      <div className="relative w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-2xl overflow-y-auto shadow-2xl bg-slate-900">
+        {/* Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-slate-700/50 bg-slate-900">
+          <h2 className="text-lg font-bold text-white">
+            {title ?? "Create a Söcial session"}
+          </h2>
+          <button
+            onClick={onClose}
+            disabled={isCreating}
+            className="text-slate-400 hover:text-slate-200 transition-colors"
+            aria-label="Close"
           >
-            {submitLabel ?? "Create session"}
-          </Button>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-      }
-    >
-      <form id="create-session-form" className="space-y-4" onSubmit={onSubmit}>
+        
+        {/* Content */}
+        <div className="p-4 sm:p-6">
+          <form id="create-session-form" className="space-y-4" onSubmit={onSubmit}>
         {!canCreateSession && (
           <div className={`rounded-lg border p-3 text-sm ${!isDark ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-slate-700 border-cyan-400/50 text-cyan-200'}`}>
             <p className="font-semibold">Venue account required</p>
@@ -238,7 +243,31 @@ export function CreateSessionModal({
           You'll get a 6-character room code and QR to share with teams.
           Anonymous sign-in keeps things lightweight.
         </p>
-      </form>
-    </Modal>
+          </form>
+        </div>
+        
+        {/* Footer */}
+        <div className="sticky bottom-0 border-t border-slate-700/50 bg-slate-900 p-4">
+          <div className="flex w-full items-center justify-between">
+            <Button variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              form="create-session-form"
+              type="submit"
+              isLoading={isCreating}
+              disabled={!canCreateSession || isCreating || !canSubmit}
+              title={
+                !canCreateSession
+                  ? "Please wait for authentication to complete"
+                  : undefined
+              }
+            >
+              {submitLabel ?? "Create session"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRoomPage } from '../hooks/useRoomPage';
 import { useAuth } from '../../../shared/providers/AuthContext';
-import { VIBoxJukebox } from '../../../shared/components/vibox/VIBoxJukebox';
+import { VIBoxJukebox } from '../../../shared/components/vibox';
 import { BackgroundAnimation } from '../../../components/BackgroundAnimation';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { SessionPanel } from './layout/SessionPanel';
@@ -15,7 +15,6 @@ import { RoomFloatingButtons } from './RoomFloatingButtons';
 import { RoomBottomNav } from './RoomBottomNav';
 import { AuthModal } from '../../../shared/components/AuthModal';
 import { JoinRoomModal } from '../../../shared/components/JoinRoomModal';
-import { ReactionBar } from './ReactionBar';
 import { ReactionOverlay } from './ReactionOverlay';
 import { TabNavigation } from './TabNavigation';
 import { CommunityFeed } from './CommunityFeed';
@@ -37,8 +36,11 @@ export function RoomPageContent() {
 
   // Check if user has a membership in this room (for interactive features)
   const myMembership = user ? memberships?.find(m => m.userId === user.id) : null;
-  const isHost = room?.hostUid === user?.id;
-  const hasMembership = !!myMembership || isHost;
+  const hasMembership = !!myMembership;
+  
+  // Room page is for participants only - no moderator/host functionality here
+  // Even venue accounts are participants when joining someone else's room
+  const isModerator = false;
 
   // ALL hooks must be called before any conditional returns
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -73,28 +75,16 @@ export function RoomPageContent() {
     }
   }, [room?.code]);
 
-  const requireMembership = useCallback(() => {
-    if (!hasMembership) {
-      setShowJoinModal(true);
-      return false;
-    }
-    return true;
-  }, [hasMembership]);
-
+  
   // Custom hooks that depend on user state
-  const { reactions, reactionCounts, bursts, sendReaction } = useReactions({
+  const { reactions, bursts } = useReactions({
     roomId: room?.id,
     membershipId: myMembership?.id,
   });
 
-  const handleReaction = useCallback((emoji: any) => {
-    if (requireMembership()) {
-      sendReaction(emoji);
-    }
-  }, [requireMembership, sendReaction]);
 
   const { blockedIds, blockPlayer } = useBlocks({ membershipId: myMembership?.id, roomId: room?.id });
-  const { pendingCount: pendingReportCount } = useReports({ roomId: room?.id, isHost });
+  const { pendingCount: pendingReportCount } = useReports({ roomId: room?.id });
 
   const {
     pendingChallenges,
@@ -162,26 +152,26 @@ export function RoomPageContent() {
     session,
     sessionId,
     roomId: room?.id,
-    state,
-    openModal,
-    closeModal,
-    openEndedModal,
-    closeEndedModal,
-    markSubmitted,
-    handleLeaveRoom,
     userId: user?.id,
     membershipId: myMembership?.id,
     displayName: myDisplayName,
-    showLobbyDrawer,
-    showChatDrawer,
+    showChatLobbyDrawer: showChatDrawer || showLobbyDrawer,
     showLeaderboardDrawer,
-    isMobile,
-    isHost,
     showHowToPlay,
-    onCloseLobby: () => setShowLobbyDrawer(false),
-    onCloseChat: () => setShowChatDrawer(false),
+    onCloseChatLobby: () => {
+      setShowChatDrawer(false);
+      setShowLobbyDrawer(false);
+    },
     onCloseLeaderboard: () => setShowLeaderboardDrawer(false),
     onCloseHelp: () => setShowHowToPlay(false),
+    blockPlayer: async (membershipId: string) => {
+      // TODO: Implement block player functionality
+      console.log('Block player:', membershipId);
+    },
+    onChallengePlayer: (membershipId: string, playerName: string) => {
+      // TODO: Implement challenge player functionality
+      console.log('Challenge player:', membershipId, playerName);
+    },
   };
 
   // Shared modal props
@@ -252,6 +242,7 @@ export function RoomPageContent() {
             room={room}
             memberships={memberships}
             hasActiveSession={!!session && session.status !== 'ended'}
+            session={session}
           />
         </div>
       ) : (
@@ -296,7 +287,7 @@ export function RoomPageContent() {
           }}
           targetName={challengeTarget?.name || ''}
         />
-        {!isHost && hasMembership && (
+        {hasMembership && (
           <div className="fixed bottom-20 left-4 z-30">
             <SubmitQuestionButton onClick={() => setShowSubmitQuestion(true)} />
           </div>
@@ -322,7 +313,7 @@ export function RoomPageContent() {
         <VIBoxJukebox
           isOpen={showVIBox}
           onClose={() => setShowVIBox(false)}
-          toast={(options) => console.log('Toast:', options)}
+          toast={(options: { title: string; variant: "success" | "error" | "info" }) => console.log('Toast:', options)}
           mode="team"
         />
         {showAuthModal && (
@@ -354,23 +345,19 @@ export function RoomPageContent() {
         <div className="flex-1 flex flex-col min-h-0 sm:overflow-hidden">
           <RoomHeader
             roomCode={room?.code}
-            showVIBox={showVIBox}
-            showHowToPlay={showHowToPlay}
-            onToggleVIBox={() => setShowVIBox(!showVIBox)}
-            onToggleHelp={() => setShowHowToPlay(!showHowToPlay)}
-            onLeaveRoom={handleLeaveRoom}
           />
           {mainContent}
         </div>
         <RoomSidebar
           memberships={memberships}
+          room={room}
           isCollapsed={isRailCollapsed}
           onToggle={() => setIsRailCollapsed(!isRailCollapsed)}
           roomId={room?.id}
           userId={user?.id}
           membershipId={myMembership?.id}
           displayName={myDisplayName}
-          isHost={isHost}
+          isModerator={isModerator}
           blockedIds={blockedIds}
           blockPlayer={blockPlayer}
           pendingReportCount={pendingReportCount}
@@ -400,8 +387,8 @@ export function RoomPageContent() {
         targetName={challengeTarget?.name || ''}
       />
 
-      {/* Submit question button (for non-hosts) */}
-      {!isHost && (
+      {/* Submit question button */}
+      {hasMembership && (
         <div className="fixed bottom-20 left-4 z-30">
           <SubmitQuestionButton 
             onClick={() => setShowSubmitQuestion(true)} 
@@ -417,18 +404,12 @@ export function RoomPageContent() {
       />
 
       <ReactionOverlay reactions={reactions} bursts={bursts} />
-      <ReactionBar 
-        onReact={handleReaction} 
-        reactionCounts={reactionCounts} 
-        isMember={hasMembership}
-        onJoinRoom={() => setShowJoinModal(true)}
-      />
       <RoomDrawers {...drawerProps} />
       <RoomModals {...modalProps} />
       <VIBoxJukebox
         isOpen={showVIBox}
         onClose={() => setShowVIBox(false)}
-        toast={(options) => console.log('Toast:', options)}
+        toast={(options: { title: string; variant: "success" | "error" | "info" }) => console.log('Toast:', options)}
         mode="team"
       />
       {showAuthModal && (

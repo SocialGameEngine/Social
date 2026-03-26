@@ -1,12 +1,16 @@
-import { Card, Button } from "@social/ui";
+import { Card } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
+import type { ReactNode } from "react";
 
 interface LobbyPhaseProps {
   inviteLink: string;
   storedCode: string | null;
   sessionId: string | null;
   handleCopyLink: (link: string) => void;
-  sessionCode?: string;
+  promptLibraryContent?: ReactNode;
+  sessionControls?: ReactNode;
+  actionButtons?: ReactNode;
+  sessionPlayers?: ReactNode;
 }
 
 export function LobbyPhase({
@@ -14,7 +18,10 @@ export function LobbyPhase({
   storedCode,
   sessionId,
   handleCopyLink,
-  sessionCode,
+  promptLibraryContent,
+  sessionControls,
+  actionButtons,
+  sessionPlayers,
 }: LobbyPhaseProps) {
   const { isDark } = useTheme();
 
@@ -22,20 +29,11 @@ export function LobbyPhase({
     <Card className="space-y-5" isDark={isDark}>
       <div className="flex items-center justify-between">
         <h3 className={`text-xl font-semibold ${!isDark ? 'text-slate-900' : 'text-pink-400'}`}>
-          {sessionId ? "Session Lobby" : "Waiting for players"}
+          {sessionId ? "Session" : "Session"}
         </h3>
         <div className="flex gap-2">
-          <Button onClick={() => handleCopyLink(sessionCode ?? "")} variant="secondary" size="sm">
-            Copy Code
-          </Button>
-          <Button 
-            onClick={() => sessionId && window.open(`/presenter/${sessionId}`, "_blank")} 
-            variant="ghost" 
-            size="sm"
-            disabled={!sessionId}
-          >
-            Presenter View
-          </Button>
+          {sessionControls}
+          {actionButtons}
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-1">
@@ -52,6 +50,21 @@ export function LobbyPhase({
           </span>
         </button>
       </div>
-      </Card>
+
+      {/* Prompt Library Section */}
+      {promptLibraryContent && (
+        <div className={`border-t pt-5 ${!isDark ? 'border-slate-200' : 'border-cyan-400/20'}`}>
+          {promptLibraryContent}
+        </div>
+      )}
+
+      {/* Session Players */}
+      {sessionPlayers && (
+        <div className={`border-t pt-5 ${!isDark ? 'border-slate-200' : 'border-cyan-400/20'}`}>
+          {sessionPlayers}
+        </div>
+      )}
+
+            </Card>
   );
 }

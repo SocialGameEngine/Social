@@ -58,7 +58,7 @@ export function ReportModal({
     : `Report ${contentType === 'chat_message' ? 'Message' : contentType === 'response' ? 'Response' : 'Player'}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-sm mx-4 bg-slate-800 border border-slate-700 rounded-xl shadow-xl">
         <div className="p-4 border-b border-slate-700">
           <h3 className="text-sm font-semibold text-white">{title}</h3>

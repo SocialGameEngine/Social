@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Modal, Button } from '@social/ui';
-import { useTheme } from '../../../../shared/providers/ThemeProvider';
+import { Button } from '@social/ui';
 
 interface CreatePollModalProps {
   isOpen: boolean;
@@ -9,27 +8,22 @@ interface CreatePollModalProps {
 }
 
 function CreatePollModal({ isOpen, onClose, onSubmit }: CreatePollModalProps) {
-  const { isDark } = useTheme();
   const [question, setQuestion] = useState('');
   const [description, setDescription] = useState('');
   const [options, setOptions] = useState(['', '']);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
 
   const handleSubmit = async () => {
     if (!question.trim()) {
-      setError('Question is required');
       return;
     }
 
     const validOptions = options.filter(opt => opt.trim());
     if (validOptions.length < 2) {
-      setError('At least 2 options are required');
       return;
     }
 
     setIsSubmitting(true);
-    setError('');
 
     try {
       await onSubmit(question.trim(), validOptions.map(opt => opt.trim()), description.trim() || undefined);
@@ -38,7 +32,7 @@ function CreatePollModal({ isOpen, onClose, onSubmit }: CreatePollModalProps) {
       setOptions(['', '']);
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to create poll');
+      console.error('Failed to create poll:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -49,7 +43,6 @@ function CreatePollModal({ isOpen, onClose, onSubmit }: CreatePollModalProps) {
       setQuestion('');
       setDescription('');
       setOptions(['', '']);
-      setError('');
       onClose();
     }
   };
@@ -72,73 +65,87 @@ function CreatePollModal({ isOpen, onClose, onSubmit }: CreatePollModalProps) {
     setOptions(newOptions);
   };
 
+  if (!isOpen) return null;
+
   return (
-    <Modal open={isOpen} onClose={handleClose} isDark={isDark} title="Create Poll">
-      <div className="flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center gap-3">
-          <span className="text-3xl">📊</span>
-          <h2 className={`text-2xl font-bold ${!isDark ? 'text-slate-900' : 'text-white'}`}>
-            Create Poll
-          </h2>
+    <div className="fixed inset-0 z-[100] flex sm:items-center sm:justify-center sm:p-4">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        onClick={!isSubmitting ? handleClose : undefined}
+      />
+      
+      {/* Modal Content */}
+      <div className="relative w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-lg overflow-y-auto shadow-2xl bg-slate-900">
+        {/* Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-slate-700/50 bg-slate-900">
+          <h2 className="text-lg font-bold text-white">Create Poll</h2>
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="text-slate-400 hover:text-slate-200 transition-colors"
+            aria-label="Close"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        <p className={`text-sm ${!isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-          Create a multiple choice poll with 2-5 options. Members can vote and change their vote anytime.
-        </p>
-
-        {error && (
-          <div className="px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/50">
-            <p className="text-sm text-red-500 font-semibold">{error}</p>
+        {/* Content */}
+        <div className="space-y-4 p-4 sm:p-5">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">📊</span>
+            <h2 className="text-2xl font-bold text-white">
+              Create Poll
+            </h2>
           </div>
-        )}
 
-        <div className="flex flex-col gap-2">
-          <label className={`text-sm font-semibold ${!isDark ? 'text-slate-700' : 'text-slate-300'}`}>
-            Question *
-          </label>
-          <input
-            type="text"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Barbie or Oppenheimer?"
-            maxLength={200}
-            disabled={isSubmitting}
-            className={`px-3 py-2 rounded-lg border ${
-              !isDark
-                ? 'border-slate-300 bg-white text-slate-900 placeholder-slate-400'
-                : 'border-slate-600 bg-slate-700 text-white placeholder-slate-500'
-            } focus:outline-none focus:ring-2 focus:ring-cyan-500`}
-          />
-          <span className={`text-xs ${!isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-            {question.length}/200
-          </span>
-        </div>
+          <p className="text-sm text-slate-400">
+            Create a poll for your room to gather opinions and votes.
+          </p>
 
-        <div className="flex flex-col gap-2">
-          <label className={`text-sm font-semibold ${!isDark ? 'text-slate-700' : 'text-slate-300'}`}>
-            Description (optional)
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Add context..."
-            maxLength={500}
-            rows={2}
-            disabled={isSubmitting}
-            className={`px-3 py-2 rounded-lg border resize-none ${
-              !isDark
-                ? 'border-slate-300 bg-white text-slate-900 placeholder-slate-400'
-                : 'border-slate-600 bg-slate-700 text-white placeholder-slate-500'
-            } focus:outline-none focus:ring-2 focus:ring-cyan-500`}
-          />
-        </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-cyan-200">
+                Question *
+              </label>
+              <input
+                type="text"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="Barbie or Oppenheimer?"
+                maxLength={200}
+                disabled={isSubmitting}
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              <span className="text-xs text-slate-400">
+                {question.length}/200
+              </span>
+            </div>
 
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <label className={`text-sm font-semibold ${!isDark ? 'text-slate-700' : 'text-slate-300'}`}>
-              Options * (2-5)
-            </label>
-            {options.length < 5 && (
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-cyan-200">
+                Description (optional)
+              </label>
+              <input
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Add a description to your poll"
+                maxLength={200}
+                disabled={isSubmitting}
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              <span className="text-xs text-slate-400">
+                {description.length}/200
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-cyan-200">
+                Options
+              </label>
               <Button
                 variant="ghost"
                 size="sm"
@@ -147,59 +154,58 @@ function CreatePollModal({ isOpen, onClose, onSubmit }: CreatePollModalProps) {
               >
                 + Add Option
               </Button>
-            )}
-          </div>
-          <div className="flex flex-col gap-2">
-            {options.map((option, index) => (
-              <div key={index} className="flex gap-2">
-                <input
-                  type="text"
-                  value={option}
-                  onChange={(e) => updateOption(index, e.target.value)}
-                  placeholder={`Option ${index + 1}`}
-                  maxLength={100}
-                  disabled={isSubmitting}
-                  className={`flex-1 px-3 py-2 rounded-lg border ${
-                    !isDark
-                      ? 'border-slate-300 bg-white text-slate-900 placeholder-slate-400'
-                      : 'border-slate-600 bg-slate-700 text-white placeholder-slate-500'
-                  } focus:outline-none focus:ring-2 focus:ring-cyan-500`}
-                />
-                {options.length > 2 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeOption(index)}
+            </div>
+            <div className="flex flex-col gap-2">
+              {options.map((option, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={option}
+                    onChange={(e) => updateOption(index, e.target.value)}
+                    placeholder={`Option ${index + 1}`}
+                    maxLength={100}
                     disabled={isSubmitting}
-                  >
-                    ✕
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+                    className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  {options.length > 2 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeOption(index)}
+                      disabled={isSubmitting}
+                    >
+                      ✕
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
 
-        <div className="flex gap-3 mt-2">
-          <Button
-            variant="secondary"
-            onClick={handleClose}
-            disabled={isSubmitting}
-            className="flex-1"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!question.trim() || options.filter(opt => opt.trim()).length < 2 || isSubmitting}
-            isLoading={isSubmitting}
-            className="flex-1"
-          >
-            Create Poll
-          </Button>
+            {/* Footer */}
+            <div className="sticky bottom-0 border-t border-slate-700/50 bg-slate-900 p-4">
+              <div className="flex gap-3">
+                <Button
+                  variant="secondary"
+                  onClick={handleClose}
+                  disabled={isSubmitting}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!question.trim() || options.filter(opt => opt.trim()).length < 2 || isSubmitting}
+                  isLoading={isSubmitting}
+                  className="flex-1"
+                >
+                  Create Poll
+                </Button>
+              </div>
+            </div>
+          </form>
         </div>
       </div>
-    </Modal>
+    </div>
   );
 }
 

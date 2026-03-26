@@ -21,7 +21,7 @@ export function BadgeCollectionModal({ isOpen, onClose, myBadges }: BadgeCollect
   const earnedIds = new Set(myBadges.map((b) => b.badgeId));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden mx-4">
         {/* Header */}

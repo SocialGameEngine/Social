@@ -13,11 +13,11 @@ interface ChatPanelProps {
   displayName: string | undefined;
   blockedIds?: Set<string>;
   blockPlayer?: (membershipId: string) => Promise<void>;
-  isHost?: boolean;
+  isMod?: boolean;
   isMuted?: boolean;
 }
 
-export function ChatPanel({ roomId, userId, membershipId, displayName, blockedIds, blockPlayer, isHost, isMuted }: ChatPanelProps) {
+export function ChatPanel({ roomId, userId, membershipId, displayName, blockedIds, blockPlayer, isMod, isMuted }: ChatPanelProps) {
   const { messages, isLoading, isSending, sendMessage } = useRoomChat({
     roomId,
     userId,
@@ -120,7 +120,7 @@ export function ChatPanel({ roomId, userId, membershipId, displayName, blockedId
                   {isHovered && !isOwn && (
                     <ReportButton onReport={() => setReportTarget(msg)} />
                   )}
-                  {isHovered && isHost && !isOwn && (
+                  {isHovered && isMod && !isOwn && (
                     <button
                       onClick={() => handleHideMessage(msg.id)}
                       className="p-0.5 text-slate-500 hover:text-amber-400 transition-colors"

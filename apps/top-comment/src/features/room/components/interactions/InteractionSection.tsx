@@ -4,9 +4,11 @@ import { useAuth } from '../../../../shared/providers/AuthContext';
 import { useVotes } from '../../../../hooks/useVotes';
 import { interactionService } from '../../../../services/interactionService';
 import { InteractionCard } from './InteractionCard';
+import { isCurrentUserModerator } from '../../../../shared/utils/moderatorUtils';
 import type { Interaction, InteractionResponse, RoomMembership, Room } from '../../../../shared/types';
 
 const SendPromptModal = lazy(() => import('./SendPromptModal'));
+const TriviaResultsLeaderboard = lazy(() => import('./TriviaResultsLeaderboard').then(module => ({ default: module.TriviaResultsLeaderboard })));
 const SendHeadlineModal = lazy(() => import('./SendHeadlineModal'));
 const RespondModal = lazy(() => import('./RespondModal'));
 const VoteModal = lazy(() => import('./VoteModal'));
@@ -17,17 +19,20 @@ const HeadlineVoteModal = lazy(() => import('./HeadlineVoteModal'));
 const HeadlineResultsModal = lazy(() => import('./HeadlineResultsModal'));
 const TopicModal = lazy(() => import('./TopicModal'));
 const PollModal = lazy(() => import('./PollModal'));
+const TriviaModal = lazy(() => import('./TriviaModal'));
 
 interface InteractionSectionProps {
   room: Room | null;
   memberships: RoomMembership[] | null;
   hasActiveSession: boolean;
+  session?: any; // Add session prop
 }
 
 export function InteractionSection({
   room,
   memberships,
   hasActiveSession,
+  session: _session,
 }: InteractionSectionProps) {
   const { user } = useAuth();
   const { interactions, createInteraction, closeInteraction } = useInteractions({ roomId: room?.id });
@@ -44,13 +49,43 @@ export function InteractionSection({
   const [viewingHeadlineResults, setViewingHeadlineResults] = useState<Interaction | null>(null);
   const [viewingTopic, setViewingTopic] = useState<Interaction | null>(null);
   const [viewingPoll, setViewingPoll] = useState<Interaction | null>(null);
+  const [viewingTrivia, setViewingTrivia] = useState<Interaction | null>(null);
+  const [viewingTriviaLeaderboard, setViewingTriviaLeaderboard] = useState<Interaction | null>(null);
   
   // Store user's response texts locally by interaction ID
   const [userResponses, setUserResponses] = useState<Map<string, string>>(new Map());
   const [respondedIds, setRespondedIds] = useState<Set<string>>(new Set());
+  
+  // Track recent activity for each interaction
+  const [recentActivity, setRecentActivity] = useState<Map<string, boolean>>(new Map());
+  
+  // Simulate recent activity on interactions (for demo purposes)
+  useEffect(() => {
+    if (!hasActiveSession) return;
+    
+    const interval = setInterval(() => {
+      // Pick a random interaction to show activity
+      if (interactions.length > 0) {
+        const randomInteraction = interactions[Math.floor(Math.random() * interactions.length)];
+        setRecentActivity(prev => new Map(prev).set(randomInteraction.id, true));
+        
+        // Clear activity after 3 seconds
+        setTimeout(() => {
+          setRecentActivity(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(randomInteraction.id);
+            return newMap;
+          });
+        }, 3000);
+      }
+    }, 5000); // Every 5 seconds
+    
+    return () => clearInterval(interval);
+  }, [hasActiveSession, interactions]);
   const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
   const [votingResponses, setVotingResponses] = useState<InteractionResponse[]>([]);
   const [resultsResponses, setResultsResponses] = useState<InteractionResponse[]>([]);
+  const [triviaSubmissionIds, setTriviaSubmissionIds] = useState<Set<string>>(new Set());
 
   // Load votes for the interaction being voted on
   const { votes } = useVotes({
@@ -106,7 +141,29 @@ export function InteractionSection({
     interactionService.getResponses(viewingResults.id).then(setResultsResponses);
   }, [viewingResults]);
 
-  const isHost = myMembership?.isHost ?? false;
+  // Load trivia submissions for active interactions
+  useEffect(() => {
+    const triviaInteractions = interactions.filter(i => i.type === 'trivia' && i.status === 'active');
+    
+    triviaInteractions.forEach(async (interaction) => {
+      try {
+        const submission = await interactionService.getTriviaSubmission(interaction.id, myMembership?.id || '');
+        if (submission) {
+          setTriviaSubmissionIds(prev => new Set(prev).add(interaction.id));
+        } else {
+          setTriviaSubmissionIds(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(interaction.id);
+            return newSet;
+          });
+        }
+      } catch (error) {
+        console.error('Failed to check trivia submission:', error);
+      }
+    });
+  }, [interactions, myMembership]);
+
+  const isModerator = isCurrentUserModerator(room, user);
 
   const handleSendPrompt = useCallback(
     async (question: string, description?: string) => {
@@ -179,7 +236,7 @@ export function InteractionSection({
   );
 
   const hasInteractions = interactions.length > 0;
-  const showEmptyHostCard = !hasInteractions && !hasActiveSession && isHost;
+  const showEmptyHostCard = !hasInteractions && !hasActiveSession && isModerator;
 
   return (
     <div className="relative z-10 w-2xl mb-8">
@@ -250,7 +307,9 @@ export function InteractionSection({
               .map((interaction) => {
                 const hasActed =
                   interaction.status === 'active'
-                    ? respondedIds.has(interaction.id)
+                    ? interaction.type === 'trivia' 
+                      ? triviaSubmissionIds.has(interaction.id)
+                      : respondedIds.has(interaction.id)
                     : interaction.status === 'voting'
                       ? votedIds.has(interaction.id)
                       : false;
@@ -263,8 +322,9 @@ export function InteractionSection({
                   >
                     <InteractionCard
                       interaction={interaction}
-                      isHost={isHost}
+                      isModerator={isModerator}
                       hasActed={hasActed}
+                      hasRecentActivity={recentActivity.get(interaction.id) || false}
                       onRespond={() => {
                         if (interaction.type === 'headline_fibbage') {
                           setRespondingToHeadline(interaction);
@@ -272,8 +332,17 @@ export function InteractionSection({
                           setViewingTopic(interaction);
                         } else if (interaction.type === 'poll') {
                           setViewingPoll(interaction);
+                        } else if (interaction.type === 'trivia') {
+                          setViewingTrivia(interaction);
                         } else {
                           setRespondingTo(interaction);
+                        }
+                      }}
+                      onViewResults={() => {
+                        if (interaction.type === 'trivia' && interaction.status === 'results') {
+                          setViewingTriviaLeaderboard(interaction);
+                        } else {
+                          setViewingResults(interaction);
                         }
                       }}
                       onVote={() => {
@@ -284,20 +353,13 @@ export function InteractionSection({
                         }
                       }}
                       onViewResponses={() => setViewingResponses(interaction)}
-                      onViewResults={() => {
-                        if (interaction.type === 'headline_fibbage') {
-                          setViewingHeadlineResults(interaction);
-                        } else {
-                          setViewingResults(interaction);
-                        }
-                      }}
-                      onAutoAdvanceToResults={handleAutoAdvanceToResults}
+                                            onAutoAdvanceToResults={handleAutoAdvanceToResults}
                     />
                   </div>
                 );
               })}
 
-            {isHost && (
+            {isModerator && (
               <button
                 onClick={() => setShowSendModal(true)}
                 className="w-full chaos-interaction-card pl-4 pr-2 py-2 shadow-xl border-2 border-black/80 transform transition-all hover:scale-[1.04] active:scale-[0.96] opacity-60"
@@ -312,7 +374,7 @@ export function InteractionSection({
         )}
 
         {/* Results Section (Host Only) */}
-        {isHost && interactions.some(i => i.status === 'results') && (
+        {isModerator && interactions.some(i => i.status === 'results') && (
           <div className="mt-6">
             <h3 className="text-lg font-black text-black mb-3">📊 Results</h3>
             <div className="space-y-6">
@@ -322,12 +384,21 @@ export function InteractionSection({
                 <InteractionCard
                   key={interaction.id}
                   interaction={interaction}
-                  isHost={isHost}
-                  hasActed={respondedIds.has(interaction.id) || votedIds.has(interaction.id)}
+                  isModerator={isModerator}
+                  hasActed={interaction.type === 'trivia' ? triviaSubmissionIds.has(interaction.id) : respondedIds.has(interaction.id) || votedIds.has(interaction.id)}
+                  hasRecentActivity={recentActivity.get(interaction.id) || false}
                   onRespond={() => setRespondingTo(interaction)}
                   onVote={() => setVotingFor(interaction)}
                   onViewResponses={() => setViewingResponses(interaction)}
-                  onViewResults={() => setViewingResults(interaction)}
+                  onViewResults={() => {
+                    if (interaction.type === 'headline_fibbage') {
+                      setViewingHeadlineResults(interaction);
+                    } else if (interaction.type === 'trivia') {
+                      setViewingTrivia(interaction);
+                    } else {
+                      setViewingResults(interaction);
+                    }
+                  }}
                   onAutoAdvanceToResults={handleAutoAdvanceToResults}
                 />
               ))}
@@ -428,7 +499,7 @@ export function InteractionSection({
               isOpen={true}
               onClose={() => setViewingTopic(null)}
               interaction={viewingTopic}
-              membershipId={myMembership?.id || ''}
+              membershipId={myMembership?.id}
             />
           )}
 
@@ -437,7 +508,27 @@ export function InteractionSection({
               isOpen={true}
               onClose={() => setViewingPoll(null)}
               interaction={viewingPoll}
-              membershipId={myMembership?.id || ''}
+              membershipId={myMembership?.id}
+            />
+          )}
+
+          {viewingTrivia && (
+            <>
+              {console.log('Rendering TriviaModal with interaction:', viewingTrivia)}
+              <TriviaModal
+                isOpen={true}
+                onClose={() => setViewingTrivia(null)}
+                interaction={viewingTrivia}
+                membershipId={myMembership?.id || null}
+              />
+            </>
+          )}
+
+          {viewingTriviaLeaderboard && (
+            <TriviaResultsLeaderboard
+              isOpen={true}
+              onClose={() => setViewingTriviaLeaderboard(null)}
+              interaction={viewingTriviaLeaderboard}
             />
           )}
         </Suspense>

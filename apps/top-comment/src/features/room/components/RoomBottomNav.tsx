@@ -23,7 +23,7 @@ export function RoomBottomNav({
   isMember = true,
   onJoinRoom,
 }: RoomBottomNavProps) {
-  const { user, isGuest, signOut } = useAuth();
+  const { user, isAnonymous, signOut } = useAuth();
   const navigate = useNavigate();
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
@@ -90,7 +90,7 @@ export function RoomBottomNav({
         >
           <div className="text-2xl">
             {user ? (
-              isGuest ? '👤' : (
+              isAnonymous ? '👤' : (
                 <span className="text-sm font-semibold">
                   {(user.user_metadata?.display_name?.[0] || user.email?.[0] || 'U').toUpperCase()}
                 </span>
@@ -100,7 +100,7 @@ export function RoomBottomNav({
           <span className="chaos-nav-label">Profile</span>
         </button>
         {showAccountMenu && (
-          <div className="absolute bottom-full right-0 mb-2 w-64 rounded-xl bg-slate-800 border border-cyan-400/50 shadow-lg shadow-fuchsia-500/20 z-50 overflow-hidden">
+          <div className="absolute bottom-full right-0 mb-2 w-64 rounded-xl bg-slate-800 border border-cyan-400/50 shadow-lg shadow-fuchsia-500/20 z-[100] overflow-hidden">
             <div className="p-4 space-y-3">
               {user ? (
                 <>
@@ -115,7 +115,7 @@ export function RoomBottomNav({
                       <p className="text-sm text-slate-400 italic">No email</p>
                     )}
                   </div>
-                  {isGuest && (
+                  {isAnonymous && (
                     <div className="pt-2 border-t border-slate-700">
                       <p className="text-xs text-slate-400">Guest mode</p>
                     </div>

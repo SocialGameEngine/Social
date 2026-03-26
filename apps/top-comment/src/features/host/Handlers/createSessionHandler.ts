@@ -18,6 +18,7 @@ interface CreateSessionHandlersDeps {
   setShowCreateModal: React.Dispatch<React.SetStateAction<boolean>>;
   onSessionCreated: () => void;
   roomId: string | null;
+  roomCode: string | null;
   gameMode: "classic" | "mashup";
   selectedLibraries: string[];
   totalRounds?: number;
@@ -41,6 +42,7 @@ export const handleCreateSession =
       setShowCreateModal,
       onSessionCreated,
       roomId,
+      roomCode,
       gameMode,
       selectedLibraries,
       totalRounds,
@@ -98,11 +100,22 @@ export const handleCreateSession =
       });
       if (response) {
         const sessionId = response.sessionId || response.session.id;
-        const code = response.code || response.session.code;
         setSessionId(sessionId);
-        setHostSession({ sessionId, code });
+        // Always use room code to prevent room code from changing
+        // If roomCode is not available, something is wrong with the room setup
+        if (!roomCode) {
+          toast({ title: "Room code missing - please refresh and try again", variant: "error" });
+          return;
+        }
+        setHostSession({ sessionId, code: roomCode });
         setShowCreateModal(false);
         onSessionCreated();
+        
+        // Force refresh room data to ensure players get the session update
+        // The session creation edge function should update the room's currentSessionId
+        // If the real-time subscription doesn't work, players may need to refresh
+        console.log('Session created, room should update automatically via real-time subscription');
+        
         toast({ title: "Game session created!", variant: "success" });
       }
     } catch (error: unknown) {

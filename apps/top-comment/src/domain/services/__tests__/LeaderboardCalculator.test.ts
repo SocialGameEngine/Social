@@ -11,7 +11,6 @@ function makeMembership(id: string, _score: number, name?: string): RoomMembersh
     mascotId: undefined,
     joinedAt: new Date().toISOString(),
     lastActiveAt: new Date().toISOString(),
-    isHost: false,
     isBanned: false,
     status: 'active' as const,
   };

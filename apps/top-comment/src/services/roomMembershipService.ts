@@ -37,7 +37,6 @@ function mapRoomMembership(data: Record<string, any>): RoomMembership | null {
     mascotId: data.mascot_id ?? undefined,
     joinedAt: data.joined_at || '',
     lastActiveAt: data.last_active_at || '',
-    isHost: data.is_host ?? false,
     isBanned: data.is_banned ?? false,
     banReason: data.ban_reason ?? undefined,
     bannedAt: data.banned_at ?? undefined,
@@ -68,7 +67,6 @@ export async function joinRoom(request: JoinRoomRequest): Promise<JoinRoomRespon
   const room: Room = {
     id: roomData.id,
     code: roomData.code,
-    hostUid: roomData.host_uid,
     name: roomData.name || "",
     description: roomData.description || undefined,
     status: roomData.status as RoomStatus,
@@ -78,6 +76,8 @@ export async function joinRoom(request: JoinRoomRequest): Promise<JoinRoomRespon
     settings: (roomData.settings || {}) as unknown as RoomSettings,
     currentSessionId: roomData.current_session_id || undefined,
     totalSessionsPlayed: roomData.total_sessions_played || 0,
+    moderatorIds: roomData.moderator_ids || [],
+    creatorId: roomData.creator_id || roomData.host_uid || '',
   };
 
   // Check if room is archived

@@ -14,6 +14,7 @@ export interface VenueAccountRow {
   created_at: string;
   last_active_at: string;
   is_active: boolean;
+  room_id: string | null;
 }
 
 export interface VenueAccount {
@@ -27,6 +28,7 @@ export interface VenueAccount {
   createdAt: string;
   lastActiveAt: string;
   isActive: boolean;
+  roomId?: string | null;
 }
 
 export function mapVenueAccount(row: VenueAccountRow): VenueAccount {
@@ -41,6 +43,7 @@ export function mapVenueAccount(row: VenueAccountRow): VenueAccount {
     createdAt: row.created_at,
     lastActiveAt: row.last_active_at,
     isActive: row.is_active,
+    roomId: row.room_id,
   };
 }
 

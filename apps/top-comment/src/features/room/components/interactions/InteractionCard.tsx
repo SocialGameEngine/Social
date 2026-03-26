@@ -31,8 +31,9 @@ function CountdownChip({ endsAt }: { endsAt?: string | null }) {
 
 interface InteractionCardProps {
   interaction: Interaction;
-  isHost: boolean;
+  isModerator: boolean;
   hasActed: boolean;
+  hasRecentActivity?: boolean; // Add recent activity prop
   onRespond?: () => void;
   onVote?: () => void;
   onViewResponses?: () => void;
@@ -42,8 +43,9 @@ interface InteractionCardProps {
 
 export function InteractionCard({
   interaction,
-  isHost,
+  isModerator,
   hasActed,
+  hasRecentActivity,
   onRespond,
   onVote,
   onViewResponses,
@@ -55,7 +57,9 @@ export function InteractionCard({
   // Phase-aware CTA label
   const baseAction =
     interaction.status === "active"
-      ? (interaction.type === "headline_fibbage" ? "LIE" : "ANSWER")
+      ? (interaction.type === "headline_fibbage" ? "LIE" 
+         : interaction.type === "trivia" ? "ANSWER"
+         : "ANSWER")
       : interaction.status === "voting"
         ? "VOTE"
         : interaction.status === "results"
@@ -65,9 +69,13 @@ export function InteractionCard({
   const ctaLabel =
     interaction.status === "results"
       ? "VIEW"
-      : hasActed
-        ? "CHANGE"
-        : baseAction;
+      : interaction.type === "trivia"
+        ? hasActed
+          ? "VIEW RESULT"
+          : "ANSWER"
+        : hasActed
+          ? "CHANGE"
+          : baseAction;
 
   const getCtaIcon = () => {
     if (interaction.status === "results") {
@@ -149,7 +157,7 @@ export function InteractionCard({
     if (interaction.status === 'results') {
       // Everyone can view results
       if (onViewResults) onViewResults();
-    } else if (isHost) {
+    } else if (isModerator) {
       if (interaction.status === 'closed' && onViewResults) {
         onViewResults();
       } else if (interaction.type === 'topic' || interaction.type === 'poll') {
@@ -175,6 +183,7 @@ export function InteractionCard({
     ? (interaction.type === "headline_fibbage" ? "LIE" 
        : interaction.type === "topic" ? "TOPIC"
        : interaction.type === "poll" ? "VOTE"
+       : interaction.type === "trivia" ? "TRIVIA"
        : "ANSWER")
     : interaction.status === "voting"
       ? "VOTE"
@@ -184,11 +193,18 @@ export function InteractionCard({
 
   return (
   <div className="w-full flex justify-start px-2 mb-4">
+    {/* Activity pulse effect */}
+    {hasRecentActivity && (
+      <div className="absolute -inset-3 rounded-lg border-4 border-cyan-400 animate-pulse pointer-events-none z-40 shadow-lg shadow-cyan-400/50" />
+    )}
+    
     <div className="interaction-row relative flex items-stretch gap-2 w-[95%] max-w-[600px] scale-[0.96] origin-left">
       <div className="chaos-chip-rail">
         <div className="chaos-chip-stack-left">
           <span className="chaos-chip chaos-chip--type">
-            {interaction.type === "headline_fibbage" ? "FIBBAGE" : "PROMPT"}
+            {interaction.type === "headline_fibbage" ? "FIBBAGE" 
+             : interaction.type === "trivia" ? "TRIVIA"
+             : "PROMPT"}
           </span>
         </div>
 
@@ -209,20 +225,48 @@ export function InteractionCard({
           type="button"
           onClick={handleClick}
           disabled={isDisabled}
+          key={`card-${interaction.responseCount}-${interaction.voteCount}`}
           className={[
             "chaos-interaction-card relative overflow-visible w-full",
             "grid grid-rows-[var(--chip-rail-safe)_1fr_var(--phase-chip-safe)]",
             "min-h-[80px] sm:min-h-[100px]",
             "px-1",
             hasActed ? "interacted" : "",
+            "animate-[card-activity_0.6s_ease-out]",
           ].join(" ")}
         >
+          {/* Row 1: Response/Vote count indicator */}
+          <div className="row-start-1 flex justify-end items-start pt-1 pr-2">
+            {(interaction.responseCount > 0 || interaction.voteCount > 0) && (
+              <div className="flex items-center gap-1">
+                {interaction.responseCount > 0 && (
+                  <span 
+                    key={`response-${interaction.responseCount}`}
+                    className="text-xs font-bold text-white bg-blue-500 rounded-full w-5 h-5 flex items-center justify-center animate-[scale-in_0.3s_ease-out]"
+                  >
+                    {interaction.responseCount}
+                  </span>
+                )}
+                {interaction.voteCount > 0 && (
+                  <span 
+                    key={`vote-${interaction.voteCount}`}
+                    className="text-xs font-bold text-white bg-green-500 rounded-full w-5 h-5 flex items-center justify-center animate-[scale-in_0.3s_ease-out]"
+                  >
+                    {interaction.voteCount}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Row 2: only this row is centered */}
           <div className="row-start-2 grid place-items-center">
             <div className="w-full text-center">
               <p className="text-base font-black tracking-tight text-black leading-tight line-clamp-1">
                 {interaction.type === "headline_fibbage"
                   ? `🎭 ${(interaction.settings as any)?.headlineBlank || interaction.question}` 
+                  : interaction.type === "trivia"
+                  ? `🧠 ${(interaction.settings as any)?.snapshot?.prompt || interaction.question}`
                   : interaction.question}
               </p>
 
@@ -232,6 +276,13 @@ export function InteractionCard({
                   {(interaction.settings as any)?.publishedAt
                     ? new Date((interaction.settings as any).publishedAt).toLocaleDateString()
                     : ""}
+                </p>
+              )}
+              
+              {interaction.type === "trivia" && (
+                <p className="text-xs text-gray-600 mt-1">
+                  {(interaction.settings as any)?.snapshot?.categoryKey || "General"} • {" "}
+                  {(interaction.settings as any)?.snapshot?.difficulty || "medium"}
                 </p>
               )}
             </div>

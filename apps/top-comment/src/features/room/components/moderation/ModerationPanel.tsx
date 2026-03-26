@@ -7,8 +7,8 @@ import type { RoomMembership } from '../../../../shared/types';
 
 interface ModerationPanelProps {
   roomId: string | undefined;
-  isHost: boolean;
-  hostMembershipId: string | undefined;
+  isMod: boolean;
+  modMembershipId: string | undefined;
   memberships: RoomMembership[] | null;
 }
 
@@ -120,10 +120,9 @@ function ReportCard({
   );
 }
 
-export function ModerationPanel({ roomId, isHost, hostMembershipId, memberships }: ModerationPanelProps) {
+export function ModerationPanel({ roomId, isMod, modMembershipId, memberships }: ModerationPanelProps) {
   const { reports, pendingCount, isLoading, reviewReport, dismissReport } = useReports({
     roomId,
-    isHost,
   });
 
   const [mutingMemberId, setMutingMemberId] = useState<string | null>(null);
@@ -131,10 +130,10 @@ export function ModerationPanel({ roomId, isHost, hostMembershipId, memberships 
 
   const handleAction = useCallback(
     async (reportId: string, action: ReportAction) => {
-      if (!hostMembershipId || !roomId) return;
+      if (!modMembershipId || !roomId) return;
 
       const report = reports.find((r) => r.id === reportId);
-      await reviewReport(reportId, action, hostMembershipId);
+      await reviewReport(reportId, action, modMembershipId);
 
       if (report?.reportedMembershipId) {
         const reported = memberships?.find((m) => m.id === report.reportedMembershipId);
@@ -145,7 +144,7 @@ export function ModerationPanel({ roomId, isHost, hostMembershipId, memberships 
             } else if (action === 'banned') {
               await roomMembershipService.banMember({ roomId, userId: reported.userId });
             } else if (action === 'muted') {
-              await chatModerationService.muteMember(roomId, report.reportedMembershipId, hostMembershipId);
+              await chatModerationService.muteMember(roomId, report.reportedMembershipId, modMembershipId);
             }
           } catch (err) {
             console.error('Failed to execute moderation action:', err);
@@ -153,26 +152,26 @@ export function ModerationPanel({ roomId, isHost, hostMembershipId, memberships 
         }
       }
     },
-    [hostMembershipId, roomId, reports, memberships, reviewReport]
+    [modMembershipId, roomId, reports, memberships, reviewReport]
   );
 
   const handleDismiss = useCallback(
     async (reportId: string) => {
-      if (!hostMembershipId) return;
-      await dismissReport(reportId, hostMembershipId);
+      if (!modMembershipId) return;
+      await dismissReport(reportId, modMembershipId);
     },
-    [hostMembershipId, dismissReport]
+    [modMembershipId, dismissReport]
   );
 
   const handleMute = useCallback(
     async (membershipId: string, durationMinutes: number | null) => {
-      if (!roomId || !hostMembershipId) return;
+      if (!roomId || !modMembershipId) return;
       setMutingMemberId(membershipId);
       try {
         const expiresAt = durationMinutes
           ? new Date(Date.now() + durationMinutes * 60_000).toISOString()
           : undefined;
-        await chatModerationService.muteMember(roomId, membershipId, hostMembershipId, expiresAt);
+        await chatModerationService.muteMember(roomId, membershipId, modMembershipId, expiresAt);
       } catch (err) {
         console.error('Failed to mute member:', err);
       } finally {
@@ -180,7 +179,7 @@ export function ModerationPanel({ roomId, isHost, hostMembershipId, memberships 
         setMuteMenuFor(null);
       }
     },
-    [roomId, hostMembershipId]
+    [roomId, modMembershipId]
   );
 
   const handleUnmute = useCallback(
@@ -195,9 +194,9 @@ export function ModerationPanel({ roomId, isHost, hostMembershipId, memberships 
     [roomId]
   );
 
-  if (!isHost) return null;
+  if (!isMod) return null;
 
-  const nonHostMembers = memberships?.filter((m) => !m.isHost) || [];
+  const allMembers = memberships || [];
 
   return (
     <div className="flex flex-col h-full">
@@ -236,7 +235,7 @@ export function ModerationPanel({ roomId, isHost, hostMembershipId, memberships 
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Players</p>
         </div>
         <div className="max-h-40 overflow-y-auto px-3 pb-2 space-y-1">
-          {nonHostMembers.map((member) => (
+          {allMembers.map((member) => (
             <div key={member.id} className="flex items-center justify-between gap-2 py-1.5 px-2 rounded bg-slate-800/50">
               <span className="text-xs text-slate-300 truncate flex-1">{member.playerName || 'Anonymous'}</span>
               <div className="flex gap-1 shrink-0">

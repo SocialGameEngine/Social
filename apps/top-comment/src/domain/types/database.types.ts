@@ -6,7 +6,9 @@ import type { RoomStatus } from './room.types';
 export interface RoomRow {
   id: string;
   code: string;
-  host_uid: string;
+  moderator_ids: string[] | null;
+  creator_id: string | null;
+  host_uid: string | null; // Legacy - keep for backward compatibility
   name: string | null;
   description: string | null;
   status: RoomStatus;
@@ -26,7 +28,8 @@ export interface RoomMembershipRow {
   mascot_id: number | null;
   joined_at: string | null;
   last_active_at: string | null;
-  is_host: boolean | null;
+  is_host: boolean | null; // Legacy - keep for backward compatibility
+  is_mod: boolean | null; // Legacy - keep for backward compatibility
   is_banned: boolean | null;
   ban_reason: string | null;
   banned_at: string | null;
@@ -60,4 +63,75 @@ export interface InteractionRow {
   voting_ends_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// Trivia table types
+export interface TriviaSubmissionRow {
+  id: string;
+  interaction_id: string | null;
+  room_id: string;
+  member_id: string;
+  submitted_at: string | null;
+  latency_ms: number | null;
+  payload: Record<string, unknown>;
+  status: string;
+}
+
+export interface TriviaEvaluationRow {
+  id: string;
+  submission_id: string | null;
+  interaction_id: string | null;
+  room_id: string;
+  member_id: string;
+  result: string;
+  points_awarded: number;
+  method: string;
+  confidence: number | null;
+  matched_alias: string | null;
+  reasoning_short: string | null;
+  grader_version: string;
+  judged_at: string;
+}
+
+export interface TriviaQuestionRow {
+  id: string;
+  pack_id: string | null;
+  format: string;
+  category_key: string;
+  difficulty: string;
+  prompt: string;
+  explanation: string | null;
+  hint: string | null;
+  media: Record<string, unknown> | null;
+  status: string;
+  tags: string[] | null;
+  created_by: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface TriviaQuestionPackRow {
+  id: string;
+  name: string;
+  description: string | null;
+  status: string;
+  created_by: string | null;
+  created_at: string | null;
+}
+
+export interface TriviaQuestionOptionRow {
+  id: string;
+  question_id: string | null;
+  option_id: string;
+  option_text: string;
+  is_correct: boolean;
+  sort_order: number | null;
+}
+
+export interface TriviaQuestionAliasRow {
+  id: string;
+  question_id: string | null;
+  alias_text: string;
+  alias_normalized: string;
+  match_type: string;
 }

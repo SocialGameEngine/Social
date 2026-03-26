@@ -23,7 +23,8 @@ function mapRoom(data: any): Room | null {
   return {
     id: data.id,
     code: data.code,
-    hostUid: data.host_uid,
+    moderatorIds: data.moderator_ids || [],
+    creatorId: data.creator_id || data.host_uid, // Fallback to host_uid during migration
     name: data.name || "",
     description: data.description,
     status: data.status,
@@ -48,7 +49,6 @@ function mapRoomMembership(data: any): RoomMembership | null {
     mascotId: data.mascot_id,
     joinedAt: data.joined_at,
     lastActiveAt: data.last_active_at,
-    isHost: data.is_host,
     isBanned: data.is_banned,
     banReason: data.ban_reason,
     bannedAt: data.banned_at,
@@ -69,7 +69,9 @@ export async function createRoom(request: CreateRoomRequest): Promise<CreateRoom
 
   const roomData = {
     code: roomCode,
-    host_uid: userData.user.id,
+    host_uid: userData.user.id, // Legacy field for compatibility
+    creator_id: userData.user.id, // New field for creator reference
+    moderator_ids: [userData.user.id], // New field: creator is automatically a moderator
     name: request.name,
     description: request.description,
     max_players: request.maxPlayers || 50,
@@ -251,7 +253,7 @@ export async function getRoomAnalytics(request: GetRoomAnalyticsRequest): Promis
 }
 
 // Generate a unique room code
-async function generateUniqueRoomCode(): Promise<string> {
+export async function generateUniqueRoomCode(): Promise<string> {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let attempts = 0;
   const maxAttempts = 100;

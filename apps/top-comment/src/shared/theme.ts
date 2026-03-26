@@ -127,11 +127,11 @@ export const darkTheme: Theme = {
   colors: {
     background: {
       gradient: {
-        from: 'from-[#0a0a0a]',
-        via: 'via-[#1a0a1a]',
-        to: 'to-[#0a0a1a]',
+        from: 'from-[#2a1a4a]',
+        via: 'via-[#3a1a5a]',
+        to: 'to-[#2a1a5a]',
       },
-      foam: 'from-fuchsia-500/10',
+      foam: 'from-fuchsia-500/20',
     },
     bubble: {
       gradient: 'radial-gradient(circle at 30% 30%, rgba(255,0,255,0.6), rgba(6,182,212,0.3) 50%, transparent 70%)',

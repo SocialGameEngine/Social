@@ -7,6 +7,8 @@ interface PhaseButtonProps {
   onClick: () => void;
   disabled?: boolean;
   endsAt?: string;
+  customText?: string;
+  customSubText?: string;
 }
 
 export function PhaseButton({
@@ -15,6 +17,8 @@ export function PhaseButton({
   onClick,
   disabled = false,
   endsAt,
+  customText,
+  customSubText,
 }: PhaseButtonProps) {
   // Currently unused but may be needed for future timer functionality
   void endsAt;
@@ -22,12 +26,12 @@ export function PhaseButton({
   const config = getPhaseConfig(phase);
   const isAction = isActionPhase(phase);
 
-  const buttonText = hasSubmitted ? config.submittedText : config.buttonText;
-  const subText = hasSubmitted 
+  const buttonText = customText || (hasSubmitted ? config.submittedText : config.buttonText);
+  const subText = customSubText || (hasSubmitted 
     ? 'Click to change your submission'
     : isAction 
       ? config.description 
-      : undefined;
+      : undefined);
 
   // Use hero session button design for all phases
   return (
