@@ -543,6 +543,7 @@ a {
   border: 3px solid rgba(0,0,0,0.85);
   box-shadow: 0 16px 0 #000;
   padding: 18px 18px;
+  min-height: 33dvh;
   transform: rotate(-1.2deg);
   transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
 }

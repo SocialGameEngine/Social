@@ -12,12 +12,9 @@ import { MobileLayout } from '../../../shared/components/MobileLayout';
 import { RoomModals } from './RoomModals';
 import { RoomDrawers } from './RoomDrawers';
 import { RoomFloatingButtons } from './RoomFloatingButtons';
-import { RoomBottomNav } from './RoomBottomNav';
 import { AuthModal } from '../../../shared/components/AuthModal';
 import { JoinRoomModal } from '../../../shared/components/JoinRoomModal';
 import { ReactionOverlay } from './ReactionOverlay';
-import { TabNavigation } from './TabNavigation';
-import { CommunityFeed } from './CommunityFeed';
 import { useReactions } from '../../../hooks/useReactions';
 import { useBlocks } from '../../../hooks/useBlocks';
 import { useReports } from '../../../hooks/useReports';
@@ -50,7 +47,6 @@ export function RoomPageContent() {
   const [showChatDrawer, setShowChatDrawer] = useState(false);
   const [showLeaderboardDrawer, setShowLeaderboardDrawer] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
-  const [activeTab, setActiveTab] = useState<'host' | 'community'>('host');
   const [challengeTarget, setChallengeTarget] = useState<{ id: string; name: string } | null>(null);
   const [showSubmitQuestion, setShowSubmitQuestion] = useState(false);
 
@@ -143,8 +139,7 @@ export function RoomPageContent() {
   }
 
   // Configure which modals should hide the bottom navbar
-  const modalsThatHideNav: Array<'leaderboard' | 'selfie'> = ['selfie'];
-  const shouldHideBottomNav = modalsThatHideNav.some(modal => state.endedModals.includes(modal));
+  // No longer needed since bottom nav is removed
 
   // Shared drawer props
   const drawerProps = {
@@ -198,62 +193,25 @@ export function RoomPageContent() {
     setShowLeaderboardDrawer(false);
     setShowLobbyDrawer(false);
   };
-  const handleToggleLobby = () => {
-    setShowLobbyDrawer(!showLobbyDrawer);
-    setShowChatDrawer(false);
-    setShowLeaderboardDrawer(false);
-  };
-
-  // Bottom nav for mobile
-  const bottomNavigation = (
-    <RoomBottomNav
-      showLobbyDrawer={showLobbyDrawer}
-      showVIBox={showVIBox}
-      showHowToPlay={showHowToPlay}
-      onToggleLobby={handleToggleLobby}
-      onToggleVIBox={() => setShowVIBox(!showVIBox)}
-      onToggleHelp={() => setShowHowToPlay(!showHowToPlay)}
-      isMember={hasMembership}
-      onJoinRoom={() => setShowJoinModal(true)}
-    />
-  );
 
   // Shared content area (session panel + interactions or community feed)
   const mainContent = (
     <div className="flex-1 overflow-hidden relative z-10 flex flex-col">
-      <TabNavigation
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        className="flex-shrink-0"
+      <SessionPanel
+        session={session}
+        sessionId={sessionId}
+        memberships={memberships}
+        onOpenLeaderboard={() => openEndedModal('leaderboard')}
+        onOpenSelfie={() => openEndedModal('selfie')}
+        onOpenModal={openModal}
+        isSticky={!isMobile}
       />
-      
-      {activeTab === 'host' ? (
-        <div className="flex-1 overflow-y-auto pt-4">
-          <SessionPanel
-            session={session}
-            sessionId={sessionId}
-            memberships={memberships}
-            onOpenLeaderboard={() => openEndedModal('leaderboard')}
-            onOpenSelfie={() => openEndedModal('selfie')}
-            onOpenModal={openModal}
-            isSticky={!isMobile}
-          />
-          <InteractionSection
-            room={room}
-            memberships={memberships}
-            hasActiveSession={!!session && session.status !== 'ended'}
-            session={session}
-          />
-        </div>
-      ) : (
-        <CommunityFeed
-          roomId={room?.id || ''}
-          membershipId={myMembership?.id}
-          displayName={myDisplayName}
-          isMember={hasMembership}
-          onJoinRoom={() => setShowJoinModal(true)}
-        />
-      )}
+      <InteractionSection
+        room={room}
+        memberships={memberships}
+        hasActiveSession={!!session && session.status !== 'ended'}
+        session={session}
+      />
     </div>
   );
 
@@ -261,7 +219,6 @@ export function RoomPageContent() {
   if (isMobile) {
     return (
       <MobileLayout 
-        bottomNav={shouldHideBottomNav ? undefined : bottomNavigation}
         className="bg-gradient-to-b from-slate-900 to-slate-800 text-white"
       >
         <BackgroundAnimation show={true} />

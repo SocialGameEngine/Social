@@ -1290,52 +1290,7 @@ export function HostPage() {
   // Responsive layout hook for mobile detection
   const { isMobile } = useResponsiveLayout();
 
-  // Bottom navigation content for mobile
-  const mobileBottomNav = (
-    <>
-      <button
-        type="button"
-        className="chaos-nav-item"
-        onClick={() => navigate('/')}
-      >
-        <div className="text-2xl">🏠</div>
-        <span className="chaos-nav-label">Home</span>
-      </button>
-      <button
-        type="button"
-        className="chaos-nav-item"
-        onClick={() => setShowVIBoxModal(true)}
-      >
-        <div className="text-2xl">🎵</div>
-        <span className="chaos-nav-label">VIBox</span>
-      </button>
-      <button
-        type="button"
-        className="chaos-nav-item"
-        onClick={() => window.open('/help', '_blank')}
-      >
-        <div className="text-xl">❓</div>
-        <span className="chaos-nav-label">Help</span>
-      </button>
-      <button
-        type="button"
-        className="chaos-nav-item"
-        onClick={() => navigate('/profile')}
-      >
-        <div className="text-2xl">
-          {user ? (
-            <span className="text-sm font-semibold">
-              {(user.user_metadata?.display_name?.[0] || user.email?.[0] || "U").toUpperCase()}
-            </span>
-          ) : (
-            '👤'
-          )}
-        </div>
-        <span className="chaos-nav-label">Profile</span>
-      </button>
-    </>
-  );
-
+  
   // Main content (shared between mobile and desktop)
   const mainContent = (
     <>
@@ -1876,50 +1831,7 @@ export function HostPage() {
         }}
       />
 
-      {/* Bottom Navigation Bar - Mobile only */}
-      <nav className="bottom-nav sm:hidden">
-        <button
-          type="button"
-          className="chaos-nav-item"
-          onClick={() => navigate('/')}
-        >
-          <div className="text-2xl">🏠</div>
-          <span className="chaos-nav-label">Home</span>
-        </button>
-        <button
-          type="button"
-          className="chaos-nav-item"
-          onClick={() => setShowVIBoxModal(true)}
-        >
-          <div className="text-2xl">🎵</div>
-          <span className="chaos-nav-label">VIBox</span>
-        </button>
-        <button
-          type="button"
-          className="chaos-nav-item"
-          onClick={() => window.open('/help', '_blank')}
-        >
-          <div className="text-xl">❓</div>
-          <span className="chaos-nav-label">Help</span>
-        </button>
-        <button
-          type="button"
-          className="chaos-nav-item"
-          onClick={() => navigate('/profile')}
-        >
-          <div className="text-2xl">
-            {user ? (
-              <span className="text-sm font-semibold">
-                {(user.user_metadata?.display_name?.[0] || user.email?.[0] || "U").toUpperCase()}
-              </span>
-            ) : (
-              '👤'
-            )}
-          </div>
-          <span className="chaos-nav-label">Profile</span>
-        </button>
-      </nav>
-
+      
       {/* End of mainContent fragment */}
     </>
   );
@@ -1928,7 +1840,7 @@ export function HostPage() {
   if (isMobile) {
     return (
       <MobileLayout 
-        bottomNav={mobileBottomNav}
+        bottomNav={null} // No bottom navigation on host view
         className="bg-slate-950"
       >
         <div className="px-4 py-4 overflow-y-auto">
