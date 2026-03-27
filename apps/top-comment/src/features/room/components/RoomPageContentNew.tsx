@@ -30,8 +30,7 @@ import { logger } from '../../../shared/utils/logger';
 import { isCurrentUserModerator } from '../../../shared/utils/moderatorUtils';
 import { roomMembershipService } from '../../../services/roomMembershipService';
 import { interactionService } from '../../../services/interactionService';
-import { getIsMainEventMode, type SessionDisplayState } from './PhaseController';
-import { getSessionDisplayCopy } from '../utils/sessionDisplayCopy';
+import { getIsMainEventMode } from './PhaseController';
 
 function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ');
@@ -63,28 +62,6 @@ export function RoomPageContentNew() {
 
   // Calculate main event mode for visual hierarchy
   const isMainEventMode = getIsMainEventMode(session);
-
-  // Join session interaction state
-  const [isJoining, setIsJoining] = useState(false);
-  const [joinSuccess, setJoinSuccess] = useState(false);
-
-  const handleJoinSession = useCallback(async () => {
-    if (!room?.code || hasMembership) return;
-    
-    setIsJoining(true);
-    try {
-      await roomMembershipService.joinRoom({
-        code: room.code,
-        playerName: user?.user_metadata?.display_name || 'Player',
-      });
-      setJoinSuccess(true);
-      setTimeout(() => setJoinSuccess(false), 2000);
-    } catch (error) {
-      console.error('Join failed:', error);
-    } finally {
-      setIsJoining(false);
-    }
-  }, [room?.code, hasMembership, user]);
 
   // Mock data generator for participant counts (slowed down by 90%)
   const [mockData, setMockData] = useState({

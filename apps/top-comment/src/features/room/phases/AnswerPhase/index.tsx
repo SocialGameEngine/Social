@@ -2,18 +2,17 @@ import { SessionButton } from '../../components/layout/SessionButton';
 import { SessionTimer } from '@social/ui';
 import { usePhaseTimer } from '../../../../shared/hooks';
 import { getIsMainEventMode } from '../../components/PhaseController';
-import type { Session, RoomMembership } from '../../../../shared/types';
+import type { Session } from '../../../../shared/types';
 
 interface AnswerPhaseProps {
   session: Session;
   sessionId: string;
-  memberships: RoomMembership[] | null;
   hasSubmitted: boolean;
   onSubmit: () => void;
   onOpenModal?: (type: 'answer' | 'vote') => void;
 }
 
-export function AnswerPhase({ session, memberships, hasSubmitted, onOpenModal }: AnswerPhaseProps) {
+export function AnswerPhase({ session, hasSubmitted, onOpenModal }: AnswerPhaseProps) {
   const isMainEventMode = getIsMainEventMode(session);
   const { totalSeconds } = usePhaseTimer({ session });
   

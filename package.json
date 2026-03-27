@@ -13,6 +13,7 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "type-check": "turbo run type-check",
+    "pre-commit": "turbo run type-check",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {

@@ -54,7 +54,6 @@ export function PhaseController({
         <AnswerPhase
           session={session}
           sessionId={sessionId}
-          memberships={memberships}
           hasSubmitted={submissions.answer}
           onSubmit={() => markSubmitted('answer')}
           onOpenModal={onOpenModal}
@@ -67,7 +66,6 @@ export function PhaseController({
         <VotePhase
           session={session}
           sessionId={sessionId}
-          memberships={memberships}
           hasSubmitted={submissions.vote}
           onSubmit={() => markSubmitted('vote')}
           onOpenModal={onOpenModal}
@@ -76,14 +74,13 @@ export function PhaseController({
 
     case 'results':
       if (!session) return null;
-      return <ResultsPhase session={session} memberships={memberships} />;
+      return <ResultsPhase session={session} />;
 
     case 'ended':
       if (!session) return null;
       return (
         <EndedPhase
           session={session}
-          memberships={memberships}
           onOpenLeaderboard={onOpenLeaderboard}
           onOpenSelfie={onOpenSelfie}
         />

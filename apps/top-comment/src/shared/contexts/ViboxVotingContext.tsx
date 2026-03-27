@@ -62,7 +62,7 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
     try {
       if (!roomId) return;
       
-      const { data, error } = await supabase.rpc('get_vote_counts_from_db', { p_room_id: roomId });
+      const { data, error } = await (supabase.rpc as any)('get_vote_counts_from_db', { p_session_id: roomId! });
       if (error) throw error;
       
       const countsMap = new Map<string, VoteCounts>();
@@ -89,9 +89,9 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
     try {
       if (!roomId || !membershipId) return;
 
-      const { data, error } = await supabase.rpc('get_user_votes_from_db', { 
-        p_room_id: roomId, 
-        p_membership_id: membershipId 
+      const { data, error } = await (supabase.rpc as any)('get_user_votes_from_db', { 
+        p_session_id: roomId!, 
+        p_player_id: membershipId! 
       });
       if (error) throw error;
 
@@ -125,11 +125,11 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
         return;
       }
 
-      const { error } = await supabase.rpc('vote_on_track', {
-        p_room_id: roomId,
-        p_membership_id: membershipId,
+      const { error } = await (supabase.rpc as any)('vote_on_track', {
+        p_session_id: roomId!,
+        p_player_id: membershipId!,
         p_track_id: trackId,
-        p_vote_type: voteType,
+        p_vote_type: voteType
       });
 
       if (error) throw error;
@@ -198,10 +198,9 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
     try {
       if (!roomId || !membershipId) throw new Error('No room or membership context found');
       
-      const { error } = await supabase.rpc('remove_vote', {
-        p_room_id: roomId,
-        p_membership_id: membershipId,
-        p_track_id: trackId,
+      const { error } = await (supabase.rpc as any)('remove_vote', {
+        p_session_id: roomId!,
+        p_track_id: trackId
       });
 
       if (error) throw error;

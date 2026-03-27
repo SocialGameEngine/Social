@@ -2,14 +2,13 @@ import { SessionButton } from '../../components/layout/SessionButton';
 import { SessionTimer } from '@social/ui';
 import { usePhaseTimer } from '../../../../shared/hooks';
 import { getIsMainEventMode } from '../../components/PhaseController';
-import type { Session, RoomMembership } from '../../../../shared/types';
+import type { Session } from '../../../../shared/types';
 
 interface ResultsPhaseProps {
   session: Session;
-  memberships: RoomMembership[] | null;
 }
 
-export function ResultsPhase({ session, memberships }: ResultsPhaseProps) {
+export function ResultsPhase({ session }: ResultsPhaseProps) {
   const isMainEventMode = getIsMainEventMode(session);
   const { totalSeconds } = usePhaseTimer({ session });
   

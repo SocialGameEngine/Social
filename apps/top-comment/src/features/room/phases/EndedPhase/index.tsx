@@ -2,16 +2,15 @@ import { SessionButton } from '../../components/layout/SessionButton';
 import { SessionTimer } from '@social/ui';
 import { usePhaseTimer } from '../../../../shared/hooks';
 import { getIsMainEventMode } from '../../components/PhaseController';
-import type { Session, RoomMembership } from '../../../../shared/types';
+import type { Session } from '../../../../shared/types';
 
 interface EndedPhaseProps {
   session: Session;
-  memberships: RoomMembership[] | null;
   onOpenLeaderboard: () => void;
   onOpenSelfie: () => void;
 }
 
-export function EndedPhase({ session, memberships, onOpenLeaderboard, onOpenSelfie }: EndedPhaseProps) {
+export function EndedPhase({ session, onOpenLeaderboard, onOpenSelfie }: EndedPhaseProps) {
   const isMainEventMode = getIsMainEventMode(session);
   const { totalSeconds } = usePhaseTimer({ session });
   
