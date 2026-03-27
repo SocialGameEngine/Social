@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '../../supabase/client';
-import { getSessionId } from '../utils/session';
 
 // Application types
 interface VoteCounts {
@@ -15,8 +14,8 @@ interface VoteCounts {
 
 interface UserVote {
   track_id: string;
-  session_id: string;
-  player_id?: string;
+  room_id: string;
+  membership_id: string;
   vote_type: 'up' | 'down';
   created_at: string;
   updated_at: string;
@@ -42,15 +41,28 @@ export function useVoting() {
   return context;
 }
 
-export function VotingProvider({ children }: { children: ReactNode }) {
+interface VotingProviderProps {
+  children: ReactNode;
+  room?: any;
+  memberships?: any[];
+}
+
+export function VotingProvider({ children, room, memberships = [] }: VotingProviderProps) {
   const [voteCounts, setVoteCounts] = useState<Map<string, VoteCounts>>(new Map());
   const [userVotes, setUserVotes] = useState<Map<string, UserVote>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchVoteCounts = async () => {
+  // Get current room and membership context
+  const roomId = room?.id;
+  const membership = memberships.find(m => room?.moderatorIds.includes(m.userId) || room?.creatorId === m.userId);
+  const membershipId = membership?.id;
+
+  const fetchVoteCounts = useCallback(async () => {
     try {
-      const { data, error } = await supabase.rpc('get_vote_counts_from_db');
+      if (!roomId) return;
+      
+      const { data, error } = await supabase.rpc('get_vote_counts_from_db', { p_room_id: roomId });
       if (error) throw error;
       
       const countsMap = new Map<string, VoteCounts>();
@@ -61,7 +73,7 @@ export function VotingProvider({ children }: { children: ReactNode }) {
             upvotes: count.upvotes || 0,
             downvotes: count.downvotes || 0,
             total_votes: count.total_votes || 0,
-            net_votes: count.net_votes || 0,
+            net_votes: (count.upvotes || 0) - (count.downvotes || 0),
             last_voted_at: count.last_voted_at || new Date().toISOString(),
           });
         });
@@ -71,14 +83,16 @@ export function VotingProvider({ children }: { children: ReactNode }) {
       console.error('Error fetching vote counts:', err);
       setError('Failed to load vote counts');
     }
-  };
+  }, [roomId]);
 
-  const fetchUserVotes = async () => {
+  const fetchUserVotes = useCallback(async () => {
     try {
-      const sessionId = getSessionId();
-      if (!sessionId) return;
+      if (!roomId || !membershipId) return;
 
-      const { data, error } = await supabase.rpc('get_user_votes_from_db', { p_session_id: sessionId });
+      const { data, error } = await supabase.rpc('get_user_votes_from_db', { 
+        p_room_id: roomId, 
+        p_membership_id: membershipId 
+      });
       if (error) throw error;
 
       const votesMap = new Map<string, UserVote>();
@@ -86,8 +100,8 @@ export function VotingProvider({ children }: { children: ReactNode }) {
         data.forEach((vote: any) => {
           votesMap.set(vote.track_id, {
             track_id: vote.track_id,
-            session_id: vote.session_id,
-            player_id: vote.player_id,
+            room_id: roomId,
+            membership_id: membershipId,
             vote_type: vote.vote_type,
             created_at: vote.created_at,
             updated_at: vote.updated_at,
@@ -99,38 +113,22 @@ export function VotingProvider({ children }: { children: ReactNode }) {
       console.error('Error fetching user votes:', err);
       setError('Failed to load user votes');
     }
-  };
-
-  // Broadcast vote changes via Supabase Realtime
-  const broadcastVoteChange = (trackId: string, voteType: 'up' | 'down' | null, sessionId: string) => {
-    supabase
-      .channel('vibox-votes')
-      .send({
-        type: 'broadcast',
-        event: 'vote_update',
-        payload: {
-          track_id: trackId,
-          vote_type: voteType,
-          session_id: sessionId,
-          timestamp: new Date().toISOString(),
-        }
-      });
-  };
+  }, [roomId, membershipId]);
 
   const handleVote = async (trackId: string, voteType: 'up' | 'down') => {
     try {
-      const sessionId = getSessionId();
-      if (!sessionId) throw new Error('No session ID found');
+      if (!roomId || !membershipId) throw new Error('No room or membership context found');
 
       const currentVote = userVotes.get(trackId);
       if (currentVote?.vote_type === voteType) {
-        await removeVote(trackId, sessionId);
+        await removeVote(trackId);
         return;
       }
 
       const { error } = await supabase.rpc('vote_on_track', {
+        p_room_id: roomId,
+        p_membership_id: membershipId,
         p_track_id: trackId,
-        p_session_id: sessionId,
         p_vote_type: voteType,
       });
 
@@ -138,15 +136,14 @@ export function VotingProvider({ children }: { children: ReactNode }) {
 
       const newVote: UserVote = {
         track_id: trackId,
-        session_id: sessionId,
+        room_id: roomId,
+        membership_id: membershipId,
         vote_type: voteType,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
       setUserVotes(prev => new Map(prev).set(trackId, newVote));
-
-      // Update local vote counts immediately for instant UI feedback
       const currentCounts = voteCounts.get(trackId) || {
         track_id: trackId,
         upvotes: 0,
@@ -189,9 +186,6 @@ export function VotingProvider({ children }: { children: ReactNode }) {
 
       setVoteCounts(prev => new Map(prev).set(trackId, updatedCounts));
 
-      // Broadcast vote change
-      broadcastVoteChange(trackId, voteType, sessionId);
-
       // Refresh vote counts from database in background
       fetchVoteCounts();
     } catch (err) {
@@ -200,11 +194,14 @@ export function VotingProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const removeVote = async (trackId: string, sessionId: string) => {
+  const removeVote = async (trackId: string) => {
     try {
+      if (!roomId || !membershipId) throw new Error('No room or membership context found');
+      
       const { error } = await supabase.rpc('remove_vote', {
+        p_room_id: roomId,
+        p_membership_id: membershipId,
         p_track_id: trackId,
-        p_session_id: sessionId,
       });
 
       if (error) throw error;
@@ -250,9 +247,6 @@ export function VotingProvider({ children }: { children: ReactNode }) {
         setVoteCounts(prev => new Map(prev).set(trackId, updatedCounts));
       }
 
-      // Broadcast vote removal
-      broadcastVoteChange(trackId, null, sessionId);
-
       // Refresh vote counts from database in background
       fetchVoteCounts();
     } catch (err) {
@@ -269,29 +263,34 @@ export function VotingProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     };
     loadData();
-  }, []);
+  }, [roomId, membershipId]); // Reload when room/membership changes
 
-  // Listen for vote updates from other users
+  // Listen for vote updates directly from the vibox_votes table.
+  // This avoids relying on broadcast messages and keeps host/room in sync.
   useEffect(() => {
+    if (!roomId) return;
+    
     const channel = supabase
-      .channel('vibox-votes')
-      .on('broadcast', { event: 'vote_update' }, (payload) => {
-        const voteUpdate = payload.payload;
-        
-        if (voteUpdate.session_id === getSessionId()) {
-          // This is our own vote, ignore
-          return;
+      .channel(`vibox-votes:${roomId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'vibox_votes',
+          filter: `room_id=eq.${roomId}`,
+        },
+        () => {
+          fetchVoteCounts();
+          fetchUserVotes();
         }
-
-        // Refresh vote counts when other users vote
-        fetchVoteCounts();
-      })
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []); // Empty dependency array - only run once
+  }, [roomId, fetchVoteCounts, fetchUserVotes]); // Recreate channel when room changes
 
   const getVoteCount = (trackId: string): VoteCounts | undefined => {
     return voteCounts.get(trackId);

@@ -25,6 +25,12 @@ import { ChallengeModal } from './challenges/ChallengeModal';
 import { SubmitQuestionButton } from './submissions/SubmitQuestionButton';
 import { SubmitQuestionModal } from './submissions/SubmitQuestionModal';
 import { roomMembershipService } from '../../../services/roomMembershipService';
+import { getIsMainEventMode, type SessionDisplayState } from './PhaseController';
+import { getSessionDisplayCopy } from '../utils/sessionDisplayCopy';
+
+function cn(...classes: (string | undefined | null | false)[]): string {
+  return classes.filter(Boolean).join(' ');
+}
 
 export function RoomPageContent() {
   const { room, memberships, session, sessionId, state, openModal, closeModal, markSubmitted, openEndedModal, closeEndedModal, handleLeaveRoom } = useRoomPage();
@@ -38,6 +44,31 @@ export function RoomPageContent() {
   // Room page is for participants only - no moderator/host functionality here
   // Even venue accounts are participants when joining someone else's room
   const isModerator = false;
+
+  // Calculate main event mode for visual hierarchy
+  const isMainEventMode = getIsMainEventMode(session);
+
+  // Join session interaction state
+  const [isJoining, setIsJoining] = useState(false);
+  const [joinSuccess, setJoinSuccess] = useState(false);
+
+  const handleJoinSession = useCallback(async () => {
+    if (!room?.code || hasMembership) return;
+    
+    setIsJoining(true);
+    try {
+      await roomMembershipService.joinRoom({
+        code: room.code,
+        playerName: user?.user_metadata?.display_name || 'Player',
+      });
+      setJoinSuccess(true);
+      setTimeout(() => setJoinSuccess(false), 2000);
+    } catch (error) {
+      console.error('Join failed:', error);
+    } finally {
+      setIsJoining(false);
+    }
+  }, [room?.code, hasMembership, user]);
 
   // ALL hooks must be called before any conditional returns
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -196,7 +227,8 @@ export function RoomPageContent() {
 
   // Shared content area (session panel + interactions or community feed)
   const mainContent = (
-    <div className="flex-1 overflow-hidden relative z-10 flex flex-col">
+    <div className={cn("flex-1 overflow-hidden relative z-10 flex flex-col", 
+      isMainEventMode && "room-main-event-mode")}>
       <SessionPanel
         session={session}
         sessionId={sessionId}

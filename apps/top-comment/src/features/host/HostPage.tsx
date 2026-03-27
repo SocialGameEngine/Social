@@ -74,7 +74,7 @@ function ActivePhaseLayout({
             <div className="flex items-center justify-between mb-3">
               <h4 className={`text-sm font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-400'}`}>Interactions Panel</h4>
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" onClick={handleOpenRoomSettings}>
                   Settings
                 </Button>
               </div>
@@ -338,9 +338,15 @@ export function HostPage() {
   };
 
   const handleSignOut = async () => {
-    if (!signOut) return;
+    console.log('HostPage handleSignOut called');
+    if (!signOut) {
+      console.error('signOut function is not available');
+      return;
+    }
     try {
+      console.log('Calling signOut...');
       await signOut();
+      console.log('signOut completed, closing menu...');
       setShowAccountMenu(false);
     } catch (error) {
       console.error('Sign out failed:', error);
@@ -403,6 +409,51 @@ export function HostPage() {
     setShowRoomCreateModal(false);
     setHostRoom({ roomId: newRoom.id, code: newRoom.code });
   };
+
+  // Handler functions for modals
+  const requireVenueAccount = useCallback(() => {
+    if (canCreateSession) {
+      return true;
+    }
+
+    if (authLoading || venueAccountLoading) {
+      toast({ title: "Checking your venue access...", variant: "info" });
+    } else {
+      setShowVenueAuthPrompt(true);
+    }
+    return false;
+  }, [toast, authLoading, venueAccountLoading, canCreateSession]);
+
+  const handleOpenRoomSettings = useCallback(() => {
+    if (!requireVenueAccount()) {
+      return;
+    }
+    setRoomModalMode('settings');
+  }, [requireVenueAccount]);
+
+  const handleCreateNewSession = useCallback(() => {
+    if (!requireVenueAccount()) {
+      return;
+    }
+    if (!storedRoomId) {
+      // If no room, we need to create one first
+      setShowRoomCreateModal(true);
+      return;
+    }
+    // If room exists, create a new session
+    setShowCreateModal(true);
+  }, [requireVenueAccount, setShowCreateModal, setShowRoomCreateModal, storedRoomId]);
+
+  const handleOpenCreateModal = useCallback(() => {
+    if (!requireVenueAccount()) {
+      return;
+    }
+    if (!storedRoomId) {
+      setShowRoomCreateModal(true);
+      return;
+    }
+    setShowCreateModal(true);
+  }, [requireVenueAccount, setShowCreateModal, setShowRoomCreateModal, storedRoomId]);
 
   // Clear stored data when user signs out
   useEffect(() => {
@@ -689,30 +740,6 @@ export function HostPage() {
     isSubmittingVote,
   });
 
-  const requireVenueAccount = useCallback(() => {
-    if (canCreateSession) {
-      return true;
-    }
-
-    if (authLoading || venueAccountLoading) {
-      toast({ title: "Checking your venue access...", variant: "info" });
-    } else {
-      setShowVenueAuthPrompt(true);
-    }
-    return false;
-  }, [toast, authLoading, venueAccountLoading, canCreateSession]);
-
-  const handleOpenCreateModal = useCallback(() => {
-    if (!requireVenueAccount()) {
-      return;
-    }
-    if (!storedRoomId) {
-      setShowRoomCreateModal(true);
-      return;
-    }
-    setShowCreateModal(true);
-  }, [requireVenueAccount, setShowCreateModal, setShowRoomCreateModal, storedRoomId]);
-
   const handlePrimaryClick = useCallback(() => {
     if (!session) {
       if (!storedRoomId) {
@@ -883,7 +910,7 @@ export function HostPage() {
         <>
           <Button
             variant="secondary"
-            onClick={handleOpenCreateModal}
+            onClick={handleCreateNewSession}
             disabled={true}
             title="End the current session before starting a new one."
           >
@@ -914,7 +941,7 @@ export function HostPage() {
         <>
           <Button
             variant="secondary"
-            onClick={handleOpenCreateModal}
+            onClick={handleCreateNewSession}
           >
             New Session
           </Button>
@@ -1771,6 +1798,8 @@ export function HostPage() {
         isOpen={showVIBoxModal}
         onClose={() => setShowVIBoxModal(false)}
         toast={toast}
+        room={room}
+        memberships={roomMemberships || []}
         mode="host"
         allowUploads={true}
       />

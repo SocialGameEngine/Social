@@ -7,6 +7,23 @@ import { getSessionPhase } from '../utils/phaseConfig';
 import { useSubmissions } from '../hooks/useSubmissions';
 import type { Session, RoomMembership } from '../../../shared/types';
 
+export type SessionDisplayState =
+  | "idle"
+  | "forming"
+  | "waiting_on_host"
+  | "countdown"
+  | "joined"
+  | "answer"
+  | "vote"
+  | "results"
+  | "ended";
+
+export function getIsMainEventMode(session: Session | null): boolean {
+  if (!session) return false;
+  const status = session.status;
+  return status === 'lobby' || status === 'answer' || status === 'vote' || status === 'results';
+}
+
 interface PhaseControllerProps {
   session: Session | null;
   sessionId: string | null;

@@ -239,7 +239,7 @@ export function InteractionSection({
   const showEmptyHostCard = !hasInteractions && !hasActiveSession && isModerator;
 
   return (
-    <div className="relative z-10 w-2xl mb-8">
+    <div className="interaction-section relative z-10 w-2xl mb-8">
       <div className="px-4 pb-4 pt-0 sm:p-4">
         {/* Empty state: only show for host when no interactions */}
         {showEmptyHostCard && (

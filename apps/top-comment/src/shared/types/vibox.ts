@@ -34,17 +34,11 @@ export interface ViboxQueueInsert {
   track_id: string;
   track_title: string;
   track_artist: string;
-  track_url: string;
-  track_genre?: string;
-  track_duration?: number;
-  primary_vibe?: string;
-  secondary_vibe?: string;
-  added_by: string;
-  added_by_user_id?: string;
-  device_type?: string;
-  user_agent?: string;
-  session_id?: string;
-  team_uid?: string;
+  track_album?: string;
+  track_duration_ms?: number;
+  track_artwork_url?: string;
+  room_id: string;
+  membership_id?: string;
 }
 
 export interface ViboxQueueUpdate {
@@ -66,6 +60,8 @@ export interface Track {
   genre?: string;
   primaryVibe?: string;
   secondaryVibe?: string;
+  album?: string;
+  artwork?: string;
 }
 
 export interface TrackMetadata {

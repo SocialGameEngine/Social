@@ -1,16 +1,320 @@
 # Mobile Room UI Implementation Plan
 ## Session-First Chaos Update for `/room`
 
-This plan rewrites the mobile room-page upgrade as an implementation-ready spec for Windsurf, with **custom chaos-styled UI rules and copy-pasteable CSS** included.
+**Target**: SWE 1.5 (Windsurf AI Agent)  
+**Approach**: Phase-by-phase implementation with atomic, verifiable tasks
 
-It is based on:
-- the current `/room` page structure, where the **Session Panel** is the primary mobile focal point when active and Dailies / Interactions / More are secondary surfaces
-- the current chaos design system already present in `index.css`, especially the existing `.chaos-session-button` and related loud, chunky, neobrutal styling
-- the research conclusion that the current issue is **hierarchy + meaning**, not aesthetic direction
+This plan implements a mobile room-page upgrade with **custom chaos-styled UI** that makes the Session Panel the unmistakable primary CTA when active.
+
+**Based on**:
+- Current `/room` page structure at `apps/top-comment/src/features/room/components/`
+- Existing chaos design system in `apps/top-comment/src/index.css`
+- Hierarchy issue: Session needs stronger visual priority when forming/active
 
 ---
 
-## 1. Core directive
+## IMPLEMENTATION PHASES
+
+Each phase is atomic and can be verified independently. Complete phases in order.
+
+---
+
+## PHASE 1: CSS Foundation (30 min)
+**Goal**: Add all custom chaos styles without breaking existing UI
+
+### Task 1.1: Add Room Mode CSS
+**File**: `apps/top-comment/src/index.css`
+**Action**: Append the following CSS at the end of the file (after line 1088)
+
+**Verification**: 
+- File compiles without errors
+- No visual changes to existing UI
+- CSS classes are available but not yet applied
+
+### Task 1.2: Verify CSS Integration
+**Action**: 
+- Run `pnpm dev` 
+- Check browser console for CSS errors
+- Confirm no visual regressions
+
+**Success Criteria**: ✅ Development server runs, no CSS errors
+
+---
+
+## PHASE 2: Session Display State Logic (45 min)
+**Goal**: Create type-safe state management for session display modes
+
+### Task 2.1: Add SessionDisplayState Type
+**File**: `apps/top-comment/src/features/room/components/PhaseController.tsx`
+**Action**: Add type definition at top of file
+
+```typescript
+export type SessionDisplayState =
+  | "idle"
+  | "forming"
+  | "waiting_on_host"
+  | "countdown"
+  | "joined"
+  | "answer"
+  | "vote"
+  | "results"
+  | "ended";
+```
+
+**Verification**: TypeScript compiles without errors
+
+### Task 2.2: Create Display Copy Helper
+**File**: `apps/top-comment/src/features/room/utils/sessionDisplayCopy.ts` (NEW FILE)
+**Action**: Create utility function (see Section 10 of original plan)
+
+**Verification**: 
+- File exports `getSessionDisplayCopy` function
+- TypeScript types are correct
+- No runtime errors
+
+### Task 2.3: Add isMainEventMode Logic
+**File**: `apps/top-comment/src/features/room/components/PhaseController.tsx`
+**Action**: Add helper function
+
+```typescript
+function getIsMainEventMode(session: Session | null): boolean {
+  if (!session) return false;
+  const status = session.status;
+  return status === 'lobby' || status === 'active' || status === 'starting';
+}
+```
+
+**Verification**: Function returns boolean correctly
+
+**Success Criteria**: ✅ All TypeScript compiles, helper functions work
+
+---
+
+## PHASE 3: Session Panel Component Update (90 min)
+**Goal**: Implement new session panel UI with chaos styling
+
+### Task 3.1: Update SessionPanel Props
+**File**: `apps/top-comment/src/features/room/components/layout/SessionPanel.tsx`
+**Action**: Add new props to interface
+
+```typescript
+interface SessionPanelProps {
+  session: Session | null;
+  sessionId: string | null;
+  memberships: RoomMembership[] | null;
+  onOpenLeaderboard: () => void;
+  onOpenSelfie: () => void;
+  onOpenModal?: (type: 'answer' | 'vote') => void;
+  isSticky?: boolean;
+  // NEW PROPS
+  isMainEventMode?: boolean;
+  displayState?: SessionDisplayState;
+  onJoinSession?: () => Promise<void>;
+}
+```
+
+**Verification**: TypeScript compiles
+
+### Task 3.2: Create New Session Button Component
+**File**: `apps/top-comment/src/features/room/components/layout/SessionButton.tsx` (NEW FILE)
+**Action**: Create component using JSX structure from Section 9
+
+**Key Requirements**:
+- Use `chaos-session-button` base class
+- Apply conditional modifier classes based on `displayState`
+- Implement join feedback states
+- Use provided CSS classes exactly
+
+**Verification**:
+- Component renders without errors
+- All CSS classes apply correctly
+- Click handler works
+
+### Task 3.3: Integrate SessionButton into SessionPanel
+**File**: `apps/top-comment/src/features/room/components/layout/SessionPanel.tsx`
+**Action**: Replace existing PhaseController with new SessionButton when appropriate
+
+**Verification**:
+- Session panel displays correctly
+- No layout breaks
+- Existing phases still work
+
+**Success Criteria**: ✅ New session button renders with chaos styling
+
+---
+
+## PHASE 4: Room Mode State Management (60 min)
+**Goal**: Wire up isMainEventMode to parent components
+
+### Task 4.1: Update RoomPageContent
+**File**: `apps/top-comment/src/features/room/components/RoomPageContent.tsx`
+**Action**: 
+- Calculate `isMainEventMode` from session state
+- Pass to SessionPanel
+- Apply `room-main-event-mode` class to main container
+
+```typescript
+const isMainEventMode = session && 
+  (session.status === 'lobby' || session.status === 'active' || session.status === 'starting');
+
+// In JSX:
+<div className={cn("flex-1 overflow-hidden relative z-10 flex flex-col", 
+  isMainEventMode && "room-main-event-mode")}>
+```
+
+**Verification**:
+- Class applies when session is active
+- Class removes when session inactive
+
+### Task 4.2: Add Section Classes
+**Files**: 
+- `apps/top-comment/src/features/room/components/layout/InteractionsGrid.tsx`
+- `apps/top-comment/src/features/room/components/layout/MiscSection.tsx`
+- `apps/top-comment/src/features/room/components/interactions/InteractionSection.tsx`
+
+**Action**: Add appropriate wrapper classes
+
+```typescript
+// InteractionsGrid.tsx
+<div className="dailies-section px-4 pb-4">
+
+// MiscSection.tsx  
+<div className="misc-section px-4 pb-4">
+
+// InteractionSection.tsx
+<div className="interaction-section relative z-10 w-2xl mb-8">
+```
+
+**Verification**: CSS selectors target sections correctly
+
+**Success Criteria**: ✅ Room mode toggles visual hierarchy correctly
+
+---
+
+## PHASE 5: Join Session Interaction (45 min)
+**Goal**: Implement join session flow with feedback
+
+### Task 5.1: Add Join Handler
+**File**: `apps/top-comment/src/features/room/components/RoomPageContent.tsx`
+**Action**: Create join session handler
+
+```typescript
+const [isJoining, setIsJoining] = useState(false);
+const [joinSuccess, setJoinSuccess] = useState(false);
+
+const handleJoinSession = useCallback(async () => {
+  if (!room?.code || hasMembership) return;
+  
+  setIsJoining(true);
+  try {
+    await roomMembershipService.joinRoom({
+      code: room.code,
+      playerName: user?.user_metadata?.display_name || 'Player',
+    });
+    setJoinSuccess(true);
+    setTimeout(() => setJoinSuccess(false), 2000);
+  } catch (error) {
+    console.error('Join failed:', error);
+  } finally {
+    setIsJoining(false);
+  }
+}, [room?.code, hasMembership, user]);
+```
+
+**Verification**: Join flow works without errors
+
+### Task 5.2: Wire Join Handler to SessionButton
+**Action**: Pass handler and states as props
+
+**Verification**: 
+- Button shows "JOINING..." state
+- Success state shows "YOU'RE IN"
+- Error handling works
+
+**Success Criteria**: ✅ Join interaction provides immediate feedback
+
+---
+
+## PHASE 6: Player Stack & Meta Chips (45 min)
+**Goal**: Add player count and avatar stack
+
+### Task 6.1: Create Player Stack Component
+**File**: `apps/top-comment/src/features/room/components/layout/PlayerStack.tsx` (NEW FILE)
+**Action**: Create component using CSS from Section 8
+
+**Requirements**:
+- Show first 3 player initials
+- Show "+X" for additional players
+- Use `chaos-player-token` and `chaos-player-stack-more` classes
+
+**Verification**: Component renders correctly
+
+### Task 6.2: Add to SessionButton
+**Action**: Integrate PlayerStack into SessionButton footer
+
+**Verification**: Player stack displays when appropriate
+
+**Success Criteria**: ✅ Player count and avatars display correctly
+
+---
+
+## PHASE 7: Floating Elements Adjustment (30 min)
+**Goal**: Reduce prominence of competing CTAs during main event mode
+
+### Task 7.1: Update Submit Question Button
+**File**: `apps/top-comment/src/features/room/components/submissions/SubmitQuestionButton.tsx`
+**Action**: Add `submit-question-button` class to wrapper
+
+**Verification**: Button recedes during main event mode
+
+### Task 7.2: Verify No Overlaps
+**Action**: Test on mobile viewport
+- Session button doesn't overlap other elements
+- Floating buttons don't obscure session panel
+
+**Success Criteria**: ✅ No visual conflicts in main event mode
+
+---
+
+## PHASE 8: Testing & Polish (60 min)
+**Goal**: Verify all states and transitions
+
+### Task 8.1: Test All Display States
+**Action**: Manually trigger each state:
+- idle
+- forming  
+- waiting_on_host
+- countdown
+- joined
+- answer
+- vote
+- results
+- ended
+
+**Verification**: Each state displays correct copy and styling
+
+### Task 8.2: Test Transitions
+**Action**: Verify smooth transitions between states
+
+**Verification**: No jarring visual jumps
+
+### Task 8.3: Mobile Testing
+**Action**: Test on actual mobile device or DevTools mobile view
+- Touch targets are large enough
+- Text is readable
+- Animations perform well
+
+### Task 8.4: Accessibility Check
+**Action**: 
+- Verify reduced motion preferences respected
+- Check keyboard navigation
+- Test screen reader compatibility
+
+**Success Criteria**: ✅ All states work correctly, accessible, performant
+
+---
+
+## 1. Core Design Directive
 
 Do **not** redesign this page into a generic app.
 

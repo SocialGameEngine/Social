@@ -467,6 +467,8 @@ export function RoomPageContentNew() {
           isOpen={showVIBox}
           onClose={() => setShowVIBox(false)}
           toast={(options) => console.log('Toast:', options)}
+          room={room}
+          memberships={memberships || []}
           mode="team"
         />
         {showAuthModal && (
@@ -606,6 +608,8 @@ export function RoomPageContentNew() {
         isOpen={showVIBox}
         onClose={() => setShowVIBox(false)}
         toast={(options) => console.log('Toast:', options)}
+        room={room}
+        memberships={memberships || []}
         mode="team"
       />
       {showAuthModal && (
