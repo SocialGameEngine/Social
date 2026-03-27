@@ -1,9 +1,9 @@
 interface PlayerStackProps {
-  playerInitials: string[];
+  playerInitials?: string[];
   extraPlayers: number;
 }
 
-export function PlayerStack({ playerInitials, extraPlayers }: PlayerStackProps) {
+export function PlayerStack({ playerInitials = [], extraPlayers }: PlayerStackProps) {
   return (
     <div className="chaos-player-stack" aria-hidden="true">
       {playerInitials.slice(0, 3).map((initials, index) => (

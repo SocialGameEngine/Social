@@ -5,7 +5,7 @@ import type { RoomMembership } from '../../../shared/types';
 const LeaderboardModal = lazy(() => import('./LeaderboardModal.tsx'));
 const SelfieModal = lazy(() => import('./SelfieModal.tsx'));
 const AnswerModal = lazy(() => import('./AnswerModal.tsx'));
-const VoteModal = lazy(() => import('./VoteModal.tsx'));
+const SessionVoteModal = lazy(() => import('./VoteModal.tsx'));
 
 interface RoomModalsProps {
   state: {
@@ -80,7 +80,7 @@ export function RoomModals({
       )}
 
       {state.activeModal === 'vote' && session && sessionId && (
-        <VoteModal
+        <SessionVoteModal
           isOpen={true}
           onClose={() => closeModal()}
           sessionId={sessionId}

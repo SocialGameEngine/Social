@@ -1,4 +1,7 @@
-import { PhaseCardButton } from '../../components/PhaseCardButton';
+import { SessionButton } from '../../components/layout/SessionButton';
+import { SessionTimer } from '@social/ui';
+import { usePhaseTimer } from '../../../../shared/hooks';
+import { getIsMainEventMode } from '../../components/PhaseController';
 import type { Session, RoomMembership } from '../../../../shared/types';
 
 interface EndedPhaseProps {
@@ -8,22 +11,34 @@ interface EndedPhaseProps {
   onOpenSelfie: () => void;
 }
 
-export function EndedPhase({ onOpenLeaderboard, onOpenSelfie }: EndedPhaseProps) {
+export function EndedPhase({ session, memberships, onOpenLeaderboard, onOpenSelfie }: EndedPhaseProps) {
+  const isMainEventMode = getIsMainEventMode(session);
+  const { totalSeconds } = usePhaseTimer({ session });
+  
   return (
     <div className="w-full mb-8 space-y-4">
-      <PhaseCardButton
+      <SessionButton
+        displayState="ended"
+        session={session}
+        isMainEventMode={isMainEventMode}
         phase="ended"
-        hasSubmitted={false}
         onClick={onOpenLeaderboard}
-        disabled={false}
-        prompt="View Final Results"
       />
-      <PhaseCardButton
+      <SessionButton
+        displayState="idle"
+        session={session}
+        isMainEventMode={false}
         phase="ended"
-        hasSubmitted={false}
         onClick={onOpenSelfie}
-        disabled={false}
-        prompt="Take a Selfie"
+      />
+      <SessionTimer
+        endTime={session?.endsAt}
+        totalSeconds={totalSeconds}
+        paused={true}
+        variant="neutral"
+        isDark={false}
+        position="inline"
+        showCriticalBar={false}
       />
     </div>
   );

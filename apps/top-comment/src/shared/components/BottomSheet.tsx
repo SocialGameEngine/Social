@@ -107,7 +107,7 @@ export function BottomSheet({
         onDragEnd={!disableDrag ? handleDragEnd : undefined}
         style={{ y }}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-h-[90vh] bg-slate-900 rounded-t-3xl shadow-2xl overflow-hidden"
+        className="relative w-full h-[90vh] max-h-[90vh] bg-slate-900 rounded-t-3xl shadow-2xl overflow-hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'bottom-sheet-title' : undefined}
@@ -139,7 +139,7 @@ export function BottomSheet({
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(90vh-4rem)] pb-safe">
+        <div className="h-[calc(90vh-4rem)] overflow-y-auto pb-safe">
           {children}
         </div>
 

@@ -1,4 +1,7 @@
-import { PhaseCardButton } from '../../components/PhaseCardButton';
+import { SessionButton } from '../../components/layout/SessionButton';
+import { SessionTimer } from '@social/ui';
+import { usePhaseTimer } from '../../../../shared/hooks';
+import { getIsMainEventMode } from '../../components/PhaseController';
 import type { Session, RoomMembership } from '../../../../shared/types';
 
 interface VotePhaseProps {
@@ -10,7 +13,10 @@ interface VotePhaseProps {
   onOpenModal?: (type: 'answer' | 'vote') => void;
 }
 
-export function VotePhase({ session, hasSubmitted, onOpenModal }: VotePhaseProps) {
+export function VotePhase({ session, memberships, hasSubmitted, onOpenModal }: VotePhaseProps) {
+  const isMainEventMode = getIsMainEventMode(session);
+  const { totalSeconds } = usePhaseTimer({ session });
+  
   const handleClick = () => {
     if (onOpenModal) {
       onOpenModal('vote');
@@ -19,14 +25,21 @@ export function VotePhase({ session, hasSubmitted, onOpenModal }: VotePhaseProps
 
   return (
     <div className="w-full mb-8">
-      <PhaseCardButton
+      <SessionButton
+        displayState={hasSubmitted ? "joined" : "vote"}
+        session={session}
+        isMainEventMode={isMainEventMode}
         phase="vote"
-        hasSubmitted={hasSubmitted}
         onClick={handleClick}
-        disabled={false}
-        endsAt={session.endsAt}
-        paused={session.paused}
-        prompt={session.rounds?.[session.roundIndex || 0]?.groups?.[0]?.prompt || ''}
+      />
+      <SessionTimer
+        endTime={session?.endsAt}
+        totalSeconds={totalSeconds}
+        paused={!session?.endsAt || session?.status === 'ended' || (!session?.endsAt ? false : new Date() >= new Date(session.endsAt))}
+        variant="brand"
+        isDark={false}
+        position="inline"
+        showCriticalBar={true}
       />
     </div>
   );

@@ -1,44 +1,59 @@
 import type { SessionDisplayState } from '../PhaseController';
-
-interface SessionButtonProps {
-  displayState: SessionDisplayState;
-  statusBadgeText: string;
-  headlineText: string;
-  supportText: string;
-  joinedCountText?: string;
-  isMainEventMode?: boolean;
-  isJoining?: boolean;
-  joinSuccess?: boolean;
-  showPlayerStack?: boolean;
-  playerInitials?: string[];
-  extraPlayers?: number;
-  phase?: string;
-  onClick: () => void;
-}
+import { getSessionDisplayCopy } from '../../utils/sessionDisplayCopy';
+import { PlayerStack } from './PlayerStack';
+import { useSessionPlayers } from '../../../host/hooks/useSessionPlayers';
+import type { Session } from '../../../../shared/types';
 
 function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ');
 }
 
+interface SessionButtonProps {
+  displayState: SessionDisplayState;
+  session: Session;
+  isMainEventMode?: boolean;
+  isJoining?: boolean;
+  joinSuccess?: boolean;
+  phase?: string;
+  onClick: () => void;
+}
+
 export function SessionButton({
   displayState,
-  statusBadgeText,
-  headlineText,
-  supportText,
-  joinedCountText,
+  session,
   isMainEventMode = false,
   isJoining = false,
   joinSuccess = false,
-  showPlayerStack = false,
-  playerInitials = [],
-  extraPlayers = 0,
   phase,
   onClick,
 }: SessionButtonProps) {
+  // Get actual session participants
+  const { players: sessionPlayers } = useSessionPlayers(session?.id || null);
+  
+  // Get display copy based on session state
+  const displayCopy = getSessionDisplayCopy(displayState, {
+    joinedCount: sessionPlayers.length,
+    totalSlots: sessionPlayers.length, // Use session participants as total
+    hasJoined: displayState === "joined"
+  });
+  
+  // Extract player initials for social proof (from session participants)
+  const playerInitials = sessionPlayers.slice(0, 3).map(p => 
+    p.displayName
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  ) || [];
+  
+  const extraPlayers = Math.max(0, sessionPlayers.length - 3);
   return (
-    <button
+    <div className="pt-2">
+      <div className="relative rounded-[28px] p-3 overflow-visible">
+        <button
       className={cn(
-        "chaos-session-button",
+        "w-full chaos-session-button",
         isMainEventMode && "chaos-session-button--main-event",
         displayState === "forming" && "chaos-session-button--forming",
         displayState === "countdown" && "chaos-session-button--starting",
@@ -72,51 +87,51 @@ export function SessionButton({
                 )}
               />
             )}
-            <span>{statusBadgeText}</span>
+            <span>{displayCopy.statusBadgeText}</span>
           </div>
         </div>
 
         <div className="chaos-session-mainline">
           <div className="chaos-session-copy">
-            <h2 className="chaos-session-headline">{headlineText}</h2>
+            <h2 className="chaos-session-headline">{displayCopy.headlineText}</h2>
             <p
               className={cn(
                 "chaos-session-support",
                 joinSuccess && "chaos-session-support--success"
               )}
             >
-              {supportText}
+              {joinSuccess ? "Joined successfully!" : displayCopy.supportText}
             </p>
           </div>
 
           <div className="chaos-session-arrow" aria-hidden="true">
-            ▶
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5l8 7-8 7V5z"/>
+            </svg>
           </div>
         </div>
 
-        {(showPlayerStack || joinedCountText) && (
+        {(sessionPlayers && sessionPlayers.length > 0) && (
           <div className="chaos-session-footer">
-            {showPlayerStack ? (
-              <div className="chaos-player-stack" aria-hidden="true">
-                {playerInitials.slice(0, 3).map((initials, index) => (
-                  <span key={index} className="chaos-player-token">
-                    {initials}
-                  </span>
-                ))}
-                {extraPlayers > 0 && (
-                  <span className="chaos-player-stack-more">+{extraPlayers}</span>
-                )}
-              </div>
-            ) : (
-              <span />
+            <PlayerStack 
+              playerInitials={playerInitials} 
+              extraPlayers={extraPlayers}
+            />
+            {displayCopy.joinedCountText && (
+              <div className="chaos-session-meta-chip">{displayCopy.joinedCountText}</div>
             )}
+          </div>
+        )}
 
-            {joinedCountText ? (
-              <div className="chaos-session-meta-chip">{joinedCountText}</div>
-            ) : null}
+        {/* Tap hint for mega-button affordance */}
+        {(displayState === "forming" || displayState === "countdown") && (
+          <div className="chaos-session-tap-hint">
+            TAP ANYWHERE TO JOIN
           </div>
         )}
       </div>
     </button>
+    </div>
+  </div>
   );
 }

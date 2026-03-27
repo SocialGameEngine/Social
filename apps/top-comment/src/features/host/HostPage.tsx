@@ -67,25 +67,11 @@ function ActivePhaseLayout({
         </div>
       </Card>
       
-      {/* Interactions Panel: Room member management */}
-      {room && (
-        <Card className="space-y-5" isDark={isDark}>
-          <div className={`border-t pt-5 ${!isDark ? 'border-slate-200' : 'border-cyan-400/20'}`}>
-            <div className="flex items-center justify-between mb-3">
-              <h4 className={`text-sm font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-400'}`}>Interactions Panel</h4>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={handleOpenRoomSettings}>
-                  Settings
-                </Button>
-              </div>
-            </div>
-            <HostInteractionManager
-              room={{ id: room.id, code: room.code }}
-              memberships={roomMemberships}
-            />
-          </div>
-        </Card>
-      )}
+      <HostInteractionsPanel
+        isDark={isDark}
+        room={room ? { id: room.id, code: room.code } : null}
+        roomMemberships={roomMemberships}
+      />
       {pendingSubmissions}
     </div>
   );
@@ -114,7 +100,7 @@ import {
 import { CreateRoomModal } from "./components/CreateRoomModal";
 import { PromptLibrarySelector } from "./components/PromptLibrarySelector";
 import { BannedPlayersManager } from "./components/BannedPlayersManager";
-import { HostInteractionManager } from "./components/HostInteractionManager";
+import { HostInteractionsPanel } from "./components/HostInteractionsPanel";
 import { handleCopyLink, handleCreateSession, handleUpdateSession, handleEndSession, handleHostVote, handlePrimaryAction } from "./Handlers";
 import { handleRoomKickPlayer, handleRoomBanPlayer } from "./Handlers/roomKickBanHandlers";
 import { setPromptLibrary, pauseSession } from "../session/sessionService";
@@ -1083,25 +1069,12 @@ export function HostPage() {
               sessionPlayers={null}
               actionButtons={null}
             />
-                        {/* Interactions Panel: Room member management */}
-            {room && (
-              <Card className="space-y-5" isDark={isDark}>
-                <div className={`border-t pt-5 ${!isDark ? 'border-slate-200' : 'border-cyan-400/20'}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className={`text-sm font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-400'}`}>Interactions Panel</h4>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm">
-                        Settings
-                      </Button>
-                    </div>
-                  </div>
-                  <HostInteractionManager
-                    room={{ id: room.id, code: room.code }}
-                    memberships={roomMemberships}
-                  />
-                </div>
-              </Card>
-            )}
+            <HostInteractionsPanel
+              isDark={isDark}
+              room={room ? { id: room.id, code: room.code } : null}
+              roomMemberships={roomMemberships}
+              onOpenSettings={handleOpenRoomSettings}
+            />
           </div>
         );
       }
@@ -1128,25 +1101,12 @@ export function HostPage() {
               sessionPlayers={sessionPlayersList}
               actionButtons={lobbyActionButtons}
             />
-                        {/* Interactions Panel: Room member management */}
-            {room && (
-              <Card className="space-y-5" isDark={isDark}>
-                <div className={`border-t pt-5 ${!isDark ? 'border-slate-200' : 'border-cyan-400/20'}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className={`text-sm font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-400'}`}>Interactions Panel</h4>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm">
-                        Settings
-                      </Button>
-                    </div>
-                  </div>
-                  <HostInteractionManager
-                    room={{ id: room.id, code: room.code }}
-                    memberships={roomMemberships}
-                  />
-                </div>
-              </Card>
-            )}
+            <HostInteractionsPanel
+              isDark={isDark}
+              room={room ? { id: room.id, code: room.code } : null}
+              roomMemberships={roomMemberships}
+              onOpenSettings={handleOpenRoomSettings}
+            />
           </div>
         );
 
@@ -1274,25 +1234,12 @@ export function HostPage() {
               sessionPlayers={sessionPlayersList}
               actionButtons={null}
             />
-                        {/* Interactions Panel: Room member management */}
-            {room && (
-              <Card className="space-y-5" isDark={isDark}>
-                <div className={`border-t pt-5 ${!isDark ? 'border-slate-200' : 'border-cyan-400/20'}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className={`text-sm font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-400'}`}>Interactions Panel</h4>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm">
-                        Settings
-                      </Button>
-                    </div>
-                  </div>
-                  <HostInteractionManager
-                    room={{ id: room.id, code: room.code }}
-                    memberships={roomMemberships}
-                  />
-                </div>
-              </Card>
-            )}
+            <HostInteractionsPanel
+              isDark={isDark}
+              room={room ? { id: room.id, code: room.code } : null}
+              roomMemberships={roomMemberships}
+              onOpenSettings={handleOpenRoomSettings}
+            />
           </div>
         );
 

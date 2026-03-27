@@ -9,7 +9,6 @@ interface SessionDisplayCopyContext {
 
 export function getSessionDisplayCopy(state: SessionDisplayState, ctx: SessionDisplayCopyContext = {}) {
   const joined = ctx.joinedCount ?? 0;
-  const total = ctx.totalSlots ?? 12;
 
   switch (state) {
     case "idle":
@@ -17,7 +16,7 @@ export function getSessionDisplayCopy(state: SessionDisplayState, ctx: SessionDi
         statusBadgeText: "LOBBY",
         headlineText: "GAME READY",
         supportText: "WAITING FOR PLAYERS",
-        joinedCountText: joined > 0 ? `${joined}/${total} JOINED` : null,
+        joinedCountText: joined > 0 ? `${joined} JOINED` : null,
       };
 
     case "forming":
@@ -27,7 +26,7 @@ export function getSessionDisplayCopy(state: SessionDisplayState, ctx: SessionDi
         supportText: joined > 0
           ? `${joined} PLAYERS IN • DON'T MISS ROUND 1`
           : "DON'T MISS ROUND 1",
-        joinedCountText: `${joined}/${total} JOINED`,
+        joinedCountText: `${joined} JOINED`,
       };
 
     case "waiting_on_host":
@@ -35,7 +34,7 @@ export function getSessionDisplayCopy(state: SessionDisplayState, ctx: SessionDi
         statusBadgeText: "WAITING ON HOST",
         headlineText: "JOIN GAME",
         supportText: joined > 0 ? `${joined} PLAYERS IN` : "PLAYERS ARE JOINING",
-        joinedCountText: `${joined}/${total} JOINED`,
+        joinedCountText: `${joined} JOINED`,
       };
 
     case "countdown":
@@ -43,7 +42,7 @@ export function getSessionDisplayCopy(state: SessionDisplayState, ctx: SessionDi
         statusBadgeText: "STARTING",
         headlineText: "JOIN NOW",
         supportText: ctx.countdown ? `STARTING IN ${ctx.countdown}` : "STARTING SOON",
-        joinedCountText: `${joined}/${total} JOINED`,
+        joinedCountText: `${joined} JOINED`,
       };
 
     case "joined":
@@ -51,7 +50,7 @@ export function getSessionDisplayCopy(state: SessionDisplayState, ctx: SessionDi
         statusBadgeText: "YOU'RE IN",
         headlineText: "GET READY",
         supportText: "WAITING FOR ROUND 1",
-        joinedCountText: `${joined}/${total} JOINED`,
+        joinedCountText: `${joined} JOINED`,
       };
 
     case "answer":

@@ -3,6 +3,7 @@ import { useInteractions } from '../../../../hooks/useInteractions';
 import { useAuth } from '../../../../shared/providers/AuthContext';
 import { useVotes } from '../../../../hooks/useVotes';
 import { interactionService } from '../../../../services/interactionService';
+import { logger } from '../../../../shared/utils/logger';
 import { InteractionCard } from './InteractionCard';
 import { isCurrentUserModerator } from '../../../../shared/utils/moderatorUtils';
 import type { Interaction, InteractionResponse, RoomMembership, Room } from '../../../../shared/types';
@@ -11,7 +12,7 @@ const SendPromptModal = lazy(() => import('./SendPromptModal'));
 const TriviaResultsLeaderboard = lazy(() => import('./TriviaResultsLeaderboard').then(module => ({ default: module.TriviaResultsLeaderboard })));
 const SendHeadlineModal = lazy(() => import('./SendHeadlineModal'));
 const RespondModal = lazy(() => import('./RespondModal'));
-const VoteModal = lazy(() => import('./VoteModal'));
+const InteractionVoteModal = lazy(() => import('./VoteModal'));
 const ResultsModal = lazy(() => import('./ResultsModal'));
 const ResponsesDrawer = lazy(() => import('./ResponsesDrawer'));
 const HeadlineRespondModal = lazy(() => import('./HeadlineRespondModal'));
@@ -158,7 +159,7 @@ export function InteractionSection({
           });
         }
       } catch (error) {
-        console.error('Failed to check trivia submission:', error);
+        logger.error('Failed to check trivia submission', { error });
       }
     });
   }, [interactions, myMembership]);
@@ -216,7 +217,7 @@ export function InteractionSection({
       try {
         await closeInteraction(interactionId);
       } catch (error) {
-        console.error("Failed to close interaction:", error);
+        logger.error('Failed to close interaction', { error, interactionId });
       }
     },
     [closeInteraction]
@@ -229,7 +230,7 @@ export function InteractionSection({
         // The hook should automatically refresh, but we might need to trigger it
         // For now, this will update the interaction status in the database
       } catch (error) {
-        console.error("Failed to advance to results:", error);
+        logger.error('Failed to advance interaction to results', { error, interactionId });
       }
     },
     []
@@ -444,7 +445,7 @@ export function InteractionSection({
           )}
 
           {votingFor && (
-          <VoteModal
+          <InteractionVoteModal
             isOpen={true}
             onClose={() => setVotingFor(null)}
             interaction={votingFor}
@@ -513,15 +514,12 @@ export function InteractionSection({
           )}
 
           {viewingTrivia && (
-            <>
-              {console.log('Rendering TriviaModal with interaction:', viewingTrivia)}
-              <TriviaModal
-                isOpen={true}
-                onClose={() => setViewingTrivia(null)}
-                interaction={viewingTrivia}
-                membershipId={myMembership?.id || null}
-              />
-            </>
+            <TriviaModal
+              isOpen={true}
+              onClose={() => setViewingTrivia(null)}
+              interaction={viewingTrivia}
+              membershipId={myMembership?.id || null}
+            />
           )}
 
           {viewingTriviaLeaderboard && (

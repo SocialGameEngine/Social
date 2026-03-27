@@ -6,8 +6,6 @@ import { RoomPageProvider } from '../context/RoomPageContext';
 import { useAuth } from '../../../shared/providers/AuthContext';
 import { usePlayerAccountResolver } from '../../player/usePlayerAccountResolver';
 import { RoomPageContent } from './index';
-import { PlayerAuthModal } from '../../auth/PlayerAuthModal';
-import { VenueAuthModal } from '../../auth/VenueAuthModal';
 import { RoomSkeleton } from '../../../shared/components/skeletons/RoomSkeleton';
 import { ErrorState } from '../../../shared/components/ErrorState';
 import { AsyncErrorBoundary } from '../../../shared/components/AsyncErrorBoundary';
@@ -17,8 +15,6 @@ export function RoomPage() {
   const { loading: authLoading } = useAuth();
   usePlayerAccountResolver(); // Ensure player account is resolved in background
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [showPlayerAuthModal, setShowPlayerAuthModal] = useState(false);
-  const [showVenueAuthModal, setShowVenueAuthModal] = useState(false);
 
   // V2 HOOKS: Use async state architecture
   const {
@@ -74,21 +70,6 @@ export function RoomPage() {
       >
         <RoomPageContent />
       </RoomPageProvider>
-
-      
-      {/* Authentication Modals */}
-      {showPlayerAuthModal && (
-        <PlayerAuthModal
-          open={showPlayerAuthModal}
-          onClose={() => setShowPlayerAuthModal(false)}
-        />
-      )}
-      {showVenueAuthModal && (
-        <VenueAuthModal
-          open={showVenueAuthModal}
-          onClose={() => setShowVenueAuthModal(false)}
-        />
-      )}
     </AsyncErrorBoundary>
   );
 }

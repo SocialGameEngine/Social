@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../../shared/providers/AuthContext';
 import { sessionPlayerService } from '../../../../services/sessionPlayerService';
 import { joinRoomSession } from '../../../session/sessionService';
-import { PhaseButton } from '../../components/PhaseButton';
+import { SessionButton } from '../../components/layout/SessionButton';
+import { getIsMainEventMode } from '../../components/PhaseController';
 import { Modal } from '../../../../components/Modal';
 import { Button } from '../../../../components/Button';
 import { useToast } from '../../../../shared/hooks/useToast';
@@ -19,6 +20,7 @@ export function LobbyPhase({ session, memberships }: LobbyPhaseProps) {
   const { toast } = useToast();
   const [sessionPlayer, setSessionPlayer] = useState<SessionPlayer | null>(null);
   const [isJoining, setIsJoining] = useState(false);
+  const [joinSuccess, setJoinSuccess] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
@@ -58,6 +60,8 @@ export function LobbyPhase({ session, memberships }: LobbyPhaseProps) {
       });
 
       if (result.success) {
+        setJoinSuccess(true);
+        setTimeout(() => setJoinSuccess(false), 2000);
         toast({ 
           title: "Joined game!", 
           variant: "success",
@@ -111,6 +115,7 @@ export function LobbyPhase({ session, memberships }: LobbyPhaseProps) {
   }, []);
 
   const isInSession = !!sessionPlayer;
+  const isMainEventMode = getIsMainEventMode(session);
 
   // Handle different session states
   if (!session) {
@@ -126,13 +131,14 @@ export function LobbyPhase({ session, memberships }: LobbyPhaseProps) {
 
   return (
     <div className="w-full mb-8">
-      <PhaseButton
+      <SessionButton
+        displayState={isInSession ? "joined" : "forming"}
+        session={session}
+        isMainEventMode={isMainEventMode}
+        isJoining={isJoining}
+        joinSuccess={joinSuccess}
         phase="lobby"
-        hasSubmitted={isInSession}
-        onClick={handleJoinSession}
-        disabled={isJoining}
-        customText={isInSession ? "Ready to Play" : "Join Game"}
-        customSubText={isInSession ? "You're in the game!" : "Click to join the session"}
+        onClick={isInSession ? handleLeaveClick : handleJoinSession}
       />
       {isInSession && (
         <div className="pt-3 flex justify-center">
