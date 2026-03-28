@@ -75,13 +75,18 @@ export function BottomSheet({
 
   if (!isOpen) return null;
 
+  // iOS Safari: dvh tracks the *visible* viewport as the URL bar shows/hides.
+  // Safe-area insets keep the sheet below the status island and above the home indicator.
+  const sheetMaxHeight =
+    'min(90dvh, calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)))';
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-[100] flex items-end"
+      className="fixed inset-0 z-[100] flex items-end justify-center"
       onClick={onClose}
     >
       <motion.div
@@ -105,9 +110,9 @@ export function BottomSheet({
         dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={{ top: 0, bottom: 0.5 }}
         onDragEnd={!disableDrag ? handleDragEnd : undefined}
-        style={{ y }}
+        style={{ y, height: sheetMaxHeight, maxHeight: sheetMaxHeight }}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full h-[90vh] max-h-[90vh] bg-slate-900 rounded-t-3xl shadow-2xl overflow-hidden"
+        className="relative box-border flex w-full max-w-full flex-col overflow-hidden rounded-t-3xl bg-slate-900 shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'bottom-sheet-title' : undefined}
@@ -138,8 +143,8 @@ export function BottomSheet({
           </div>
         </div>
 
-        {/* Content */}
-        <div className="h-[calc(90vh-4rem)] overflow-y-auto pb-safe">
+        {/* flex-col so nested room sheets can use flex-1 / min-h-0; safe-area pb clears the home indicator */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom,0px)]">
           {children}
         </div>
 
@@ -150,7 +155,7 @@ export function BottomSheet({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.3 }}
-            className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full text-sm shadow-lg pointer-events-none z-20"
+            className="pointer-events-none absolute bottom-[max(2rem,env(safe-area-inset-bottom,0px))] left-1/2 z-20 -translate-x-1/2 transform rounded-full bg-slate-800 px-4 py-2 text-sm text-white shadow-lg"
           >
             Swipe down to close • Tap X to exit
           </motion.div>

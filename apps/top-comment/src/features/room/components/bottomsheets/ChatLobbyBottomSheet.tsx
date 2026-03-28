@@ -33,7 +33,7 @@ export function ChatLobbyBottomSheet({
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Chat & Lobby">
-      <div className="flex h-[70vh] flex-col">
+      <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex shrink-0 border-b border-slate-700/50">
           <button
             type="button"
