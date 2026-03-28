@@ -24,11 +24,6 @@ export function getSupabaseClient(): SupabaseClient<Database> {
         persistSession: true,
         detectSessionInUrl: true,
       },
-      realtime: {
-        params: {
-          eventsPerSecond: 10,
-        },
-      },
     });
   }
 

@@ -62,7 +62,7 @@ export const TrackList: React.FC<TrackListProps> = ({
             onClick={() => onAddToQueue(track)}
             className="[--tw-text-opacity:1] text-[var(--color-button-primary)] hover:[--tw-text-opacity:0.8] transition-opacity svg-glow-primary"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="3" y1="6" x2="13" y2="6" />
               <line x1="3" y1="10" x2="13" y2="10" />
               <line x1="3" y1="14" x2="9" y2="14" />

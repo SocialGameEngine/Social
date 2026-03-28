@@ -1,22 +1,34 @@
-import { PhaseCardButton } from '../../components/PhaseCardButton';
-import type { Session, RoomMembership } from '../../../../shared/types';
+import { SessionButton } from '../../components/layout/SessionButton';
+import { SessionTimer } from '@social/ui';
+import { usePhaseTimer } from '../../../../shared/hooks';
+import { getIsMainEventMode } from '../../components/PhaseController';
+import type { Session } from '../../../../shared/types';
 
 interface ResultsPhaseProps {
   session: Session;
-  memberships: RoomMembership[] | null;
 }
 
 export function ResultsPhase({ session }: ResultsPhaseProps) {
+  const isMainEventMode = getIsMainEventMode(session);
+  const { totalSeconds } = usePhaseTimer({ session });
+  
   return (
     <div className="w-full mb-8">
-      <PhaseCardButton
+      <SessionButton
+        displayState="results"
+        session={session}
+        isMainEventMode={isMainEventMode}
         phase="results"
-        hasSubmitted={false}
         onClick={() => {}}
-        disabled={false}
-        endsAt={session.endsAt}
-        paused={session.paused}
-        prompt={session.rounds?.[session.roundIndex || 0]?.groups?.[0]?.prompt || ''}
+      />
+      <SessionTimer
+        endTime={session?.endsAt}
+        totalSeconds={totalSeconds}
+        paused={!session?.endsAt || session?.status === 'ended' || (!session?.endsAt ? false : new Date() >= new Date(session.endsAt))}
+        variant="brand"
+        isDark={false}
+        position="inline"
+        showCriticalBar={true}
       />
     </div>
   );

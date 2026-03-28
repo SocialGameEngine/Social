@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
+    "pre-commit": "tsc --noEmit",
     "test": "vitest",
     "test:e2e": "playwright test"
   },

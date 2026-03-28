@@ -1,5 +1,4 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../shared/providers/AuthContext';
 
 interface RoomHeaderProps {
@@ -10,20 +9,17 @@ export function RoomHeader({
   roomCode,
 }: RoomHeaderProps) {
   const { user, isAnonymous, signOut } = useAuth();
-  const navigate = useNavigate();
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = useCallback(async () => {
-    if (!signOut) return;
     try {
       await signOut();
       setShowAccountMenu(false);
-      navigate('/join');
     } catch (error) {
       console.error('Sign out failed:', error);
     }
-  }, [signOut, navigate]);
+  }, [signOut]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -38,10 +34,11 @@ export function RoomHeader({
   }, [showAccountMenu]);
 
   return (
-    <header className="flex items-center justify-between p-4 border-b border-slate-700/50 relative z-10">
+    <header className="flex items-center justify-between p-4 border-b border-slate-700/50 relative z-30">
       <h1 className="text-3xl font-black tracking-tight">{roomCode}</h1>
       <div ref={accountMenuRef} className="relative">
         <button
+          type="button"
           onClick={() => setShowAccountMenu(!showAccountMenu)}
           className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-600/80 hover:bg-slate-500/80 hover:scale-110 hover:shadow-lg hover:shadow-cyan-400/50 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-slate-950"
           aria-label={user ? "Account menu" : "Sign in"}
@@ -84,7 +81,10 @@ export function RoomHeader({
           )}
         </button>
           {showAccountMenu && (
-            <div className="absolute top-full right-0 mt-2 w-64 rounded-xl bg-slate-800 border border-cyan-400/50 shadow-lg shadow-fuchsia-500/20 z-50 overflow-hidden">
+            <div
+              onMouseDown={(event) => event.stopPropagation()}
+              className="absolute top-full right-0 mt-2 w-64 rounded-xl bg-slate-800 border border-cyan-400/50 shadow-lg shadow-fuchsia-500/20 z-[120] overflow-hidden"
+            >
               <div className="p-4 space-y-3">
                 {user ? (
                   <>
@@ -106,7 +106,12 @@ export function RoomHeader({
                     )}
                     <div className="pt-2 border-t border-slate-700">
                       <button
-                        onClick={handleSignOut}
+                        type="button"
+                        onMouseDown={(event) => event.stopPropagation()}
+                        onClick={async (event) => {
+                          event.stopPropagation();
+                          await handleSignOut();
+                        }}
                         className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-slate-700/50 rounded-lg transition-colors"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">

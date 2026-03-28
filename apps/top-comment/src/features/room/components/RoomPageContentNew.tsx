@@ -13,7 +13,6 @@ import { SocialSection } from './layout/SocialSection';
 import { MiscSection } from './layout/MiscSection';
 import { MobileLayout } from '../../../shared/components/MobileLayout';
 import { RoomModals } from './RoomModals';
-import { RoomDrawers } from './RoomDrawers';
 import { AuthModal } from '../../../shared/components/AuthModal';
 import { JoinRoomModal } from '../../../shared/components/JoinRoomModal';
 import { ReactionOverlay } from './ReactionOverlay';
@@ -27,14 +26,24 @@ import { ChallengeNotification } from './challenges/ChallengeNotification';
 import { ChallengeModal } from './challenges/ChallengeModal';
 import { SubmitQuestionButton } from './submissions/SubmitQuestionButton';
 import { SubmitQuestionModal } from './submissions/SubmitQuestionModal';
+import { logger } from '../../../shared/utils/logger';
 import { isCurrentUserModerator } from '../../../shared/utils/moderatorUtils';
 import { roomMembershipService } from '../../../services/roomMembershipService';
 import { interactionService } from '../../../services/interactionService';
+import { getIsMainEventMode } from './PhaseController';
+
+function cn(...classes: (string | undefined | null | false)[]): string {
+  return classes.filter(Boolean).join(' ');
+}
+
 import { PollsBottomSheet } from './bottomsheets/PollsBottomSheet';
 import { TopicsBottomSheet } from './bottomsheets/TopicsBottomSheet';
 import { PromptsBottomSheet } from './bottomsheets/PromptsBottomSheet';
 import { FibbageBottomSheet } from './bottomsheets/FibbageBottomSheet';
 import { TriviaBottomSheet } from './bottomsheets/TriviaBottomSheet';
+import { ChatLobbyBottomSheet } from './bottomsheets/ChatLobbyBottomSheet';
+import { LeaderboardBottomSheet } from './bottomsheets/LeaderboardBottomSheet';
+import { HelpBottomSheet } from './bottomsheets/HelpBottomSheet';
 
 export function RoomPageContentNew() {
   const { room, memberships, session, sessionId, state, openModal, closeModal, markSubmitted, openEndedModal, closeEndedModal, handleLeaveRoom } = useRoomPage();
@@ -50,6 +59,9 @@ export function RoomPageContentNew() {
   
   // Check if user is a moderator
   const isModerator = room ? isCurrentUserModerator(room, user) : false;
+
+  // Calculate main event mode for visual hierarchy
+  const isMainEventMode = getIsMainEventMode(session);
 
   // Mock data generator for participant counts (slowed down by 90%)
   const [mockData, setMockData] = useState({
@@ -163,7 +175,6 @@ export function RoomPageContentNew() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showVIBox, setShowVIBox] = useState(false);
-  const [showLobbyDrawer, setShowLobbyDrawer] = useState(false);
   const [showChatDrawer, setShowChatDrawer] = useState(false);
   const [showLeaderboardDrawer, setShowLeaderboardDrawer] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
@@ -181,7 +192,6 @@ export function RoomPageContentNew() {
   // Callback hooks
   const handleAuthSuccess = useCallback(() => {
     setShowAuthModal(false);
-    window.location.reload();
   }, []);
 
   const handleJoinRoom = useCallback(async (displayName: string) => {
@@ -270,36 +280,6 @@ export function RoomPageContentNew() {
     );
   }
 
-  const modalsThatHideNav: Array<'leaderboard' | 'selfie'> = ['selfie'];
-  const shouldHideBottomNav = modalsThatHideNav.some(modal => state.endedModals.includes(modal));
-
-  const drawerProps = {
-    memberships,
-    session,
-    sessionId,
-    roomId: room?.id,
-    userId: user?.id,
-    membershipId: myMembership?.id,
-    displayName: myDisplayName,
-    showChatLobbyDrawer: showChatDrawer || showLobbyDrawer,
-    showLeaderboardDrawer,
-    showHowToPlay,
-    onCloseChatLobby: () => {
-      setShowChatDrawer(false);
-      setShowLobbyDrawer(false);
-    },
-    onCloseLeaderboard: () => setShowLeaderboardDrawer(false),
-    onCloseHelp: () => setShowHowToPlay(false),
-    blockPlayer: async (membershipId: string) => {
-      // TODO: Implement block player functionality
-      console.log('Block player:', membershipId);
-    },
-    onChallengePlayer: (membershipId: string, playerName: string) => {
-      // TODO: Implement challenge player functionality
-      console.log('Challenge player:', membershipId, playerName);
-    },
-  };
-
   const modalProps = {
     state,
     session,
@@ -315,19 +295,26 @@ export function RoomPageContentNew() {
   const handleToggleLeaderboard = () => {
     setShowLeaderboardDrawer(!showLeaderboardDrawer);
     setShowChatDrawer(false);
-    setShowLobbyDrawer(false);
+    setShowHowToPlay(false);
   };
   
   const handleToggleChat = () => {
     setShowChatDrawer(!showChatDrawer);
     setShowLeaderboardDrawer(false);
-    setShowLobbyDrawer(false);
+    setShowHowToPlay(false);
+  };
+
+  const handleToggleHelp = () => {
+    setShowHowToPlay(!showHowToPlay);
+    setShowChatDrawer(false);
+    setShowLeaderboardDrawer(false);
   };
   
   
   // Main content with 4-section layout
   const mainContent = (
-    <div className="flex-1 overflow-hidden relative z-10 flex flex-col">
+    <div className={cn("flex-1 overflow-hidden relative z-10 flex flex-col", 
+      isMainEventMode && "room-main-event-mode")}>
       <div className="flex-1 overflow-y-auto pt-4">
         {/* Section 1: Session */}
         <SessionPanel
@@ -372,7 +359,7 @@ export function RoomPageContentNew() {
         {/* Section 4: Misc Section */}
         <MiscSection
           onOpenVIBox={() => setShowVIBox(!showVIBox)}
-          onOpenHelp={() => setShowHowToPlay(!showHowToPlay)}
+          onOpenHelp={handleToggleHelp}
         />
       </div>
     </div>
@@ -382,7 +369,6 @@ export function RoomPageContentNew() {
   if (isMobile) {
     return (
       <MobileLayout 
-        bottomNav={shouldHideBottomNav ? undefined : undefined}
         className="bg-gradient-to-b from-slate-900 to-slate-800 text-white"
       >
         <BackgroundAnimation show={true} />
@@ -432,6 +418,33 @@ export function RoomPageContentNew() {
           trivia={trivia}
           membershipId={myMembership?.id}
         />
+        <ChatLobbyBottomSheet
+          isOpen={showChatDrawer}
+          onClose={() => setShowChatDrawer(false)}
+          memberships={memberships}
+          roomId={room?.id}
+          userId={user?.id}
+          membershipId={myMembership?.id}
+          displayName={myDisplayName}
+          myMembershipId={myMembership?.id}
+          blockPlayer={async (membershipId: string) => {
+            logger.debug('RoomPageContentNew blockPlayer placeholder', { membershipId });
+          }}
+          onChallengePlayer={(membershipId: string, playerName: string) => {
+            logger.debug('RoomPageContentNew onChallengePlayer placeholder', { membershipId, playerName });
+          }}
+        />
+        <LeaderboardBottomSheet
+          isOpen={showLeaderboardDrawer}
+          onClose={() => setShowLeaderboardDrawer(false)}
+          roomId={room?.id}
+          currentSessionId={sessionId}
+        />
+        <HelpBottomSheet
+          isOpen={showHowToPlay}
+          onClose={() => setShowHowToPlay(false)}
+          initialPhase={session?.status}
+        />
 
         <ChallengeNotification
           challenges={pendingChallenges}
@@ -461,12 +474,13 @@ export function RoomPageContentNew() {
         />
 
         <ReactionOverlay reactions={reactions} bursts={bursts} />
-        <RoomDrawers {...drawerProps} />
         <RoomModals {...modalProps} />
         <VIBoxJukebox
           isOpen={showVIBox}
           onClose={() => setShowVIBox(false)}
-          toast={(options) => console.log('Toast:', options)}
+          toast={(options) => logger.debug('VIBox toast', options)}
+          room={room}
+          memberships={memberships || []}
           mode="team"
         />
         {showAuthModal && (
@@ -565,6 +579,33 @@ export function RoomPageContentNew() {
         trivia={trivia}
         membershipId={myMembership?.id}
       />
+      <ChatLobbyBottomSheet
+        isOpen={showChatDrawer}
+        onClose={() => setShowChatDrawer(false)}
+        memberships={memberships}
+        roomId={room?.id}
+        userId={user?.id}
+        membershipId={myMembership?.id}
+        displayName={myDisplayName}
+        myMembershipId={myMembership?.id}
+        blockPlayer={async (membershipId: string) => {
+          logger.debug('RoomPageContentNew blockPlayer placeholder', { membershipId });
+        }}
+        onChallengePlayer={(membershipId: string, playerName: string) => {
+          logger.debug('RoomPageContentNew onChallengePlayer placeholder', { membershipId, playerName });
+        }}
+      />
+      <LeaderboardBottomSheet
+        isOpen={showLeaderboardDrawer}
+        onClose={() => setShowLeaderboardDrawer(false)}
+        roomId={room?.id}
+        currentSessionId={sessionId}
+      />
+      <HelpBottomSheet
+        isOpen={showHowToPlay}
+        onClose={() => setShowHowToPlay(false)}
+        initialPhase={session?.status}
+      />
 
       <ChallengeNotification
         challenges={pendingChallenges}
@@ -600,12 +641,13 @@ export function RoomPageContentNew() {
       />
 
       <ReactionOverlay reactions={reactions} bursts={bursts} />
-      <RoomDrawers {...drawerProps} />
       <RoomModals {...modalProps} />
       <VIBoxJukebox
         isOpen={showVIBox}
         onClose={() => setShowVIBox(false)}
-        toast={(options) => console.log('Toast:', options)}
+        toast={(options) => logger.debug('VIBox toast', options)}
+        room={room}
+        memberships={memberships || []}
         mode="team"
       />
       {showAuthModal && (

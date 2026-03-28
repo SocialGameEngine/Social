@@ -3,6 +3,7 @@ import { supabase } from '../../../../supabase/client';
 import { interactionService } from '../../../../services/interactionService';
 import { Button } from '../../../../components/Button';
 import { FullscreenModal } from '../../../../shared/components/FullscreenModal';
+import { logger } from '../../../../shared/utils/logger';
 import type { Interaction } from '../../../../domain/types/interaction.types';
 import type { TriviaSubmission, TriviaReveal, TriviaInteractionSettings } from '../../../../domain/types/interaction.types';
 
@@ -41,7 +42,7 @@ export function TriviaModal({ interaction, isOpen, onClose, membershipId, onJoin
         }
       }
     } catch (error) {
-      console.error('Failed to load trivia submission:', error);
+      logger.error('Failed to load trivia submission', { error });
     }
   }, [interaction.id, membershipId]);
 
@@ -54,7 +55,7 @@ export function TriviaModal({ interaction, isOpen, onClose, membershipId, onJoin
         try {
           setGradingResult(JSON.parse(saved));
         } catch (e) {
-          console.error('Failed to parse saved grading result:', e);
+          logger.error('Failed to parse saved grading result', { error: e });
         }
       }
     }
@@ -81,7 +82,7 @@ export function TriviaModal({ interaction, isOpen, onClose, membershipId, onJoin
       const data = await interactionService.getTriviaReveal(interaction.id, membershipId);
       setReveal(data);
     } catch (error) {
-      console.error('Failed to load trivia reveal:', error);
+      logger.error('Failed to load trivia reveal', { error });
     }
   }, [interaction.id, membershipId, isResultsPhase]);
 
@@ -147,7 +148,7 @@ export function TriviaModal({ interaction, isOpen, onClose, membershipId, onJoin
           filter: `interaction_id = eq.${interaction.id}`
         },
         (payload) => {
-          console.log('New trivia submission:', payload);
+          logger.debug('New trivia submission', { payload });
           setAnsweredCount(prev => prev + 1);
         }
       )
@@ -188,9 +189,11 @@ export function TriviaModal({ interaction, isOpen, onClose, membershipId, onJoin
       // Submit and get immediate grading result
       const gradingResult = await interactionService.submitTriviaAnswer(interaction.id, membershipId, payload);
       
-      console.log('Debug - Full Grading Result from DB:', JSON.stringify(gradingResult, null, 2));
-      console.log('Debug - Grading Result correctAnswer field:', gradingResult?.correctAnswer);
-      console.log('Debug - Grading Result keys:', Object.keys(gradingResult || {}));
+      logger.debug('Trivia grading result', {
+        gradingResult,
+        correctAnswer: gradingResult?.correctAnswer,
+        keys: Object.keys(gradingResult || {}),
+      });
       
       // Store the immediate grading result
       setGradingResult(gradingResult);
@@ -198,9 +201,9 @@ export function TriviaModal({ interaction, isOpen, onClose, membershipId, onJoin
       // Load the raw submission data
       await loadSubmission();
       
-      console.log('Trivia submitted successfully with immediate result:', gradingResult);
+      logger.debug('Trivia submitted successfully with immediate result', { gradingResult });
     } catch (error: any) {
-      console.error('Failed to submit trivia answer:', error);
+      logger.error('Failed to submit trivia answer', { error });
       alert(error.message || 'Failed to submit answer');
     } finally {
       // Clear transient submitting state
@@ -318,10 +321,8 @@ export function TriviaModal({ interaction, isOpen, onClose, membershipId, onJoin
                   {isMultipleChoice 
                     ? (() => {
                         const correctOptionId = gradingResult?.correctAnswer || reveal?.correctAnswer;
-                        console.log('Debug - Correct Option ID:', correctOptionId);
-                        console.log('Debug - Available Options:', snapshot.multipleChoice?.options);
                         const option = snapshot.multipleChoice?.options?.find(opt => opt.id === correctOptionId);
-                        console.log('Debug - Found Option:', option);
+                        logger.debug('Resolved trivia correct option', { correctOptionId, option });
                         return option?.text || `Option ${correctOptionId} (text not found)`;
                       })()
                     : (gradingResult?.correctAnswer || reveal?.correctAnswer || 'Answer not available')

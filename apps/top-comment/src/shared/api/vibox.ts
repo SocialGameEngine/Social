@@ -46,10 +46,10 @@ async function invokeFunction<T>(
 
 export const viboxApi = {
   /**
-   * Get the current queue of unplayed tracks
+   * Get the current queue of unplayed tracks for a specific room
    */
-  async getQueue(): Promise<ApiResponse<{ queue: ViboxQueueItem[]; count: number }>> {
-    return invokeFunction('vibox-get-queue');
+  async getQueue(roomId?: string): Promise<ApiResponse<{ queue: ViboxQueueItem[]; count: number }>> {
+    return invokeFunction('vibox-get-queue', { room_id: roomId });
   },
 
   /**

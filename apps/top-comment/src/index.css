@@ -540,11 +540,64 @@ a {
 .chaos-session-button {
   color: #000;
   border-radius: 28px;
-  border: 3px solid rgba(0,0,0,0.85);
-  box-shadow: 0 16px 0 #000;
+  border: 4px solid rgba(0,0,0,0.95);
+  box-shadow: 0 16px 0 #000, 0 0 32px rgba(250,204,21,0.3);
   padding: 18px 18px;
+  min-height: 33dvh;
   transform: rotate(-1.2deg);
-  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+  transition: transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 140ms ease, background 140ms ease;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  position: relative;
+  background: 
+    radial-gradient(ellipse at top 20% left 30%, rgba(255,248,200,0.4) 0%, transparent 40%),
+    radial-gradient(ellipse at top 60% right 20%, rgba(255,235,150,0.3) 0%, transparent 35%),
+    linear-gradient(135deg, 
+      rgba(255,230,100,0.95) 0%, 
+      rgba(250,204,21,0.92) 30%,
+      rgba(245,195,0,0.88) 70%,
+      rgba(235,180,0,0.85) 100%
+    );
+  overflow: hidden;
+}
+
+.chaos-session-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse at top 25% left 25%, rgba(255,255,255,0.15) 0%, transparent 30%),
+    radial-gradient(ellipse at top 70% right 30%, rgba(255,248,200,0.12) 0%, transparent 25%),
+    linear-gradient(180deg, 
+      rgba(255,255,255,0.08) 0%, 
+      transparent 40%,
+      rgba(235,180,0,0.05) 100%
+    );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.chaos-session-button:hover {
+  transform: rotate(-1.2deg) translateY(-3px);
+  box-shadow: 0 23px 0 #000, 0 0 40px rgba(250,204,21,0.45);
+}
+
+.chaos-session-button:active {
+  transform: rotate(-1.2deg) translateY(12px);
+  box-shadow: 0 8px 0 #000, 0 0 16px rgba(250,204,21,0.12);
+  transition: transform 60ms ease, box-shadow 60ms ease;
+}
+
+.chaos-session-button:focus {
+  outline: none;
 }
 
 /* Phase-specific colors */
@@ -554,8 +607,8 @@ a {
 }
 
 .chaos-session-button[data-phase="lobby"]:active {
-  transform: rotate(-1.2deg) translateY(6px);
-  box-shadow: 0 10px 0 #000, 0 0 16px rgba(250,204,21,0.18);
+  transform: rotate(-1.2deg) translateY(12px);
+  box-shadow: 0 8px 0 #000, 0 0 12px rgba(250,204,21,0.18);
 }
 
 .chaos-session-button[data-phase="answer"] {
@@ -564,8 +617,8 @@ a {
 }
 
 .chaos-session-button[data-phase="answer"]:active {
-  transform: rotate(-1.2deg) translateY(6px);
-  box-shadow: 0 10px 0 #000, 0 0 16px rgba(250,204,21,0.18);
+  transform: rotate(-1.2deg) translateY(12px);
+  box-shadow: 0 8px 0 #000, 0 0 12px rgba(250,204,21,0.18);
 }
 
 .chaos-session-button[data-phase="vote"] {
@@ -574,8 +627,8 @@ a {
 }
 
 .chaos-session-button[data-phase="vote"]:active {
-  transform: rotate(-1.2deg) translateY(6px);
-  box-shadow: 0 10px 0 #000, 0 0 16px rgba(168,85,247,0.18);
+  transform: rotate(-1.2deg) translateY(12px);
+  box-shadow: 0 8px 0 #000, 0 0 12px rgba(168,85,247,0.18);
 }
 
 .chaos-session-button[data-phase="results"] {
@@ -584,8 +637,8 @@ a {
 }
 
 .chaos-session-button[data-phase="results"]:active {
-  transform: rotate(-1.2deg) translateY(6px);
-  box-shadow: 0 10px 0 #000, 0 0 16px rgba(34,197,94,0.18);
+  transform: rotate(-1.2deg) translateY(12px);
+  box-shadow: 0 8px 0 #000, 0 0 12px rgba(34,197,94,0.18);
 }
 
 .chaos-session-button[data-phase="ended"] {
@@ -594,8 +647,8 @@ a {
 }
 
 .chaos-session-button[data-phase="ended"]:active {
-  transform: rotate(-1.2deg) translateY(6px);
-  box-shadow: 0 10px 0 #000, 0 0 16px rgba(34,197,94,0.18);
+  transform: rotate(-1.2deg) translateY(12px);
+  box-shadow: 0 8px 0 #000, 0 0 12px rgba(34,197,94,0.18);
 }
 
 /* Leave session button - smaller red chaos card */
@@ -1083,4 +1136,452 @@ article.p-3 .instagram-embed {
     overflow: visible !important;
     height: auto !important;
     min-height: auto !important;
+}
+
+/* =========================================================
+   ROOM MODE - Session-First Chaos Update
+   ========================================================= */
+
+.room-main-event-mode {
+  --room-recede-opacity: 0.68;
+  --room-recede-saturate: 0.82;
+  --room-recede-scale: 0.985;
+  --room-chaos-black: rgba(0,0,0,0.92);
+}
+
+.room-main-event-mode .dailies-section,
+.room-main-event-mode .misc-section {
+  opacity: var(--room-recede-opacity);
+  filter: saturate(var(--room-recede-saturate));
+  transform: scale(var(--room-recede-scale));
+  transition: opacity 160ms ease, filter 160ms ease, transform 160ms ease;
+}
+
+.room-main-event-mode .interaction-section {
+  opacity: 0.82;
+  filter: saturate(0.9);
+  transition: opacity 160ms ease, filter 160ms ease, transform 160ms ease;
+}
+
+.room-main-event-mode .dailies-section .section-button,
+.room-main-event-mode .misc-section .section-button {
+  box-shadow: 0 10px 0 #000, 0 0 12px rgba(0,0,0,0.16);
+}
+
+.room-main-event-mode .submit-question-button {
+  opacity: 0.82;
+  transform: translateY(6px) scale(0.96);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+/* =========================================================
+   SESSION PANEL EXTENSIONS
+   ========================================================= */
+
+.chaos-session-button {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.chaos-session-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 16%, rgba(255,255,255,0.22), transparent 28%),
+    radial-gradient(circle at 82% 78%, rgba(255,255,255,0.10), transparent 22%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.chaos-session-button > * {
+  position: relative;
+  z-index: 1;
+}
+
+.chaos-session-button--main-event {
+  box-shadow:
+    0 16px 0 #000,
+    0 0 24px rgba(250,204,21,0.24),
+    0 0 0 4px rgba(255,255,255,0.08);
+}
+
+.chaos-session-button--forming {
+  animation: chaosSessionGlow 2.1s ease-in-out infinite;
+}
+
+.chaos-session-button--starting {
+  animation: chaosSessionUrgentGlow 900ms ease-in-out infinite;
+}
+
+.chaos-session-button--joined {
+  box-shadow:
+    0 16px 0 #000,
+    0 0 24px rgba(34,197,94,0.24),
+    0 0 0 4px rgba(255,255,255,0.08);
+}
+
+.chaos-session-button--quiet {
+  box-shadow:
+    0 16px 0 #000,
+    0 0 14px rgba(0,0,0,0.14);
+}
+
+@keyframes chaosSessionGlow {
+  0%, 100% {
+    box-shadow:
+      0 16px 0 #000,
+      0 0 18px rgba(250,204,21,0.18),
+      0 0 0 4px rgba(255,255,255,0.05);
+  }
+  50% {
+    box-shadow:
+      0 16px 0 #000,
+      0 0 34px rgba(250,204,21,0.34),
+      0 0 0 4px rgba(255,255,255,0.11);
+  }
+}
+
+@keyframes chaosSessionUrgentGlow {
+  0%, 100% {
+    box-shadow:
+      0 16px 0 #000,
+      0 0 18px rgba(236,72,153,0.22),
+      0 0 0 4px rgba(255,255,255,0.06);
+  }
+  50% {
+    box-shadow:
+      0 16px 0 #000,
+      0 0 32px rgba(236,72,153,0.38),
+      0 0 0 4px rgba(255,255,255,0.13);
+  }
+}
+
+/* =========================================================
+   SESSION CONTENT LAYOUT
+   ========================================================= */
+
+.chaos-session-inner {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 2px 2px 2px;
+  position: relative;
+  z-index: 2;
+}
+
+.chaos-session-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 34px;
+  margin-top: -12px;
+  margin-left: -8px;
+}
+
+.chaos-session-mainline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.chaos-session-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chaos-session-headline {
+  margin: 0;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 0.92;
+  text-transform: uppercase;
+  font-size: clamp(2rem, 8vw, 3.25rem);
+  text-wrap: balance;
+}
+
+.chaos-session-support {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.15;
+  opacity: 0.9;
+  max-width: 18rem;
+}
+
+.chaos-session-arrow {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(-6deg);
+  pointer-events: none;
+  transition: transform 60ms ease, box-shadow 60ms ease;
+  background: transparent;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.chaos-session-button:active .chaos-session-arrow {
+  transform: rotate(-6deg) translateY(1px);
+}
+
+.chaos-session-button:active .chaos-session-badge {
+  transform: rotate(-2deg) translateY(1px);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.85);
+}
+
+.chaos-session-button:active .chaos-player-token,
+.chaos-session-button:active .chaos-player-stack-more {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.85);
+}
+
+/* =========================================================
+   TAP HINT
+   ========================================================= */
+
+.chaos-session-tap-hint {
+  margin-top: 8px;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(185,28,28,0.8);
+  line-height: 1;
+  pointer-events: none;
+  opacity: 0.9;
+  animation: chaosHintPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes chaosHintPulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+/* =========================================================
+   SESSION BADGE
+   ========================================================= */
+
+.chaos-session-badge {
+  position: absolute;
+  top: -32px;
+  left: -8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 2px solid rgba(0,0,0,0.75);
+  box-shadow: 0 3px 0 rgba(0,0,0,0.85);
+  font-size: 0.74rem;
+  font-weight: 1000;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: #000;
+  width: fit-content;
+  max-width: 100%;
+  transform: rotate(-2deg);
+  pointer-events: none;
+  transition: transform 60ms ease, box-shadow 60ms ease;
+  z-index: 10;
+}
+
+.chaos-session-badge--forming {
+  background: linear-gradient(135deg, rgba(34,211,238,0.98), rgba(125,211,252,0.94));
+}
+
+.chaos-session-badge--starting {
+  background: linear-gradient(135deg, rgba(244,114,182,0.98), rgba(251,146,60,0.95));
+}
+
+.chaos-session-badge--live {
+  background: linear-gradient(135deg, rgba(250,204,21,0.98), rgba(253,224,71,0.94));
+}
+
+.chaos-session-badge--joined {
+  background: linear-gradient(135deg, rgba(74,222,128,0.98), rgba(134,239,172,0.94));
+}
+
+.chaos-session-badge--quiet {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(17,24,39,0.95), rgba(55,65,81,0.94));
+}
+
+.chaos-live-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #ff2e88;
+  border: 2px solid rgba(0,0,0,0.9);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.15);
+  animation: chaosLiveDotPulse 1.1s ease-in-out infinite;
+  flex: 0 0 auto;
+}
+
+.chaos-live-dot--yellow {
+  background: #facc15;
+}
+
+.chaos-live-dot--green {
+  background: #22c55e;
+}
+
+@keyframes chaosLiveDotPulse {
+  0%, 100% {
+    opacity: 0.65;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* =========================================================
+   PLAYER STACK + META CHIP
+   ========================================================= */
+
+.chaos-session-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 34px;
+}
+
+.chaos-player-stack {
+  display: inline-flex;
+  align-items: center;
+  padding-left: 2px;
+}
+
+.chaos-player-token,
+.chaos-player-stack-more {
+  width: 28px;
+  height: 28px;
+  margin-left: -8px;
+  border-radius: 999px;
+  border: 2px solid rgba(0,0,0,0.75);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.85);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 1000;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(226,232,240,0.96));
+  pointer-events: none;
+  transition: transform 60ms ease, box-shadow 60ms ease;
+}
+
+.chaos-player-token:first-child,
+.chaos-player-stack-more:first-child {
+  margin-left: 0;
+}
+
+.chaos-player-stack-more {
+  background: linear-gradient(135deg, rgba(192,132,252,0.98), rgba(244,114,182,0.96));
+  color: #000;
+}
+
+.chaos-session-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 2px solid rgba(0,0,0,0.7);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.85);
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(3px);
+  font-size: 0.7rem;
+  font-weight: 1000;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1;
+  opacity: 0.85;
+  pointer-events: none;
+  transition: transform 60ms ease, box-shadow 60ms ease;
+}
+
+.chaos-session-button:active .chaos-session-meta-chip {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.85);
+}
+
+/* =========================================================
+   JOIN FEEDBACK
+   ========================================================= */
+
+.chaos-session-support--success {
+  color: rgba(22,101,52,1);
+}
+
+.chaos-session-feedback-pop {
+  animation: chaosFeedbackPop 180ms ease-out;
+}
+
+@keyframes chaosFeedbackPop {
+  0% {
+    transform: scale(0.98);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* =========================================================
+   OPTIONAL DAILIES COLLAPSE STATE
+   ========================================================= */
+
+.room-main-event-mode .dailies-section--compact .section-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  max-height: 196px;
+  overflow: hidden;
+}
+
+.room-main-event-mode .dailies-section--compact .section-button:nth-child(n + 4) {
+  opacity: 0.78;
+}
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .chaos-session-button--forming,
+  .chaos-session-button--starting,
+  .chaos-live-dot,
+  .chaos-session-feedback-pop {
+    animation: none !important;
+  }
+
+  .room-main-event-mode .dailies-section,
+  .room-main-event-mode .misc-section,
+  .room-main-event-mode .interaction-section,
+  .room-main-event-mode .submit-question-button,
+  .chaos-session-button,
+  .chaos-session-arrow {
+    transition: none !important;
+  }
 }

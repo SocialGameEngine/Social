@@ -7,6 +7,23 @@ import { getSessionPhase } from '../utils/phaseConfig';
 import { useSubmissions } from '../hooks/useSubmissions';
 import type { Session, RoomMembership } from '../../../shared/types';
 
+export type SessionDisplayState =
+  | "idle"
+  | "forming"
+  | "waiting_on_host"
+  | "countdown"
+  | "joined"
+  | "answer"
+  | "vote"
+  | "results"
+  | "ended";
+
+export function getIsMainEventMode(session: Session | null): boolean {
+  if (!session) return false;
+  const status = session.status;
+  return status === 'lobby' || status === 'answer' || status === 'vote' || status === 'results';
+}
+
 interface PhaseControllerProps {
   session: Session | null;
   sessionId: string | null;
@@ -37,7 +54,6 @@ export function PhaseController({
         <AnswerPhase
           session={session}
           sessionId={sessionId}
-          memberships={memberships}
           hasSubmitted={submissions.answer}
           onSubmit={() => markSubmitted('answer')}
           onOpenModal={onOpenModal}
@@ -50,7 +66,6 @@ export function PhaseController({
         <VotePhase
           session={session}
           sessionId={sessionId}
-          memberships={memberships}
           hasSubmitted={submissions.vote}
           onSubmit={() => markSubmitted('vote')}
           onOpenModal={onOpenModal}
@@ -59,14 +74,13 @@ export function PhaseController({
 
     case 'results':
       if (!session) return null;
-      return <ResultsPhase session={session} memberships={memberships} />;
+      return <ResultsPhase session={session} />;
 
     case 'ended':
       if (!session) return null;
       return (
         <EndedPhase
           session={session}
-          memberships={memberships}
           onOpenLeaderboard={onOpenLeaderboard}
           onOpenSelfie={onOpenSelfie}
         />

@@ -54,7 +54,7 @@ export function InteractionListBottomSheet<T>({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="h-full"
+            className="flex min-h-0 flex-1 flex-col"
           >
             <div className="px-6 pt-4 pb-6">
               {items.length === 0 ? (
@@ -81,7 +81,7 @@ export function InteractionListBottomSheet<T>({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="h-full flex flex-col"
+            className="flex min-h-0 flex-1 flex-col"
           >
             {/* Explicit back button header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 bg-slate-900">

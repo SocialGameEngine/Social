@@ -15,13 +15,11 @@ import {
   ListIcon,
   SparklesIcon
 } from "../icons/VIBoxIcons";
-import { getDeviceType } from "../../utils/device";
-import { getSessionId } from "../../utils/session";
 import { log } from "../../utils/logger";
 import { getNextTrackByVibe, getPreviousTrackByVibe, getNextTrackLinear, getPreviousTrackLinear } from "../../utils/vibeNavigation";
 import { handleQueueError, handleQueueSuccess, handleQueueInfo } from "../../utils/errorHandlers";
-import { useVoting } from "../../contexts/ViboxVotingContext";
-
+import { useVoting } from '../../contexts/ViboxVotingContext';
+import { useRealtimeQueue } from '../../hooks/vibox/useRealtimeQueue';
 
 interface VIBoxJukeboxProps {
   isOpen: boolean;
@@ -29,6 +27,8 @@ interface VIBoxJukeboxProps {
   toast: (options: { title: string; variant: "success" | "error" | "info" }) => void;
   mode?: "host" | "team";
   allowUploads?: boolean;
+  room?: any;
+  memberships?: any[];
 }
 
 export function VIBoxJukeboxInner({ 
@@ -36,7 +36,9 @@ export function VIBoxJukeboxInner({
   onClose, 
   toast, 
   mode = "host",
-  allowUploads = true 
+  allowUploads = true,
+  room,
+  memberships
 }: VIBoxJukeboxProps) {
   const { isDark } = useVIBoxTheme();
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -67,6 +69,12 @@ export function VIBoxJukeboxInner({
   
   // Use voting context
   const { handleVote, getVoteCount, getUserVote } = useVoting();
+  
+  // Get room context from props
+  const roomId = room?.id;
+  const membership = memberships?.find(m => room?.moderatorIds.includes(m.userId) || room?.creatorId === m.userId);
+  const membershipId = membership?.id;
+  
   const [windowWidth, setWindowWidth] = useState(0);
   const [_bottomPlayerHeight, setBottomPlayerHeight] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -107,45 +115,13 @@ export function VIBoxJukeboxInner({
     };
   }, [expandedPlayer, isOpen]);
 
-  // Pure realtime approach - no polling
+  // Use the working realtime queue hook
+  const { queue: realtimeQueue } = useRealtimeQueue(roomId);
+  
+  // Update local queue state when realtime queue changes
   useEffect(() => {
-    const fetchQueue = () => {
-      viboxApi.getQueue().then((response) => {
-        if (response.success && response.data) {
-          setQueue(response.data.queue);
-        }
-      });
-    };
-
-    // Initial fetch
-    fetchQueue();
-    
-    // Setup realtime subscription
-    const channel = supabase
-      .channel('vibox-queue')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'vibox_queue',
-        },
-        () => {
-          // Immediate fetch for realtime events
-          fetchQueue();
-        }
-      )
-      .subscribe((status, err) => {
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          // Handle realtime connection errors
-          log.error('Queue subscription error', { status, error: err });
-        }
-      });
-
-    return () => {
-      channel.unsubscribe();
-    };
-  }, []);
+    setQueue(realtimeQueue);
+  }, [realtimeQueue]);
 
   // Load pre-loaded tracks and metadata from public directory on mount
   useEffect(() => {
@@ -405,19 +381,24 @@ export function VIBoxJukeboxInner({
 
   const addToQueue = async (track: Track) => {
     try {
+      // Validate room context exists
+      if (!roomId) {
+        toast({ 
+          title: 'VIBox requires a room context', 
+          variant: 'error' 
+        });
+        return;
+      }
+      
       const queueInsert: ViboxQueueInsert = {
         track_id: track.id,
         track_title: track.title,
         track_artist: track.artist,
-        track_url: track.url,
-        track_genre: track.genre,
-        track_duration: track.duration,
-        primary_vibe: track.primaryVibe,
-        secondary_vibe: track.secondaryVibe,
-        added_by: mode === "host" ? "Host" : "Patron",
-        device_type: getDeviceType(),
-        user_agent: navigator.userAgent,
-        session_id: getSessionId(),
+        track_album: track.album || undefined,
+        track_duration_ms: track.duration ? track.duration * 1000 : undefined,
+        track_artwork_url: track.artwork || undefined,
+        room_id: roomId,
+        membership_id: membershipId || undefined,
       };
 
       const response = await viboxApi.addToQueue(queueInsert);
@@ -1592,7 +1573,7 @@ export function VIBoxJukeboxInner({
                                         onClick={() => addToQueue(track)}
                                         className="vibox-button [--tw-text-opacity:1] text-[var(--color-button-primary)] hover:[--tw-text-opacity:0.8] transition-opacity svg-glow-primary"
                                       >
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                           <line x1="3" y1="6" x2="13" y2="6" />
                                           <line x1="3" y1="10" x2="13" y2="10" />
                                           <line x1="3" y1="14" x2="9" y2="14" />
@@ -1684,7 +1665,7 @@ export function VIBoxJukeboxInner({
                           onClick={() => addToQueue(track)}
                           className="vibox-button [--tw-text-opacity:1] text-[var(--color-button-primary)] hover:[--tw-text-opacity:0.8] transition-opacity svg-glow-primary"
                         >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="3" y1="6" x2="13" y2="6" />
                             <line x1="3" y1="10" x2="13" y2="10" />
                             <line x1="3" y1="14" x2="9" y2="14" />
@@ -1733,7 +1714,7 @@ export function VIBoxJukeboxInner({
                       <div className="flex items-center justify-center w-10 h-10 group hover:scale-105 transition-transform">
                         <div className="flex items-center svg-glow-primary">
                           <ChevronUpIcon className="w-8 h-8 mr-1 text-[var(--color-button-primary)]" />
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round" className="[--tw-text-opacity:0.8] text-[var(--color-button-primary)]">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="[--tw-text-opacity:0.8] text-[var(--color-button-primary)]">
                             <line x1="3" y1="6" x2="21" y2="6" />
                             <line x1="3" y1="10" x2="21" y2="10" />
                             <line x1="3" y1="14" x2="21" y2="14" />
@@ -1776,7 +1757,7 @@ export function VIBoxJukeboxInner({
                       <div className="flex items-center justify-center w-10 h-10 group hover:scale-105 transition-transform">
                         <div className="flex items-center svg-glow-primary">
                           <ChevronUpIcon className="w-8 h-8 mr-1 text-[var(--color-button-primary)]" />
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round" className="[--tw-text-opacity:0.8] text-[var(--color-button-primary)]">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="[--tw-text-opacity:0.8] text-[var(--color-button-primary)]">
                             <line x1="3" y1="6" x2="21" y2="6" />
                             <line x1="3" y1="10" x2="21" y2="10" />
                             <line x1="3" y1="14" x2="21" y2="14" />

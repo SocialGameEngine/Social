@@ -67,25 +67,11 @@ function ActivePhaseLayout({
         </div>
       </Card>
       
-      {/* Interactions Panel: Room member management */}
-      {room && (
-        <Card className="space-y-5" isDark={isDark}>
-          <div className={`border-t pt-5 ${!isDark ? 'border-slate-200' : 'border-cyan-400/20'}`}>
-            <div className="flex items-center justify-between mb-3">
-              <h4 className={`text-sm font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-400'}`}>Interactions Panel</h4>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm">
-                  Settings
-                </Button>
-              </div>
-            </div>
-            <HostInteractionManager
-              room={{ id: room.id, code: room.code }}
-              memberships={roomMemberships}
-            />
-          </div>
-        </Card>
-      )}
+      <HostInteractionsPanel
+        isDark={isDark}
+        room={room ? { id: room.id, code: room.code } : null}
+        roomMemberships={roomMemberships}
+      />
       {pendingSubmissions}
     </div>
   );
@@ -114,7 +100,7 @@ import {
 import { CreateRoomModal } from "./components/CreateRoomModal";
 import { PromptLibrarySelector } from "./components/PromptLibrarySelector";
 import { BannedPlayersManager } from "./components/BannedPlayersManager";
-import { HostInteractionManager } from "./components/HostInteractionManager";
+import { HostInteractionsPanel } from "./components/HostInteractionsPanel";
 import { handleCopyLink, handleCreateSession, handleUpdateSession, handleEndSession, handleHostVote, handlePrimaryAction } from "./Handlers";
 import { handleRoomKickPlayer, handleRoomBanPlayer } from "./Handlers/roomKickBanHandlers";
 import { setPromptLibrary, pauseSession } from "../session/sessionService";
@@ -338,9 +324,15 @@ export function HostPage() {
   };
 
   const handleSignOut = async () => {
-    if (!signOut) return;
+    console.log('HostPage handleSignOut called');
+    if (!signOut) {
+      console.error('signOut function is not available');
+      return;
+    }
     try {
+      console.log('Calling signOut...');
       await signOut();
+      console.log('signOut completed, closing menu...');
       setShowAccountMenu(false);
     } catch (error) {
       console.error('Sign out failed:', error);
@@ -403,6 +395,51 @@ export function HostPage() {
     setShowRoomCreateModal(false);
     setHostRoom({ roomId: newRoom.id, code: newRoom.code });
   };
+
+  // Handler functions for modals
+  const requireVenueAccount = useCallback(() => {
+    if (canCreateSession) {
+      return true;
+    }
+
+    if (authLoading || venueAccountLoading) {
+      toast({ title: "Checking your venue access...", variant: "info" });
+    } else {
+      setShowVenueAuthPrompt(true);
+    }
+    return false;
+  }, [toast, authLoading, venueAccountLoading, canCreateSession]);
+
+  const handleOpenRoomSettings = useCallback(() => {
+    if (!requireVenueAccount()) {
+      return;
+    }
+    setRoomModalMode('settings');
+  }, [requireVenueAccount]);
+
+  const handleCreateNewSession = useCallback(() => {
+    if (!requireVenueAccount()) {
+      return;
+    }
+    if (!storedRoomId) {
+      // If no room, we need to create one first
+      setShowRoomCreateModal(true);
+      return;
+    }
+    // If room exists, create a new session
+    setShowCreateModal(true);
+  }, [requireVenueAccount, setShowCreateModal, setShowRoomCreateModal, storedRoomId]);
+
+  const handleOpenCreateModal = useCallback(() => {
+    if (!requireVenueAccount()) {
+      return;
+    }
+    if (!storedRoomId) {
+      setShowRoomCreateModal(true);
+      return;
+    }
+    setShowCreateModal(true);
+  }, [requireVenueAccount, setShowCreateModal, setShowRoomCreateModal, storedRoomId]);
 
   // Clear stored data when user signs out
   useEffect(() => {
@@ -689,30 +726,6 @@ export function HostPage() {
     isSubmittingVote,
   });
 
-  const requireVenueAccount = useCallback(() => {
-    if (canCreateSession) {
-      return true;
-    }
-
-    if (authLoading || venueAccountLoading) {
-      toast({ title: "Checking your venue access...", variant: "info" });
-    } else {
-      setShowVenueAuthPrompt(true);
-    }
-    return false;
-  }, [toast, authLoading, venueAccountLoading, canCreateSession]);
-
-  const handleOpenCreateModal = useCallback(() => {
-    if (!requireVenueAccount()) {
-      return;
-    }
-    if (!storedRoomId) {
-      setShowRoomCreateModal(true);
-      return;
-    }
-    setShowCreateModal(true);
-  }, [requireVenueAccount, setShowCreateModal, setShowRoomCreateModal, storedRoomId]);
-
   const handlePrimaryClick = useCallback(() => {
     if (!session) {
       if (!storedRoomId) {
@@ -883,7 +896,7 @@ export function HostPage() {
         <>
           <Button
             variant="secondary"
-            onClick={handleOpenCreateModal}
+            onClick={handleCreateNewSession}
             disabled={true}
             title="End the current session before starting a new one."
           >
@@ -914,7 +927,7 @@ export function HostPage() {
         <>
           <Button
             variant="secondary"
-            onClick={handleOpenCreateModal}
+            onClick={handleCreateNewSession}
           >
             New Session
           </Button>
@@ -1056,25 +1069,12 @@ export function HostPage() {
               sessionPlayers={null}
               actionButtons={null}
             />
-                        {/* Interactions Panel: Room member management */}
-            {room && (
-              <Card className="space-y-5" isDark={isDark}>
-                <div className={`border-t pt-5 ${!isDark ? 'border-slate-200' : 'border-cyan-400/20'}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className={`text-sm font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-400'}`}>Interactions Panel</h4>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm">
-                        Settings
-                      </Button>
-                    </div>
-                  </div>
-                  <HostInteractionManager
-                    room={{ id: room.id, code: room.code }}
-                    memberships={roomMemberships}
-                  />
-                </div>
-              </Card>
-            )}
+            <HostInteractionsPanel
+              isDark={isDark}
+              room={room ? { id: room.id, code: room.code } : null}
+              roomMemberships={roomMemberships}
+              onOpenSettings={handleOpenRoomSettings}
+            />
           </div>
         );
       }
@@ -1101,25 +1101,12 @@ export function HostPage() {
               sessionPlayers={sessionPlayersList}
               actionButtons={lobbyActionButtons}
             />
-                        {/* Interactions Panel: Room member management */}
-            {room && (
-              <Card className="space-y-5" isDark={isDark}>
-                <div className={`border-t pt-5 ${!isDark ? 'border-slate-200' : 'border-cyan-400/20'}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className={`text-sm font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-400'}`}>Interactions Panel</h4>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm">
-                        Settings
-                      </Button>
-                    </div>
-                  </div>
-                  <HostInteractionManager
-                    room={{ id: room.id, code: room.code }}
-                    memberships={roomMemberships}
-                  />
-                </div>
-              </Card>
-            )}
+            <HostInteractionsPanel
+              isDark={isDark}
+              room={room ? { id: room.id, code: room.code } : null}
+              roomMemberships={roomMemberships}
+              onOpenSettings={handleOpenRoomSettings}
+            />
           </div>
         );
 
@@ -1247,25 +1234,12 @@ export function HostPage() {
               sessionPlayers={sessionPlayersList}
               actionButtons={null}
             />
-                        {/* Interactions Panel: Room member management */}
-            {room && (
-              <Card className="space-y-5" isDark={isDark}>
-                <div className={`border-t pt-5 ${!isDark ? 'border-slate-200' : 'border-cyan-400/20'}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className={`text-sm font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-400'}`}>Interactions Panel</h4>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm">
-                        Settings
-                      </Button>
-                    </div>
-                  </div>
-                  <HostInteractionManager
-                    room={{ id: room.id, code: room.code }}
-                    memberships={roomMemberships}
-                  />
-                </div>
-              </Card>
-            )}
+            <HostInteractionsPanel
+              isDark={isDark}
+              room={room ? { id: room.id, code: room.code } : null}
+              roomMemberships={roomMemberships}
+              onOpenSettings={handleOpenRoomSettings}
+            />
           </div>
         );
 
@@ -1290,52 +1264,7 @@ export function HostPage() {
   // Responsive layout hook for mobile detection
   const { isMobile } = useResponsiveLayout();
 
-  // Bottom navigation content for mobile
-  const mobileBottomNav = (
-    <>
-      <button
-        type="button"
-        className="chaos-nav-item"
-        onClick={() => navigate('/')}
-      >
-        <div className="text-2xl">🏠</div>
-        <span className="chaos-nav-label">Home</span>
-      </button>
-      <button
-        type="button"
-        className="chaos-nav-item"
-        onClick={() => setShowVIBoxModal(true)}
-      >
-        <div className="text-2xl">🎵</div>
-        <span className="chaos-nav-label">VIBox</span>
-      </button>
-      <button
-        type="button"
-        className="chaos-nav-item"
-        onClick={() => window.open('/help', '_blank')}
-      >
-        <div className="text-xl">❓</div>
-        <span className="chaos-nav-label">Help</span>
-      </button>
-      <button
-        type="button"
-        className="chaos-nav-item"
-        onClick={() => navigate('/profile')}
-      >
-        <div className="text-2xl">
-          {user ? (
-            <span className="text-sm font-semibold">
-              {(user.user_metadata?.display_name?.[0] || user.email?.[0] || "U").toUpperCase()}
-            </span>
-          ) : (
-            '👤'
-          )}
-        </div>
-        <span className="chaos-nav-label">Profile</span>
-      </button>
-    </>
-  );
-
+  
   // Main content (shared between mobile and desktop)
   const mainContent = (
     <>
@@ -1816,6 +1745,8 @@ export function HostPage() {
         isOpen={showVIBoxModal}
         onClose={() => setShowVIBoxModal(false)}
         toast={toast}
+        room={room}
+        memberships={roomMemberships || []}
         mode="host"
         allowUploads={true}
       />
@@ -1876,50 +1807,7 @@ export function HostPage() {
         }}
       />
 
-      {/* Bottom Navigation Bar - Mobile only */}
-      <nav className="bottom-nav sm:hidden">
-        <button
-          type="button"
-          className="chaos-nav-item"
-          onClick={() => navigate('/')}
-        >
-          <div className="text-2xl">🏠</div>
-          <span className="chaos-nav-label">Home</span>
-        </button>
-        <button
-          type="button"
-          className="chaos-nav-item"
-          onClick={() => setShowVIBoxModal(true)}
-        >
-          <div className="text-2xl">🎵</div>
-          <span className="chaos-nav-label">VIBox</span>
-        </button>
-        <button
-          type="button"
-          className="chaos-nav-item"
-          onClick={() => window.open('/help', '_blank')}
-        >
-          <div className="text-xl">❓</div>
-          <span className="chaos-nav-label">Help</span>
-        </button>
-        <button
-          type="button"
-          className="chaos-nav-item"
-          onClick={() => navigate('/profile')}
-        >
-          <div className="text-2xl">
-            {user ? (
-              <span className="text-sm font-semibold">
-                {(user.user_metadata?.display_name?.[0] || user.email?.[0] || "U").toUpperCase()}
-              </span>
-            ) : (
-              '👤'
-            )}
-          </div>
-          <span className="chaos-nav-label">Profile</span>
-        </button>
-      </nav>
-
+      
       {/* End of mainContent fragment */}
     </>
   );
@@ -1928,7 +1816,7 @@ export function HostPage() {
   if (isMobile) {
     return (
       <MobileLayout 
-        bottomNav={mobileBottomNav}
+        bottomNav={null} // No bottom navigation on host view
         className="bg-slate-950"
       >
         <div className="px-4 py-4 overflow-y-auto">

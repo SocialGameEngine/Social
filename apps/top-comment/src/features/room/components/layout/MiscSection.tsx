@@ -17,11 +17,11 @@ export function MiscSection({
   }
 
   return (
-    <div className="px-4 pb-4">
+    <div className="misc-section px-4 pb-4">
       <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 px-1">
         More
       </h2>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <InteractionTypeButton
           icon={
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
