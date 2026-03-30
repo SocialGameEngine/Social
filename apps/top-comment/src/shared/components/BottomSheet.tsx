@@ -1,6 +1,5 @@
-import { motion, useMotionValue, useTransform } from 'framer-motion';
-import type { PanInfo } from 'framer-motion';
-import { useEffect, useState, useRef } from 'react';
+import { motion, useMotionValue, useTransform, useAnimation, type PanInfo } from 'framer-motion';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 
@@ -11,7 +10,21 @@ interface BottomSheetProps {
   title?: string;
   showCloseButton?: boolean;
   disableDrag?: boolean;
+  /** Enable half-open snap point (default: false) */
+  enableHalfSnap?: boolean;
+  /** Initial snap point: 'full' or 'half' (default: 'full') */
+  initialSnap?: 'full' | 'half';
 }
+
+// Snap points configuration
+const SNAP_POINTS = {
+  FULL: 0,      // Fully open
+  HALF: 0.5,    // Half open (50% of max height)
+  CLOSED: 1,    // Fully closed
+};
+const DISMISS_THRESHOLD = 150; // px offset to trigger dismiss
+const VELOCITY_THRESHOLD = 500; // px/s velocity to trigger dismiss
+const HALF_SNAP_THRESHOLD = 100; // px to snap to half instead of full
 
 export function BottomSheet({
   isOpen,
@@ -20,12 +33,34 @@ export function BottomSheet({
   title,
   showCloseButton = true,
   disableDrag = false,
+  enableHalfSnap = false,
+  initialSnap = 'full',
 }: BottomSheetProps) {
   const y = useMotionValue(0);
-  const opacity = useTransform(y, [0, 300], [0.8, 0]);
+  const controls = useAnimation();
+  const opacity = useTransform(y, [0, 300], [0.6, 0]);
   const [showHint, setShowHint] = useState(true);
   const hasUsedAnyExit = useRef(false);
   const shouldReduceMotion = useReducedMotion();
+  const contentRef = useRef<HTMLDivElement>(null);
+  const dragHandleRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const isDraggingSheet = useRef(false);
+  const isClosing = useRef(false);
+  
+  // Current snap point state
+  const [currentSnap, setCurrentSnap] = useState<'full' | 'half'>(initialSnap);
+  const sheetHeight = useRef(0);
+
+  // Track if content is scrolled to top (for scroll/drag arbitration)
+  const [isScrolledToTop, setIsScrolledToTop] = useState(true);
+  
+  // Measure sheet height for snap point calculations
+  useEffect(() => {
+    if (sheetRef.current && isOpen) {
+      sheetHeight.current = sheetRef.current.offsetHeight;
+    }
+  }, [isOpen]);
 
   // Auto-hide hint after 3 seconds
   useEffect(() => {
@@ -33,50 +68,161 @@ export function BottomSheet({
       const timer = setTimeout(() => {
         setShowHint(false);
       }, 3000);
-      
       return () => clearTimeout(timer);
     }
   }, [showHint, isOpen]);
 
-  
+  // Body scroll lock with proper cleanup
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    const originalPaddingRight = document.body.style.paddingRight;
+    
+    // Calculate scrollbar width to prevent layout shift
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    
+    document.body.style.overflow = 'hidden';
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.paddingRight = originalPaddingRight;
+    };
+  }, [isOpen]);
+
+  // Escape key handler
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
+      if (e.key === 'Escape' && isOpen && !isClosing.current) {
+        handleExit();
       }
     };
 
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
     }
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen]);
 
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = '';
-    };
-  }, [isOpen, onClose]);
+  // Reset state when sheet opens
+  useEffect(() => {
+    if (isOpen) {
+      isClosing.current = false;
+      y.set(0);
+      controls.start({ y: 0 });
+      setIsScrolledToTop(true);
+    }
+  }, [isOpen, y, controls]);
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
-    const shouldClose = info.velocity.y > 500 || (info.velocity.y >= 0 && info.offset.y > 100);
+  // Track scroll position for drag arbitration
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+    setIsScrolledToTop(target.scrollTop <= 0);
+  }, []);
+
+  const handleDragStart = useCallback(() => {
+    isDraggingSheet.current = true;
+  }, []);
+
+  const handleDrag = useCallback((_: any, info: PanInfo) => {
+    // Prevent upward drag past the open position
+    if (info.offset.y < 0) {
+      y.set(0);
+    }
+  }, [y]);
+
+  const handleDragEnd = useCallback((_: any, info: PanInfo) => {
+    isDraggingSheet.current = false;
     
-    if (shouldClose) {
+    const offsetY = info.offset.y;
+    const velocityY = info.velocity.y;
+    const height = sheetHeight.current || 400;
+    const halfPoint = height * SNAP_POINTS.HALF;
+    
+    // Dismiss conditions:
+    // 1. Fast downward flick (velocity-based)
+    // 2. Dragged past threshold with any downward velocity
+    // 3. Dragged significantly past threshold
+    const shouldDismiss = 
+      velocityY > VELOCITY_THRESHOLD ||
+      (offsetY > DISMISS_THRESHOLD && velocityY >= 0 && !enableHalfSnap) ||
+      (enableHalfSnap && offsetY > halfPoint + DISMISS_THRESHOLD) ||
+      offsetY > DISMISS_THRESHOLD * 1.5;
+    
+    if (shouldDismiss) {
       handleExit();
+    } else if (enableHalfSnap) {
+      // Snap to nearest point: full, half, or dismiss
+      const snapToHalf = offsetY > HALF_SNAP_THRESHOLD && offsetY < halfPoint;
+      const snapToFull = offsetY <= HALF_SNAP_THRESHOLD || (currentSnap === 'half' && velocityY < -200);
+      
+      if (snapToFull) {
+        setCurrentSnap('full');
+        controls.start({
+          y: 0,
+          transition: shouldReduceMotion
+            ? { duration: 0.2 }
+            : { type: 'spring', damping: 30, stiffness: 400 }
+        });
+      } else if (snapToHalf) {
+        setCurrentSnap('half');
+        controls.start({
+          y: halfPoint,
+          transition: shouldReduceMotion
+            ? { duration: 0.2 }
+            : { type: 'spring', damping: 30, stiffness: 400 }
+        });
+      } else {
+        // Snap back to current position
+        controls.start({
+          y: currentSnap === 'half' ? halfPoint : 0,
+          transition: shouldReduceMotion
+            ? { duration: 0.2 }
+            : { type: 'spring', damping: 30, stiffness: 400 }
+        });
+      }
+    } else {
+      // Snap back to open position with spring physics
+      controls.start({
+        y: 0,
+        transition: shouldReduceMotion
+          ? { duration: 0.2 }
+          : { type: 'spring', damping: 30, stiffness: 400 }
+      });
     }
-  };
+  }, [controls, shouldReduceMotion, enableHalfSnap, currentSnap]);
 
-  const handleExit = () => {
+  const handleExit = useCallback(() => {
+    if (isClosing.current) return;
+    isClosing.current = true;
+    
     if (!hasUsedAnyExit.current) {
       hasUsedAnyExit.current = true;
       setShowHint(false);
     }
-    onClose();
-  };
+    
+    // Animate out before calling onClose
+    controls.start({
+      y: 500,
+      transition: shouldReduceMotion
+        ? { duration: 0.2 }
+        : { type: 'spring', damping: 30, stiffness: 300 }
+    }).then(() => {
+      onClose();
+    });
+  }, [controls, onClose, shouldReduceMotion]);
+
+  const handleBackdropClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleExit();
+  }, [handleExit]);
 
   if (!isOpen) return null;
 
   // iOS Safari: dvh tracks the *visible* viewport as the URL bar shows/hides.
-  // Safe-area insets keep the sheet below the status island and above the home indicator.
   const sheetMaxHeight =
     'min(90dvh, calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)))';
 
@@ -87,28 +233,28 @@ export function BottomSheet({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
       className="fixed inset-0 z-[100] flex items-end justify-center"
-      onClick={onClose}
+      onClick={handleBackdropClick}
     >
+      {/* Backdrop with opacity tied to drag position */}
       <motion.div
         style={{ opacity }}
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
       />
       
       <motion.div
-        variants={{
-          hidden: { y: 300 },
-          visible: { y: 0 },
-        }}
-        initial="hidden"
-        animate="visible"
-        exit="hidden"
-        transition={shouldReduceMotion ? 
-          { duration: 0.3 } : 
-          { type: 'spring', damping: 30, stiffness: 300 }
+        ref={sheetRef}
+        initial={{ y: 300 }}
+        animate={controls}
+        transition={shouldReduceMotion 
+          ? { duration: 0.3 } 
+          : { type: 'spring', damping: 30, stiffness: 300 }
         }
         drag={disableDrag ? false : "y"}
-        dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={{ top: 0, bottom: 0.5 }}
+        dragConstraints={{ top: 0, bottom: 500 }}
+        dragElastic={{ top: 0, bottom: 0.3 }}
+        dragMomentum={false}
+        onDragStart={handleDragStart}
+        onDrag={handleDrag}
         onDragEnd={!disableDrag ? handleDragEnd : undefined}
         style={{ y, height: sheetMaxHeight, maxHeight: sheetMaxHeight }}
         onClick={(e) => e.stopPropagation()}
@@ -117,12 +263,19 @@ export function BottomSheet({
         aria-modal="true"
         aria-labelledby={title ? 'bottom-sheet-title' : undefined}
       >
-        {/* Header with grab handle and close button */}
-        <div className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700">
-          <div className="flex items-center justify-between px-4 py-3">
+        {/* Drag handle area - larger touch target */}
+        <div 
+          ref={dragHandleRef}
+          className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 touch-none cursor-grab active:cursor-grabbing"
+          style={{ touchAction: 'none' }}
+        >
+          {/* Centered grab handle indicator */}
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 bg-slate-500 rounded-full" />
+          </div>
+          
+          <div className="flex items-center justify-between px-4 py-2">
             <div className="flex items-center gap-3">
-              {/* Grab handle - communicates "drag me" */}
-              <div className="w-12 h-1.5 bg-slate-600 rounded-full" />
               {title && (
                 <h2 id="bottom-sheet-title" className="text-lg font-semibold text-white">
                   {title}
@@ -143,8 +296,13 @@ export function BottomSheet({
           </div>
         </div>
 
-        {/* flex-col so nested room sheets can use flex-1 / min-h-0; safe-area pb clears the home indicator */}
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom,0px)]">
+        {/* Scrollable content with scroll/drag arbitration */}
+        <div 
+          ref={contentRef}
+          onScroll={handleScroll}
+          className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom,0px)]"
+          style={{ touchAction: isScrolledToTop ? 'pan-y' : 'pan-y' }}
+        >
           {children}
         </div>
 

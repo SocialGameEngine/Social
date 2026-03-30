@@ -1,0 +1,297 @@
+/**
+ * HostPanelV2 - Modern host panel with three-layer mobile layout
+ * 
+ * This component demonstrates the full integration of the new host panel
+ * architecture from the 2026 implementation plan.
+ * 
+ * Features:
+ * - Three-layer mobile layout (status bar, canvas, action bar)
+ * - Session state machine integration
+ * - Connection status monitoring
+ * - Offline resilience
+ * - WCAG 2.2 compliant touch targets
+ */
+
+import { useState, useCallback, useMemo } from 'react';
+import { useResponsiveLayout } from '../../room/hooks/useResponsiveLayout';
+import { useConnectionStatus } from '../hooks/useConnectionStatus';
+import { useSessionMachine } from '../state/sessionMachine';
+import {
+  HostMobileShell,
+  HostTopStatusBar,
+  HostActionBar,
+  ConfirmDialog,
+  ToastProvider,
+  OfflineBanner,
+  ParticipantsSheet,
+} from './shell';
+import { PHASE_STATUS_LABELS } from '../types/host-panel.types';
+import type { Session, Room, RoomMembership } from '../../../shared/types';
+
+interface HostPanelV2Props {
+  session: Session | null;
+  room: Room | null;
+  memberships: RoomMembership[];
+  roomCode: string;
+  timer?: number;
+  playerCount?: number;
+  sessionPlayers?: any[]; // SessionPlayer array
+  onPrimaryAction: () => void;
+  onPauseToggle: () => void;
+  onEndSession: () => void;
+  onCreateSession: () => void;
+  onOpenSettings?: () => void;
+  isPerformingAction: boolean;
+  isPausingSession: boolean;
+  isEndingSession: boolean;
+  children?: React.ReactNode;
+}
+
+export function HostPanelV2({
+  session,
+  room,
+  memberships,
+  roomCode,
+  timer,
+  playerCount: propPlayerCount,
+  sessionPlayers,
+  onPrimaryAction,
+  onPauseToggle,
+  onEndSession,
+  onCreateSession,
+  onOpenSettings,
+  isPerformingAction,
+  isPausingSession,
+  isEndingSession,
+  children,
+}: HostPanelV2Props) {
+  const { isMobile } = useResponsiveLayout();
+  const [showParticipantsSheet, setShowParticipantsSheet] = useState(false);
+  const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
+  
+  // Mock handlers for participant actions (to be implemented)
+  const handleKick = useCallback((membershipId: string) => {
+    console.log('Kick member:', membershipId);
+    // TODO: Implement kick logic
+  }, []);
+  
+  const handleBan = useCallback((membershipId: string) => {
+    console.log('Ban member:', membershipId);
+    // TODO: Implement ban logic
+  }, []);
+  
+  const handleMute = useCallback((membershipId: string) => {
+    console.log('Mute member:', membershipId);
+    // TODO: Implement mute logic
+  }, []);
+  
+  const handleSpotlight = useCallback((membershipId: string) => {
+    console.log('Spotlight member:', membershipId);
+    // TODO: Implement spotlight logic
+  }, []);
+
+  // Connection status monitoring
+  const connectionStatus = useConnectionStatus({
+    onStatusChange: (status) => {
+      // Could integrate with session machine here
+      console.log('Connection status changed:', status);
+    },
+  });
+
+  // Session state machine
+  const sessionMachine = useSessionMachine(session, memberships.length);
+
+  // Use passed playerCount or compute from memberships (for participants list)
+  const computedPlayerCount = useMemo(() => {
+    if (!room) return 0;
+    return memberships.filter(
+      (m) => !m.isBanned && 
+             m.status === 'active' && 
+             !room.moderatorIds.includes(m.userId)
+    ).length;
+  }, [memberships, room]);
+
+  // Use passed playerCount for display, computed for internal logic
+  const displayPlayerCount = propPlayerCount ?? computedPlayerCount;
+
+  // Phase name for display
+  const phaseName = session 
+    ? PHASE_STATUS_LABELS[session.status] 
+    : 'No Session';
+
+  // Handle end session with confirmation
+  const handleEndSessionClick = useCallback(() => {
+    setShowEndSessionConfirm(true);
+  }, []);
+
+  const handleConfirmEndSession = useCallback(() => {
+    setShowEndSessionConfirm(false);
+    onEndSession();
+  }, [onEndSession]);
+
+  // Render mobile layout
+  if (isMobile) {
+    return (
+      <ToastProvider>
+        {/* Offline banner */}
+        <OfflineBanner
+          status={connectionStatus.status}
+          retryCount={connectionStatus.retryCount}
+          onRetry={connectionStatus.retry}
+        />
+
+        <HostMobileShell
+          topBar={
+            <HostTopStatusBar
+              roomCode={roomCode}
+              phaseName={phaseName}
+                            connectionStatus={connectionStatus.status}
+              isPaused={session?.paused ?? false}
+              roundIndex={session?.roundIndex}
+              totalRounds={session?.settings?.totalRounds}
+              onSettingsOpen={onOpenSettings}
+            />
+          }
+          actionBar={
+            <HostActionBar
+              session={session}
+              playerCount={session ? (sessionPlayers?.length || 0) : displayPlayerCount}
+              isPerformingAction={isPerformingAction || sessionMachine.isPerformingAction}
+              isPausingSession={isPausingSession}
+              isEndingSession={isEndingSession}
+              hasRoom={!!room}
+              timer={timer}
+              onPrimaryAction={onPrimaryAction}
+              onPauseToggle={onPauseToggle}
+              onEndSession={handleEndSessionClick}
+              onCreateSession={onCreateSession}
+              onParticipantsOpen={() => setShowParticipantsSheet(true)}
+            />
+          }
+        >
+          {/* Session Canvas Content */}
+          <div className="space-y-4">
+            {/* Main content passed as children */}
+            {children}
+          </div>
+        </HostMobileShell>
+
+        {/* Participants Sheet */}
+        <ParticipantsSheet
+          isOpen={showParticipantsSheet}
+          onClose={() => setShowParticipantsSheet(false)}
+          memberships={memberships}
+          room={room}
+          session={session}
+          sessionPlayers={sessionPlayers}
+          onKick={handleKick}
+          onBan={handleBan}
+          onMute={handleMute}
+          onSpotlight={handleSpotlight}
+        />
+
+        {/* End Session Confirmation */}
+        <ConfirmDialog
+          isOpen={showEndSessionConfirm}
+          onClose={() => setShowEndSessionConfirm(false)}
+          onConfirm={handleConfirmEndSession}
+          title="End Session?"
+          description="This will end the current session for all players. This action cannot be undone."
+          confirmLabel="End Session"
+          cancelLabel="Keep Playing"
+          variant="danger"
+          isLoading={isEndingSession}
+        />
+      </ToastProvider>
+    );
+  }
+
+  // Desktop layout (simplified for now - full implementation in Phase 3)
+  return (
+    <ToastProvider>
+      {/* Offline banner */}
+      <OfflineBanner
+        status={connectionStatus.status}
+        retryCount={connectionStatus.retryCount}
+        onRetry={connectionStatus.retry}
+      />
+
+      <div className="min-h-screen bg-slate-900">
+        {/* Desktop header */}
+        <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-sm border-b border-cyan-400/20">
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            <HostTopStatusBar
+              roomCode={roomCode}
+              phaseName={phaseName}
+                            connectionStatus={connectionStatus.status}
+              isPaused={session?.paused ?? false}
+              roundIndex={session?.roundIndex}
+              totalRounds={session?.settings?.totalRounds}
+              onSettingsOpen={onOpenSettings}
+            />
+          </div>
+        </header>
+
+        {/* Desktop main content */}
+        <main className="max-w-7xl mx-auto px-4 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left column - Session Controls */}
+            <aside className="lg:col-span-1 space-y-4">
+              <div className="bg-slate-800 rounded-2xl p-4 border border-cyan-400/20">
+                <h2 className="text-lg font-semibold text-white mb-4">Session Controls</h2>
+                <HostActionBar
+                  session={session}
+                  playerCount={session ? (sessionPlayers?.length || 0) : displayPlayerCount}
+                  isPerformingAction={isPerformingAction || sessionMachine.isPerformingAction}
+                  isPausingSession={isPausingSession}
+                  isEndingSession={isEndingSession}
+                  hasRoom={!!room}
+                  timer={timer}
+                  onPrimaryAction={onPrimaryAction}
+                  onPauseToggle={onPauseToggle}
+                  onEndSession={handleEndSessionClick}
+                  onCreateSession={onCreateSession}
+                  onParticipantsOpen={() => setShowParticipantsSheet(true)}
+                />
+              </div>
+
+              
+                          </aside>
+
+            {/* Center column - Session Canvas */}
+            <div className="lg:col-span-2">
+              {children}
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* Participants Sheet */}
+      <ParticipantsSheet
+        isOpen={showParticipantsSheet}
+        onClose={() => setShowParticipantsSheet(false)}
+        memberships={memberships}
+        room={room}
+        session={session}
+        sessionPlayers={sessionPlayers}
+        onKick={handleKick}
+        onBan={handleBan}
+        onMute={handleMute}
+        onSpotlight={handleSpotlight}
+      />
+
+      {/* End Session Confirmation */}
+      <ConfirmDialog
+        isOpen={showEndSessionConfirm}
+        onClose={() => setShowEndSessionConfirm(false)}
+        onConfirm={handleConfirmEndSession}
+        title="End Session?"
+        description="This will end the current session for all players. This action cannot be undone."
+        confirmLabel="End Session"
+        cancelLabel="Keep Playing"
+        variant="danger"
+        isLoading={isEndingSession}
+      />
+    </ToastProvider>
+  );
+}

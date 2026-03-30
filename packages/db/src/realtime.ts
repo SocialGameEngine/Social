@@ -4,11 +4,15 @@
  */
 
 import type { SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
-import type { Database, Session, Team, Answer } from './client';
+import type { Database, Session, Team, Answer, Sociale, Socialite } from './client';
 
 export type SessionUpdateCallback = (session: Session) => void;
 export type TeamUpdateCallback = (teams: Team[]) => void;  // Updated: Player → Team
 export type AnswerUpdateCallback = (answers: Answer[]) => void;  // Updated: Submission → Answer
+
+// Sociale callbacks
+export type SocialeUpdateCallback = (sociale: Sociale) => void;
+export type SocialiteUpdateCallback = (socialites: Socialite[]) => void;
 
 export function subscribeToSession(
   client: SupabaseClient<Database>,
@@ -36,11 +40,16 @@ export function subscribeToTeams(  // Updated: subscribeToPlayers → subscribeT
   client: SupabaseClient<Database>,
   sessionId: string,
   onUpdate: TeamUpdateCallback,  // Updated: PlayerUpdateCallback → TeamUpdateCallback
-): RealtimeChannel {
+): RealtimeChannel | null {
+  // Teams table doesn't exist in new schema - return null
+  // TODO: Update to use socialites instead
+  return null;
+  
+  /* Old implementation - commented out
   const channel = client.channel(`teams:${sessionId}`);
 
   const fetchTeams = async () => {  // Updated: fetchPlayers → fetchTeams
-    const { data } = await client
+    const { data } = await (client as any)
       .from('teams')  // Updated: players → teams
       .select('*')
       .eq('session_id', sessionId)
@@ -56,19 +65,20 @@ export function subscribeToTeams(  // Updated: subscribeToPlayers → subscribeT
     {
       event: '*',
       schema: 'public',
-      table: 'teams',  // Updated: players → teams
+      table: 'teams',
       filter: `session_id=eq.${sessionId}`,
     },
     () => {
-      fetchTeams();  // Updated: fetchPlayers → fetchTeams
+      fetchTeams();
     },
   );
 
   channel.subscribe(() => {
-    fetchTeams();  // Updated: fetchPlayers → fetchTeams
+    fetchTeams();
   });
 
   return channel;
+  */
 }
 
 export function subscribeToAnswers(  // Updated: subscribeToSubmissions → subscribeToAnswers
@@ -130,7 +140,9 @@ export function subscribeToAnswers(  // Updated: subscribeToSubmissions → subs
   return channel;
 }
 
-export function unsubscribe(channel: RealtimeChannel): void {
-  channel.unsubscribe();
+export function unsubscribe(channel: RealtimeChannel | null): void {
+  if (channel) {
+    channel.unsubscribe();
+  }
 }
 

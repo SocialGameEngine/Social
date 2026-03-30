@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '../../supabase/client';
+import { logger } from '../../shared/utils/logger';
 
 // Application types
 interface VoteCounts {
@@ -62,7 +63,7 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
     try {
       if (!roomId) return;
       
-      const { data, error } = await (supabase.rpc as any)('get_vote_counts_from_db', { p_session_id: roomId! });
+      const { data, error } = await (supabase.rpc as any)('get_vote_counts_from_db', { p_room_id: roomId! });
       if (error) throw error;
       
       const countsMap = new Map<string, VoteCounts>();
@@ -80,7 +81,7 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
       }
       setVoteCounts(countsMap);
     } catch (err) {
-      console.error('Error fetching vote counts:', err);
+      logger.error('Error fetching vote counts', { error: err, roomId });
       setError('Failed to load vote counts');
     }
   }, [roomId]);
@@ -90,8 +91,8 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
       if (!roomId || !membershipId) return;
 
       const { data, error } = await (supabase.rpc as any)('get_user_votes_from_db', { 
-        p_session_id: roomId!, 
-        p_player_id: membershipId! 
+        p_room_id: roomId!, 
+        p_membership_id: membershipId! 
       });
       if (error) throw error;
 
@@ -110,7 +111,7 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
       }
       setUserVotes(votesMap);
     } catch (err) {
-      console.error('Error fetching user votes:', err);
+      logger.error('Error fetching user votes', { error: err, roomId, membershipId });
       setError('Failed to load user votes');
     }
   }, [roomId, membershipId]);
@@ -126,8 +127,8 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
       }
 
       const { error } = await (supabase.rpc as any)('vote_on_track', {
-        p_session_id: roomId!,
-        p_player_id: membershipId!,
+        p_room_id: roomId!,
+        p_membership_id: membershipId!,
         p_track_id: trackId,
         p_vote_type: voteType
       });
@@ -189,7 +190,7 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
       // Refresh vote counts from database in background
       fetchVoteCounts();
     } catch (err) {
-      console.error('Error voting:', err);
+      logger.error('Error voting', { error: err, roomId, membershipId, trackId, voteType });
       setError('Failed to vote');
     }
   };
@@ -199,7 +200,7 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
       if (!roomId || !membershipId) throw new Error('No room or membership context found');
       
       const { error } = await (supabase.rpc as any)('remove_vote', {
-        p_session_id: roomId!,
+        p_room_id: roomId!,
         p_track_id: trackId
       });
 
@@ -249,7 +250,7 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
       // Refresh vote counts from database in background
       fetchVoteCounts();
     } catch (err) {
-      console.error('Error removing vote:', err);
+      logger.error('Error removing vote', { error: err, roomId, trackId });
       setError('Failed to remove vote');
     }
   };

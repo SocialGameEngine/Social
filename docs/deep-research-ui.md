@@ -1,4 +1,4 @@
-# Optimizing a Party-Game Room Page so the Session Panel Wins on Mobile
+Based on my project this semester (since January), write me a summary of what I've been doing. Up until 2 weeks ago.# Optimizing a Party-Game Room Page so the Session Panel Wins on Mobile
 
 ## Current-state diagnosis
 

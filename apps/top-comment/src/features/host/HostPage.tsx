@@ -1,95 +1,24 @@
-import { useCallback, useEffect, useMemo, useState, useRef } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { Button, Card, Modal, QRCodeBlock } from "@social/ui";
 import { PlayerAuthModal } from "../auth/PlayerAuthModal";
 import { VenueAuthModal } from "../auth/VenueAuthModal";
 import { VenueRoomChecker } from "../auth/VenueRoomChecker";
 
-// Active Phase Layout Component
-interface ActivePhaseLayoutProps {
-  phaseTitle: string;
-  phaseContent: React.ReactNode;
-  sessionControls: React.ReactNode;
-  sessionPlayers: React.ReactNode;
-  room: any;
-  roomMemberships: any[];
-  pendingSubmissions: React.ReactNode;
-}
-
-function ActivePhaseLayout({
-  phaseTitle,
-  phaseContent,
-  sessionControls,
-  sessionPlayers,
-  room,
-  roomMemberships,
-  pendingSubmissions,
-  copyLinkHandler,
-  roomJoinCode,
-  inviteLink,
-}: ActivePhaseLayoutProps & {
-  copyLinkHandler: (link: string) => void;
-  roomJoinCode: string;
-  inviteLink: string;
-}) {
-  const { isDark } = useTheme();
-
-  return (
-    <div className="space-y-6">
-      <Card className="space-y-5" isDark={isDark}>
-        <div className="flex items-center justify-between">
-          <h3 className={`text-xl font-semibold ${!isDark ? 'text-slate-900' : 'text-pink-400'}`}>
-            {phaseTitle}
-          </h3>
-          <div className="flex gap-2">
-            {sessionControls}
-          </div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-1">
-          <button
-            type="button"
-            onClick={() => copyLinkHandler(inviteLink)}
-            className={`flex flex-col rounded-2xl border p-4 text-left shadow-sm transition hover:shadow-md ${!isDark ? 'border-slate-200 bg-white hover:border-brand-primary text-slate-900' : 'border-cyan-400/50 bg-slate-800 hover:border-cyan-400 text-white'}`}
-          >
-            <span className={`text-xs font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-300'}`}>
-              Shareable link
-            </span>
-            <span className={`mt-1 break-all font-medium ${!isDark ? 'text-brand-primary' : 'text-cyan-400'}`}>
-              {inviteLink || roomJoinCode}
-            </span>
-          </button>
-        </div>
-        {phaseContent}
-        {/* Session Players */}
-        <div className={`border-t pt-5 ${!isDark ? 'border-slate-200' : 'border-cyan-400/20'}`}>
-          {sessionPlayers}
-        </div>
-      </Card>
-      
-      <HostInteractionsPanel
-        isDark={isDark}
-        room={room ? { id: room.id, code: room.code } : null}
-        roomMemberships={roomMemberships}
-      />
-      {pendingSubmissions}
-    </div>
-  );
-}
 
 import { useGameState, useSessionOrchestrator, transformRoundSummariesForUI } from "../../application";
 import { useRoomV2 } from "../../hooks/useRoomV2";
-import { VIBoxButton } from "../../shared/components/vibox/VIBoxButton";
 import { VIBoxJukebox } from "../../shared/components/vibox/VIBoxJukebox";
-import { MobileLayout } from "../../shared/components/MobileLayout";
+// import { MobileLayout } from "../../shared/components/MobileLayout"; // Replaced by HostPanelV2
 import { useActiveGroupAnswers, usePlayerLookup, useToast } from "../../shared/hooks";
 import { useAuth } from "../../shared/providers/AuthContext";
 import { useTheme } from "../../shared/providers/ThemeProvider";
 import { actionLabel, getDefaultPromptLibraryId, phaseCopy } from "../../shared/constants";
 import { getErrorMessage } from "../../shared/utils/errors";
+import { logger } from "../../shared/utils/logger";
 import { supabase } from "../../supabase/client";
 import {
-  LobbyPhase,
   AnswerPhase,
   VotePhase,
   ResultsPhase,
@@ -101,6 +30,9 @@ import { CreateRoomModal } from "./components/CreateRoomModal";
 import { PromptLibrarySelector } from "./components/PromptLibrarySelector";
 import { BannedPlayersManager } from "./components/BannedPlayersManager";
 import { HostInteractionsPanel } from "./components/HostInteractionsPanel";
+import { SessionsPanel } from "./components/SessionsPanel";
+import { SocialesPanel } from "./components/SocialesPanel";
+import { SocialePhaseRenderer } from "./components/SocialePhaseRenderer";
 import { handleCopyLink, handleCreateSession, handleUpdateSession, handleEndSession, handleHostVote, handlePrimaryAction } from "./Handlers";
 import { handleRoomKickPlayer, handleRoomBanPlayer } from "./Handlers/roomKickBanHandlers";
 import { setPromptLibrary, pauseSession } from "../session/sessionService";
@@ -110,9 +42,14 @@ import { useHostComputations, useHostState } from "./hooks";
 import { useSessionPlayers } from "./hooks/useSessionPlayers";
 import { useHostRoomRecovery } from "./hooks/useHostRoomRecovery";
 import { useHostKeyboardShortcuts } from "../../hooks/useHostKeyboardShortcuts";
-import { useResponsiveLayout } from "../room/hooks/useResponsiveLayout";
+// import { useResponsiveLayout } from "../room/hooks/useResponsiveLayout"; // Used by HostPanelV2 internally
 import { useAudienceSubmissions } from "../../hooks/useAudienceSubmissions";
 import { SubmissionReviewPanel } from "../room/components/submissions/SubmissionReviewPanel";
+// import { MobileHostControls } from "./components/MobileHostControls"; // Replaced by HostPanelV2
+import { HostPanelV2 } from "./components/HostPanelV2";
+import { useConnectionStatus, useSessionTimer } from "./hooks";
+import { useSessionMachine } from "./state";
+import { useCommandPalette, CommandPalette } from "./components/shell";
 import type { PromptLibraryId } from "../../shared/promptLibraries";
 import type { Room } from "../../shared/types";
 import { useVenueAccountResolver } from './useVenueAccountResolver';
@@ -136,6 +73,9 @@ export function HostPage() {
   // Modal mode state - null (closed), "create" (auto-opened for new venue), or "settings" (manually opened)
   type HostRoomModalMode = null | "create" | "settings";
   const [roomModalMode, setRoomModalMode] = useState<HostRoomModalMode>(null);
+  
+  // Sociale state
+  const [activeSocialeId, setActiveSocialeId] = useState<string | null>(null);
   
   // Backward compatibility wrapper
   const showRoomCreateModal = roomModalMode !== null;
@@ -324,18 +264,17 @@ export function HostPage() {
   };
 
   const handleSignOut = async () => {
-    console.log('HostPage handleSignOut called');
+    logger.debug('HostPage handleSignOut called');
     if (!signOut) {
-      console.error('signOut function is not available');
+      logger.error('signOut function is not available');
       return;
     }
     try {
-      console.log('Calling signOut...');
       await signOut();
-      console.log('signOut completed, closing menu...');
+      logger.debug('signOut completed');
       setShowAccountMenu(false);
     } catch (error) {
-      console.error('Sign out failed:', error);
+      logger.error('Sign out failed', { error });
     }
   };
 
@@ -363,16 +302,21 @@ export function HostPage() {
     );
   }, [storedRoomId, roomMemberships, room]);
 
+  // Session players for active session display, room members for lobby
   const lobbyTeams = useMemo(() => {
-    if (!storedRoomId) {
-      return players;
+    // When session is active, show session players
+    if (session && sessionPlayers.length > 0) {
+      return sessionPlayers;
     }
-    return roomLobbyMembers;
-  }, [storedRoomId, roomLobbyMembers, players]);
+    // Otherwise show room members
+    if (storedRoomId) {
+      return roomLobbyMembers;
+    }
+    return players;
+  }, [session, sessionPlayers, storedRoomId, roomLobbyMembers, players]);
 
-  const lobbyPlayerCount = storedRoomId
-    ? roomLobbyMembers.length
-    : players.length;
+  // Player count should match lobbyTeams
+  const lobbyPlayerCount = lobbyTeams.length;
 
   // Host membership for audience submissions
   const hostMembership = useMemo(() => {
@@ -454,7 +398,7 @@ export function HostPage() {
   useEffect(() => {
     if (user && !user.is_anonymous && !venueAccountLoading && !isVenueAccount) {
       refreshVenueAccount().catch((error) => {
-        console.error("Failed to load venue account on HostPage mount:", error);
+        logger.error('Failed to load venue account on HostPage mount', { error });
       });
     }
   }, [user, venueAccountLoading, isVenueAccount, refreshVenueAccount]);
@@ -602,7 +546,7 @@ export function HostPage() {
       if (storedRoomCode) {
         setHostSession({ sessionId, code: storedRoomCode });
       } else {
-        console.warn("Room code not available during session update");
+        logger.warn('Room code not available during session update');
       }
     },
     setShowEditModal,
@@ -805,7 +749,7 @@ export function HostPage() {
       if (storedRoomCode) {
         setHostSession({ sessionId: joinSessionId, code: storedRoomCode });
       } else {
-        console.warn("Room code not available when joining session");
+        logger.warn('Room code not available when joining session');
       }
       setShowJoinModal(false);
       toast({ title: 'Joined session successfully', variant: 'success' });
@@ -949,8 +893,17 @@ export function HostPage() {
   ) : null;
 
   // Session Panel: Session-specific controls (answer, vote, results phases)
+  // CRITICAL: Include the primary action button for manual phase advancement
   const activePhaseSessionControls = session && (session.status === "answer" || session.status === "vote" || session.status === "results") ? (
     <div className="flex flex-wrap gap-2">
+      {/* PRIMARY ACTION: Advance to next phase - most important control */}
+      <Button
+        onClick={handlePrimaryClick}
+        disabled={isPerformingAction}
+        isLoading={isPerformingAction}
+      >
+        {actionLabel[session.status]}
+      </Button>
       <Button
         variant="ghost"
         onClick={handlePauseToggle}
@@ -964,12 +917,6 @@ export function HostPage() {
         disabled={isEndingSession}
       >
         End Session
-      </Button>
-      <Button
-        variant="ghost"
-        onClick={() => setShowJoinModal(true)}
-      >
-        Load Session
       </Button>
     </div>
   ) : null;
@@ -994,37 +941,7 @@ export function HostPage() {
   ) : null;
 
   
-  // Session players list using top_comment_players table for real-time updates
-  const sessionPlayersList = session ? (
-    <div className={`space-y-4 rounded-3xl p-5 shadow-lg border-[3px] ${!isDark ? 'bg-white shadow-slate-300/40 border-slate-200' : 'bg-slate-800 shadow-fuchsia-500/20 border-slate-600'}`}>
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-pink-400">
-          Session Players ({sessionPlayers.length})
-        </h3>
-      </div>
-      <ul className="space-y-2">
-        {sessionPlayers.map((player) => (
-          <li
-            key={player.id}
-            className="flex items-center justify-between rounded-2xl px-4 py-3 bg-slate-700"
-          >
-            <span className="font-medium text-cyan-100">
-              {player.displayName || 'Anonymous'}
-            </span>
-            <span className="text-sm text-cyan-400">
-              {player.score} pts
-            </span>
-          </li>
-        ))}
-        {!sessionPlayers.length ? (
-          <li className="rounded-2xl px-4 py-3 text-sm bg-slate-700 text-cyan-300">
-            Players will appear here when they join the session.
-          </li>
-        ) : null}
-      </ul>
-    </div>
-  ) : null;
-
+  
   // Action buttons content for lobby
   const lobbyActionButtons = session && session.status === "lobby" ? (
     <div className="flex flex-wrap gap-3">
@@ -1057,17 +974,47 @@ export function HostPage() {
 
     if (!session) {
       if (storedRoomId) {
+        // If there's an active Sociale, show the panel with the Sociale content underneath
+        if (activeSocialeId) {
+          return (
+            <div className="space-y-6">
+              <SocialesPanel
+                isDark={isDark}
+                roomId={storedRoomId || ''}
+                userId={user?.id}
+                onSocialeChange={setActiveSocialeId}
+              />
+              <SocialePhaseRenderer
+                socialeId={activeSocialeId}
+                userId={user?.id}
+                isDark={isDark}
+              />
+              <HostInteractionsPanel
+                isDark={isDark}
+                room={room ? { id: room.id, code: room.code } : null}
+                roomMemberships={roomMemberships}
+                onOpenSettings={handleOpenRoomSettings}
+              />
+            </div>
+          );
+        }
+        
         return (
           <div className="space-y-6">
-            <LobbyPhase
-              inviteLink={inviteLink}
-              storedCode={roomJoinCode}
+            <SocialesPanel
+              isDark={isDark}
+              roomId={storedRoomId || ''}
+              userId={user?.id}
+              onSocialeChange={setActiveSocialeId}
+            />
+            <SessionsPanel
+              isDark={isDark}
+              session={null}
               sessionId={null}
-              handleCopyLink={copyLinkHandler}
-              promptLibraryContent={null}
               sessionControls={lobbyControls}
-              sessionPlayers={null}
-              actionButtons={null}
+              copyLinkHandler={copyLinkHandler}
+              roomJoinCode={roomJoinCode}
+              inviteLink={inviteLink}
             />
             <HostInteractionsPanel
               isDark={isDark}
@@ -1091,15 +1038,21 @@ export function HostPage() {
       case "lobby":
         return (
           <div className="space-y-6">
-            <LobbyPhase
-              inviteLink={inviteLink}
-              storedCode={roomJoinCode}
+            <SocialesPanel
+              isDark={isDark}
+              roomId={storedRoomId || ''}
+              userId={user?.id}
+              onSocialeChange={setActiveSocialeId}
+            />
+            <SessionsPanel
+              isDark={isDark}
+              session={session}
               sessionId={sessionId}
-              handleCopyLink={copyLinkHandler}
-              promptLibraryContent={promptLibraryCard}
               sessionControls={sessionControlButtons}
-              sessionPlayers={sessionPlayersList}
-              actionButtons={lobbyActionButtons}
+              promptLibraryContent={promptLibraryCard}
+              copyLinkHandler={copyLinkHandler}
+              roomJoinCode={roomJoinCode}
+              inviteLink={inviteLink}
             />
             <HostInteractionsPanel
               isDark={isDark}
@@ -1112,127 +1065,178 @@ export function HostPage() {
 
       case "answer":
         return (
-          <ActivePhaseLayout
-            phaseTitle={`Answer Phase - Round ${session.roundIndex + 1}`}
-            phaseContent={
-              <AnswerPhase
-                sessionRoundIndex={session.roundIndex}
-                totalGroups={totalGroups}
-                roundGroups={roundGroups}
-                teamLookup={playerLookup}
-                sessionEndsAt={session.endsAt}
-                answerSecs={session.settings.answerSecs ?? 90}
-                sessionPaused={session.paused}
-                promptLibraryId={session.promptLibraryId}
-              />
-            }
-            sessionControls={activePhaseSessionControls}
-            sessionPlayers={sessionPlayersList}
-            room={room}
-            roomMemberships={roomMemberships}
-            pendingSubmissions={pendingSubmissionCount > 0 ? (
-              <SubmissionReviewPanel
-                submissions={allSubmissions}
-                pendingCount={pendingSubmissionCount}
-                isLoading={false}
-                onApprove={approveSubmission}
-                onReject={rejectSubmission}
-              />
-            ) : null}
-            copyLinkHandler={copyLinkHandler}
-            roomJoinCode={roomJoinCode}
-            inviteLink={inviteLink}
-          />
+          <div className="space-y-6">
+            <SocialesPanel
+              isDark={isDark}
+              roomId={storedRoomId || ''}
+              userId={user?.id}
+              onSocialeChange={setActiveSocialeId}
+            />
+            <SessionsPanel
+              isDark={isDark}
+              session={session}
+              sessionId={sessionId}
+              sessionControls={activePhaseSessionControls}
+              phaseContent={
+                <AnswerPhase
+                  sessionRoundIndex={session.roundIndex}
+                  totalGroups={totalGroups}
+                  roundGroups={roundGroups}
+                  teamLookup={playerLookup}
+                  sessionEndsAt={session.endsAt}
+                  answerSecs={session.settings.answerSecs ?? 90}
+                  sessionPaused={session.paused}
+                  promptLibraryId={session.promptLibraryId}
+                />
+              }
+              room={room}
+              roomMemberships={roomMemberships}
+              pendingSubmissions={pendingSubmissionCount > 0 ? (
+                <SubmissionReviewPanel
+                  submissions={allSubmissions}
+                  pendingCount={pendingSubmissionCount}
+                  isLoading={false}
+                  onApprove={approveSubmission}
+                  onReject={rejectSubmission}
+                />
+              ) : null}
+              copyLinkHandler={copyLinkHandler}
+              roomJoinCode={roomJoinCode}
+              inviteLink={inviteLink}
+            />
+            <HostInteractionsPanel
+              isDark={isDark}
+              room={room ? { id: room.id, code: room.code } : null}
+              roomMemberships={roomMemberships}
+              onOpenSettings={handleOpenRoomSettings}
+            />
+          </div>
         );
 
       case "vote":
         return (
-          <ActivePhaseLayout
-            phaseTitle={`Vote Phase - Round ${session.roundIndex + 1}`}
-            phaseContent={
-              <VotePhase
-                totalGroups={totalGroups}
-                activeGroupIndex={activeGroupIndex}
-                activeGroup={activeGroup}
-                roundGroups={roundGroups}
-                activeGroupAnswers={activeGroupAnswers}
-                voteCounts={voteCounts}
-                activeGroupVote={activeGroupVote}
-                handleHostVote={hostVoteHandler}
-                isSubmittingVote={isSubmittingVote}
-                roundSummaries={roundSummaries}
-                sessionEndsAt={session.endsAt}
-                voteSecs={session.settings.voteSecs ?? 90}
-                sessionPaused={session.paused}
-                votes={gameState.votes}
-                teams={players}
-                currentRoundIndex={session.roundIndex}
-              />
-            }
-            sessionControls={activePhaseSessionControls}
-            sessionPlayers={sessionPlayersList}
-            room={room}
-            roomMemberships={roomMemberships}
-            pendingSubmissions={pendingSubmissionCount > 0 ? (
-              <SubmissionReviewPanel
-                submissions={allSubmissions}
-                pendingCount={pendingSubmissionCount}
-                isLoading={false}
-                onApprove={approveSubmission}
-                onReject={rejectSubmission}
-              />
-            ) : null}
-            copyLinkHandler={copyLinkHandler}
-            roomJoinCode={roomJoinCode}
-            inviteLink={inviteLink}
-          />
+          <div className="space-y-6">
+            <SocialesPanel
+              isDark={isDark}
+              roomId={storedRoomId || ''}
+              userId={user?.id}
+              onSocialeChange={setActiveSocialeId}
+            />
+            <SessionsPanel
+              isDark={isDark}
+              session={session}
+              sessionId={sessionId}
+              sessionControls={activePhaseSessionControls}
+              phaseContent={
+                <VotePhase
+                  totalGroups={totalGroups}
+                  activeGroupIndex={activeGroupIndex}
+                  activeGroup={activeGroup}
+                  roundGroups={roundGroups}
+                  activeGroupAnswers={activeGroupAnswers}
+                  voteCounts={voteCounts}
+                  activeGroupVote={activeGroupVote}
+                  handleHostVote={hostVoteHandler}
+                  isSubmittingVote={isSubmittingVote}
+                  roundSummaries={roundSummaries}
+                  sessionEndsAt={session.endsAt}
+                  voteSecs={session.settings.voteSecs ?? 90}
+                  sessionPaused={session.paused}
+                  votes={gameState.votes}
+                  teams={players}
+                  currentRoundIndex={session.roundIndex}
+                />
+              }
+              room={room}
+              roomMemberships={roomMemberships}
+              pendingSubmissions={pendingSubmissionCount > 0 ? (
+                <SubmissionReviewPanel
+                  submissions={allSubmissions}
+                  pendingCount={pendingSubmissionCount}
+                  isLoading={false}
+                  onApprove={approveSubmission}
+                  onReject={rejectSubmission}
+                />
+              ) : null}
+              copyLinkHandler={copyLinkHandler}
+              roomJoinCode={roomJoinCode}
+              inviteLink={inviteLink}
+            />
+            <HostInteractionsPanel
+              isDark={isDark}
+              room={room ? { id: room.id, code: room.code } : null}
+              roomMemberships={roomMemberships}
+              onOpenSettings={handleOpenRoomSettings}
+            />
+          </div>
         );
 
       case "results":
         return (
-          <ActivePhaseLayout
-            phaseTitle={`Results - Round ${session.roundIndex + 1}`}
-            phaseContent={
-              <ResultsPhase
-                sessionRoundIndex={session.roundIndex}
-                roundSummaries={roundSummaries}
-                voteCounts={voteCounts}
-                sessionEndsAt={session.endsAt}
-                resultsSecs={session.settings.resultsSecs ?? 12}
-                sessionPaused={session.paused}
-              />
-            }
-            sessionControls={activePhaseSessionControls}
-            sessionPlayers={sessionPlayersList}
-            room={room}
-            roomMemberships={roomMemberships}
-            pendingSubmissions={pendingSubmissionCount > 0 ? (
-              <SubmissionReviewPanel
-                submissions={allSubmissions}
-                pendingCount={pendingSubmissionCount}
-                isLoading={false}
-                onApprove={approveSubmission}
-                onReject={rejectSubmission}
-              />
-            ) : null}
-            copyLinkHandler={copyLinkHandler}
-            roomJoinCode={roomJoinCode}
-            inviteLink={inviteLink}
-          />
+          <div className="space-y-6">
+            <SocialesPanel
+              isDark={isDark}
+              roomId={storedRoomId || ''}
+              userId={user?.id}
+              onSocialeChange={setActiveSocialeId}
+            />
+            <SessionsPanel
+              isDark={isDark}
+              session={session}
+              sessionId={sessionId}
+              sessionControls={activePhaseSessionControls}
+              phaseContent={
+                <ResultsPhase
+                  sessionRoundIndex={session.roundIndex}
+                  roundSummaries={roundSummaries}
+                  voteCounts={voteCounts}
+                  sessionEndsAt={session.endsAt}
+                  resultsSecs={session.settings.resultsSecs ?? 12}
+                  sessionPaused={session.paused}
+                />
+              }
+              room={room}
+              roomMemberships={roomMemberships}
+              pendingSubmissions={pendingSubmissionCount > 0 ? (
+                <SubmissionReviewPanel
+                  submissions={allSubmissions}
+                  pendingCount={pendingSubmissionCount}
+                  isLoading={false}
+                  onApprove={approveSubmission}
+                  onReject={rejectSubmission}
+                />
+              ) : null}
+              copyLinkHandler={copyLinkHandler}
+              roomJoinCode={roomJoinCode}
+              inviteLink={inviteLink}
+            />
+            <HostInteractionsPanel
+              isDark={isDark}
+              room={room ? { id: room.id, code: room.code } : null}
+              roomMemberships={roomMemberships}
+              onOpenSettings={handleOpenRoomSettings}
+            />
+          </div>
         );
 
       case "ended":
         return (
           <div className="space-y-6">
-            <LobbyPhase
-              inviteLink={inviteLink}
-              storedCode={roomJoinCode}
+            <SocialesPanel
+              isDark={isDark}
+              roomId={storedRoomId || ''}
+              userId={user?.id}
+              onSocialeChange={setActiveSocialeId}
+            />
+            <SessionsPanel
+              isDark={isDark}
+              session={session}
               sessionId={sessionId}
-              handleCopyLink={copyLinkHandler}
-              promptLibraryContent={<EndedPhase leaderboard={leaderboard} analytics={analytics} />}
               sessionControls={sessionControlButtons}
-              sessionPlayers={sessionPlayersList}
-              actionButtons={null}
+              promptLibraryContent={<EndedPhase leaderboard={leaderboard} analytics={analytics} />}
+              copyLinkHandler={copyLinkHandler}
+              roomJoinCode={roomJoinCode}
+              inviteLink={inviteLink}
             />
             <HostInteractionsPanel
               isDark={isDark}
@@ -1261,10 +1265,117 @@ export function HostPage() {
     </Button>
   ) : null;
 
-  // Responsive layout hook for mobile detection
-  const { isMobile } = useResponsiveLayout();
+  // Connection status monitoring for offline resilience
+  const connectionStatus = useConnectionStatus({
+    onStatusChange: (status) => {
+      console.log('Connection status changed:', status);
+    },
+  });
 
-  
+  // Session state machine integration
+  const sessionMachine = useSessionMachine(session, roomMemberships.length);
+
+  // Command palette for desktop shortcuts
+  const commandPalette = useCommandPalette();
+
+  // Compute player count (active, non-banned members who aren't moderators)
+  const playerCount = useMemo(() => {
+    if (!room) return 0;
+    return roomMemberships.filter(
+      (m) => !m.isBanned && 
+             m.status === 'active' && 
+             !room.moderatorIds.includes(m.userId)
+    ).length;
+  }, [roomMemberships, room]);
+
+  // Phase name for display
+  const phaseName = session 
+    ? phaseCopy[session.status] 
+    : 'No Session';
+
+  // Session timer - real-time countdown based on phase
+  const sessionTimer = useSessionTimer({ session });
+  const timer = sessionTimer.remainingSeconds;
+
+  // Room members dropdown state
+  const [isRoomMembersOpen, setIsRoomMembersOpen] = useState(false);
+
+  // Command definitions for command palette
+  const commands = useMemo(() => [
+    {
+      id: 'advance-phase',
+      label: 'Advance Phase',
+      description: 'Move to next session phase',
+      shortcut: 'Space',
+      category: 'session' as const,
+      action: handlePrimaryClick,
+      disabled: !sessionMachine.canAdvance || isPerformingAction,
+    },
+    {
+      id: 'pause-resume',
+      label: session?.paused ? 'Resume Session' : 'Pause Session',
+      description: session?.paused ? 'Resume the current session' : 'Pause the current session',
+      shortcut: 'P',
+      category: 'session' as const,
+      action: handlePauseToggle,
+      disabled: !sessionMachine.canPause || isPausingSession,
+    },
+    {
+      id: 'end-session',
+      label: 'End Session',
+      description: 'End the current session for all players',
+      shortcut: 'E',
+      category: 'session' as const,
+      action: showEndSessionModalHandler,
+      disabled: !sessionMachine.canEndSession || isEndingSession,
+    },
+    {
+      id: 'create-session',
+      label: 'Create Session',
+      description: 'Start a new session',
+      shortcut: 'N',
+      category: 'session' as const,
+      action: handleOpenCreateModal,
+      disabled: !canCreateSession || isCreating,
+    },
+    {
+      id: 'toggle-participants',
+      label: 'Show Participants',
+      description: 'Open participants panel',
+      shortcut: 'Tab',
+      category: 'participants' as const,
+      action: () => {
+        // TODO: Implement participants sheet toggle
+        toast({
+          title: 'Participants panel',
+          description: 'Coming soon in Phase 2',
+          variant: 'info',
+        });
+      },
+    },
+  ], [
+    sessionMachine.canAdvance,
+    sessionMachine.canPause, 
+    sessionMachine.canEndSession,
+    session?.paused,
+    isPerformingAction,
+    isPausingSession,
+    isEndingSession,
+    canCreateSession,
+    isCreating,
+    handlePrimaryClick,
+    handlePauseToggle,
+    showEndSessionModalHandler,
+    handleOpenCreateModal,
+    toast,
+  ]);
+
+  // Record command usage
+  const handleCommandExecuted = useCallback((commandId: string) => {
+    commandPalette.recordCommand(commandId);
+  }, [commandPalette]);
+
+   
   // Main content (shared between mobile and desktop)
   const mainContent = (
     <>
@@ -1437,37 +1548,7 @@ export function HostPage() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
         <Card className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between" isDark={isDark}>
           <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Link to="/" className="text-sm font-semibold text-cyan-400 hover:text-cyan-300">
-                ← Back
-              </Link>
-              {presenterButton}
-              {storedRoomCode && user && !user.is_anonymous && (
-                <>
-                  <Button
-                    variant="ghost"
-                    onClick={() => navigate(`/analytics/${storedRoomCode}`)}
-                  >
-                    Analytics
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      setShowEditModal(false);
-                      setRoomModalMode('settings');
-                      console.log('Room Settings modal opened');
-                    }}
-                  >
-                    Room Settings
-                  </Button>
-                </>
-              )}
-              <VIBoxButton 
-                onClick={() => setShowVIBoxModal(true)}
-                variant="host"
-                size="lg"
-              />
-            </div>
+            {/* Host Console header - moved to top */}
             <div>
               <h1 className="text-3xl font-black text-pink-400">
                 {room?.name || "Host Console"}
@@ -1486,31 +1567,38 @@ export function HostPage() {
                 </p>
               )}
             </div>
-          </div>
-          <div className="flex flex-col items-center gap-2 rounded-2xl px-6 py-4 border bg-cyan-900/30 border-cyan-400/50">
-            <span className="text-xs uppercase tracking-wider text-cyan-300">
-              Room code
-            </span>
-            <span className="text-3xl font-black tracking-widest text-pink-400">
-              {roomJoinCode || "---"}
-            </span>
-            {storedRoomId || session ? (
-              <>
-                <span className="text-xs text-cyan-400">
-                  {lobbyPlayerCount} player{lobbyPlayerCount === 1 ? "" : "s"} online
-                </span>
-                {session && (
-                  <div className="mt-1 flex flex-col items-center gap-1 border-t border-cyan-400/20 pt-2 w-full">
-                    <span className="text-[10px] uppercase tracking-tighter text-cyan-500/70 font-bold">
-                      Active Session
-                    </span>
-                    <span className="text-[10px] text-pink-400/80 font-mono">
-                      {session.id.slice(0, 13)}
-                    </span>
-                  </div>
-                )}
-              </>
-            ) : null}
+            
+            {/* Navigation buttons - wrap on mobile to prevent overflow */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              {presenterButton}
+              {storedRoomCode && user && !user.is_anonymous && (
+                <>
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate(`/analytics/${storedRoomCode}`)}
+                    className="text-xs sm:text-sm"
+                  >
+                    Analytics
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setRoomModalMode('settings');
+                    }}
+                    className="text-xs sm:text-sm"
+                  >
+                    Room Settings
+                  </Button>
+                </>
+              )}
+              <button
+                onClick={() => setShowVIBoxModal(true)}
+                className="text-sm font-semibold text-cyan-400 hover:text-cyan-300 whitespace-nowrap"
+              >
+                Vibox
+              </button>
+            </div>
           </div>
         </Card>
 
@@ -1540,18 +1628,46 @@ export function HostPage() {
 
           <aside className="flex flex-col gap-6">
             {inviteLink ? (
-              <QRCodeBlock value={inviteLink} caption="Scan to join!" isDark={isDark} />
+              <div className="space-y-4">
+                <QRCodeBlock value={inviteLink} caption="Scan to join!" isDark={isDark} />
+                <button
+                  type="button"
+                  onClick={() => copyLinkHandler(inviteLink)}
+                  className={`flex flex-col rounded-2xl border p-4 text-left shadow-sm transition hover:shadow-md ${!isDark ? 'border-slate-200 bg-white hover:border-brand-primary text-slate-900' : 'border-cyan-400/50 bg-slate-800 hover:border-cyan-400 text-white'}`}
+                >
+                  <span className={`text-xs font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-300'}`}>
+                    Shareable link
+                  </span>
+                  <span className={`mt-1 break-all font-medium ${!isDark ? 'text-brand-primary' : 'text-cyan-400'}`}>
+                    {inviteLink || roomJoinCode}
+                  </span>
+                </button>
+              </div>
             ) : (
               <div className="rounded-3xl p-6 text-center text-sm shadow-lg bg-slate-800 text-cyan-300 shadow-fuchsia-500/20">
                 Create a room to generate a QR code for your guests.
               </div>
             )}
-            {storedRoomId || session ? (
+            {/* Room Members List */}
+            {storedRoomId ? (
               <div className={`space-y-4 rounded-3xl p-5 shadow-lg border-[3px] ${!isDark ? 'bg-white shadow-slate-300/40 border-slate-200' : 'bg-slate-800 shadow-fuchsia-500/20 border-slate-600'}`}>
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-pink-400">
-                    Lobby ({lobbyPlayerCount})
-                  </h3>
+                  <button
+                    onClick={() => setIsRoomMembersOpen(!isRoomMembersOpen)}
+                    className="flex items-center gap-2 text-left"
+                  >
+                    <h3 className="text-lg font-semibold text-pink-400">
+                      Room Members ({roomLobbyMembers.length})
+                    </h3>
+                    <svg 
+                      className={`w-4 h-4 text-pink-400 transition-transform duration-200 ${isRoomMembersOpen ? 'rotate-180' : ''}`}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="ghost"
@@ -1565,53 +1681,74 @@ export function HostPage() {
                     </span>
                   </div>
                 </div>
-                <ul className="space-y-2">
-                  {lobbyTeams.map((player) => {
-                    // Check if player is a moderator (host)
-                    const isPlayerHost = room?.moderatorIds.includes(player.userId) || false;
-                    return (
-                    <li
-                      key={player.id}
-                      className="flex items-center justify-between rounded-2xl px-4 py-3 bg-slate-700"
-                    >
-                      <span className="font-medium text-cyan-100">
-                        {player.playerName}
-                        {isPlayerHost ? " (Host)" : ""}
-                      </span>
-                      {!isPlayerHost ? (
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            onClick={() => storedRoomId && roomKickPlayerHandler(player.id, player.userId || "", storedRoomId)}
-                            className="text-sm text-orange-600"
-                            disabled={kickingPlayerId !== null || banningPlayerId !== null}
-                            isLoading={kickingPlayerId === player.id}
-                          >
-                            {kickingPlayerId === player.id ? "Kicking..." : "Kick"}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            onClick={() => storedRoomId && roomBanPlayerHandler(player.id, player.userId || "", storedRoomId)}
-                            className="text-sm text-rose-600"
-                            disabled={kickingPlayerId !== null || banningPlayerId !== null}
-                            isLoading={banningPlayerId === player.id}
-                          >
-                            {banningPlayerId === player.id ? "Banning..." : "Ban"}
-                          </Button>
+                
+                {/* Dropdown content */}
+                {isRoomMembersOpen && (
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {roomLobbyMembers.slice(0, 10).map((member) => {
+                      // Check if member is a moderator (host)
+                      const isMemberHost = room?.moderatorIds.includes(member.userId) || false;
+                      return (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between rounded-2xl px-4 py-3 bg-slate-700"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-cyan-100">
+                              {member.playerName}
+                            </span>
+                            {isMemberHost && (
+                              <span className="px-1.5 py-0.5 text-xs font-semibold bg-cyan-500/20 text-cyan-300 rounded">
+                                Host
+                              </span>
+                            )}
+                            {member.isMuted && (
+                              <span className="px-1.5 py-0.5 text-xs font-semibold bg-rose-500/20 text-rose-300 rounded">
+                                Muted
+                              </span>
+                            )}
+                          </div>
+                          {!isMemberHost ? (
+                            <div className="flex gap-2">
+                              <Button
+                                variant="ghost"
+                                onClick={() => storedRoomId && roomKickPlayerHandler(member.id, member.userId || "", storedRoomId)}
+                                className="text-sm text-orange-600"
+                                disabled={kickingPlayerId !== null || banningPlayerId !== null}
+                                isLoading={kickingPlayerId === member.id}
+                              >
+                                {kickingPlayerId === member.id ? "Kicking..." : "Kick"}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                onClick={() => storedRoomId && roomBanPlayerHandler(member.id, member.userId || "", storedRoomId)}
+                                className="text-sm text-rose-600"
+                                disabled={kickingPlayerId !== null || banningPlayerId !== null}
+                                isLoading={banningPlayerId === member.id}
+                              >
+                                {banningPlayerId === member.id ? "Banning..." : "Ban"}
+                              </Button>
+                            </div>
+                          ) : null}
                         </div>
-                      ) : null}
-                    </li>
-                    );
-                  })}
-                  {!lobbyTeams.length ? (
-                    <li className="rounded-2xl px-4 py-3 text-sm bg-slate-700 text-cyan-300">
-                      Players will appear here as they join.
-                    </li>
-                  ) : null}
-                </ul>
+                      );
+                    })}
+                    {roomLobbyMembers.length > 10 && (
+                      <div className="text-center py-2 text-xs text-slate-400">
+                        Showing 10 of {roomLobbyMembers.length} members
+                      </div>
+                    )}
+                    {!roomLobbyMembers.length && (
+                      <div className="text-center py-2 text-xs text-slate-400">
+                        Room members will appear here as they join.
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : null}
-            {/* Audience Question Submissions Review */}
+
+                        {/* Audience Question Submissions Review */}
             {(storedRoomId || session) && (
               <div className={`rounded-3xl shadow-lg border-[3px] overflow-hidden ${!isDark ? 'bg-white shadow-slate-300/40 border-slate-200' : 'bg-slate-800 shadow-fuchsia-500/20 border-slate-600'}`}>
                 <div className="flex items-center justify-between px-5 pt-4 pb-2">
@@ -1812,25 +1949,91 @@ export function HostPage() {
     </>
   );
 
-  // Mobile layout with grid shell
-  if (isMobile) {
-    return (
-      <MobileLayout 
-        bottomNav={null} // No bottom navigation on host view
-        className="bg-slate-950"
-      >
-        <div className="px-4 py-4 overflow-y-auto">
-          {mainContent}
-        </div>
-      </MobileLayout>
-    );
-  }
-
-  // Desktop layout (unchanged)
+  // Return HostPanelV2 for both mobile and desktop with responsive layout
   return (
-    <main className="min-h-screen px-4 py-8 bg-slate-950">
-      {mainContent}
-    </main>
+    <>
+      <HostPanelV2
+        session={session}
+        room={room || null}
+        memberships={roomMemberships}
+        roomCode={roomJoinCode || (room?.code || '')}
+        timer={timer}
+        playerCount={lobbyPlayerCount}
+        sessionPlayers={sessionPlayers}
+        onPrimaryAction={handlePrimaryClick}
+        onPauseToggle={handlePauseToggle}
+        onEndSession={showEndSessionModalHandler}
+        onCreateSession={handleOpenCreateModal}
+        onOpenSettings={() => setShowRoomCreateModal(true)}
+        isPerformingAction={isPerformingAction}
+        isPausingSession={isPausingSession}
+        isEndingSession={isEndingSession}
+      >
+        {/* Main content wrapped in account button */}
+        <div className="relative">
+          {/* Account Button - Fixed top right */}
+          <div className="fixed top-4 right-4 z-50">
+            <div className="relative" ref={accountMenuRef}>
+              <button
+                onClick={() => user ? setShowAccountMenu(!showAccountMenu) : handleVenueSignIn()}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-600/80 hover:bg-slate-500/80 hover:scale-110 hover:shadow-lg hover:shadow-pink-400/50 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2 focus:ring-offset-slate-950"
+                aria-label={user ? "Account menu" : "Sign in"}
+              >
+                <span className="text-sm font-bold text-pink-400">
+                  {user ? user.email?.charAt(0).toUpperCase() : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  )}
+                </span>
+              </button>
+
+              {/* Account dropdown menu */}
+              {showAccountMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-slate-800 rounded-lg shadow-xl border border-slate-700 py-1 z-50">
+                  {user ? (
+                    <>
+                      <div className="px-3 py-2 text-sm text-slate-300 border-b border-slate-700">
+                        <div className="font-medium">{user.email}</div>
+                        <div className="text-xs text-slate-500">Venue Account</div>
+                      </div>
+                      <button
+                        onClick={handleSignOut}
+                        className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700"
+                      >
+                        Sign Out
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleVenueSignIn}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700"
+                    >
+                      Sign In
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Main content */}
+          <div className="space-y-6">
+            {mainContent}
+          </div>
+        </div>
+      </HostPanelV2>
+
+      {/* Command Palette for desktop shortcuts */}
+      <CommandPalette
+        isOpen={commandPalette.isOpen}
+        onClose={commandPalette.close}
+        commands={commands}
+        sessionPhase={session?.status}
+        recentCommandIds={commandPalette.recentCommands}
+        onCommandExecuted={handleCommandExecuted}
+      />
+    </>
   );
 }
 

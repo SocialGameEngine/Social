@@ -1585,3 +1585,580 @@ article.p-3 .instagram-embed {
     transition: none !important;
   }
 }
+
+/* =========================================================
+   SAFE AREA UTILITIES (for mobile host controls)
+   ========================================================= */
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Ensure fixed bottom elements account for safe area */
+.fixed-bottom-safe {
+  bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* =========================================================
+   HOST PANEL SHELL STYLES (2026 Implementation)
+   Three-layer mobile layout with safe-area and keyboard avoidance
+   ========================================================= */
+
+/* CSS Custom Properties for host panel */
+.host-mobile-shell {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --vv-offset: 0px;
+  --status-bar-height: 52px;
+  --action-bar-height: 120px;
+  
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  min-height: 100svh;
+  background: var(--color-bg-primary, #020617);
+}
+
+/* Top Status Bar - Fixed at top with safe area */
+.host-top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding-top: var(--safe-top);
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(34, 211, 238, 0.2);
+}
+
+/* Main Scroll Canvas */
+.host-canvas {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem;
+  padding-bottom: calc(var(--action-bar-height) + var(--safe-bottom) + 1rem);
+}
+
+/* Bottom Action Bar - Sticky with keyboard avoidance */
+.host-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  transform: translateY(calc(-1 * var(--vv-offset, 0px)));
+  transition: transform 0.15s ease-out;
+}
+
+.host-action-bar-container {
+  padding: 0.75rem 1rem;
+  padding-bottom: calc(0.75rem + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(34, 211, 238, 0.2);
+}
+
+/* Host Icon Button - 44x44px minimum touch target */
+.host-icon-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(51, 65, 85, 0.8);
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.host-icon-button:hover {
+  background: rgba(71, 85, 105, 0.9);
+}
+
+.host-icon-button:active {
+  background: rgba(100, 116, 139, 0.9);
+  transform: scale(0.95);
+}
+
+.host-icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.host-icon-button:focus-visible {
+  outline: 2px solid rgba(34, 211, 238, 0.8);
+  outline-offset: 2px;
+}
+
+/* Toast slide-up animation */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.2s ease-out;
+}
+
+/* Dialog backdrop styling */
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+dialog[open] {
+  animation: dialog-open 0.2s ease-out;
+}
+
+@keyframes dialog-open {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Screen reader only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.sr-only:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: inherit;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* ============================================================================
+   Host Panel Desktop Styles
+   ============================================================================ */
+
+/* Desktop shell layout */
+.host-desktop-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--color-slate-900);
+}
+
+/* Resizable panel handles */
+.host-panel-resize-handle {
+  flex-shrink: 0;
+  width: 4px;
+  background: var(--color-slate-700);
+  cursor: col-resize;
+  transition: background-color 150ms ease;
+  position: relative;
+}
+
+.host-panel-resize-handle:hover,
+.host-panel-resize-handle:active {
+  background: var(--color-cyan-400);
+}
+
+.host-panel-resize-handle::before {
+  content: '';
+  position: absolute;
+  inset: 0 -4px;
+}
+
+/* Panel collapse buttons */
+.host-panel-collapse-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 48px;
+  background: var(--color-slate-700);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 150ms ease, background-color 150ms ease;
+}
+
+.host-panel-resize-handle:hover .host-panel-collapse-btn,
+.host-panel-collapse-btn:focus {
+  opacity: 1;
+}
+
+.host-panel-collapse-btn:hover {
+  background: var(--color-slate-600);
+}
+
+.host-panel-collapse-btn--left {
+  right: -24px;
+  border-radius: 0 8px 8px 0;
+}
+
+.host-panel-collapse-btn--right {
+  left: -24px;
+  border-radius: 8px 0 0 8px;
+}
+
+/* Command palette */
+.command-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.command-palette {
+  width: 100%;
+  max-width: 32rem;
+  background: var(--color-slate-800);
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--color-slate-700);
+  overflow: hidden;
+}
+
+.command-palette-input {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-slate-700);
+}
+
+.command-palette-input input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1rem;
+  outline: none;
+}
+
+.command-palette-input input::placeholder {
+  color: var(--color-slate-400);
+}
+
+.command-palette-list {
+  max-height: 20rem;
+  overflow-y: auto;
+  padding: 0.5rem 0;
+}
+
+.command-palette-category {
+  padding: 0.375rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-slate-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.command-palette-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--color-slate-300);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.command-palette-item:hover,
+.command-palette-item[data-selected="true"] {
+  background: rgba(6, 182, 212, 0.2);
+  color: white;
+}
+
+.command-palette-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.command-palette-item-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.command-palette-item-label-text {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.command-palette-item-label-desc {
+  font-size: 0.875rem;
+  color: var(--color-slate-400);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.command-palette-shortcut {
+  flex-shrink: 0;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-slate-400);
+  background: var(--color-slate-700);
+  border-radius: 0.25rem;
+}
+
+.command-palette-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--color-slate-700);
+  font-size: 0.75rem;
+  color: var(--color-slate-500);
+}
+
+.command-palette-footer kbd {
+  padding: 0.125rem 0.375rem;
+  background: var(--color-slate-700);
+  border-radius: 0.25rem;
+}
+
+/* Participants sheet */
+.participants-sheet {
+  position: fixed;
+  inset: auto 0 0 0;
+  margin: 0;
+  max-height: 85vh;
+  width: 100%;
+  max-width: 32rem;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: 1.5rem 1.5rem 0 0;
+  background: var(--color-slate-800);
+  padding: 0;
+  box-shadow: 0 -25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.participants-sheet::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.participants-sheet-handle {
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem 0 0.5rem;
+}
+
+.participants-sheet-handle-bar {
+  width: 3rem;
+  height: 0.25rem;
+  border-radius: 9999px;
+  background: var(--color-slate-600);
+}
+
+.participants-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem 0.75rem;
+  border-bottom: 1px solid var(--color-slate-700);
+}
+
+.participants-sheet-search {
+  padding: 0.75rem 1rem;
+}
+
+.participants-sheet-search-input {
+  width: 100%;
+  padding: 0.5rem 1rem 0.5rem 2.5rem;
+  background: var(--color-slate-700);
+  border: 1px solid var(--color-slate-600);
+  border-radius: 0.75rem;
+  color: white;
+  font-size: 0.875rem;
+}
+
+.participants-sheet-search-input::placeholder {
+  color: var(--color-slate-400);
+}
+
+.participants-sheet-search-input:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: rgba(6, 182, 212, 0.5);
+}
+
+.participants-sheet-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 1rem 1rem;
+}
+
+.participants-sheet-section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.participant-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(51, 65, 85, 0.5);
+  transition: background-color 150ms ease;
+}
+
+.participant-row:hover {
+  background: var(--color-slate-700);
+}
+
+.participant-row--spotlighted {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(251, 191, 36, 0.5);
+}
+
+.participant-avatar {
+  position: relative;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background: var(--color-slate-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.participant-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.participant-avatar-initial {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-cyan-300);
+  text-transform: uppercase;
+}
+
+.participant-spotlight-badge {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  width: 1rem;
+  height: 1rem;
+  background: var(--color-amber-400);
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.participant-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.participant-name {
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.participant-meta {
+  font-size: 0.75rem;
+  color: var(--color-slate-400);
+}
+
+.participant-badge {
+  padding: 0.125rem 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.25rem;
+}
+
+.participant-badge--host {
+  background: rgba(6, 182, 212, 0.2);
+  color: var(--color-cyan-300);
+}
+
+.participant-badge--muted {
+  background: rgba(244, 63, 94, 0.2);
+  color: var(--color-rose-300);
+}
+
+/* Offline banner */
+.offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: rgba(245, 158, 11, 0.95);
+  color: var(--color-amber-950);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.offline-banner-retry {
+  padding: 0.125rem 0.5rem;
+  background: rgba(217, 119, 6, 0.3);
+  border: none;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.offline-banner-retry:hover {
+  background: rgba(217, 119, 6, 0.5);
+}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../../../shared/providers/AuthContext';
 import { sessionPlayerService } from '../../../../services/sessionPlayerService';
 import { joinRoomSession } from '../../../session/sessionService';
@@ -7,6 +7,8 @@ import { getIsMainEventMode } from '../../components/PhaseController';
 import { Modal } from '../../../../components/Modal';
 import { Button } from '../../../../components/Button';
 import { useToast } from '../../../../shared/hooks/useToast';
+import { triggerHaptic } from '../../../../shared/utils/sessionUtils';
+import { logger } from '../../../../shared/utils/logger';
 import type { Session, RoomMembership } from '../../../../shared/types';
 import type { SessionPlayer } from '../../../../services/sessionPlayerService';
 
@@ -15,14 +17,24 @@ interface LobbyPhaseProps {
   memberships: RoomMembership[] | null;
 }
 
+// Join button state machine for clear UI states
+type JoinState = 'idle' | 'joining' | 'joined' | 'error';
+
 export function LobbyPhase({ session, memberships }: LobbyPhaseProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [sessionPlayer, setSessionPlayer] = useState<SessionPlayer | null>(null);
-  const [isJoining, setIsJoining] = useState(false);
-  const [joinSuccess, setJoinSuccess] = useState(false);
+  const [joinState, setJoinState] = useState<JoinState>('idle');
   const [isLeaving, setIsLeaving] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  
+  // Anti-double-tap: track last join attempt time
+  const lastJoinAttemptRef = useRef<number>(0);
+  const JOIN_DEBOUNCE_MS = 500;
+
+  // Derived states for backwards compatibility
+  const isJoining = joinState === 'joining';
+  const joinSuccess = joinState === 'joined';
 
   // Get user's display name from membership
   const myMembership = user ? memberships?.find(m => m.userId === user.id) : null;
@@ -40,18 +52,44 @@ export function LobbyPhase({ session, memberships }: LobbyPhaseProps) {
       user.id,
       (player) => {
         setSessionPlayer(player);
+        // Sync join state with actual player state
+        if (player && joinState !== 'joined') {
+          setJoinState('joined');
+        }
       }
     );
 
     return () => {
       unsubscribe();
     };
-  }, [session?.id, user?.id]);
+  }, [session?.id, user?.id, joinState]);
+
+  // Reset join state when session changes
+  useEffect(() => {
+    if (!session?.id) {
+      setJoinState('idle');
+    }
+  }, [session?.id]);
 
   const handleJoinSession = useCallback(async () => {
-    if (!session?.id || !session?.roomId || isJoining) return;
+    if (!session?.id || !session?.roomId) return;
+    
+    // Anti-double-tap protection
+    const now = Date.now();
+    if (now - lastJoinAttemptRef.current < JOIN_DEBOUNCE_MS) {
+      return;
+    }
+    lastJoinAttemptRef.current = now;
+    
+    // Prevent joining if already joining or joined
+    if (joinState === 'joining' || joinState === 'joined') return;
 
-    setIsJoining(true);
+    // OPTIMISTIC UI: Immediately show joining state
+    setJoinState('joining');
+    
+    // Haptic feedback on tap
+    triggerHaptic('medium');
+
     try {
       const result = await joinRoomSession({
         sessionId: session.id,
@@ -60,31 +98,41 @@ export function LobbyPhase({ session, memberships }: LobbyPhaseProps) {
       });
 
       if (result.success) {
-        setJoinSuccess(true);
-        setTimeout(() => setJoinSuccess(false), 2000);
+        // Transition to joined state
+        setJoinState('joined');
+        triggerHaptic('success'); // Success haptic
         toast({ 
           title: "Joined game!", 
           variant: "success",
           description: "You're ready to play"
         });
+        // Keep joined state visible, subscription will confirm
       } else {
+        // Rollback on failure
+        setJoinState('error');
+        triggerHaptic('error'); // Error haptic
         toast({ 
           title: "Failed to join", 
           variant: "error",
           description: result.message
         });
+        // Reset to idle after showing error briefly
+        setTimeout(() => setJoinState('idle'), 1500);
       }
     } catch (error) {
       console.error('Failed to join session:', error);
+      // Rollback on error
+      setJoinState('error');
+      triggerHaptic('error'); // Error haptic
       toast({ 
         title: "Failed to join game", 
         variant: "error",
         description: error instanceof Error ? error.message : "Unknown error"
       });
-    } finally {
-      setIsJoining(false);
+      // Reset to idle after showing error briefly
+      setTimeout(() => setJoinState('idle'), 1500);
     }
-  }, [session?.id, session?.roomId, displayName, isJoining, toast]);
+  }, [session?.id, session?.roomId, displayName, joinState, toast]);
 
   const handleLeaveSession = useCallback(async () => {
     if (!session?.id || !sessionPlayer?.id || isLeaving) return;
@@ -98,8 +146,11 @@ export function LobbyPhase({ session, memberships }: LobbyPhaseProps) {
       
       // Manually clear session player state to ensure UI updates immediately
       setSessionPlayer(null);
+      
+      // Reset join state to allow re-joining
+      setJoinState('idle');
     } catch (error) {
-      console.error('Failed to leave session:', error);
+      logger.error('Failed to leave session', { error, sessionId: session.id, playerId: sessionPlayer.id });
     } finally {
       setIsLeaving(false);
       setShowLeaveConfirm(false);
@@ -138,7 +189,7 @@ export function LobbyPhase({ session, memberships }: LobbyPhaseProps) {
         isJoining={isJoining}
         joinSuccess={joinSuccess}
         phase="lobby"
-        onClick={isInSession ? handleLeaveClick : handleJoinSession}
+        onClick={isInSession ? () => {} : handleJoinSession}
       />
       {isInSession && (
         <div className="pt-3 flex justify-center">

@@ -22,6 +22,7 @@ import type {
 import { roomService } from '../services/roomService';
 import { roomMembershipService } from '../services/roomMembershipService';
 import { supabase } from '../supabase/client';
+import { logger } from '../shared/utils/logger';
 import type { AsyncSubscriptionResult, ConnectionStatus } from './async/types';
 
 interface UseRoomOptions {
@@ -37,6 +38,8 @@ interface RoomData {
 }
 
 export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult<RoomData> & {
+  // Retry state for race condition handling
+  isRetrying: boolean;
   // Mutations
   createRoom: (request: CreateRoomRequest) => Promise<Room>;
   joinRoom: (request: JoinRoomRequest) => Promise<RoomMembership>;
@@ -64,6 +67,12 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
   const membershipChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
+  
+  // Retry state for room loading (handles race conditions)
+  const loadAttempts = useRef(0);
+  const maxLoadAttempts = 3;
+  const loadRetryDelayMs = 1000;
+  const [isRetrying, setIsRetrying] = useState(false);
 
   // Derived data
   const myMembership = user ? memberships.find(m => m.userId === user.id) || null : null;
@@ -76,7 +85,7 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
     isHost,
   } : null;
 
-  // Load room data
+  // Load room data with retry logic for race conditions
   const loadRoom = useCallback(async (silent = false) => {
     if (!roomId && !roomCode) return;
 
@@ -92,14 +101,33 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
       }
 
       if (!roomData?.room) {
+        // Room not found - check if we should retry
+        if (loadAttempts.current < maxLoadAttempts) {
+          loadAttempts.current += 1;
+          logger.debug(`Room not found, retrying`, { attempt: loadAttempts.current, maxAttempts: maxLoadAttempts });
+          setIsRetrying(true);
+          
+          // Wait and retry
+          await new Promise(resolve => setTimeout(resolve, loadRetryDelayMs));
+          
+          // Recursive retry
+          return loadRoom(silent);
+        }
+        
+        // Max retries reached, show error
+        setIsRetrying(false);
         throw new Error(roomCode ? `Room code "${roomCode}" not found` : `Room ID "${roomId}" not found`);
       }
 
+      // Success - reset retry counter
+      loadAttempts.current = 0;
+      setIsRetrying(false);
       setRoom(roomData.room);
       setLastUpdatedAt(Date.now());
       setError(null);
       if (!silent) setConnectionStatus("connected");
     } catch (err) {
+      setIsRetrying(false);
       const errorObj = err instanceof Error ? err : new Error('Failed to load room');
       setError(errorObj);
       setConnectionStatus("error");
@@ -325,6 +353,7 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
       return;
     }
 
+    logger.debug('Setting up room subscription', { roomId: targetRoomId });
     setConnectionStatus("connecting");
 
     const channel = supabase
@@ -337,11 +366,37 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
           table: 'rooms',
           filter: `id=eq.${targetRoomId}`,
         },
-        () => {
+        (payload) => {
+          logger.debug('Room update received', {
+            roomId: targetRoomId,
+            newCurrentSessionId: payload.new?.current_session_id,
+            oldCurrentSessionId: payload.old?.current_session_id,
+          });
+          // Immediately update room state with new data from payload
+          // This ensures we don't wait for the refetch
+          if (payload.new) {
+            const newRoom = {
+              id: payload.new.id,
+              code: payload.new.code,
+              name: payload.new.name,
+              creatorId: payload.new.creator_id,
+              moderatorIds: payload.new.moderator_ids || [],
+              currentSessionId: payload.new.current_session_id,
+              settings: payload.new.settings || {},
+              status: payload.new.status,
+              createdAt: payload.new.created_at,
+              updatedAt: payload.new.updated_at,
+            };
+            logger.debug('Updating room state', { roomId: newRoom.id, sessionId: newRoom.currentSessionId });
+            setRoom(newRoom as Room);
+            setLastUpdatedAt(Date.now());
+          }
+          // Also trigger a full refresh to ensure consistency
           loadRoom(true);
         }
       )
       .subscribe((status) => {
+        logger.debug('Room subscription status', { status, roomId: targetRoomId });
         if (status === 'SUBSCRIBED') {
           setConnectionStatus('connected');
           reconnectAttempts.current = 0;
@@ -356,6 +411,7 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
     roomChannelRef.current = channel;
 
     return () => {
+      logger.debug('Cleaning up room subscription', { roomId: targetRoomId });
       supabase.removeChannel(channel);
       roomChannelRef.current = null;
     };
@@ -414,9 +470,10 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
     }
   }, [roomId, roomCode, authLoading, loadRoom, refreshMembers]);
 
-  // Calculate status
+  // Calculate status - includes retry state for better UX
   const getStatus = () => {
     if (authLoading) return "booting" as const;
+    if (isRetrying) return "loading" as const; // Show loading during retry, not error
     if (connectionStatus === "connecting") return "loading" as const;
     if (connectionStatus === "reconnecting") return "reconnecting" as const;
     if (connectionStatus === "error") return "error" as const;
@@ -439,6 +496,7 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
     retry: reconnect,
     lastUpdatedAt,
     isStale,
+    isRetrying, // Expose retry state for UI to show "Looking for room..."
     canInteract,
     connectionStatus,
     reconnect,

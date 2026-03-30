@@ -37,7 +37,28 @@ export function resetClient(): void {
 // Export types for convenience
 export type { Database };
 export type Tables = Database['public']['Tables'];
-export type Session = Tables['sessions']['Row'];
+
+// Sociale types
+export type Sociale = Tables['sociales']['Row'];
+export type SocialeRound = Tables['sociale_rounds']['Row'];
+export type SocialeRoundState = Tables['sociale_round_state']['Row'];
+export type Socialite = Tables['socialites']['Row'];
+export type SocialeResponse = Tables['sociale_responses']['Row'];
+export type SocialeVote = Tables['sociale_votes']['Row'];
+export type SocialeScoreEvent = Tables['sociale_score_events']['Row'];
+export type SocialeAnalytics = Tables['sociale_analytics']['Row'];
+
+// Legacy types (for backwards compatibility during migration)
+// Note: These tables may not exist in the generated types
+export type Session = any; // Tables['top_comment_sessions']['Row'] || null;
+export type Team = any; // Tables['teams']['Row'] || null;
+export type Answer = Tables['answers']['Row'];
+export type Vote = Tables['votes']['Row'];
+export type Venue = any; // Tables['venues']['Row'] || null;
+export type User = any; // Tables['users']['Row'] || null;
+export type FeedComment = any; // Tables['feed_comments']['Row'] || null;
+export type FeedCommentLike = any; // Tables['feed_comment_likes']['Row'] || null;
+
 // Define team member interface since it's not in the generated types yet
 export interface TeamMember {
   id: string;
@@ -46,15 +67,4 @@ export interface TeamMember {
   is_captain: boolean;
   joined_at: string;
 }
-
-export type Team = Tables['teams']['Row'] & {
-  team_members?: TeamMember[];
-};  // Updated: players → teams
-export type Answer = Tables['answers']['Row'];  // Updated: submissions → answers
-export type Vote = Tables['votes']['Row'];
-export type Venue = Tables['venues']['Row'];
-// export type EventRound = Tables['event_rounds']['Row'];  // Removed: table doesn't exist
-export type User = Tables['users']['Row'];
-export type FeedComment = Tables['feed_comments']['Row'];
-export type FeedCommentLike = Tables['feed_comment_likes']['Row'];
 

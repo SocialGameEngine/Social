@@ -1,4 +1,4 @@
-import { Card, SessionTimer, AnswerCard } from "@social/ui";
+import { AnswerCard } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 import type { Answer, RoundGroup, Vote } from "../../../shared/types";
 
@@ -56,7 +56,7 @@ export function VotePhase({
     }))
   };
   return (
-    <Card className="space-y-6" isDark={isDark}>
+    <div className="space-y-6">
       <div className="flex flex-col gap-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-brand-primary">
           Voting phase
@@ -83,14 +83,6 @@ export function VotePhase({
           Everyone votes on the answers from this group.
         </p>
       </div>
-      <SessionTimer
-        endTime={sessionEndsAt}
-        totalSeconds={voteSecs}
-        paused={sessionPaused}
-        label="Voting ends"
-        size="md"
-        isDark={isDark}
-      />
       <div className="grid gap-4">
         {activeGroupAnswers.length ? (
           activeGroupAnswers.map((answer) => {
@@ -157,8 +149,11 @@ export function VotePhase({
       
       {/* Voting Participation Stats */}
       <div className="elevated-card p-4">
-        <h4 className={`text-xs font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-700' : 'text-brand-primary'}`}>
-          🎯 Voting Participation
+        <h4 className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-700' : 'text-brand-primary'}`}>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Voting Participation
         </h4>
         <div className="mt-3 space-y-2 text-sm">
           <div className="flex justify-between">
@@ -181,6 +176,6 @@ export function VotePhase({
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
