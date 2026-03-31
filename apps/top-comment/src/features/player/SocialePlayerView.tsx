@@ -87,7 +87,8 @@ export function SocialePlayerView({
     }
 
     // Determine phase and render player-specific version
-    const currentPhase = (sociale as any).runtimeState?.currentPhase || 'lobby';
+    // Prefer the canonical DB-backed field so phase switches actually take effect.
+    const currentPhase = sociale.currentPhase || 'lobby';
     
     switch (currentPhase) {
       case 'draft':

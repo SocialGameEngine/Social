@@ -83,6 +83,16 @@ serve(async (req) => {
       )
     }
 
+    if (
+      !socialite.is_active ||
+      socialite.pending_until_round_index != null
+    ) {
+      return new Response(
+        JSON.stringify({ error: 'Not active in this round yet — join takes effect next round.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Get current round state
     const { data: roundState, error: stateError } = await supabaseClient
       .from('sociale_round_state')

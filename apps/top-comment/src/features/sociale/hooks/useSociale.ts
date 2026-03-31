@@ -3,15 +3,37 @@
 // =============================================================================
 // Hook for fetching and managing Sociale data.
 
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../supabase/client';
 import type { Sociale, CreateSocialeRequest, UpdateSocialeRequest } from '../../domain/types/sociale.types';
-import { mapSociale } from '../socialeService';
+import { mapSociale, createSociale, updateSociale } from '../socialeService';
 
 /**
  * Hook for fetching a single Sociale
  */
 export function useSociale(socialeId?: string) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!socialeId) return;
+
+    const channel = supabase
+      .channel(`sociale:${socialeId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sociales', filter: `id=eq.${socialeId}` },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ['sociale', socialeId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [socialeId, queryClient]);
+
   return useQuery({
     queryKey: ['sociale', socialeId],
     queryFn: async () => {
@@ -23,7 +45,14 @@ export function useSociale(socialeId?: string) {
         .eq('id', socialeId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        // Supabase/PostgREST returns HTTP 406 for `.single()` when there are 0 rows.
+        // Treat that as "not found" so UI updates cleanly after deletes/ends.
+        if (error.code === 'PGRST116' || /0 rows/i.test(error.message || '')) {
+          return null;
+        }
+        throw error;
+      }
       return data ? mapSociale(data) : null;
     },
     enabled: !!socialeId,
@@ -34,6 +63,27 @@ export function useSociale(socialeId?: string) {
  * Hook for fetching Sociales by room
  */
 export function useSocialesByRoom(roomId?: string) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!roomId) return;
+
+    const channel = supabase
+      .channel(`sociales-room:${roomId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sociales', filter: `room_id=eq.${roomId}` },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ['sociales', 'room', roomId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [roomId, queryClient]);
+
   return useQuery({
     queryKey: ['sociales', 'room', roomId],
     queryFn: async () => {
@@ -58,12 +108,7 @@ export function useSocialesByRoom(roomId?: string) {
 export function useCreateSociale() {
   return useMutation({
     mutationFn: async (request: CreateSocialeRequest) => {
-      // Use the Edge Function for proper authentication and validation
-      const { data, error } = await supabase.functions.invoke('sociales-create', {
-        body: request,
-      });
-
-      if (error) throw error;
+      const data = await createSociale(request);
       return data.sociale;
     },
   });
@@ -74,19 +119,8 @@ export function useCreateSociale() {
  */
 export function useUpdateSociale() {
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: UpdateSocialeRequest }) => {
-      const { data, error } = await supabase
-        .from('sociales')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return mapSociale(data);
+    mutationFn: async (updates: UpdateSocialeRequest) => {
+      return await updateSociale(updates);
     },
   });
 }

@@ -310,6 +310,9 @@ export interface Socialite {
   // Timing
   joinedAt: string;
   lastSeenAt?: string;
+
+  /** When set, player joins gameplay once `sociale.currentRoundIndex` reaches this index */
+  pendingUntilRoundIndex?: number | null;
   
   createdAt: string;
   updatedAt: string;
@@ -515,7 +518,17 @@ export interface UpdateSocialeRequest {
   socialeId: string;
   title?: string;
   description?: string;
+  /** Optional: update global Sociale settings (timers, flags, etc.) */
   settings?: Partial<SocialeSettings>;
+  /** Optional: allow changing mode in lobby/draft via update edge function */
+  mode?: SocialeMode;
+  /** Optional: allow changing total rounds in lobby/draft via update edge function */
+  totalRounds?: number;
+  settings?: Partial<SocialeSettings>;
+  /** Optional: allow changing mode in lobby/draft via update edge function */
+  mode?: SocialeMode;
+  /** Optional: allow changing total rounds in lobby/draft via update edge function */
+  totalRounds?: number;
 }
 
 /**
@@ -539,6 +552,7 @@ export interface AdvanceSocialePhaseRequest {
 export interface SubmitSocialeResponseRequest {
   socialeId: string;
   roundId: string;
+  socialiteId: string;
   type: SocialeResponseType;
   value: unknown;
 }
@@ -549,6 +563,7 @@ export interface SubmitSocialeResponseRequest {
 export interface SubmitSocialeVoteRequest {
   socialeId: string;
   roundId: string;
+  socialiteId: string;
   targetResponseId: string;
 }
 
@@ -561,6 +576,8 @@ export interface JoinSocialeRequest {
   userId: string;
   displayName?: string;
   mascotId?: number;
+  /** When true, join during an active/paused game; play starts next round */
+  joinNextRound?: boolean;
 }
 
 /**
@@ -568,7 +585,7 @@ export interface JoinSocialeRequest {
  */
 export interface JoinSocialeResponse {
   socialite: Socialite;
-  sociale: Sociale;
+  sociale?: Sociale;
 }
 
 // =============================================================================

@@ -126,6 +126,7 @@ export function mapSocialite(data: any): Socialite | null {
     score: data.score,
     joinedAt: data.joined_at,
     lastSeenAt: data.last_seen_at,
+    pendingUntilRoundIndex: data.pending_until_round_index ?? null,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
@@ -399,19 +400,28 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   
-  const { data: { session } } = await supabase.auth.getSession();
-  const authToken = session?.access_token || supabaseKey;
+  let { data: { session } } = await supabase.auth.getSession();
+
+  // If session is missing/stale, attempt one refresh before failing.
+  if (!session?.access_token) {
+    const { data: refreshData } = await supabase.auth.refreshSession();
+    session = refreshData.session;
+  }
+
+  if (!session?.access_token) {
+    throw new Error('You must be signed in to perform this action.');
+  }
   
   return {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${authToken}`,
+    'Authorization': `Bearer ${session.access_token}`,
     'apikey': supabaseKey,
   };
 }
 
 /**
  * Create a new Sociale
- * TODO: Implement Edge Function sociales-create
+ * Uses Edge Function: sociales-create ✅ IMPLEMENTED
  */
 export async function createSociale(payload: CreateSocialeRequest): Promise<CreateSocialeResponse> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -433,22 +443,32 @@ export async function createSociale(payload: CreateSocialeRequest): Promise<Crea
 
 /**
  * Update a Sociale
- * TODO: Implement Edge Function sociales-update
+ * Uses Edge Function: sociales-update ✅ IMPLEMENTED
  */
 export async function updateSociale(payload: UpdateSocialeRequest): Promise<Sociale> {
-  const { data, error } = await supabase.functions.invoke<{ sociale: Sociale }>(
-    'sociales-update',
-    { body: payload }
-  );
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const headers = await getAuthHeaders();
+  const { socialeId, ...rest } = payload;
   
-  if (error) throw error;
-  if (!data) throw new Error('No data returned from updateSociale');
+  const response = await fetch(`${supabaseUrl}/functions/v1/sociales-update`, {
+    method: 'POST',
+    headers,
+    // Edge function expects `id`; frontend types use `socialeId`.
+    body: JSON.stringify({ id: socialeId, ...rest }),
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Failed to update Sociale' }));
+    throw new Error(errorData.message || errorData.error || 'Failed to update Sociale');
+  }
+  
+  const data = await response.json();
   return data.sociale;
 }
 
 /**
  * Start a Sociale
- * TODO: Implement Edge Function sociales-start
+ * Uses Edge Function: sociales-start ✅ IMPLEMENTED
  */
 export async function startSociale(payload: StartSocialeRequest): Promise<Sociale> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -471,7 +491,7 @@ export async function startSociale(payload: StartSocialeRequest): Promise<Social
 
 /**
  * Advance Sociale phase
- * TODO: Implement Edge Function sociales-advance
+ * Uses Edge Function: sociales-advance ✅ IMPLEMENTED
  */
 export async function advanceSocialePhase(payload: AdvanceSocialePhaseRequest): Promise<Sociale> {
   const { data, error } = await supabase.functions.invoke<{ sociale: Sociale }>(
@@ -486,7 +506,7 @@ export async function advanceSocialePhase(payload: AdvanceSocialePhaseRequest): 
 
 /**
  * Pause a Sociale
- * TODO: Implement Edge Function sociales-pause
+ * Uses Edge Function: sociales-pause ✅ IMPLEMENTED
  */
 export async function pauseSociale(socialeId: string, pause: boolean): Promise<Sociale> {
   const { data, error } = await supabase.functions.invoke<{ sociale: Sociale }>(
@@ -501,7 +521,7 @@ export async function pauseSociale(socialeId: string, pause: boolean): Promise<S
 
 /**
  * End a Sociale
- * TODO: Implement Edge Function sociales-end
+ * Uses Edge Function: sociales-end ✅ IMPLEMENTED
  */
 export async function endSociale(socialeId: string): Promise<Sociale> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -523,8 +543,8 @@ export async function endSociale(socialeId: string): Promise<Sociale> {
 }
 
 /**
- * Join a Sociale
- * TODO: Implement Edge Function sociales-join
+ * Join a Sociale as a Socialite
+ * Uses Edge Function: sociales-join ✅ IMPLEMENTED
  */
 export async function joinSociale(payload: JoinSocialeRequest): Promise<JoinSocialeResponse> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -540,13 +560,18 @@ export async function joinSociale(payload: JoinSocialeRequest): Promise<JoinSoci
     const errorData = await response.json().catch(() => ({ message: 'Failed to join Sociale' }));
     throw new Error(errorData.message || errorData.error || 'Failed to join Sociale');
   }
-  
-  return response.json();
+
+  const data = await response.json();
+  const row = data?.socialite;
+  if (!row) throw new Error('No socialite returned');
+  const socialite = mapSocialite(row);
+  if (!socialite) throw new Error('Invalid socialite payload');
+  return { socialite, sociale: data.sociale };
 }
 
 /**
- * Submit a response
- * TODO: Implement Edge Function sociales-submit-response
+ * Submit a response to a Sociale round
+ * Uses Edge Function: sociales-submit-response ✅ IMPLEMENTED
  */
 export async function submitSocialeResponse(payload: SubmitSocialeResponseRequest): Promise<SocialeResponse> {
   const { data, error } = await supabase.functions.invoke<{ response: SocialeResponse }>(
@@ -560,8 +585,8 @@ export async function submitSocialeResponse(payload: SubmitSocialeResponseReques
 }
 
 /**
- * Submit a vote
- * TODO: Implement Edge Function sociales-submit-vote
+ * Submit a vote on a response
+ * Uses Edge Function: sociales-submit-vote ✅ IMPLEMENTED
  */
 export async function submitSocialeVote(payload: SubmitSocialeVoteRequest): Promise<SocialeVote> {
   const { data, error } = await supabase.functions.invoke<{ vote: SocialeVote }>(
@@ -575,33 +600,80 @@ export async function submitSocialeVote(payload: SubmitSocialeVoteRequest): Prom
 }
 
 /**
- * Skip current round (mark as skipped and move to next)
- * TODO: Implement Edge Function sociales-skip-round
+ * Skip a round in a Sociale
+ * Uses Edge Function: sociales-skip-round ✅ IMPLEMENTED
  */
 export async function skipSocialeRound(socialeId: string): Promise<Sociale> {
-  const { data, error } = await supabase.functions.invoke<{ sociale: Sociale }>(
-    'sociales-skip-round',
-    { body: { socialeId } }
-  );
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const headers = await getAuthHeaders();
   
-  if (error) throw error;
-  if (!data) throw new Error('No data returned from skipSocialeRound');
+  const response = await fetch(`${supabaseUrl}/functions/v1/sociales-skip-round`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ socialeId }),
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Failed to skip round' }));
+    throw new Error(errorData.message || errorData.error || 'Failed to skip round');
+  }
+  
+  const data = await response.json();
   return data.sociale;
 }
 
 /**
- * Skip current phase (jump to next phase in same round)
- * TODO: Implement Edge Function sociales-skip-phase
+ * Skip a phase in a Sociale round
+ * Uses Edge Function: sociales-skip-phase ✅ IMPLEMENTED
  */
 export async function skipSocialePhase(socialeId: string): Promise<Sociale> {
-  const { data, error } = await supabase.functions.invoke<{ sociale: Sociale }>(
-    'sociales-skip-phase',
-    { body: { socialeId } }
-  );
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const headers = await getAuthHeaders();
   
-  if (error) throw error;
-  if (!data) throw new Error('No data returned from skipSocialePhase');
+  const response = await fetch(`${supabaseUrl}/functions/v1/sociales-skip-phase`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ socialeId }),
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Failed to skip phase' }));
+    throw new Error(errorData.message || errorData.error || 'Failed to skip phase');
+  }
+  
+  const data = await response.json();
   return data.sociale;
+}
+
+/**
+ * Return a Sociale to lobby state.
+ * Centralizes host-side lifecycle reset logic.
+ */
+export async function returnSocialeToLobby(socialeId: string): Promise<Sociale> {
+  const { data, error } = await supabase
+    .from('sociales')
+    .update({
+      status: 'lobby',
+      current_round_index: null,
+      current_round_id: null,
+      current_phase: null,
+      phase_started_at: null,
+      phase_ends_at: null,
+      started_at: null,
+      ended_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', socialeId)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+
+  const mapped = mapSociale(data);
+  if (!mapped) {
+    throw new Error('Failed to map Sociale after returning to lobby');
+  }
+  return mapped;
 }
 
 // =============================================================================
@@ -636,4 +708,5 @@ export const socialeService = {
   submitSocialeVote,
   skipSocialeRound,
   skipSocialePhase,
+  returnSocialeToLobby,
 };

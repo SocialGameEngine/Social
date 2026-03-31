@@ -6,8 +6,8 @@
 import { useCallback } from 'react';
 import { useSociale } from '../../../features/sociale/hooks/useSociale';
 import { useSocialites } from '../../../features/sociale/hooks/useSocialites';
-import { useSocialeResponses } from '../../../features/sociale/hooks/useSocialeResponses';
-import { useSocialeVotes } from '../../../features/sociale/hooks/useSocialeVotes';
+import { useRoundResponses } from '../../../features/sociale/hooks/useSocialeResponses';
+import { useRoundVotes } from '../../../features/sociale/hooks/useSocialeVotes';
 import { useSocialeOrchestrator } from '../../../application/hooks/useSocialeOrchestrator';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../../supabase/client';
@@ -23,12 +23,16 @@ interface SocialePhaseRendererProps {
   socialeId: string;
   userId?: string;
   isDark: boolean;
+  onCreateNewSociale?: () => void;
+  onReturnToLobby?: () => void;
 }
 
 export function SocialePhaseRenderer({ 
   socialeId, 
   userId, 
-  isDark 
+  isDark,
+  onCreateNewSociale,
+  onReturnToLobby,
 }: SocialePhaseRendererProps) {
   // Prevent rendering if no socialeId provided
   if (!socialeId) {
@@ -42,8 +46,9 @@ export function SocialePhaseRenderer({
   // WORKING VERSION: All hooks individually, no useMemo
   const { data: sociale, isLoading: socialeLoading } = useSociale(socialeId);
   const { data: socialites = [], isLoading: socialitesLoading } = useSocialites(socialeId);
-  const { data: responses = [], isLoading: responsesLoading } = useSocialeResponses(socialeId);
-  const { data: votes = [], isLoading: votesLoading } = useSocialeVotes(socialeId);
+  const currentRoundId = sociale?.currentRoundId;
+  const { data: responses = [], isLoading: responsesLoading } = useRoundResponses(socialeId, currentRoundId);
+  const { data: votes = [], isLoading: votesLoading } = useRoundVotes(socialeId, currentRoundId);
   
   // Add orchestrator for real actions
   const orchestrator = useSocialeOrchestrator({ socialeId });
@@ -158,21 +163,6 @@ export function SocialePhaseRenderer({
     );
   }
 
-  // WORKING: Render actual phases based on Sociale status
-  // DEBUG: Add debug info to see what's happening
-  console.log('SocialePhaseRenderer Debug:', {
-    socialeId,
-    socialeStatus: sociale?.status,
-    socialitesCount: socialites.length,
-    roundsCount: rounds?.length || 0,
-    currentSocialite,
-    isRoomHost,
-    hasSociale: !!sociale,
-    orchestratorActions: !!startSociale,
-    createdBy: sociale?.createdBy,
-    currentUserId: userId
-  });
-
   switch (sociale?.status) {
     case 'draft':
     case 'lobby':
@@ -201,8 +191,10 @@ export function SocialePhaseRenderer({
       );
 
     case 'active':
-      // Check current phase from runtime state
-      const currentPhase = (sociale as any).runtimeState?.currentPhase || 'answer';
+      // Use canonical Sociale field so phase switches actually re-render.
+      // `runtimeState.currentPhase` can be stale/undefined, which keeps the UI
+      // stuck in the previous phase (e.g. answer timer appears to reset).
+      const currentPhase = sociale.currentPhase || 'answer';
       
       if (currentPhase === 'answer') {
         return (
@@ -285,8 +277,8 @@ export function SocialePhaseRenderer({
           }}
           socialites={socialites}
           currentSocialite={currentSocialite}
-          onCreateNewSociale={() => console.log('Create new Sociale')}
-          onReturnToLobby={() => console.log('Return to lobby')}
+          onCreateNewSociale={onCreateNewSociale ?? (() => {})}
+          onReturnToLobby={onReturnToLobby ?? (() => {})}
           isCurrentPlayerHost={isRoomHost}
           isDark={isDark}
         />
@@ -359,8 +351,8 @@ export function SocialePhaseRenderer({
       );
 
     case 'active':
-      // Check current phase from runtime state
-      const currentPhase = (sociale as any).runtimeState?.currentPhase || 'answer';
+      // Use canonical Sociale field so phase switches actually re-render.
+      const currentPhase = sociale.currentPhase || 'answer';
       
       if (currentPhase === 'answer') {
         return (

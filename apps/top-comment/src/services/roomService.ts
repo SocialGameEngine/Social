@@ -13,6 +13,10 @@ import type {
   StartSessionInRoomResponse,
   EndSessionInRoomRequest,
   EndSessionInRoomResponse,
+  StartSocialeInRoomRequest,
+  StartSocialeInRoomResponse,
+  EndSocialeInRoomRequest,
+  EndSocialeInRoomResponse,
 } from '../shared/types';
 import type { Room, RoomMembership } from '../domain/types/room.types';
 
@@ -33,6 +37,7 @@ function mapRoom(data: any): Room | null {
     updatedAt: data.updated_at,
     settings: data.settings || {},
     currentSessionId: data.current_session_id,
+    currentSocialeId: data.current_sociale_id ?? null,
     totalSessionsPlayed: data.total_sessions_played || 0,
   };
 }
@@ -360,6 +365,49 @@ export async function endSessionInRoom(request: EndSessionInRoomRequest): Promis
   return data;
 }
 
+// Start a Sociale in a room (pointer-aware orchestration)
+export async function startSocialeInRoom(request: StartSocialeInRoomRequest): Promise<StartSocialeInRoomResponse> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) {
+    throw new Error("User not authenticated");
+  }
+
+  const { data, error } = await supabase.functions.invoke<StartSocialeInRoomResponse>('rooms-start-sociale', {
+    body: {
+      roomId: request.roomId,
+      socialeSettings: request.socialeSettings,
+    },
+  });
+
+  if (error) {
+    throw new Error(`Failed to start Sociale: ${error.message}`);
+  }
+
+  return data as StartSocialeInRoomResponse;
+}
+
+// End or cancel a Sociale in a room (clears pointer)
+export async function endSocialeInRoom(request: EndSocialeInRoomRequest): Promise<EndSocialeInRoomResponse> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) {
+    throw new Error("User not authenticated");
+  }
+
+  const { data, error } = await supabase.functions.invoke<EndSocialeInRoomResponse>('rooms-end-sociale', {
+    body: {
+      roomId: request.roomId,
+      socialeId: request.socialeId,
+      mode: request.mode ?? 'end',
+    },
+  });
+
+  if (error) {
+    throw new Error(`Failed to end Sociale: ${error.message}`);
+  }
+
+  return data as EndSocialeInRoomResponse;
+}
+
 export const roomService = {
   createRoom,
   getRoom,
@@ -367,5 +415,7 @@ export const roomService = {
   getRoomAnalytics,
   startSessionInRoom,
   endSessionInRoom,
+   startSocialeInRoom,
+   endSocialeInRoom,
   archiveRoom,
 };

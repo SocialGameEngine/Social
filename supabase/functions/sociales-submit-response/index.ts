@@ -83,6 +83,16 @@ serve(async (req) => {
       )
     }
 
+    if (
+      !socialite.is_active ||
+      socialite.pending_until_round_index != null
+    ) {
+      return new Response(
+        JSON.stringify({ error: 'Not active in this round yet — join takes effect next round.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Get current round state
     const { data: roundState, error: stateError } = await supabaseClient
       .from('sociale_round_state')
@@ -108,22 +118,6 @@ serve(async (req) => {
       )
     }
 
-    // Check if user already responded
-    const { data: existingResponse, error: existingError } = await supabaseClient
-      .from('sociale_responses')
-      .select('*')
-      .eq('sociale_id', socialeId)
-      .eq('round_id', roundId)
-      .eq('socialite_id', socialiteId)
-      .single()
-
-    if (existingResponse && !existingError) {
-      return new Response(
-        JSON.stringify({ error: 'Already submitted response for this round' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
     // Calculate score based on response type
     let scoreAwarded = 0
     if (type === 'trivia' && isCorrect) {
@@ -134,7 +128,92 @@ serve(async (req) => {
       scoreAwarded = 3 // Base score for topic response
     }
 
-    // Create the response
+    // Fetch most recent existing response (if any).
+    // If historical duplicates exist, we update the newest row and let the UI dedupe.
+    const { data: existingResponse, error: existingError } = await supabaseClient
+      .from('sociale_responses')
+      .select('*')
+      .eq('sociale_id', socialeId)
+      .eq('round_id', roundId)
+      .eq('socialite_id', socialiteId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (existingError) throw existingError
+
+    const nowIso = new Date().toISOString()
+    const responseUpsertPayload = {
+      sociale_id: socialeId,
+      round_id: roundId,
+      socialite_id: socialiteId,
+      type,
+      value,
+      is_correct: isCorrect || false,
+      score_awarded: scoreAwarded,
+      updated_at: nowIso,
+    }
+
+    if (existingResponse) {
+      // Update existing response (upsert behavior).
+      const { data: updatedResponse, error: updateError } = await supabaseClient
+        .from('sociale_responses')
+        .update(responseUpsertPayload)
+        .eq('id', existingResponse.id)
+        .select()
+        .single()
+
+      if (updateError) throw updateError
+
+      const existingScoreAwarded = existingResponse.score_awarded ?? 0
+      const delta = scoreAwarded - existingScoreAwarded
+
+      // Avoid score event writes for free-text updates (scoreAwarded=0),
+      // and only apply score deltas when we actually changed score.
+      if (delta !== 0) {
+        await supabaseClient
+          .from('socialites')
+          .update({
+            score: socialite.score + delta,
+            updated_at: nowIso,
+          })
+          .eq('id', socialiteId)
+
+        await supabaseClient
+          .from('sociale_score_events')
+          .insert({
+            sociale_id: socialeId,
+            round_id: roundId,
+            socialite_id: socialiteId,
+            reason: `Updated ${type} response`,
+            points: delta,
+            metadata: null,
+            created_at: nowIso,
+          })
+      }
+
+      const responseResult: SubmitSocialeResponseResponse = {
+        response: {
+          id: updatedResponse.id,
+          socialeId: updatedResponse.sociale_id,
+          roundId: updatedResponse.round_id,
+          socialiteId: updatedResponse.socialite_id,
+          type: updatedResponse.type,
+          value: updatedResponse.value,
+          isCorrect: updatedResponse.is_correct,
+          scoreAwarded: updatedResponse.score_awarded,
+          createdAt: updatedResponse.created_at,
+        },
+        scoreAwarded,
+      }
+
+      return new Response(
+        JSON.stringify(responseResult),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Insert first response
     const { data: response, error: createError } = await supabaseClient
       .from('sociale_responses')
       .insert({
@@ -145,36 +224,39 @@ serve(async (req) => {
         value,
         is_correct: isCorrect || false,
         score_awarded: scoreAwarded,
-        created_at: new Date().toISOString(),
+        created_at: nowIso,
+        updated_at: nowIso,
       })
       .select()
       .single()
 
     if (createError) throw createError
 
-    // Update Socialite score
-    await supabaseClient
-      .from('socialites')
-      .update({
-        score: socialite.score + scoreAwarded,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', socialiteId)
+    if (scoreAwarded !== 0) {
+      // Update Socialite score
+      await supabaseClient
+        .from('socialites')
+        .update({
+          score: socialite.score + scoreAwarded,
+          updated_at: nowIso,
+        })
+        .eq('id', socialiteId)
 
-    // Create score event
-    await supabaseClient
-      .from('sociale_score_events')
-      .insert({
-        sociale_id: socialeId,
-        round_id: roundId,
-        socialite_id: socialiteId,
-        event_type: 'response',
-        score_change: scoreAwarded,
-        reason: `Submitted ${type} response`,
-        created_at: new Date().toISOString(),
-      })
+      // Create score event (only when scoring applies)
+      await supabaseClient
+        .from('sociale_score_events')
+        .insert({
+          sociale_id: socialeId,
+          round_id: roundId,
+          socialite_id: socialiteId,
+          reason: `Submitted ${type} response`,
+          points: scoreAwarded,
+          metadata: null,
+          created_at: nowIso,
+        })
+    }
 
-    // Return the created response
+    // Return created response
     const responseResult: SubmitSocialeResponseResponse = {
       response: {
         id: response.id,

@@ -84,13 +84,52 @@ serve(async (req) => {
       )
     }
 
-    // Get current round state
-    const { data: currentRoundState, error: stateError } = await supabaseClient
+    // Get current round state.
+    // Prefer `sociales.current_round_id` so we don't accidentally pick the wrong active row.
+    let roundStateQuery: any = supabaseClient
       .from('sociale_round_state')
       .select('*')
       .eq('sociale_id', socialeId)
       .eq('status', 'active')
-      .single()
+
+    if (sociale.current_round_id) {
+      roundStateQuery = roundStateQuery.eq('round_id', sociale.current_round_id)
+    }
+
+    const {
+      data: initialRoundState,
+      error: initialStateError,
+    } = await roundStateQuery
+      // Be tolerant if data corruption leaves multiple active rows:
+      // pick the most recently started active round_state.
+      .order('phase_started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    // If the DB state got out of sync with `sociales.current_round_id`, fall back.
+    let currentRoundState = initialRoundState
+    let stateError = initialStateError
+
+    if ((!currentRoundState || stateError) && sociale.current_round_id) {
+      const { data: fallbackRoundState, error: fallbackError } = await supabaseClient
+        .from('sociale_round_state')
+        .select('*')
+        .eq('sociale_id', socialeId)
+        .eq('status', 'active')
+        .order('phase_started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (fallbackError || !fallbackRoundState) {
+        return new Response(
+          JSON.stringify({ error: 'No active round state found' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      currentRoundState = fallbackRoundState
+      stateError = null
+    }
 
     if (stateError || !currentRoundState) {
       return new Response(
@@ -184,6 +223,14 @@ serve(async (req) => {
             )
           }
 
+          // New round starts on a "setup" phase in the DB, but the room UI
+          // treats non-`vote`/`results` phases as the "answer-like" phase for timing.
+          const nextPhaseDurationSeconds = (nextRound.settings as any)?.answerSeconds ?? 90
+          const phaseStartedAt = new Date().toISOString()
+          const phaseEndsAt = new Date(
+            Date.now() + nextPhaseDurationSeconds * 1000
+          ).toISOString()
+
           // End current round state
           await supabaseClient
             .from('sociale_round_state')
@@ -202,10 +249,11 @@ serve(async (req) => {
               round_id: nextRound.id,
               status: 'active',
               phase: 'setup',
-              started_at: new Date().toISOString(),
-              phase_started_at: new Date().toISOString(),
+              started_at: phaseStartedAt,
+              phase_started_at: phaseStartedAt,
+              phase_ends_at: phaseEndsAt,
               created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
+              updated_at: phaseStartedAt,
             })
 
           if (newStateError) throw newStateError
@@ -215,7 +263,11 @@ serve(async (req) => {
             .from('sociales')
             .update({
               current_round_index: nextRoundIndex,
-              updated_at: new Date().toISOString(),
+              current_round_id: nextRound.id,
+              current_phase: 'setup',
+              phase_started_at: phaseStartedAt,
+              phase_ends_at: phaseEndsAt,
+              updated_at: phaseStartedAt,
             })
             .eq('id', socialeId)
             .select()
@@ -257,16 +309,52 @@ serve(async (req) => {
     }
 
     // Update current round state phase
-    const { data: updatedState, error: phaseError } = await supabaseClient
+    const phaseDurationSeconds = (() => {
+      // Room UI only cares about `answer`/`vote`/`results` timers.
+      // Still, we set durations for all phases so `phase_ends_at` is never null.
+      switch (nextPhase) {
+        case 'vote':
+          return (currentRound.settings as any)?.votingSeconds ?? 30
+        case 'results':
+        case 'reveal':
+        case 'discussion':
+          return (currentRound.settings as any)?.resultsSeconds ?? 12
+        case 'setup':
+        case 'question':
+        case 'answer':
+        default:
+          return (currentRound.settings as any)?.answerSeconds ?? 90
+      }
+    })()
+
+    const phaseStartedAt = new Date().toISOString()
+    const phaseEndsAt = new Date(
+      Date.now() + phaseDurationSeconds * 1000
+    ).toISOString()
+
+    // Update Sociale timing so existing clients that read `sociales.phase_ends_at`
+    // also get the right countdown target.
+    const { error: socialeUpdateError } = await supabaseClient
+      .from('sociales')
+      .update({
+        current_phase: nextPhase,
+        phase_started_at: phaseStartedAt,
+        phase_ends_at: phaseEndsAt,
+        updated_at: phaseStartedAt,
+      })
+      .eq('id', socialeId)
+
+    if (socialeUpdateError) throw socialeUpdateError
+
+    const { error: phaseError } = await supabaseClient
       .from('sociale_round_state')
       .update({
         phase: nextPhase,
-        phase_started_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        phase_started_at: phaseStartedAt,
+        phase_ends_at: phaseEndsAt,
+        updated_at: phaseStartedAt,
       })
       .eq('id', currentRoundState.id)
-      .select()
-      .single()
 
     if (phaseError) throw phaseError
 

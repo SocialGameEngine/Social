@@ -6,7 +6,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import type { Database } from '../../types/database.ts'
-import type { JoinSocialeRequest, JoinSocialeResponse } from '../../apps/top-comment/src/domain/types/sociale.types.ts'
+import type { JoinSocialeRequest } from '../../apps/top-comment/src/domain/types/sociale.types.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,7 +45,7 @@ serve(async (req) => {
 
     // Parse request body
     const body: JoinSocialeRequest = await req.json()
-    const { socialeId, displayName, mascotId } = body
+    const { socialeId, displayName, mascotId, joinNextRound = false } = body
 
     if (!socialeId || !displayName) {
       return new Response(
@@ -83,28 +83,52 @@ serve(async (req) => {
       )
     }
 
-    // Check if user is already a Socialite
-    const { data: existingSocialite, error: existingError } = await supabaseClient
+    // Check if user is already a Socialite (idempotent join behavior).
+    // If duplicate historical rows exist, pick the latest one.
+    const { data: existingSocialite, error: existingSocialiteError } = await supabaseClient
       .from('socialites')
       .select('*')
       .eq('sociale_id', socialeId)
       .eq('user_id', user.id)
-      .single()
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
-    if (existingSocialite && !existingError) {
+    if (existingSocialiteError) throw existingSocialiteError
+
+    if (existingSocialite) {
       return new Response(
-        JSON.stringify({ error: 'Already joined this Sociale' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ socialite: existingSocialite }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     // Verify Sociale is joinable
-    if (!['draft', 'active', 'paused'].includes(sociale.status)) {
+    if (!['draft', 'lobby', 'active', 'paused'].includes(sociale.status)) {
       return new Response(
         JSON.stringify({ error: 'Sociale is not joinable' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    const isLive = sociale.status === 'active' || sociale.status === 'paused'
+    if (isLive && !joinNextRound) {
+      return new Response(
+        JSON.stringify({
+          error: 'This Sociale is in progress. Join from the room with “Join next round”.',
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    if (!isLive && joinNextRound) {
+      return new Response(
+        JSON.stringify({ error: 'Join next round is only available during a live game.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const pendingUntilRoundIndex =
+      joinNextRound && isLive ? (sociale.current_round_index ?? 0) + 1 : null
 
     // Create the Socialite
     const { data: socialite, error: createError } = await supabaseClient
@@ -117,8 +141,9 @@ serve(async (req) => {
         display_name: displayName,
         mascot_id: mascotId || null,
         is_host: membership.is_host,
-        is_active: true,
+        is_active: pendingUntilRoundIndex === null,
         is_banned: false,
+        pending_until_round_index: pendingUntilRoundIndex,
         score: 0,
         joined_at: new Date().toISOString(),
         last_seen_at: new Date().toISOString(),
@@ -130,31 +155,10 @@ serve(async (req) => {
 
     if (createError) throw createError
 
-    // Return the created Socialite
-    const response: JoinSocialeResponse = {
-      socialite: {
-        id: socialite.id,
-        socialeId: socialite.sociale_id,
-        roomId: socialite.room_id,
-        userId: socialite.user_id,
-        membershipId: socialite.membership_id,
-        displayName: socialite.display_name,
-        mascotId: socialite.mascot_id,
-        isHost: socialite.is_host,
-        isActive: socialite.is_active,
-        isBanned: socialite.is_banned,
-        score: socialite.score,
-        joinedAt: socialite.joined_at,
-        lastSeenAt: socialite.last_seen_at,
-        createdAt: socialite.created_at,
-        updatedAt: socialite.updated_at,
-      },
-    }
-
-    return new Response(
-      JSON.stringify(response),
-      { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ socialite }), {
+      status: 201,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   } catch (error) {
     console.error('Error joining Sociale:', error)
     return new Response(

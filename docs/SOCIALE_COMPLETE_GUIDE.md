@@ -145,7 +145,20 @@ interface RoundDefinition {
 | Results phase | Results phase | ✅ **IMPLEMENTED** |
 | Ended phase | Completed phase | ✅ **IMPLEMENTED** |
 
-### 🏗️ **Architecture Changes**
+### � **UI Component Mapping** ✅ **Complete**
+
+| Session Component | Sociale Counterpart | Status |
+|------------------|-------------------|--------|
+| `SessionPanel` | `SocialePanel` | ✅ **CREATED** |
+| `SessionButton` | `SocialeButton` | ✅ **CREATED** |
+| `AnswerModal` | `SocialeAnswerModal` | ✅ **CREATED** |
+| `VoteModal` | `SocialeVoteModal` | ✅ **CREATED** |
+| `LeaderboardModal` | `SocialeLeaderboardModal` | ✅ **CREATED** |
+| `SelfieModal` | `SocialeSelfieModal` | ✅ **CREATED** |
+| `RoomModals` | `SocialeModals` | ✅ **CREATED** |
+| `SessionPhaseRenderer` | `SocialePhaseRenderer` | ✅ **IMPLEMENTED** |
+
+### �️ **Architecture Changes**
 
 **From (Sessions):**
 ```
@@ -160,13 +173,22 @@ Sociale → Multiple Rounds → Multiple Phases per Round
 ### 🎯 **UI Component Migration**
 
 **Session Components → Sociale Components:**
-- `SessionsPanel` → `SocialesPanel`
-- `SessionPhaseRenderer` → `SocialePhaseRenderer`
-- `LobbyPhase` → `SocialeLobbyPhase`
-- `AnswerPhase` → `SocialeAnswerPhase`
-- `VotePhase` → `SocialeVotePhase`
-- `ResultsPhase` → `SocialeResultsPhase`
-- `EndedPhase` → `SocialeEndedPhase`
+- `SessionsPanel` → `SocialesPanel` ✅
+- `SessionPhaseRenderer` → `SocialePhaseRenderer` ✅
+- `LobbyPhase` → `SocialeLobbyPhase` ✅
+- `AnswerPhase` → `SocialeAnswerPhase` ✅
+- `VotePhase` → `SocialeVotePhase` ✅
+- `ResultsPhase` → `SocialeResultsPhase` ✅
+- `EndedPhase` → `SocialeEndedPhase` ✅
+
+**Newly Created Room Components:**
+- `SocialePanel` - Main panel to replace SessionPanel
+- `SocialeButton` - Join/interaction button to replace SessionButton
+- `SocialeAnswerModal` - Modal for answering Sociale rounds
+- `SocialeVoteModal` - Modal for voting on Sociale responses
+- `SocialeLeaderboardModal` - Modal for showing Sociale results
+- `SocialeSelfieModal` - Modal for post-game celebration
+- `SocialeModals` - Container for all Sociale modals
 
 ---
 
@@ -243,6 +265,14 @@ new row violates row-level security policy for table "sociale_rounds"
 - [x] All phase components (Lobby, Answer, Vote, Results, Ended)
 - [x] Host interaction management
 - [x] Player view components
+- [x] **Room Components** - Complete UI component suite for /room view:
+  - [x] `SocialePanel` - Main panel (replaces SessionPanel)
+  - [x] `SocialeButton` - Join/interaction button (replaces SessionButton)
+  - [x] `SocialeAnswerModal` - Answer submission modal
+  - [x] `SocialeVoteModal` - Voting modal
+  - [x] `SocialeLeaderboardModal` - Results display modal
+  - [x] `SocialeSelfieModal` - Post-game celebration modal
+  - [x] `SocialeModals` - Modal container component
 
 #### **Business Logic**
 - [x] State machine implementation

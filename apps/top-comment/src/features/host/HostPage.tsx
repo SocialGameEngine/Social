@@ -32,7 +32,7 @@ import { BannedPlayersManager } from "./components/BannedPlayersManager";
 import { HostInteractionsPanel } from "./components/HostInteractionsPanel";
 import { SessionsPanel } from "./components/SessionsPanel";
 import { SocialesPanel } from "./components/SocialesPanel";
-import { SocialePhaseRenderer } from "./components/SocialePhaseRenderer";
+import { SocialeCreateModal } from "./components/SocialeCreateModal";
 import { handleCopyLink, handleCreateSession, handleUpdateSession, handleEndSession, handleHostVote, handlePrimaryAction } from "./Handlers";
 import { handleRoomKickPlayer, handleRoomBanPlayer } from "./Handlers/roomKickBanHandlers";
 import { setPromptLibrary, pauseSession } from "../session/sessionService";
@@ -53,6 +53,7 @@ import { useCommandPalette, CommandPalette } from "./components/shell";
 import type { PromptLibraryId } from "../../shared/promptLibraries";
 import type { Room } from "../../shared/types";
 import { useVenueAccountResolver } from './useVenueAccountResolver';
+import { useCreateSociale, useSociale, useSocialesByRoom, useUpdateSociale } from "../sociale";
 
 export function HostPage() {
   const { user, loading: authLoading, isAnonymous, signOut } = useAuth();
@@ -76,6 +77,7 @@ export function HostPage() {
   
   // Sociale state
   const [activeSocialeId, setActiveSocialeId] = useState<string | null>(null);
+  const [showSocialeModal, setShowSocialeModal] = useState(false);
   
   // Backward compatibility wrapper
   const showRoomCreateModal = roomModalMode !== null;
@@ -189,17 +191,17 @@ export function HostPage() {
 
   const canCreateSession = isBootstrapComplete && isVenueAccount;
 
-  // Use the new application hooks - this replaces 4 separate hooks and multiple useMemo calls!
-  const gameState = useGameState({ 
-    sessionId: sessionId ?? undefined, 
-    userId: user?.id 
-  });
-
   // Add session orchestrator for automatic phase advancement
   const orchestrator = useSessionOrchestrator({
     sessionId: sessionId || '',
     autoAdvance: true,
-    enablePauseResume: true
+    enablePauseResume: true,
+  });
+
+  // Use the new application hooks - this replaces 4 separate hooks and multiple useMemo calls!
+  const gameState = useGameState({
+    sessionId: sessionId ?? undefined,
+    userId: user?.id,
   });
 
   // Extract data from gameState for compatibility with existing code
@@ -222,6 +224,12 @@ export function HostPage() {
   // Extract room data from v2 hook
   const room = roomData?.room;
   const roomMemberships = roomData?.memberships || [];
+
+  const primarySocialeId = room?.currentSocialeId ?? activeSocialeId;
+  const activeSocialeQuery = useSociale(primarySocialeId ?? undefined);
+  const socialsByRoomQuery = useSocialesByRoom(storedRoomId ?? undefined);
+  const createSociale = useCreateSociale();
+  const updateSociale = useUpdateSociale();
 
   // Fetch session players from top_comment_players table
   const { players: sessionPlayers } = useSessionPlayers(sessionId);
@@ -251,6 +259,17 @@ export function HostPage() {
       setHostSession({ sessionId, code: room.code });
     }
   }, [room?.code, sessionId, storedCode, setHostSession]);
+
+  // Sync activeSocialeId from room.currentSocialeId so host UI follows the canonical pointer.
+  useEffect(() => {
+    if (room?.currentSocialeId && !activeSocialeId) {
+      setActiveSocialeId(room.currentSocialeId);
+    }
+    // When the room pointer is cleared, keep local state in sync for safety.
+    if (!room?.currentSocialeId && activeSocialeId) {
+      setActiveSocialeId(null);
+    }
+  }, [room?.currentSocialeId, activeSocialeId]);
 
   // Account button handlers
   const handlePlayerSignIn = () => {
@@ -360,6 +379,17 @@ export function HostPage() {
     }
     setRoomModalMode('settings');
   }, [requireVenueAccount]);
+
+  const handleOpenSocialeSettings = useCallback(() => {
+    if (!requireVenueAccount()) {
+      return;
+    }
+    if (!storedRoomId) {
+      setShowRoomCreateModal(true);
+      return;
+    }
+    setShowSocialeModal(true);
+  }, [requireVenueAccount, storedRoomId, setShowRoomCreateModal]);
 
   const handleCreateNewSession = useCallback(() => {
     if (!requireVenueAccount()) {
@@ -959,6 +989,37 @@ export function HostPage() {
     </div>
   ) : null;
 
+  const renderSocialesPanel = () => {
+    if (!storedRoomId) return null;
+    return (
+      <SocialesPanel
+        isDark={isDark}
+        roomId={storedRoomId}
+        userId={user?.id}
+        primarySocialeId={primarySocialeId}
+        onSocialeChange={setActiveSocialeId}
+        onOpenSocialeSettings={handleOpenSocialeSettings}
+      />
+    );
+  };
+
+  const renderHostInteractionsPanel = () => (
+    <HostInteractionsPanel
+      isDark={isDark}
+      room={room ? { id: room.id, code: room.code } : null}
+      roomMemberships={roomMemberships}
+      onOpenSettings={handleOpenSocialeSettings}
+    />
+  );
+
+  const renderHostMainStack = (sessionsPanel: JSX.Element | null) => (
+    <div className="space-y-6">
+      {renderSocialesPanel()}
+      {sessionsPanel}
+      {renderHostInteractionsPanel()}
+    </div>
+  );
+
   // Render phase-specific content
   const renderPhaseContent = () => {
     if (sessionId && !session) {
@@ -975,54 +1036,20 @@ export function HostPage() {
     if (!session) {
       if (storedRoomId) {
         // If there's an active Sociale, show the panel with the Sociale content underneath
-        if (activeSocialeId) {
-          return (
-            <div className="space-y-6">
-              <SocialesPanel
-                isDark={isDark}
-                roomId={storedRoomId || ''}
-                userId={user?.id}
-                onSocialeChange={setActiveSocialeId}
-              />
-              <SocialePhaseRenderer
-                socialeId={activeSocialeId}
-                userId={user?.id}
-                isDark={isDark}
-              />
-              <HostInteractionsPanel
-                isDark={isDark}
-                room={room ? { id: room.id, code: room.code } : null}
-                roomMemberships={roomMemberships}
-                onOpenSettings={handleOpenRoomSettings}
-              />
-            </div>
-          );
+        if (primarySocialeId) {
+          return renderHostMainStack(null);
         }
         
-        return (
-          <div className="space-y-6">
-            <SocialesPanel
-              isDark={isDark}
-              roomId={storedRoomId || ''}
-              userId={user?.id}
-              onSocialeChange={setActiveSocialeId}
-            />
-            <SessionsPanel
-              isDark={isDark}
-              session={null}
-              sessionId={null}
-              sessionControls={lobbyControls}
-              copyLinkHandler={copyLinkHandler}
-              roomJoinCode={roomJoinCode}
-              inviteLink={inviteLink}
-            />
-            <HostInteractionsPanel
-              isDark={isDark}
-              room={room ? { id: room.id, code: room.code } : null}
-              roomMemberships={roomMemberships}
-              onOpenSettings={handleOpenRoomSettings}
-            />
-          </div>
+        return renderHostMainStack(
+          <SessionsPanel
+            isDark={isDark}
+            session={null}
+            sessionId={null}
+            sessionControls={lobbyControls}
+            copyLinkHandler={copyLinkHandler}
+            roomJoinCode={roomJoinCode}
+            inviteLink={inviteLink}
+          />
         );
       }
       return (
@@ -1036,215 +1063,145 @@ export function HostPage() {
 
     switch (session.status) {
       case "lobby":
-        return (
-          <div className="space-y-6">
-            <SocialesPanel
-              isDark={isDark}
-              roomId={storedRoomId || ''}
-              userId={user?.id}
-              onSocialeChange={setActiveSocialeId}
-            />
-            <SessionsPanel
-              isDark={isDark}
-              session={session}
-              sessionId={sessionId}
-              sessionControls={sessionControlButtons}
-              promptLibraryContent={promptLibraryCard}
-              copyLinkHandler={copyLinkHandler}
-              roomJoinCode={roomJoinCode}
-              inviteLink={inviteLink}
-            />
-            <HostInteractionsPanel
-              isDark={isDark}
-              room={room ? { id: room.id, code: room.code } : null}
-              roomMemberships={roomMemberships}
-              onOpenSettings={handleOpenRoomSettings}
-            />
-          </div>
+        return renderHostMainStack(
+          <SessionsPanel
+            isDark={isDark}
+            session={session}
+            sessionId={sessionId}
+            sessionControls={sessionControlButtons}
+            promptLibraryContent={promptLibraryCard}
+            copyLinkHandler={copyLinkHandler}
+            roomJoinCode={roomJoinCode}
+            inviteLink={inviteLink}
+          />
         );
 
       case "answer":
-        return (
-          <div className="space-y-6">
-            <SocialesPanel
-              isDark={isDark}
-              roomId={storedRoomId || ''}
-              userId={user?.id}
-              onSocialeChange={setActiveSocialeId}
-            />
-            <SessionsPanel
-              isDark={isDark}
-              session={session}
-              sessionId={sessionId}
-              sessionControls={activePhaseSessionControls}
-              phaseContent={
-                <AnswerPhase
-                  sessionRoundIndex={session.roundIndex}
-                  totalGroups={totalGroups}
-                  roundGroups={roundGroups}
-                  teamLookup={playerLookup}
-                  sessionEndsAt={session.endsAt}
-                  answerSecs={session.settings.answerSecs ?? 90}
-                  sessionPaused={session.paused}
-                  promptLibraryId={session.promptLibraryId}
-                />
-              }
-              room={room}
-              roomMemberships={roomMemberships}
-              pendingSubmissions={pendingSubmissionCount > 0 ? (
-                <SubmissionReviewPanel
-                  submissions={allSubmissions}
-                  pendingCount={pendingSubmissionCount}
-                  isLoading={false}
-                  onApprove={approveSubmission}
-                  onReject={rejectSubmission}
-                />
-              ) : null}
-              copyLinkHandler={copyLinkHandler}
-              roomJoinCode={roomJoinCode}
-              inviteLink={inviteLink}
-            />
-            <HostInteractionsPanel
-              isDark={isDark}
-              room={room ? { id: room.id, code: room.code } : null}
-              roomMemberships={roomMemberships}
-              onOpenSettings={handleOpenRoomSettings}
-            />
-          </div>
+        return renderHostMainStack(
+          <SessionsPanel
+            isDark={isDark}
+            session={session}
+            sessionId={sessionId}
+            sessionControls={activePhaseSessionControls}
+            phaseContent={
+              <AnswerPhase
+                sessionRoundIndex={session.roundIndex}
+                totalGroups={totalGroups}
+                roundGroups={roundGroups}
+                teamLookup={playerLookup}
+                sessionEndsAt={session.endsAt}
+                answerSecs={session.settings.answerSecs ?? 90}
+                sessionPaused={session.paused}
+                promptLibraryId={session.promptLibraryId}
+              />
+            }
+            room={room}
+            roomMemberships={roomMemberships}
+            pendingSubmissions={pendingSubmissionCount > 0 ? (
+              <SubmissionReviewPanel
+                submissions={allSubmissions}
+                pendingCount={pendingSubmissionCount}
+                isLoading={false}
+                onApprove={approveSubmission}
+                onReject={rejectSubmission}
+              />
+            ) : null}
+            copyLinkHandler={copyLinkHandler}
+            roomJoinCode={roomJoinCode}
+            inviteLink={inviteLink}
+          />
         );
 
       case "vote":
-        return (
-          <div className="space-y-6">
-            <SocialesPanel
-              isDark={isDark}
-              roomId={storedRoomId || ''}
-              userId={user?.id}
-              onSocialeChange={setActiveSocialeId}
-            />
-            <SessionsPanel
-              isDark={isDark}
-              session={session}
-              sessionId={sessionId}
-              sessionControls={activePhaseSessionControls}
-              phaseContent={
-                <VotePhase
-                  totalGroups={totalGroups}
-                  activeGroupIndex={activeGroupIndex}
-                  activeGroup={activeGroup}
-                  roundGroups={roundGroups}
-                  activeGroupAnswers={activeGroupAnswers}
-                  voteCounts={voteCounts}
-                  activeGroupVote={activeGroupVote}
-                  handleHostVote={hostVoteHandler}
-                  isSubmittingVote={isSubmittingVote}
-                  roundSummaries={roundSummaries}
-                  sessionEndsAt={session.endsAt}
-                  voteSecs={session.settings.voteSecs ?? 90}
-                  sessionPaused={session.paused}
-                  votes={gameState.votes}
-                  teams={players}
-                  currentRoundIndex={session.roundIndex}
-                />
-              }
-              room={room}
-              roomMemberships={roomMemberships}
-              pendingSubmissions={pendingSubmissionCount > 0 ? (
-                <SubmissionReviewPanel
-                  submissions={allSubmissions}
-                  pendingCount={pendingSubmissionCount}
-                  isLoading={false}
-                  onApprove={approveSubmission}
-                  onReject={rejectSubmission}
-                />
-              ) : null}
-              copyLinkHandler={copyLinkHandler}
-              roomJoinCode={roomJoinCode}
-              inviteLink={inviteLink}
-            />
-            <HostInteractionsPanel
-              isDark={isDark}
-              room={room ? { id: room.id, code: room.code } : null}
-              roomMemberships={roomMemberships}
-              onOpenSettings={handleOpenRoomSettings}
-            />
-          </div>
+        return renderHostMainStack(
+          <SessionsPanel
+            isDark={isDark}
+            session={session}
+            sessionId={sessionId}
+            sessionControls={activePhaseSessionControls}
+            phaseContent={
+              <VotePhase
+                totalGroups={totalGroups}
+                activeGroupIndex={activeGroupIndex}
+                activeGroup={activeGroup}
+                roundGroups={roundGroups}
+                activeGroupAnswers={activeGroupAnswers}
+                voteCounts={voteCounts}
+                activeGroupVote={activeGroupVote}
+                handleHostVote={hostVoteHandler}
+                isSubmittingVote={isSubmittingVote}
+                roundSummaries={roundSummaries}
+                sessionEndsAt={session.endsAt}
+                voteSecs={session.settings.voteSecs ?? 90}
+                sessionPaused={session.paused}
+                votes={gameState.votes}
+                teams={players}
+                currentRoundIndex={session.roundIndex}
+              />
+            }
+            room={room}
+            roomMemberships={roomMemberships}
+            pendingSubmissions={pendingSubmissionCount > 0 ? (
+              <SubmissionReviewPanel
+                submissions={allSubmissions}
+                pendingCount={pendingSubmissionCount}
+                isLoading={false}
+                onApprove={approveSubmission}
+                onReject={rejectSubmission}
+              />
+            ) : null}
+            copyLinkHandler={copyLinkHandler}
+            roomJoinCode={roomJoinCode}
+            inviteLink={inviteLink}
+          />
         );
 
       case "results":
-        return (
-          <div className="space-y-6">
-            <SocialesPanel
-              isDark={isDark}
-              roomId={storedRoomId || ''}
-              userId={user?.id}
-              onSocialeChange={setActiveSocialeId}
-            />
-            <SessionsPanel
-              isDark={isDark}
-              session={session}
-              sessionId={sessionId}
-              sessionControls={activePhaseSessionControls}
-              phaseContent={
-                <ResultsPhase
-                  sessionRoundIndex={session.roundIndex}
-                  roundSummaries={roundSummaries}
-                  voteCounts={voteCounts}
-                  sessionEndsAt={session.endsAt}
-                  resultsSecs={session.settings.resultsSecs ?? 12}
-                  sessionPaused={session.paused}
-                />
-              }
-              room={room}
-              roomMemberships={roomMemberships}
-              pendingSubmissions={pendingSubmissionCount > 0 ? (
-                <SubmissionReviewPanel
-                  submissions={allSubmissions}
-                  pendingCount={pendingSubmissionCount}
-                  isLoading={false}
-                  onApprove={approveSubmission}
-                  onReject={rejectSubmission}
-                />
-              ) : null}
-              copyLinkHandler={copyLinkHandler}
-              roomJoinCode={roomJoinCode}
-              inviteLink={inviteLink}
-            />
-            <HostInteractionsPanel
-              isDark={isDark}
-              room={room ? { id: room.id, code: room.code } : null}
-              roomMemberships={roomMemberships}
-              onOpenSettings={handleOpenRoomSettings}
-            />
-          </div>
+        return renderHostMainStack(
+          <SessionsPanel
+            isDark={isDark}
+            session={session}
+            sessionId={sessionId}
+            sessionControls={activePhaseSessionControls}
+            phaseContent={
+              <ResultsPhase
+                sessionRoundIndex={session.roundIndex}
+                roundSummaries={roundSummaries}
+                voteCounts={voteCounts}
+                sessionEndsAt={session.endsAt}
+                resultsSecs={session.settings.resultsSecs ?? 12}
+                sessionPaused={session.paused}
+              />
+            }
+            room={room}
+            roomMemberships={roomMemberships}
+            pendingSubmissions={pendingSubmissionCount > 0 ? (
+              <SubmissionReviewPanel
+                submissions={allSubmissions}
+                pendingCount={pendingSubmissionCount}
+                isLoading={false}
+                onApprove={approveSubmission}
+                onReject={rejectSubmission}
+              />
+            ) : null}
+            copyLinkHandler={copyLinkHandler}
+            roomJoinCode={roomJoinCode}
+            inviteLink={inviteLink}
+          />
         );
 
       case "ended":
-        return (
-          <div className="space-y-6">
-            <SocialesPanel
-              isDark={isDark}
-              roomId={storedRoomId || ''}
-              userId={user?.id}
-              onSocialeChange={setActiveSocialeId}
-            />
-            <SessionsPanel
-              isDark={isDark}
-              session={session}
-              sessionId={sessionId}
-              sessionControls={sessionControlButtons}
-              promptLibraryContent={<EndedPhase leaderboard={leaderboard} analytics={analytics} />}
-              copyLinkHandler={copyLinkHandler}
-              roomJoinCode={roomJoinCode}
-              inviteLink={inviteLink}
-            />
-            <HostInteractionsPanel
-              isDark={isDark}
-              room={room ? { id: room.id, code: room.code } : null}
-              roomMemberships={roomMemberships}
-              onOpenSettings={handleOpenRoomSettings}
-            />
-          </div>
+        return renderHostMainStack(
+          <SessionsPanel
+            isDark={isDark}
+            session={session}
+            sessionId={sessionId}
+            sessionControls={sessionControlButtons}
+            promptLibraryContent={<EndedPhase leaderboard={leaderboard} analytics={analytics} />}
+            copyLinkHandler={copyLinkHandler}
+            roomJoinCode={roomJoinCode}
+            inviteLink={inviteLink}
+          />
         );
 
       default:
@@ -1277,6 +1234,10 @@ export function HostPage() {
 
   // Command palette for desktop shortcuts
   const commandPalette = useCommandPalette();
+  const settingsSociale =
+    activeSocialeQuery.data ??
+    socialsByRoomQuery.data?.find((s) => s.id === primarySocialeId) ??
+    null;
 
   // Compute player count (active, non-banned members who aren't moderators)
   const playerCount = useMemo(() => {
@@ -1783,6 +1744,39 @@ export function HostPage() {
         existingRoom={room}
       />
 
+      <SocialeCreateModal
+        isOpen={showSocialeModal}
+        onClose={() => setShowSocialeModal(false)}
+        roomId={storedRoomId || ''}
+        existingSociale={
+          settingsSociale
+            ? {
+                id: settingsSociale.id,
+                title: settingsSociale.title,
+                description: settingsSociale.description,
+                mode: settingsSociale.mode,
+                totalRounds: settingsSociale.totalRounds,
+              }
+            : null
+        }
+        onCreateSociale={async (request) => {
+          await createSociale.mutateAsync(request);
+        }}
+        onUpdateSociale={async (updates) => {
+          const current = settingsSociale;
+          if (!current) {
+            throw new Error('No Sociale found to update');
+          }
+          await updateSociale.mutateAsync({
+            socialeId: current.id,
+            title: updates.title,
+            description: updates.description,
+            mode: updates.mode,
+            totalRounds: updates.totalRounds,
+          });
+        }}
+      />
+
       <CreateSessionModal
         open={showCreateModal}
         onClose={handleCreateModalClose}
@@ -1962,7 +1956,7 @@ export function HostPage() {
         sessionPlayers={sessionPlayers}
         onPrimaryAction={handlePrimaryClick}
         onPauseToggle={handlePauseToggle}
-        onEndSession={showEndSessionModalHandler}
+        onOpenSettings={handleOpenSocialeSettings}
         onCreateSession={handleOpenCreateModal}
         onOpenSettings={() => setShowRoomCreateModal(true)}
         isPerformingAction={isPerformingAction}

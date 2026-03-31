@@ -111,11 +111,11 @@ serve(async (req) => {
       rank: index + 1,
     }))
 
-    // Update the Sociale to ended status
+    // Update the Sociale to completed status (DB constraint allows 'completed', not 'ended')
     const { data: updatedSociale, error: updateError } = await supabaseClient
       .from('sociales')
       .update({
-        status: 'ended',
+        status: 'completed',
         ended_at: new Date().toISOString(),
         scoreboard: finalScoreboard,
         updated_at: new Date().toISOString(),
@@ -126,16 +126,16 @@ serve(async (req) => {
 
     if (updateError) throw updateError
 
-    // End all active round states
+    // End any active round states (round_state.status only allows: pending/active/completed/skipped)
     await supabaseClient
       .from('sociale_round_state')
       .update({
-        status: 'ended',
+        status: 'completed',
         ended_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq('sociale_id', socialeId)
-      .in('status', ['active', 'paused'])
+      .eq('status', 'active')
 
     // Create analytics summary
     const { data: responses, error: responsesError } = await supabaseClient
@@ -164,12 +164,15 @@ serve(async (req) => {
         : 0,
     }
 
-    // Store analytics
+    // Store analytics (table schema: category, metric, value)
     await supabaseClient
       .from('sociale_analytics')
       .insert({
         sociale_id: socialeId,
-        analytics,
+        category: 'summary',
+        metric: 'end',
+        value: analytics,
+        metadata: null,
         created_at: new Date().toISOString(),
       })
 

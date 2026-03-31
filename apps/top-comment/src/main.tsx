@@ -9,8 +9,9 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>,
 );
 
-// Register service worker for PWA
-if ('serviceWorker' in navigator) {
+// Register service worker for PWA in production only.
+// In dev, SW caching can serve stale bundles and mask code changes.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js')

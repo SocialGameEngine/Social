@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useRoomPage } from '../hooks/useRoomPage';
 import { useAuth } from '../../../shared/providers/AuthContext';
 import { useInteractions } from '../../../hooks/useInteractions';
 import { VIBoxJukebox } from '../../../shared/components/vibox';
 import { BackgroundAnimation } from '../../../components/BackgroundAnimation';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
-import { SessionPanel } from './layout/SessionPanel';
+import { RoomMainEventPanel } from './layout/RoomMainEventPanel';
 import { RoomSidebar } from './layout/RoomSidebar';
 import { RoomHeader } from './layout/RoomHeader';
 import { InteractionsGrid } from './layout/InteractionsGrid';
@@ -30,7 +31,11 @@ import { logger } from '../../../shared/utils/logger';
 import { isCurrentUserModerator } from '../../../shared/utils/moderatorUtils';
 import { roomMembershipService } from '../../../services/roomMembershipService';
 import { interactionService } from '../../../services/interactionService';
-import { getIsMainEventMode } from './PhaseController';
+import { getIsMainEventMode, getIsMainEventModeFromSociale } from './PhaseController';
+import { useSocialesByRoom } from '../../../features/sociale';
+import { useActiveSocialeRoundState } from '../hooks/useActiveSocialeRoundState';
+import { supabase } from '../../../supabase/client';
+import type { SocialeModalContext } from './RoomModals';
 
 function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ');
@@ -53,6 +58,76 @@ export function RoomPageContentNew() {
   // Get interactions
   const { interactions } = useInteractions({ roomId: room?.id });
 
+  const { data: roomSociales = [] } = useSocialesByRoom(room?.id);
+  const isPlayableSocialeStatus = useCallback(
+    (status?: string | null) => status !== 'completed' && status !== 'cancelled',
+    []
+  );
+
+  const primaryRoomSociale = useMemo(() => {
+    if (!roomSociales.length) return undefined;
+
+    if (room?.currentSocialeId) {
+      const pointed = roomSociales.find((s) => s.id === room.currentSocialeId);
+      if (pointed && isPlayableSocialeStatus(pointed.status)) {
+        return pointed;
+      }
+      return undefined;
+    }
+
+    return roomSociales.find((s) => isPlayableSocialeStatus(s.status)) ?? undefined;
+  }, [roomSociales, room?.currentSocialeId, isPlayableSocialeStatus]);
+
+  const { data: activeSocialeRoundState } = useActiveSocialeRoundState(
+    primaryRoomSociale?.id,
+    primaryRoomSociale?.status
+  );
+  const socialeRoundIdForModals =
+    activeSocialeRoundState?.round_id ?? primaryRoomSociale?.currentRoundId ?? null;
+
+  const { data: socialeModalRoundRow } = useQuery({
+    queryKey: ['sociale-round-modal', socialeRoundIdForModals],
+    enabled: !!socialeRoundIdForModals && !!primaryRoomSociale,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sociale_rounds')
+        .select('id, content, title, order_index')
+        .eq('id', socialeRoundIdForModals as string)
+        .single();
+      if (error) throw error;
+      return data as {
+        id: string;
+        content: string | null;
+        title: string | null;
+        order_index: number;
+      };
+    },
+  });
+
+  const socialeModalContext: SocialeModalContext | null = useMemo(() => {
+    if (!primaryRoomSociale || !socialeRoundIdForModals) return null;
+    if (!isPlayableSocialeStatus(primaryRoomSociale.status)) return null;
+    const prompt =
+      (socialeModalRoundRow?.content as string) ||
+      (socialeModalRoundRow?.title as string) ||
+      '';
+    return {
+      socialeId: primaryRoomSociale.id,
+      roundId: socialeRoundIdForModals,
+      prompt,
+      roundIndex: socialeModalRoundRow?.order_index ?? primaryRoomSociale.currentRoundIndex ?? 0,
+      phaseEndsAt: primaryRoomSociale.phaseEndsAt,
+      paused: primaryRoomSociale.status === 'paused',
+    };
+  }, [
+    primaryRoomSociale,
+    socialeRoundIdForModals,
+    socialeModalRoundRow?.content,
+    socialeModalRoundRow?.title,
+    socialeModalRoundRow?.order_index,
+    isPlayableSocialeStatus,
+  ]);
+
   // Check if user has a membership in this room
   const myMembership = user ? memberships?.find(m => m.userId === user.id) : null;
   const hasMembership = !!myMembership;
@@ -60,8 +135,9 @@ export function RoomPageContentNew() {
   // Check if user is a moderator
   const isModerator = room ? isCurrentUserModerator(room, user) : false;
 
-  // Calculate main event mode for visual hierarchy
-  const isMainEventMode = getIsMainEventMode(session);
+  // Calculate main event mode for visual hierarchy (session or Sociale)
+  const isMainEventMode =
+    getIsMainEventMode(session) || getIsMainEventModeFromSociale(primaryRoomSociale);
 
   // Mock data generator for participant counts (slowed down by 90%)
   const [mockData, setMockData] = useState({
@@ -290,7 +366,48 @@ export function RoomPageContentNew() {
     closeModal,
     markSubmitted,
     handleLeaveRoom,
+    socialeModalContext,
   };
+
+  const sharedGlobalOverlays = (
+    <>
+      <ReactionOverlay reactions={reactions} bursts={bursts} />
+      <RoomModals {...modalProps} />
+      <VIBoxJukebox
+        isOpen={showVIBox}
+        onClose={() => setShowVIBox(false)}
+        toast={(options) => logger.debug('VIBox toast', options)}
+        room={room}
+        memberships={memberships || []}
+        mode="team"
+      />
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={handleAuthSuccess}
+        />
+      )}
+      {showJoinModal && (
+        <JoinRoomModal
+          isOpen={showJoinModal}
+          onClose={() => setShowJoinModal(false)}
+          roomCode={room?.code || ''}
+          onJoin={handleJoinRoom}
+        />
+      )}
+      {showCommunityModal && (
+        <CommunityModal
+          isOpen={showCommunityModal}
+          onClose={() => setShowCommunityModal(false)}
+          roomId={room?.id || ''}
+          membershipId={myMembership?.id}
+          displayName={myDisplayName}
+          isMember={hasMembership}
+          onJoinRoom={() => setShowJoinModal(true)}
+        />
+      )}
+    </>
+  );
 
   const handleToggleLeaderboard = () => {
     setShowLeaderboardDrawer(!showLeaderboardDrawer);
@@ -316,8 +433,10 @@ export function RoomPageContentNew() {
     <div className={cn("flex-1 overflow-hidden relative z-10 flex flex-col", 
       isMainEventMode && "room-main-event-mode")}>
       <div className="flex-1 overflow-y-auto pt-4">
-        {/* Section 1: Session */}
-        <SessionPanel
+        {/* Section 1: Session or Sociale (latest room Sociale replaces session panel) */}
+        <RoomMainEventPanel
+          roomId={room?.id}
+          userId={user?.id}
           session={session}
           sessionId={sessionId}
           memberships={memberships}
@@ -325,6 +444,7 @@ export function RoomPageContentNew() {
           onOpenSelfie={() => openEndedModal('selfie')}
           onOpenModal={openModal}
           isSticky={!isMobile}
+          currentSocialeId={room?.currentSocialeId}
         />
         
         {/* Section 2: Interactions Grid */}
@@ -473,41 +593,7 @@ export function RoomPageContentNew() {
           onSubmit={async (q: string, c?: string) => { await submitQuestion(q, c); }}
         />
 
-        <ReactionOverlay reactions={reactions} bursts={bursts} />
-        <RoomModals {...modalProps} />
-        <VIBoxJukebox
-          isOpen={showVIBox}
-          onClose={() => setShowVIBox(false)}
-          toast={(options) => logger.debug('VIBox toast', options)}
-          room={room}
-          memberships={memberships || []}
-          mode="team"
-        />
-        {showAuthModal && (
-          <AuthModal
-            onClose={() => setShowAuthModal(false)}
-            onSuccess={handleAuthSuccess}
-          />
-        )}
-        {showJoinModal && (
-          <JoinRoomModal
-            isOpen={showJoinModal}
-            onClose={() => setShowJoinModal(false)}
-            roomCode={room?.code || ''}
-            onJoin={handleJoinRoom}
-          />
-        )}
-        {showCommunityModal && (
-          <CommunityModal
-            isOpen={showCommunityModal}
-            onClose={() => setShowCommunityModal(false)}
-            roomId={room?.id || ''}
-            membershipId={myMembership?.id}
-            displayName={myDisplayName}
-            isMember={hasMembership}
-            onJoinRoom={() => setShowJoinModal(true)}
-          />
-        )}
+        {sharedGlobalOverlays}
       </MobileLayout>
     );
   }
@@ -640,41 +726,7 @@ export function RoomPageContentNew() {
         onSubmit={async (q: string, c?: string) => { await submitQuestion(q, c); }}
       />
 
-      <ReactionOverlay reactions={reactions} bursts={bursts} />
-      <RoomModals {...modalProps} />
-      <VIBoxJukebox
-        isOpen={showVIBox}
-        onClose={() => setShowVIBox(false)}
-        toast={(options) => logger.debug('VIBox toast', options)}
-        room={room}
-        memberships={memberships || []}
-        mode="team"
-      />
-      {showAuthModal && (
-        <AuthModal
-          onClose={() => setShowAuthModal(false)}
-          onSuccess={handleAuthSuccess}
-        />
-      )}
-      {showJoinModal && (
-        <JoinRoomModal
-          isOpen={showJoinModal}
-          onClose={() => setShowJoinModal(false)}
-          roomCode={room?.code || ''}
-          onJoin={handleJoinRoom}
-        />
-      )}
-      {showCommunityModal && (
-        <CommunityModal
-          isOpen={showCommunityModal}
-          onClose={() => setShowCommunityModal(false)}
-          roomId={room?.id || ''}
-          membershipId={myMembership?.id}
-          displayName={myDisplayName}
-          isMember={hasMembership}
-          onJoinRoom={() => setShowJoinModal(true)}
-        />
-      )}
+      {sharedGlobalOverlays}
     </div>
   );
 }

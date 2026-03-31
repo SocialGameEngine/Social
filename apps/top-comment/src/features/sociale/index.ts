@@ -12,5 +12,5 @@ export * from './hooks';
 // Presets
 export * from './presets';
 
-// Components (TODO: implement)
-// export * from './components';
+// Components
+export * from './components';

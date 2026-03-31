@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { useRoundResponses } from '../../../features/sociale/hooks/useSocialeResponses';
 import type { Session } from '../../../shared/types';
 import type { RoomMembership } from '../../../shared/types';
 
@@ -6,6 +7,17 @@ const LeaderboardModal = lazy(() => import('./LeaderboardModal.tsx'));
 const SelfieModal = lazy(() => import('./SelfieModal.tsx'));
 const AnswerModal = lazy(() => import('./AnswerModal.tsx'));
 const SessionVoteModal = lazy(() => import('./VoteModal.tsx'));
+const SocialeAnswerModal = lazy(() => import('./SocialeAnswerModal.tsx'));
+const SocialeVoteModal = lazy(() => import('./SocialeVoteModal.tsx'));
+
+export interface SocialeModalContext {
+  socialeId: string;
+  roundId: string;
+  prompt: string;
+  roundIndex: number;
+  phaseEndsAt?: string | null;
+  paused: boolean;
+}
 
 interface RoomModalsProps {
   state: {
@@ -20,6 +32,8 @@ interface RoomModalsProps {
   closeModal: () => void;
   markSubmitted: (type: 'answer' | 'vote') => void;
   handleLeaveRoom: () => void;
+  /** When set, answer/vote modals use Sociale flows instead of session modals */
+  socialeModalContext?: SocialeModalContext | null;
 }
 
 export function RoomModals({
@@ -32,7 +46,13 @@ export function RoomModals({
   closeModal,
   markSubmitted,
   handleLeaveRoom,
+  socialeModalContext = null,
 }: RoomModalsProps) {
+  const { data: socialeVoteResponses = [] } = useRoundResponses(
+    socialeModalContext?.socialeId,
+    state.activeModal === 'vote' ? socialeModalContext?.roundId : undefined
+  );
+
   return (
     <Suspense fallback={null}>
       {state.endedModals.includes('leaderboard') && (
@@ -63,7 +83,24 @@ export function RoomModals({
         />
       )}
 
-      {state.activeModal === 'answer' && session && sessionId && (
+      {state.activeModal === 'answer' && socialeModalContext && (
+        <SocialeAnswerModal
+          isOpen={true}
+          onClose={() => closeModal()}
+          socialeId={socialeModalContext.socialeId}
+          roundId={socialeModalContext.roundId}
+          roundIndex={socialeModalContext.roundIndex}
+          prompt={socialeModalContext.prompt}
+          onSubmit={() => {
+            markSubmitted('answer');
+            closeModal();
+          }}
+          endsAt={socialeModalContext.phaseEndsAt}
+          paused={socialeModalContext.paused}
+        />
+      )}
+
+      {state.activeModal === 'answer' && !socialeModalContext && session && sessionId && (
         <AnswerModal
           isOpen={true}
           onClose={() => closeModal()}
@@ -79,14 +116,31 @@ export function RoomModals({
         />
       )}
 
-      {state.activeModal === 'vote' && session && sessionId && (
+      {state.activeModal === 'vote' && socialeModalContext && (
+        <SocialeVoteModal
+          isOpen={true}
+          onClose={() => closeModal()}
+          socialeId={socialeModalContext.socialeId}
+          roundId={socialeModalContext.roundId}
+          responses={socialeVoteResponses}
+          onSubmit={() => {
+            markSubmitted('vote');
+            closeModal();
+          }}
+          prompt={socialeModalContext.prompt}
+          endsAt={socialeModalContext.phaseEndsAt}
+          paused={socialeModalContext.paused}
+        />
+      )}
+
+      {state.activeModal === 'vote' && !socialeModalContext && session && sessionId && (
         <SessionVoteModal
           isOpen={true}
           onClose={() => closeModal()}
           sessionId={sessionId}
           roundIndex={session.roundIndex || 0}
           answers={[]}
-                    onSubmit={() => {
+          onSubmit={() => {
             markSubmitted('vote');
             closeModal();
           }}

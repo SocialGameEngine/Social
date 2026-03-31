@@ -108,13 +108,23 @@ serve(async (req) => {
     }
 
     // Start the Sociale
+    const nowIso = new Date().toISOString()
+    const phaseDurationSeconds =
+      // UI treats `setup`/`question` as the "answer-like" phase for timing.
+      (firstRound.settings as any)?.answerSeconds ?? 90
+    const phaseEndsAt = new Date(Date.now() + phaseDurationSeconds * 1000).toISOString()
+
     const { data: updatedSociale, error: startError } = await supabaseClient
       .from('sociales')
       .update({
         status: 'active',
         current_round_index: 0,
+        current_round_id: firstRound.id,
+        current_phase: 'setup',
+        phase_started_at: nowIso,
+        phase_ends_at: phaseEndsAt,
         started_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        updated_at: nowIso,
       })
       .eq('id', socialeId)
       .select()
@@ -130,10 +140,11 @@ serve(async (req) => {
         round_id: firstRound.id,
         status: 'active',
         phase: 'setup',
-        started_at: new Date().toISOString(),
-        phase_started_at: new Date().toISOString(),
+        started_at: nowIso,
+        phase_started_at: nowIso,
+        phase_ends_at: phaseEndsAt,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        updated_at: nowIso,
       })
 
     if (stateError) throw stateError

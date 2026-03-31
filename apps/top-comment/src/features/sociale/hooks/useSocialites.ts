@@ -3,15 +3,38 @@
 // =============================================================================
 // Hook for fetching and managing Socialite data.
 
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../supabase/client';
 import type { Socialite, JoinSocialeRequest } from '../../domain/types/sociale.types';
-import { mapSocialite } from '../socialeService';
+import { mapSocialite, joinSociale } from '../socialeService';
 
 /**
  * Hook for fetching Socialites by Sociale
  */
 export function useSocialites(socialeId?: string) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!socialeId) return;
+
+    const channel = supabase
+      .channel(`socialites:${socialeId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'socialites', filter: `sociale_id=eq.${socialeId}` },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ['socialites', socialeId] });
+          void queryClient.invalidateQueries({ queryKey: ['socialite', socialeId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [socialeId, queryClient]);
+
   return useQuery({
     queryKey: ['socialites', socialeId],
     queryFn: async () => {
@@ -34,6 +57,32 @@ export function useSocialites(socialeId?: string) {
  * Hook for fetching current user's Socialite
  */
 export function useCurrentSocialite(socialeId?: string, userId?: string) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!socialeId || !userId) return;
+
+    const channel = supabase
+      .channel(`socialite:${socialeId}:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'socialites',
+          filter: `sociale_id=eq.${socialeId}`,
+        },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ['socialite', socialeId, userId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [socialeId, userId, queryClient]);
+
   return useQuery({
     queryKey: ['socialite', socialeId, userId],
     queryFn: async () => {
@@ -44,9 +93,11 @@ export function useCurrentSocialite(socialeId?: string, userId?: string) {
         .select('*')
         .eq('sociale_id', socialeId)
         .eq('user_id', userId)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
       return data ? mapSocialite(data) : null;
     },
     enabled: !!socialeId && !!userId,
@@ -59,28 +110,16 @@ export function useCurrentSocialite(socialeId?: string, userId?: string) {
 export function useJoinSociale() {
   return useMutation({
     mutationFn: async (request: JoinSocialeRequest) => {
-      // For now, create directly via Supabase
-      // In production, this should use an Edge Function
-      const { data, error } = await (supabase as any)
-        .from('socialites')
-        .insert({
-          sociale_id: request.socialeId,
-          room_id: request.roomId, // Add room_id
-          user_id: request.userId,
-          display_name: request.displayName,
-          mascot_id: request.mascotId,
-          is_host: request.isHost ?? false,
-          is_active: true,
-          is_banned: false,
-          score: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return mapSocialite(data);
+      const response = await joinSociale({
+        socialeId: request.socialeId,
+        roomId: request.roomId,
+        userId: request.userId,
+        displayName: request.displayName ?? 'Player',
+        mascotId: request.mascotId,
+        joinNextRound: request.joinNextRound ?? false,
+      });
+
+      return response.socialite;
     },
   });
 }

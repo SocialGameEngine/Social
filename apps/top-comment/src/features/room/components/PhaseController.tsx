@@ -24,6 +24,20 @@ export function getIsMainEventMode(session: Session | null): boolean {
   return status === 'lobby' || status === 'answer' || status === 'vote' || status === 'results';
 }
 
+/** Room main column highlight when the canonical game is a Sociale (mirrors session "live" phases). */
+export function getIsMainEventModeFromSociale(
+  sociale: { status: string } | null | undefined
+): boolean {
+  if (!sociale) return false;
+  const s = sociale.status;
+  return (
+    s === 'draft' ||
+    s === 'lobby' ||
+    s === 'active' ||
+    s === 'paused'
+  );
+}
+
 interface PhaseControllerProps {
   session: Session | null;
   sessionId: string | null;
@@ -74,7 +88,7 @@ export function PhaseController({
 
     case 'results':
       if (!session) return null;
-      return <ResultsPhase session={session} />;
+      return <ResultsPhase session={session} onOpenLeaderboard={onOpenLeaderboard} />;
 
     case 'ended':
       if (!session) return null;

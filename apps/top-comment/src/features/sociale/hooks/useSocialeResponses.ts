@@ -3,15 +3,37 @@
 // =============================================================================
 // Hook for fetching and managing Sociale response data.
 
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../supabase/client';
 import type { SocialeResponse, SubmitSocialeResponseRequest } from '../../domain/types/sociale.types';
-import { mapSocialeResponse } from '../socialeService';
+import { mapSocialeResponse, submitSocialeResponse } from '../socialeService';
 
 /**
  * Hook for fetching responses by Sociale
  */
 export function useSocialeResponses(socialeId?: string) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!socialeId) return;
+
+    const channel = supabase
+      .channel(`sociale-responses:${socialeId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sociale_responses', filter: `sociale_id=eq.${socialeId}` },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ['sociale-responses', socialeId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [socialeId, queryClient]);
+
   return useQuery({
     queryKey: ['sociale-responses', socialeId],
     queryFn: async () => {
@@ -34,6 +56,27 @@ export function useSocialeResponses(socialeId?: string) {
  * Hook for fetching responses by round
  */
 export function useRoundResponses(socialeId?: string, roundId?: string) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!socialeId || !roundId) return;
+
+    const channel = supabase
+      .channel(`sociale-responses:${socialeId}:${roundId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sociale_responses', filter: `round_id=eq.${roundId}` },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ['sociale-responses', socialeId, roundId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [socialeId, roundId, queryClient]);
+
   return useQuery({
     queryKey: ['sociale-responses', socialeId, roundId],
     queryFn: async () => {
@@ -47,7 +90,15 @@ export function useRoundResponses(socialeId?: string, roundId?: string) {
         .order('created_at', { ascending: true });
       
       if (error) throw error;
-      return data.map(mapSocialeResponse).filter(Boolean) as SocialeResponse[];
+      const mapped = data.map(mapSocialeResponse).filter(Boolean) as SocialeResponse[];
+
+      // Ensure at most one response per socialite per round by keeping the
+      // latest-created response for each socialiteId.
+      const latestBySocialiteId = new Map<string, SocialeResponse>();
+      for (const response of mapped) {
+        latestBySocialiteId.set(response.socialiteId, response);
+      }
+      return Array.from(latestBySocialiteId.values());
     },
     enabled: !!socialeId && !!roundId,
   });
@@ -57,6 +108,27 @@ export function useRoundResponses(socialeId?: string, roundId?: string) {
  * Hook for fetching current user's responses
  */
 export function useMyResponses(socialeId?: string, socialiteId?: string) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!socialeId || !socialiteId) return;
+
+    const channel = supabase
+      .channel(`sociale-responses:${socialeId}:me:${socialiteId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sociale_responses', filter: `socialite_id=eq.${socialiteId}` },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ['sociale-responses', socialeId, socialiteId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [socialeId, socialiteId, queryClient]);
+
   return useQuery({
     queryKey: ['sociale-responses', socialeId, socialiteId],
     queryFn: async () => {
@@ -70,7 +142,11 @@ export function useMyResponses(socialeId?: string, socialiteId?: string) {
         .order('created_at', { ascending: true });
       
       if (error) throw error;
-      return data.map(mapSocialeResponse).filter(Boolean) as SocialeResponse[];
+      const mapped = data.map(mapSocialeResponse).filter(Boolean) as SocialeResponse[];
+      // Keep only the latest response for this player (if they somehow have more).
+      return mapped.length <= 1
+        ? mapped
+        : [mapped[mapped.length - 1]];
     },
     enabled: !!socialeId && !!socialiteId,
   });
@@ -82,25 +158,8 @@ export function useMyResponses(socialeId?: string, socialiteId?: string) {
 export function useSubmitResponse() {
   return useMutation({
     mutationFn: async (request: SubmitSocialeResponseRequest) => {
-      // For now, create directly via Supabase
-      // In production, this should use an Edge Function
-      const { data, error } = await supabase
-        .from('sociale_responses')
-        .insert({
-          sociale_id: request.socialeId,
-          round_id: request.roundId,
-          socialite_id: request.socialiteId,
-          type: request.type,
-          value: request.value,
-          is_correct: request.isCorrect,
-          score_awarded: request.scoreAwarded,
-          created_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return mapSocialeResponse(data);
+      // Use edge function for phase validation + server-side upsert behavior.
+      return submitSocialeResponse(request);
     },
   });
 }

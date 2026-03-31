@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../../shared/providers/AuthContext';
 import { useRoom } from '../../../hooks/useRoom';
 import { roomService } from '../../../services/roomService';
@@ -178,7 +179,7 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess, existingRoom, upda
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-0 md:p-4">
       <div className="bg-slate-900 w-full h-full md:h-auto md:max-h-[90vh] md:rounded-lg md:max-w-2xl overflow-y-auto flex flex-col">
         {/* Header - sticky on mobile */}
@@ -369,4 +370,10 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess, existingRoom, upda
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') {
+    return modalContent;
+  }
+
+  return createPortal(modalContent, document.body);
 }
