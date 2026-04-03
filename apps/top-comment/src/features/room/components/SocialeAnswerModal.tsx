@@ -11,6 +11,7 @@ interface SocialeAnswerModalProps {
   socialeId: string;
   roundId: string;
   roundIndex: number;
+  roundType?: string;
   prompt: string;
   onSubmit: () => void;
   endsAt?: string | null;
@@ -47,6 +48,7 @@ export function SocialeAnswerModal({
   socialeId,
   roundId,
   roundIndex,
+  roundType,
   prompt,
   onSubmit,
   endsAt,
@@ -94,7 +96,7 @@ export function SocialeAnswerModal({
   const handleSubmit = useCallback(async () => {
     if (!user || !currentSocialite) return;
 
-    const validation = validateAnswer(answer);
+    const validation = validateAnswer(answer, roundType);
     if (!validation.valid) {
       setError(validation.error || 'Invalid answer');
       return;

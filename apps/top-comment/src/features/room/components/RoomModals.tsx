@@ -15,6 +15,7 @@ export interface SocialeModalContext {
   roundId: string;
   prompt: string;
   roundIndex: number;
+  roundType?: string;
   phaseEndsAt?: string | null;
   paused: boolean;
 }
@@ -90,6 +91,7 @@ export function RoomModals({
           socialeId={socialeModalContext.socialeId}
           roundId={socialeModalContext.roundId}
           roundIndex={socialeModalContext.roundIndex}
+          roundType={socialeModalContext.roundType}
           prompt={socialeModalContext.prompt}
           onSubmit={() => {
             markSubmitted('answer');

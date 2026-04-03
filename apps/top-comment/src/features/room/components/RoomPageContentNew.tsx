@@ -108,7 +108,7 @@ export function RoomPageContentNew() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sociale_rounds')
-        .select('id, content, title, order_index')
+        .select('id, content, title, order_index, type')
         .eq('id', socialeRoundIdForModals as string)
         .single();
       if (error) throw error;
@@ -117,6 +117,7 @@ export function RoomPageContentNew() {
         content: string | null;
         title: string | null;
         order_index: number;
+        type: string;
       };
     },
   });
@@ -133,6 +134,7 @@ export function RoomPageContentNew() {
       roundId: socialeRoundIdForModals,
       prompt,
       roundIndex: socialeModalRoundRow?.order_index ?? primaryRoomSociale.currentRoundIndex ?? 0,
+      roundType: socialeModalRoundRow?.type,
       phaseEndsAt: primaryRoomSociale.phaseEndsAt,
       paused: primaryRoomSociale.status === 'paused',
     };
@@ -142,6 +144,7 @@ export function RoomPageContentNew() {
     socialeModalRoundRow?.content,
     socialeModalRoundRow?.title,
     socialeModalRoundRow?.order_index,
+    socialeModalRoundRow?.type,
     isPlayableSocialeStatus,
   ]);
 
