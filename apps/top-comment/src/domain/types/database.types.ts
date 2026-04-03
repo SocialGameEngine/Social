@@ -17,6 +17,7 @@ export interface RoomRow {
   updated_at: string | null;
   settings: Record<string, unknown> | null;
   current_session_id: string | null;
+  current_sociale_id: string | null;
   total_sessions_played: number | null;
 }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRoomPage } from '../hooks/useRoomPage';
 import { useAuth } from '../../../shared/providers/AuthContext';
 import { useInteractions } from '../../../hooks/useInteractions';
@@ -32,7 +32,7 @@ import { isCurrentUserModerator } from '../../../shared/utils/moderatorUtils';
 import { roomMembershipService } from '../../../services/roomMembershipService';
 import { interactionService } from '../../../services/interactionService';
 import { getIsMainEventMode, getIsMainEventModeFromSociale } from './PhaseController';
-import { useSocialesByRoom } from '../../../features/sociale';
+import { useSocialesByRoom, useSociale } from '../../../features/sociale';
 import { useActiveSocialeRoundState } from '../hooks/useActiveSocialeRoundState';
 import { supabase } from '../../../supabase/client';
 import type { SocialeModalContext } from './RoomModals';
@@ -54,17 +54,34 @@ export function RoomPageContentNew() {
   const { room, memberships, session, sessionId, state, openModal, closeModal, markSubmitted, openEndedModal, closeEndedModal, handleLeaveRoom } = useRoomPage();
   const { user } = useAuth();
   const { isMobile, isRailCollapsed, setIsRailCollapsed } = useResponsiveLayout();
+  const queryClient = useQueryClient();
   
   // Get interactions
   const { interactions } = useInteractions({ roomId: room?.id });
 
   const { data: roomSociales = [] } = useSocialesByRoom(room?.id);
+  
+  // Get the active Sociale with real-time subscriptions
+  const { data: activeRoomSociale } = useSociale(room?.currentSocialeId ?? undefined);
+  
+  // Invalidate Sociale query when room's currentSocialeId changes
+  useEffect(() => {
+    if (room?.currentSocialeId) {
+      queryClient.invalidateQueries({ queryKey: ['sociale', room.currentSocialeId] });
+    }
+  }, [room?.currentSocialeId, queryClient]);
   const isPlayableSocialeStatus = useCallback(
     (status?: string | null) => status !== 'completed' && status !== 'cancelled',
     []
   );
 
   const primaryRoomSociale = useMemo(() => {
+    // First try the directly fetched active Sociale (most reliable)
+    if (activeRoomSociale && isPlayableSocialeStatus(activeRoomSociale.status)) {
+      return activeRoomSociale;
+    }
+
+    // Fallback to list-based logic
     if (!roomSociales.length) return undefined;
 
     if (room?.currentSocialeId) {
@@ -76,7 +93,7 @@ export function RoomPageContentNew() {
     }
 
     return roomSociales.find((s) => isPlayableSocialeStatus(s.status)) ?? undefined;
-  }, [roomSociales, room?.currentSocialeId, isPlayableSocialeStatus]);
+  }, [activeRoomSociale, roomSociales, room?.currentSocialeId, isPlayableSocialeStatus]);
 
   const { data: activeSocialeRoundState } = useActiveSocialeRoundState(
     primaryRoomSociale?.id,
@@ -278,10 +295,43 @@ export function RoomPageContentNew() {
         code: room.code,
         playerName: displayName,
       });
+      
+      // Invalidate queries to refresh UI state after joining room
+      queryClient.invalidateQueries({ queryKey: ['room', room.id] });
+      queryClient.invalidateQueries({ queryKey: ['memberships', room.id] });
+      queryClient.invalidateQueries({ queryKey: ['room-memberships'] });
+      
+      // Close the join modal after successful join
+      setShowJoinModal(false);
+      
     } catch (error: any) {
       throw error;
     }
-  }, [room?.code]);
+  }, [room?.code, room?.id, queryClient, setShowJoinModal]);
+
+  // Debounced version to prevent rapid calls
+  const debouncedHandleJoinRoom = useMemo(() => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    let isPending = false;
+    
+    return async (displayName: string) => {
+      if (isPending) return; // Prevent multiple simultaneous calls
+      
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      
+      timeoutId = setTimeout(async () => {
+        isPending = true;
+        try {
+          await handleJoinRoom(displayName);
+        } finally {
+          isPending = false;
+          timeoutId = null;
+        }
+      }, 100); // 100ms debounce
+    };
+  }, [handleJoinRoom]);
 
   
   // Custom hooks
@@ -323,12 +373,17 @@ export function RoomPageContentNew() {
 
   // Clear ended modals when leaving ended phase
   useEffect(() => {
-    if (session?.status !== 'ended') {
+    // Check if either session or sociale is in ended status
+    const isSessionEnded = session?.status === 'ended';
+    const isSocialeEnded = activeRoomSociale?.status === 'completed';
+    
+    // Only close modals if neither session nor sociale is in ended status
+    if (!isSessionEnded && !isSocialeEnded) {
       state.endedModals.forEach(modal => {
         closeEndedModal(modal);
       });
     }
-  }, [session?.status, state.endedModals, closeEndedModal]);
+  }, [session?.status, activeRoomSociale?.status, state.endedModals, closeEndedModal]);
 
   // Show auth modal for non-authenticated users
   if (!user) {
@@ -392,7 +447,7 @@ export function RoomPageContentNew() {
           isOpen={showJoinModal}
           onClose={() => setShowJoinModal(false)}
           roomCode={room?.code || ''}
-          onJoin={handleJoinRoom}
+          onJoin={debouncedHandleJoinRoom}
         />
       )}
       {showCommunityModal && (
@@ -443,6 +498,7 @@ export function RoomPageContentNew() {
           onOpenLeaderboard={() => openEndedModal('leaderboard')}
           onOpenSelfie={() => openEndedModal('selfie')}
           onOpenModal={openModal}
+          onJoinRoom={() => setShowJoinModal(true)}
           isSticky={!isMobile}
           currentSocialeId={room?.currentSocialeId}
         />

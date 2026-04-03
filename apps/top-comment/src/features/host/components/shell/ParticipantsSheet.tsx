@@ -21,6 +21,8 @@ interface ParticipantsSheetProps {
   room: Room | null;
   session?: any; // Session object
   sessionPlayers?: any[]; // SessionPlayer array
+  sociale?: any; // Sociale object
+  socialites?: any[]; // Socialite array
   onKick: (membershipId: string) => void;
   onBan: (membershipId: string) => void;
   onMute?: (membershipId: string) => void;
@@ -39,6 +41,8 @@ export function ParticipantsSheet({
   room,
   session,
   sessionPlayers,
+  sociale,
+  socialites,
   onKick,
   onBan,
   onMute,
@@ -52,28 +56,46 @@ export function ParticipantsSheet({
   const [searchQuery, setSearchQuery] = useState('');
   const [showActionMenu, setShowActionMenu] = useState<string | null>(null);
 
-  // Determine if session is active (session exists, regardless of players)
+  // Determine if session or sociale is active
   const isSessionActive = session && sessionPlayers;
+  const isSocialeActive = sociale && socialites;
   
-  // Always show room members
-  const activeRoomMemberships = memberships.filter(m => !m.isBanned);
-  const filteredRoomMemberships = searchQuery
-    ? activeRoomMemberships.filter(m => 
-        m.playerName.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : activeRoomMemberships;
+  // Filter socialites when Sociale is active
+  let filteredSocialites: any[] = [];
+  if (isSocialeActive) {
+    filteredSocialites = searchQuery
+      ? socialites.filter(s => 
+          s.displayName && s.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : socialites;
+  }
+  
+  // Only show room members when no Sociale is active
+  let activeRoomMemberships: RoomMembership[] = [];
+  let filteredRoomMemberships: RoomMembership[] = [];
+  let roomModerators: RoomMembership[] = [];
+  let roomPlayers: RoomMembership[] = [];
+  
+  if (!isSocialeActive) {
+    activeRoomMemberships = memberships.filter(m => !m.isBanned);
+    filteredRoomMemberships = searchQuery
+      ? activeRoomMemberships.filter(m => 
+          m.playerName.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : activeRoomMemberships;
 
-  // Separate room moderators from players
-  const roomModerators = filteredRoomMemberships.filter(m => 
-    room?.moderatorIds.includes(m.userId)
-  );
-  const roomPlayers = filteredRoomMemberships.filter(m => 
-    !room?.moderatorIds.includes(m.userId)
-  );
+    // Separate room moderators from players
+    roomModerators = filteredRoomMemberships.filter(m => 
+      room?.moderatorIds.includes(m.userId)
+    );
+    roomPlayers = filteredRoomMemberships.filter(m => 
+      !room?.moderatorIds.includes(m.userId)
+    );
+  }
 
-  // Session players (only if session is active)
+  // Session players (only if session is active and no Sociale)
   let filteredSessionPlayers: any[] = [];
-  if (isSessionActive) {
+  if (isSessionActive && !isSocialeActive) {
     filteredSessionPlayers = searchQuery
       ? sessionPlayers.filter(p => 
           p.displayName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -122,6 +144,77 @@ export function ParticipantsSheet({
       onClose();
     }
   }, [onClose]);
+
+  // Render socialite row
+  const renderSocialite = (socialite: any) => {
+    const mascot = getMascotById(socialite.mascotId);
+    const isKicking = kickingPlayerId === socialite.id;
+    const isBanning = banningPlayerId === socialite.id;
+    const isSpotlighted = spotlightedId === socialite.id;
+    const showMenu = showActionMenu === socialite.id;
+    
+    // Socialites don't have kick/ban actions since they explicitly joined
+    const canModerate = false;
+
+    return (
+      <div
+        key={socialite.id}
+        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+          isSpotlighted 
+            ? 'bg-amber-500/20 border border-amber-400/50' 
+            : 'bg-slate-700/50 hover:bg-slate-700'
+        }`}
+      >
+        {/* Avatar */}
+        <div className="relative flex-shrink-0 w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center overflow-hidden">
+          {mascot?.path ? (
+            <img src={mascot.path} alt={mascot.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-sm font-bold text-cyan-300 uppercase">
+              {socialite.displayName?.charAt(0) || 'S'}
+            </span>
+          )}
+          {socialite.isHost && (
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-cyan-400 rounded-full flex items-center justify-center">
+              <svg className="w-2.5 h-2.5 text-cyan-900" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27l8.91-1.01L12 2z" />
+              </svg>
+            </div>
+          )}
+        </div>
+
+        {/* Name and status */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-white truncate">
+              {socialite.displayName || 'Anonymous'}
+            </span>
+            {socialite.isHost && (
+              <span className="px-1.5 py-0.5 text-xs font-semibold bg-cyan-500/20 text-cyan-300 rounded">
+                Host
+              </span>
+            )}
+            {!socialite.isActive && (
+              <span className="px-1.5 py-0.5 text-xs font-semibold bg-slate-500/20 text-slate-400 rounded">
+                Inactive
+              </span>
+            )}
+          </div>
+          <div className="text-xs text-slate-400">
+            Joined {new Date(socialite.joinedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        </div>
+
+        {/* Score */}
+        <div className="text-right">
+          <div className="text-lg font-bold text-cyan-300">
+            {socialite.score}
+          </div>
+          <div className="text-xs text-slate-400">points</div>
+        </div>
+      </div>
+    );
+  };
 
   // Render participant row
   const renderParticipant = (participant: any, isModerator: boolean) => {
@@ -285,7 +378,7 @@ export function ParticipantsSheet({
         {/* Header */}
         <div className="flex items-center justify-between px-4 pb-3 border-b border-slate-700">
           <h2 id="participants-sheet-title" className="text-lg font-semibold text-white">
-            Participants ({activeRoomMemberships.length + (isSessionActive ? sessionPlayers.length : 0)})
+            Participants ({isSocialeActive ? filteredSocialites.length : activeRoomMemberships.length + (isSessionActive && !isSocialeActive ? sessionPlayers.length : 0)})
           </h2>
           <button
             onClick={onClose}
@@ -316,8 +409,27 @@ export function ParticipantsSheet({
 
         {/* Participant list */}
         <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
-          {/* Session Players section */}
-          {isSessionActive && (
+          {/* Socialites section - shows when Sociale is active */}
+          {isSocialeActive && (
+            <div className="space-y-2">
+              {filteredSocialites.length > 0 ? (
+                filteredSocialites.map(s => renderSocialite(s))
+              ) : (
+                <div className="text-center py-4 text-slate-400">
+                  <div className="flex flex-col items-center gap-2">
+                    <svg className="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10m0 10a2 2 0 002-2m-2-2V6a2 2 0 00-2-2m2 2h10m-10-4h10" />
+                    </svg>
+                    <span className="text-sm">No socialites yet</span>
+                    <span className="text-xs text-slate-500">Waiting for players to join the Sociale...</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Session Players section - only when no Sociale */}
+          {isSessionActive && !isSocialeActive && (
             <div className="space-y-2">
               {filteredSessionPlayers.length > 0 ? (
                 filteredSessionPlayers.map(p => renderParticipant(p, false))
@@ -335,8 +447,8 @@ export function ParticipantsSheet({
             </div>
           )}
 
-          {/* Room sections only show when no session */}
-          {!isSessionActive && (
+          {/* Room sections only show when no session and no Sociale */}
+          {!isSessionActive && !isSocialeActive && (
             <>
               {/* Room Moderators section */}
               {roomModerators.length > 0 && (

@@ -19,6 +19,10 @@ import type {
   RoomAnalytics
 } from "../domain/types/room.types";
 import type {
+  Sociale,
+  SocialeSettings,
+} from "../domain/types/sociale.types";
+import type {
   InteractionType,
   InteractionStatus,
   Interaction,
@@ -57,6 +61,12 @@ export type {
   Interaction,
   InteractionResponse,
   InteractionVote,
+};
+
+// Re-export Sociale domain types
+export type {
+  Sociale,
+  SocialeSettings,
 };
 
 // Session analytics type
@@ -158,6 +168,15 @@ export interface SetPromptLibraryRequest {
 }
 
 export interface SetPromptLibraryResponse {
+  session: Session;
+}
+
+export interface PauseSessionRequest {
+  sessionId: string;
+  pause: boolean;
+}
+
+export interface PauseSessionResponse {
   session: Session;
 }
 

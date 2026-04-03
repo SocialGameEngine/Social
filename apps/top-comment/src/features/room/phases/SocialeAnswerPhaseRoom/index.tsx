@@ -29,7 +29,7 @@ export function SocialeAnswerPhaseRoom({
   return (
     <div className="w-full mb-8">
       <SocialeGameButton
-        displayState={hasSubmitted ? 'joined' : 'answer'}
+        displayState={hasSubmitted ? 'answered' : 'answer'}
         participants={participants}
         isMainEventMode={isMainEventMode}
         phase="answer"

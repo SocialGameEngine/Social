@@ -18,16 +18,17 @@ import type {
 
 /**
  * Default phase sequence for topic rounds
- * Simpler than prompt - no formal voting phase
+ * Answer → Reveal → Results
  */
-const TOPIC_PHASES = ['active', 'results'];
+const TOPIC_PHASES = ['answer', 'reveal', 'results'];
 
 /**
  * Default timing for topic phases (in seconds)
  */
 const TOPIC_PHASE_TIMING: Record<string, number> = {
-  active: 300,   // 5 minutes for submissions and upvotes
-  results: 30,   // Show top responses
+  answer: 60,     // Players submit responses
+  reveal: 5,       // Show most voted response
+  results: 5,     // Show updated leaderboard
 };
 
 /**
@@ -204,6 +205,14 @@ export const topicRoundDefinition: SocialeRoundTypeDefinition = {
       label: 'Topic',
       description: 'The topic or question for discussion',
       required: false,
+    },
+    {
+      name: 'promptLibraryId',
+      type: 'select',
+      label: 'Prompt Library',
+      description: 'Select a library to pull prompts from',
+      required: false,
+      options: [], // Populated dynamically
     },
     {
       name: 'answerSeconds',

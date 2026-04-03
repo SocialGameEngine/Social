@@ -27,15 +27,18 @@ import {
 } from './shell';
 import { PHASE_STATUS_LABELS } from '../types/host-panel.types';
 import type { Session, Room, RoomMembership } from '../../../shared/types';
+import type { Sociale } from '../../../domain/types/sociale.types';
 
 interface HostPanelV2Props {
   session: Session | null;
+  sociale?: Sociale | null;
   room: Room | null;
   memberships: RoomMembership[];
   roomCode: string;
   timer?: number;
   playerCount?: number;
   sessionPlayers?: any[]; // SessionPlayer array
+  socialites?: any[]; // Socialite array
   onPrimaryAction: () => void;
   onPauseToggle: () => void;
   onEndSession: () => void;
@@ -49,12 +52,14 @@ interface HostPanelV2Props {
 
 export function HostPanelV2({
   session,
+  sociale,
   room,
   memberships,
   roomCode,
   timer,
   playerCount: propPlayerCount,
   sessionPlayers,
+  socialites,
   onPrimaryAction,
   onPauseToggle,
   onEndSession,
@@ -114,10 +119,25 @@ export function HostPanelV2({
   // Use passed playerCount for display, computed for internal logic
   const displayPlayerCount = propPlayerCount ?? computedPlayerCount;
 
-  // Phase name for display
-  const phaseName = session 
-    ? PHASE_STATUS_LABELS[session.status] 
-    : 'No Session';
+  // Phase name for display - check Sociale first, then Session
+  const phaseName = useMemo(() => {
+    if (sociale) {
+      // Sociale status mapping
+      switch (sociale.status) {
+        case 'draft': return 'Draft';
+        case 'lobby': return 'Lobby';
+        case 'active': return sociale.currentPhase ? `${sociale.currentPhase.charAt(0).toUpperCase()}${sociale.currentPhase.slice(1)}` : 'Active';
+        case 'paused': return 'Paused';
+        case 'completed': return 'Completed';
+        case 'cancelled': return 'Cancelled';
+        default: return sociale.status;
+      }
+    }
+    if (session) {
+      return PHASE_STATUS_LABELS[session.status] || session.status;
+    }
+    return 'No Game';
+  }, [session, sociale]);
 
   // Handle end session with confirmation
   const handleEndSessionClick = useCallback(() => {
@@ -146,25 +166,26 @@ export function HostPanelV2({
               roomCode={roomCode}
               phaseName={phaseName}
                             connectionStatus={connectionStatus.status}
-              isPaused={session?.paused ?? false}
-              roundIndex={session?.roundIndex}
-              totalRounds={session?.settings?.totalRounds}
+              isPaused={session?.paused ?? sociale?.status === 'paused'}
+              roundIndex={sociale?.currentRoundIndex ?? session?.roundIndex}
+              totalRounds={sociale?.totalRounds ?? session?.settings?.totalRounds}
               onSettingsOpen={onOpenSettings}
             />
           }
           actionBar={
             <HostActionBar
               session={session}
-              playerCount={session ? (sessionPlayers?.length || 0) : displayPlayerCount}
+              sociale={sociale}
+              playerCount={session ? (sessionPlayers?.length || 0) : (sociale ? (socialites?.filter(s => s.isActive && !s.isBanned).length || 0) : displayPlayerCount)}
               isPerformingAction={isPerformingAction || sessionMachine.isPerformingAction}
-              isPausingSession={isPausingSession}
-              isEndingSession={isEndingSession}
+              isPausingSociale={isPausingSession}
+              isEndingSociale={isEndingSession}
               hasRoom={!!room}
               timer={timer}
               onPrimaryAction={onPrimaryAction}
               onPauseToggle={onPauseToggle}
-              onEndSession={handleEndSessionClick}
-              onCreateSession={onCreateSession}
+              onEndSociale={handleEndSessionClick}
+              onCreateSociale={onCreateSession}
               onParticipantsOpen={() => setShowParticipantsSheet(true)}
             />
           }
@@ -184,20 +205,22 @@ export function HostPanelV2({
           room={room}
           session={session}
           sessionPlayers={sessionPlayers}
+          sociale={sociale}
+          socialites={socialites}
           onKick={handleKick}
           onBan={handleBan}
           onMute={handleMute}
           onSpotlight={handleSpotlight}
         />
 
-        {/* End Session Confirmation */}
+        {/* End Game Confirmation */}
         <ConfirmDialog
           isOpen={showEndSessionConfirm}
           onClose={() => setShowEndSessionConfirm(false)}
           onConfirm={handleConfirmEndSession}
-          title="End Session?"
-          description="This will end the current session for all players. This action cannot be undone."
-          confirmLabel="End Session"
+          title={sociale ? "End Sociale?" : "End Session?"}
+          description={sociale ? "This will end the current Sociale for all players. This action cannot be undone." : "This will end the current session for all players. This action cannot be undone."}
+          confirmLabel={sociale ? "End Sociale" : "End Session"}
           cancelLabel="Keep Playing"
           variant="danger"
           isLoading={isEndingSession}
@@ -224,9 +247,9 @@ export function HostPanelV2({
               roomCode={roomCode}
               phaseName={phaseName}
                             connectionStatus={connectionStatus.status}
-              isPaused={session?.paused ?? false}
-              roundIndex={session?.roundIndex}
-              totalRounds={session?.settings?.totalRounds}
+              isPaused={session?.paused ?? (sociale?.status === 'paused')}
+              roundIndex={sociale?.currentRoundIndex ?? session?.roundIndex}
+              totalRounds={sociale?.totalRounds ?? session?.settings?.totalRounds}
               onSettingsOpen={onOpenSettings}
             />
           </div>
@@ -241,16 +264,17 @@ export function HostPanelV2({
                 <h2 className="text-lg font-semibold text-white mb-4">Session Controls</h2>
                 <HostActionBar
                   session={session}
-                  playerCount={session ? (sessionPlayers?.length || 0) : displayPlayerCount}
+                  sociale={sociale}
+                  playerCount={session ? (sessionPlayers?.length || 0) : (sociale ? (socialites?.filter(s => s.isActive && !s.isBanned).length || 0) : displayPlayerCount)}
                   isPerformingAction={isPerformingAction || sessionMachine.isPerformingAction}
-                  isPausingSession={isPausingSession}
-                  isEndingSession={isEndingSession}
+                  isPausingSociale={isPausingSession}
+                  isEndingSociale={isEndingSession}
                   hasRoom={!!room}
                   timer={timer}
                   onPrimaryAction={onPrimaryAction}
                   onPauseToggle={onPauseToggle}
-                  onEndSession={handleEndSessionClick}
-                  onCreateSession={onCreateSession}
+                  onEndSociale={handleEndSessionClick}
+                  onCreateSociale={onCreateSession}
                   onParticipantsOpen={() => setShowParticipantsSheet(true)}
                 />
               </div>
@@ -274,20 +298,22 @@ export function HostPanelV2({
         room={room}
         session={session}
         sessionPlayers={sessionPlayers}
+        sociale={sociale}
+        socialites={socialites}
         onKick={handleKick}
         onBan={handleBan}
         onMute={handleMute}
         onSpotlight={handleSpotlight}
       />
 
-      {/* End Session Confirmation */}
+      {/* End Game Confirmation */}
       <ConfirmDialog
         isOpen={showEndSessionConfirm}
         onClose={() => setShowEndSessionConfirm(false)}
         onConfirm={handleConfirmEndSession}
-        title="End Session?"
-        description="This will end the current session for all players. This action cannot be undone."
-        confirmLabel="End Session"
+        title={sociale ? "End Sociale?" : "End Session?"}
+        description={sociale ? "This will end the current Sociale for all players. This action cannot be undone." : "This will end the current session for all players. This action cannot be undone."}
+        confirmLabel={sociale ? "End Sociale" : "End Session"}
         cancelLabel="Keep Playing"
         variant="danger"
         isLoading={isEndingSession}

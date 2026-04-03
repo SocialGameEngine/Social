@@ -29,7 +29,7 @@ export function VotePhase({ session, hasSubmitted, onOpenModal }: VotePhaseProps
   return (
     <div className="w-full mb-8">
       <SessionButton
-        displayState={hasSubmitted ? "joined" : "vote"}
+        displayState={hasSubmitted ? "voted" : "vote"}
         session={session}
         isMainEventMode={isMainEventMode}
         phase="vote"

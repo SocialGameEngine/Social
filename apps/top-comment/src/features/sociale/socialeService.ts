@@ -19,6 +19,7 @@ import type {
   UpdateSocialeRequest,
   StartSocialeRequest,
   AdvanceSocialePhaseRequest,
+  AdvanceSocialeResponse,
   SubmitSocialeResponseRequest,
   SubmitSocialeVoteRequest,
   JoinSocialeRequest,
@@ -57,6 +58,11 @@ export function mapSociale(data: any): Sociale | null {
     startedAt: data.started_at,
     endedAt: data.ended_at,
     legacySessionId: data.legacy_session_id,
+    
+    // Prompt library fields (from Sessions)
+    promptLibraryId: data.prompt_library_id,
+    selectedLibraries: data.selected_libraries,
+    currentLibraryIndex: data.current_library_index,
   };
 }
 
@@ -493,15 +499,15 @@ export async function startSociale(payload: StartSocialeRequest): Promise<Social
  * Advance Sociale phase
  * Uses Edge Function: sociales-advance ✅ IMPLEMENTED
  */
-export async function advanceSocialePhase(payload: AdvanceSocialePhaseRequest): Promise<Sociale> {
-  const { data, error } = await supabase.functions.invoke<{ sociale: Sociale }>(
+export async function advanceSocialePhase(payload: AdvanceSocialePhaseRequest): Promise<AdvanceSocialeResponse> {
+  const { data, error } = await supabase.functions.invoke<AdvanceSocialeResponse>(
     'sociales-advance',
     { body: payload }
   );
   
   if (error) throw error;
   if (!data) throw new Error('No data returned from advanceSocialePhase');
-  return data.sociale;
+  return data;
 }
 
 /**
@@ -517,6 +523,42 @@ export async function pauseSociale(socialeId: string, pause: boolean): Promise<S
   if (error) throw error;
   if (!data) throw new Error('No data returned from pauseSociale');
   return data.sociale;
+}
+
+/**
+ * Cancel a draft Sociale
+ * Uses direct Supabase call for draft Sociales only
+ */
+export async function cancelSociale(socialeId: string): Promise<Sociale> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) {
+    throw new Error("User not authenticated");
+  }
+
+  const { data, error } = await supabase
+    .from('sociales')
+    .update({
+      status: 'cancelled',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', socialeId)
+    .eq('created_by', userData.user.id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to cancel Sociale: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error('Failed to cancel Sociale: No data returned');
+  }
+
+  const mappedSociale = mapSociale(data);
+  if (!mappedSociale) {
+    throw new Error('Failed to cancel Sociale: Invalid mapping result');
+  }
+  return mappedSociale;
 }
 
 /**
@@ -677,6 +719,91 @@ export async function returnSocialeToLobby(socialeId: string): Promise<Sociale> 
 }
 
 // =============================================================================
+// ROUND CONTENT POPULATION
+// =============================================================================
+
+/**
+ * Populate a round's title and content from its library settings
+ */
+export async function populateRoundContent(roundId: string): Promise<void> {
+  // First, get the round with its settings
+  const { data: round, error: roundError } = await supabase
+    .from('sociale_rounds')
+    .select('*')
+    .eq('id', roundId)
+    .single();
+
+  if (roundError || !round) {
+    throw new Error(`Failed to fetch round: ${roundError?.message}`);
+  }
+
+  let title: string | null = null;
+  let content: string | null = null;
+
+  try {
+    if (round.type === 'topic' && round.settings && typeof round.settings === 'object' && 'promptLibraryId' in round.settings) {
+      // Fetch a prompt from the prompt library
+      const { data: prompts } = await supabase
+        .from('prompts')
+        .select('text')
+        .eq('library_id', (round.settings as any).promptLibraryId)
+        .eq('is_active', true)
+        .limit(1);
+
+      if (prompts && prompts.length > 0) {
+        title = 'Hot Topic';
+        content = prompts[0].text;
+      }
+    } else if (round.type === 'trivia' && round.settings && typeof round.settings === 'object' && 'questionPackId' in round.settings) {
+      // Fetch a question from the trivia pack
+      const { data: questions } = await supabase
+        .from('trivia_questions')
+        .select('prompt')
+        .eq('pack_id', (round.settings as any).questionPackId)
+        .eq('status', 'published')
+        .limit(1);
+
+      if (questions && questions.length > 0) {
+        title = 'Trivia Question';
+        content = questions[0].prompt;
+      }
+    }
+
+    // Update the round with the fetched content
+    if (title || content) {
+      const { error: updateError } = await supabase
+        .from('sociale_rounds')
+        .update({
+          title,
+          content,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', roundId);
+
+      if (updateError) {
+        throw new Error(`Failed to update round content: ${updateError.message}`);
+      }
+    }
+  } catch (error) {
+    console.error(`Failed to populate content for round ${roundId}:`, error);
+    // Set fallback content
+    const fallbackTitle = round.type === 'topic' ? 'Hot Topic' : 'Trivia Question';
+    const fallbackContent = round.type === 'topic' 
+      ? 'No prompt available' 
+      : 'No trivia question available';
+
+    await supabase
+      .from('sociale_rounds')
+      .update({
+        title: fallbackTitle,
+        content: fallbackContent,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', roundId);
+  }
+}
+
+// =============================================================================
 // EXPORT SERVICE OBJECT
 // =============================================================================
 
@@ -702,6 +829,7 @@ export const socialeService = {
   startSociale,
   advanceSocialePhase,
   pauseSociale,
+  cancelSociale,
   endSociale,
   joinSociale,
   submitSocialeResponse,
@@ -709,4 +837,7 @@ export const socialeService = {
   skipSocialeRound,
   skipSocialePhase,
   returnSocialeToLobby,
+  
+  // Round content
+  populateRoundContent,
 };

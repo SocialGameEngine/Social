@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Button } from '../../../components/Button';
 import { Timer } from '../../../components/Timer';
 import { useAuth } from '../../../shared/providers/AuthContext';
-import { useSubmitVote, useCurrentSocialite } from '../../../features/sociale/hooks';
+import { useSubmitVote, useCurrentSocialite, useMyVotes } from '../../../features/sociale/hooks';
 import type { SocialeResponse } from '../../../domain/types/sociale.types';
 
 interface SocialeVoteModalProps {
@@ -16,6 +16,28 @@ interface SocialeVoteModalProps {
   endsAt?: string | null;
   paused?: boolean;
 }
+
+// Client-side storage key for submitted votes
+const getStoredVoteKey = (socialeId: string, roundId: string, socialiteId: string) => 
+  `sociale-vote-${socialeId}-${roundId}-${socialiteId}`;
+
+// Store vote client-side to avoid DB calls
+const storeVoteClientSide = (socialeId: string, roundId: string, socialiteId: string, responseId: string) => {
+  const key = getStoredVoteKey(socialeId, roundId, socialiteId);
+  localStorage.setItem(key, responseId);
+};
+
+// Get stored vote client-side
+const getStoredVoteClientSide = (socialeId: string, roundId: string, socialiteId: string): string | null => {
+  const key = getStoredVoteKey(socialeId, roundId, socialiteId);
+  return localStorage.getItem(key);
+};
+
+// Clear stored vote for a round
+const clearStoredVoteClientSide = (socialeId: string, roundId: string, socialiteId: string) => {
+  const key = getStoredVoteKey(socialeId, roundId, socialiteId);
+  localStorage.removeItem(key);
+};
 
 export function SocialeVoteModal({
   isOpen,
@@ -38,6 +60,31 @@ export function SocialeVoteModal({
   
   // Get current user's socialite
   const { data: currentSocialite } = useCurrentSocialite(socialeId, user?.id);
+  
+  // Get user's existing votes (fallback if client storage is empty)
+  const { data: myVotes = [] } = useMyVotes(socialeId, currentSocialite?.id);
+  
+  // Populate vote from client-side storage or existing vote when modal opens
+  useEffect(() => {
+    if (!isOpen || !currentSocialite) return;
+    
+    // First try client-side storage (fastest)
+    const storedVote = getStoredVoteClientSide(socialeId, roundId, currentSocialite.id);
+    if (storedVote) {
+      setSelectedResponseId(storedVote);
+      return;
+    }
+    
+    // Fallback to existing vote from database
+    const existingVote = myVotes.find(v => v.roundId === roundId);
+    if (existingVote) {
+      setSelectedResponseId(existingVote.targetResponseId);
+      // Store it client-side for future use
+      storeVoteClientSide(socialeId, roundId, currentSocialite.id, existingVote.targetResponseId);
+    } else {
+      setSelectedResponseId(null);
+    }
+  }, [isOpen, socialeId, roundId, currentSocialite, myVotes]);
 
   const handleSubmit = useCallback(async () => {
     if (!selectedResponseId || !user || !currentSocialite) return;
@@ -52,6 +99,10 @@ export function SocialeVoteModal({
         socialiteId: currentSocialite.id,
         targetResponseId: selectedResponseId,
       });
+      
+      // Store vote client-side for instant retrieval
+      storeVoteClientSide(socialeId, roundId, currentSocialite.id, selectedResponseId);
+      
       onSubmit();
       setSelectedResponseId(null);
     } catch (err) {
@@ -60,6 +111,27 @@ export function SocialeVoteModal({
       setIsSubmitting(false);
     }
   }, [selectedResponseId, user, currentSocialite, socialeId, roundId, onSubmit, submitVoteMutation]);
+
+  // Clear client-side storage when round changes (cleanup)
+  useEffect(() => {
+    if (!currentSocialite) return;
+    
+    // Clear old round votes when we detect a new round
+    const clearOldRoundVotes = () => {
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith(`sociale-vote-${socialeId}-`) && key.includes(currentSocialite.id)) {
+          const [_, ...parts] = key.split('-');
+          const storedRoundId = parts[2];
+          if (storedRoundId !== roundId) {
+            clearStoredVoteClientSide(socialeId, storedRoundId, currentSocialite.id);
+          }
+        }
+      });
+    };
+    
+    clearOldRoundVotes();
+  }, [socialeId, roundId, currentSocialite]);
 
   
   if (!isOpen) return null;
@@ -212,7 +284,7 @@ export function SocialeVoteModal({
                 Submitting...
               </span>
             ) : (
-              'Submit Vote'
+              selectedResponseId ? 'Update vote' : 'Submit vote'
             )}
           </Button>
 

@@ -103,21 +103,35 @@ export function SocialeVotePhase({
           {getRoundTypeDisplay(currentRound?.type || 'unknown')}
         </h1>
         
-        {currentRound?.title && (
+        {currentRound?.title ? (
           <p className={clsx(
             'text-xl font-medium',
             isDark ? 'text-cyan-300' : 'text-cyan-600'
           )}>
             {currentRound.title}
           </p>
+        ) : (
+          <div className={clsx(
+            'text-xl font-medium animate-pulse',
+            isDark ? 'text-cyan-300' : 'text-cyan-600'
+          )}>
+            Loading prompt...
+          </div>
         )}
 
-        {currentRound?.content && (
+        {currentRound?.content ? (
           <div className={clsx(
             'max-w-2xl mx-auto p-4 rounded-lg text-lg',
             isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-900'
           )}>
             {currentRound.content}
+          </div>
+        ) : (
+          <div className={clsx(
+            'max-w-2xl mx-auto p-8 rounded-lg text-lg text-center animate-pulse',
+            isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-900'
+          )}>
+            Loading prompt from library...
           </div>
         )}
       </div>

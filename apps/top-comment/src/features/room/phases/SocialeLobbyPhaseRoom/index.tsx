@@ -22,9 +22,10 @@ interface SocialeLobbyPhaseRoomProps {
   sociale: Sociale;
   roomId: string;
   memberships: RoomMembership[] | null;
+  onJoinRoom?: () => void;
 }
 
-export function SocialeLobbyPhaseRoom({ sociale, roomId, memberships }: SocialeLobbyPhaseRoomProps) {
+export function SocialeLobbyPhaseRoom({ sociale, roomId, memberships, onJoinRoom }: SocialeLobbyPhaseRoomProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -36,7 +37,8 @@ export function SocialeLobbyPhaseRoom({ sociale, roomId, memberships }: SocialeL
 
   const { data: socialites = [] } = useSocialites(sociale.id);
   const { data: currentSocialite } = useCurrentSocialite(sociale.id, user?.id);
-  const joinSociale = useJoinSociale();
+
+    const joinSociale = useJoinSociale();
   const leaveSociale = useLeaveSociale();
 
   const isJoining = joinState === 'joining';
@@ -44,6 +46,7 @@ export function SocialeLobbyPhaseRoom({ sociale, roomId, memberships }: SocialeL
 
   const myMembership = user ? memberships?.find((m) => m.userId === user.id) : null;
   const displayName = myMembership?.playerName || user?.user_metadata?.display_name || 'Player';
+  const isRoomMember = !!myMembership;
 
   useEffect(() => {
     if (currentSocialite && joinState !== 'joined') {
@@ -54,12 +57,26 @@ export function SocialeLobbyPhaseRoom({ sociale, roomId, memberships }: SocialeL
     }
   }, [currentSocialite, joinState]);
 
+  // Re-evaluate join state when membership status changes
+  useEffect(() => {
+    if (isRoomMember && joinState === 'idle' && !currentSocialite) {
+      // User just became a room member, reset to allow joining Sociale
+      setJoinState('idle');
+    }
+  }, [isRoomMember, joinState, currentSocialite]);
+
   const handleJoin = useCallback(async () => {
     if (!user?.id || !sociale?.id) return;
     const now = Date.now();
     if (now - lastJoinAttemptRef.current < JOIN_DEBOUNCE_MS) return;
     lastJoinAttemptRef.current = now;
     if (joinState === 'joining' || joinState === 'joined') return;
+
+    // If not a room member, prompt to join room first
+    if (!isRoomMember && onJoinRoom) {
+      onJoinRoom();
+      return;
+    }
 
     setJoinState('joining');
     triggerHaptic('medium');
@@ -71,10 +88,16 @@ export function SocialeLobbyPhaseRoom({ sociale, roomId, memberships }: SocialeL
         userId: user.id,
         displayName,
       });
+      
+      // Simple optimistic update
       setJoinState('joined');
       triggerHaptic('success');
       toast({ title: 'Joined Sociale!', variant: 'success', description: "You're ready to play" });
-      await queryClient.invalidateQueries({ queryKey: ['socialites', sociale.id] });
+      
+      // Invalidate queries to sync with server
+      queryClient.invalidateQueries({ queryKey: ['socialites', sociale.id] });
+      queryClient.invalidateQueries({ queryKey: ['socialite', sociale.id, user.id] });
+      
     } catch (error) {
       console.error('Failed to join Sociale:', error);
       setJoinState('error');
@@ -86,18 +109,30 @@ export function SocialeLobbyPhaseRoom({ sociale, roomId, memberships }: SocialeL
       });
       setTimeout(() => setJoinState('idle'), 1500);
     }
-  }, [user?.id, sociale.id, roomId, displayName, joinState, joinSociale, toast, queryClient]);
+  }, [user?.id, sociale.id, roomId, displayName, isRoomMember, onJoinRoom, joinState, joinSociale, toast, queryClient]);
 
   const handleLeave = useCallback(async () => {
     if (!currentSocialite?.id || isLeaving) return;
     setIsLeaving(true);
     try {
       await leaveSociale.mutateAsync(currentSocialite.id);
+      
+      // Simple optimistic update
       setJoinState('idle');
-      await queryClient.invalidateQueries({ queryKey: ['socialites', sociale.id] });
-      await queryClient.invalidateQueries({ queryKey: ['socialite', sociale.id, user?.id] });
+      triggerHaptic('success');
+      
+      // Invalidate queries to sync with server
+      queryClient.invalidateQueries({ queryKey: ['socialites', sociale.id] });
+      queryClient.invalidateQueries({ queryKey: ['socialite', sociale.id, user?.id] });
+      
     } catch (e) {
-      console.error(e);
+      console.error('Error leaving Sociale:', e);
+      triggerHaptic('error');
+      toast({
+        title: 'Failed to leave',
+        variant: 'error',
+        description: 'Please try again',
+      });
     } finally {
       setIsLeaving(false);
       setShowLeaveConfirm(false);
@@ -121,6 +156,10 @@ export function SocialeLobbyPhaseRoom({ sociale, roomId, memberships }: SocialeL
         joinSuccess={joinSuccess}
         phase="lobby"
         onClick={isInSociale ? () => {} : handleJoin}
+        copyOverride={!isInSociale && !isRoomMember ? {
+          headlineText: 'Join Room to Play',
+          supportText: 'Join the room first, then join the Sociale'
+        } : undefined}
       />
       {isInSociale && (
         <div className="pt-3 flex justify-center">

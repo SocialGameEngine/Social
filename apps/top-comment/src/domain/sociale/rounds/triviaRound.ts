@@ -18,17 +18,17 @@ import type {
 
 /**
  * Default phase sequence for trivia rounds
+ * Answer → Reveal → Results
  */
-const TRIVIA_PHASES = ['question', 'answer', 'reveal', 'results'];
+const TRIVIA_PHASES = ['answer', 'reveal', 'results'];
 
 /**
  * Default timing for trivia phases (in seconds)
  */
 const TRIVIA_PHASE_TIMING: Record<string, number> = {
-  question: 5,    // Show question before accepting answers
-  answer: 30,     // Time to submit answer
-  reveal: 10,     // Show correct answer
-  results: 15,    // Show leaderboard changes
+  answer: 60,    // Players submit answers
+  reveal: 5,     // Show correct answer
+  results: 5,    // Show updated leaderboard
 };
 
 /**

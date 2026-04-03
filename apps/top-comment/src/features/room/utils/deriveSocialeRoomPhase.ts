@@ -14,7 +14,6 @@ export function deriveSocialeRoomGamePhase(
   const s = sociale.status;
   if (s === 'draft' || s === 'lobby') return 'lobby';
   if (s === 'completed' || s === 'cancelled') return 'ended';
-  if (s === 'ended') return 'ended';
 
   if (s === 'active' || s === 'paused') {
     const raw =
@@ -23,6 +22,7 @@ export function deriveSocialeRoomGamePhase(
       sociale.currentPhase ??
       'answer';
     const p = String(raw).toLowerCase();
+    if (p === 'setup' || p === 'answer') return 'answer';
     if (p === 'vote') return 'vote';
     if (p === 'results' || p === 'reveal' || p === 'discussion') return 'results';
     return 'answer';

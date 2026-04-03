@@ -8,8 +8,8 @@
 -- Restore vibox_votes table (used by ViboxVotingContext)
 CREATE TABLE IF NOT EXISTS public.vibox_votes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  room_id uuid NOT NULL REFERENCES public.rooms(id) ON DELETE CASCADE,
-  membership_id uuid NOT NULL REFERENCES public.room_memberships(id) ON DELETE CASCADE,
+  room_id uuid NOT NULL,
+  membership_id uuid NOT NULL,
   track_id text NOT NULL,
   vote_type text NOT NULL DEFAULT 'up',
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -25,14 +25,14 @@ CREATE INDEX IF NOT EXISTS idx_vibox_votes_track_id ON public.vibox_votes(track_
 -- Restore vibox_queue table (used by vibox-get-queue function)
 CREATE TABLE IF NOT EXISTS public.vibox_queue (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  room_id uuid NOT NULL REFERENCES public.rooms(id) ON DELETE CASCADE,
+  room_id uuid NOT NULL,
   track_id text NOT NULL,
   track_title text NOT NULL,
   track_artist text,
   track_album text,
   track_duration_ms integer,
   track_artwork_url text,
-  added_by_membership_id uuid REFERENCES public.room_memberships(id) ON DELETE SET NULL,
+  added_by_membership_id uuid,
   position integer NOT NULL DEFAULT 0,
   is_played boolean NOT NULL DEFAULT false,
   votes integer NOT NULL DEFAULT 0,
@@ -76,12 +76,12 @@ CREATE INDEX IF NOT EXISTS idx_top_comment_votes_answer ON public.top_comment_vo
 -- Restore audience_submissions table (used by audience question submission feature)
 CREATE TABLE IF NOT EXISTS public.audience_submissions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  room_id uuid NOT NULL REFERENCES public.rooms(id) ON DELETE CASCADE,
-  membership_id uuid NOT NULL REFERENCES public.room_memberships(id) ON DELETE CASCADE,
+  room_id uuid NOT NULL,
+  membership_id uuid NOT NULL,
   question_text text NOT NULL,
   category text,
   status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'used')),
-  reviewed_by uuid REFERENCES public.room_memberships(id) ON DELETE SET NULL,
+  reviewed_by uuid,
   reviewed_at timestamptz,
   rejection_reason text,
   used_in_interaction_id uuid,

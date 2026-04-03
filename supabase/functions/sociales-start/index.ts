@@ -7,6 +7,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import type { Database } from '../../types/database.ts'
 import type { StartSocialeRequest, StartSocialeResponse } from '../../apps/top-comment/src/domain/types/sociale.types.ts'
+import { requireValidMashupLibraries } from '../_shared/mashup.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -92,6 +93,28 @@ serve(async (req) => {
       )
     }
 
+    // Validate prompt libraries are selected (from Sessions validation)
+    const isMashupMode = sociale.mode === 'alternating' || sociale.mode === 'topics_only' || sociale.mode === 'trivia_only';
+    if (isMashupMode) {
+      const selectedLibraries = sociale.selected_libraries || [];
+      if (!selectedLibraries || selectedLibraries.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'At least one prompt library is required for this game mode' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      // Validate libraries exist in database
+      try {
+        await requireValidMashupLibraries(supabaseClient, selectedLibraries);
+      } catch (libError: any) {
+        return new Response(
+          JSON.stringify({ error: libError.message }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
     // Get the first round
     const { data: firstRound, error: roundError } = await supabaseClient
       .from('sociale_rounds')
@@ -105,6 +128,59 @@ serve(async (req) => {
         JSON.stringify({ error: 'No rounds found for this Sociale' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
+    }
+
+    // Assign prompt from pre-loaded deck for topic and prompt rounds if content is empty
+    if ((firstRound.type === 'topic' || firstRound.type === 'prompt') && (!firstRound.content || !firstRound.title)) {
+      const roundSettings = firstRound.settings as any
+      const promptLibraryId = roundSettings?.promptLibraryId || sociale.selected_libraries?.[0]
+      
+      if (promptLibraryId) {
+        const runtimeState = sociale.runtime_state || {}
+        const promptDecks = runtimeState.promptDecks || {}
+        const deck = promptDecks[promptLibraryId]
+
+        if (deck && deck.prompts && deck.prompts.length > 0) {
+          // Use the first prompt from the pre-loaded deck
+          const promptText = deck.prompts[0]
+          
+          // Update the round with the prompt content
+          const { error: updateError } = await supabaseClient
+            .from('sociale_rounds')
+            .update({
+              title: promptText,
+              content: promptText,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', firstRound.id)
+
+          if (updateError) {
+            console.error('Failed to update round with prompt:', updateError)
+          } else {
+            console.log('✅ Updated first round with prompt from pre-loaded deck:', promptText.substring(0, 50) + '...')
+            // Update local firstRound object
+            firstRound.title = promptText
+            firstRound.content = promptText
+          }
+
+          // Update the deck cursor in runtime state
+          const updatedRuntimeState = {
+            ...runtimeState,
+            promptDecks: {
+              ...promptDecks,
+              [promptLibraryId]: { ...deck, cursor: 1 }
+            }
+          }
+
+          await supabaseClient
+            .from('sociales')
+            .update({ runtime_state: updatedRuntimeState })
+            .eq('id', socialeId)
+
+        } else {
+          console.error('No prompt deck available for library:', promptLibraryId)
+        }
+      }
     }
 
     // Start the Sociale

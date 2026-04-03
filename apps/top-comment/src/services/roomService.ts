@@ -366,7 +366,10 @@ export async function endSessionInRoom(request: EndSessionInRoomRequest): Promis
 }
 
 // Start a Sociale in a room (pointer-aware orchestration)
-export async function startSocialeInRoom(request: StartSocialeInRoomRequest): Promise<StartSocialeInRoomResponse> {
+export async function startSocialeInRoom(
+  request: StartSocialeInRoomRequest,
+  queryClient?: any
+): Promise<StartSocialeInRoomResponse> {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) {
     throw new Error("User not authenticated");
@@ -380,7 +383,49 @@ export async function startSocialeInRoom(request: StartSocialeInRoomRequest): Pr
   });
 
   if (error) {
-    throw new Error(`Failed to start Sociale: ${error.message}`);
+    // Try to parse the error context for more details
+    let errorMessage = `Failed to start Sociale: ${error.message}`;
+    let errorDetails = null;
+    
+    try {
+      if (error.context && typeof error.context === 'string') {
+        const parsed = JSON.parse(error.context);
+        if (parsed.error || parsed.details) {
+          errorMessage = parsed.error || errorMessage;
+          errorDetails = parsed.details;
+        }
+      }
+    } catch (e) {
+      // If parsing fails, use the original error
+    }
+    
+    const fullError = new Error(errorMessage);
+    if (errorDetails) {
+      (fullError as any).details = errorDetails;
+    }
+    throw fullError;
+  }
+
+  // OPTIMISTIC UPDATE: Immediately invalidate queries so UI updates from edge function response
+  // This eliminates dependency on real-time event timing
+  if (queryClient && data) {
+    console.log('🔥 OPTIMISTIC UPDATE: Invalidating queries for room', request.roomId);
+    
+    // Invalidate room query to pick up the new currentSocialeId
+    queryClient.invalidateQueries({ queryKey: ['room', request.roomId] });
+    queryClient.invalidateQueries({ queryKey: ['rooms'] });
+    
+    // Invalidate Sociales list to include the newly started Sociale
+    console.log('🔥 OPTIMISTIC UPDATE: Invalidating Sociales list for room', request.roomId);
+    queryClient.invalidateQueries({ queryKey: ['sociales', 'room', request.roomId] });
+    
+    // If the response includes the Sociale, we could also set it directly
+    if (data.sociale) {
+      console.log('🔥 OPTIMISTIC UPDATE: Invalidating specific Sociale', data.sociale.id);
+      queryClient.invalidateQueries({ queryKey: ['sociale', data.sociale.id] });
+    }
+    
+    console.log('🔥 OPTIMISTIC UPDATE: All queries invalidated, UI should update now');
   }
 
   return data as StartSocialeInRoomResponse;

@@ -1,6 +1,6 @@
 import { SessionPanel } from './SessionPanel';
 import { SocialePanel } from './SocialePanel';
-import { useSocialesByRoom } from '../../../../features/sociale';
+import { useSociale, useSocialesByRoom } from '../../../../features/sociale';
 import type { Session } from '../../../../shared/types';
 import type { RoomMembership } from '../../../../shared/types';
 
@@ -13,6 +13,7 @@ interface RoomMainEventPanelProps {
   onOpenLeaderboard: () => void;
   onOpenSelfie: () => void;
   onOpenModal?: (type: 'answer' | 'vote') => void;
+  onJoinRoom?: () => void;
   isSticky?: boolean;
   /**
    * Canonical pointer to the active Sociale for this room (from rooms.current_sociale_id).
@@ -34,13 +35,23 @@ export function RoomMainEventPanel({
   onOpenLeaderboard,
   onOpenSelfie,
   onOpenModal,
+  onJoinRoom,
   isSticky = false,
   currentSocialeId,
 }: RoomMainEventPanelProps) {
-  const { data: roomSociales = [], isLoading } = useSocialesByRoom(roomId);
-  const primary =
-    (currentSocialeId && roomSociales.find(s => s.id === currentSocialeId)) ||
+  const { data: roomSociales = [], isLoading: isLoadingList } = useSocialesByRoom(roomId);
+  
+  // RACE CONDITION FIX: Directly fetch the Sociale by ID when currentSocialeId is set.
+  // This eliminates dependency on the list subscription which may arrive later than
+  // the room UPDATE event that sets currentSocialeId.
+  const { data: directSociale, isLoading: isLoadingDirect } = useSociale(currentSocialeId ?? undefined);
+  
+  // Use direct fetch result first (most reliable), then fallback to list
+  const primary = directSociale ?? 
+    (currentSocialeId ? roomSociales.find(s => s.id === currentSocialeId) : null) ??
     roomSociales[0];
+  
+  const isLoading = currentSocialeId ? isLoadingDirect : isLoadingList;
 
   const showSociale =
     !!roomId &&
@@ -70,6 +81,7 @@ export function RoomMainEventPanel({
         onOpenLeaderboard={onOpenLeaderboard}
         onOpenSelfie={onOpenSelfie}
         onOpenModal={onOpenModal}
+        onJoinRoom={onJoinRoom}
         isSticky={isSticky}
       />
     );

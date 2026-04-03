@@ -8,12 +8,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
 import { Button, Card } from '@social/ui';
 import {
-  useSocialesByRoom,
+  useSociale,
   useCreateSociale,
   useSocialites,
 } from '../../../features/sociale';
 import type { Sociale, CreateSocialeRequest } from '../../../features/sociale';
-import { returnSocialeToLobby } from '../../../features/sociale/socialeService';
+import { returnSocialeToLobby, cancelSociale, endSociale } from '../../../features/sociale/socialeService';
 import { roomService } from '../../../services/roomService';
 import { SocialePhaseRenderer } from './SocialePhaseRenderer';
 import { SocialeTimer, SocialeRoundProgress, SocialiteCard } from '../SocialePhases/components';
@@ -26,6 +26,8 @@ interface SocialesPanelProps {
   onSocialeChange?: (socialeId: string | null) => void;
   /** Opens Sociale create/settings (upsert). */
   onOpenSocialeSettings?: () => void;
+  /** Opens Load Sociale modal. */
+  onOpenLoadSociale?: () => void;
 }
 
 export function SocialesPanel({
@@ -35,23 +37,16 @@ export function SocialesPanel({
   primarySocialeId,
   onSocialeChange,
   onOpenSocialeSettings,
+  onOpenLoadSociale,
 }: SocialesPanelProps) {
   const queryClient = useQueryClient();
 
-  const { data: sociales, isLoading, error } = useSocialesByRoom(roomId);
-  const sociale = useMemo(() => {
-    if (!sociales || sociales.length === 0) return null;
-    if (primarySocialeId) {
-      const pointed = sociales.find((s) => s.id === primarySocialeId);
-      if (pointed && pointed.status !== 'completed' && pointed.status !== 'cancelled') {
-        return pointed;
-      }
-      return null;
-    }
-    return sociales.find((s) => s.status !== 'completed' && s.status !== 'cancelled') ?? null;
-  }, [sociales, primarySocialeId]);
+  // Match Session behavior: only show the room's current Sociale (via primarySocialeId)
+  // Don't fetch all Sociales - that causes "whack-a-mole" behavior where closing one shows another
+  const { data: sociale, isLoading, error } = useSociale(primarySocialeId ?? undefined);
 
   const { data: socialites = [] } = useSocialites(sociale?.id);
+
   const createSociale = useCreateSociale();
   const [isCancelingSocialeId, setIsCancelingSocialeId] = useState<string | null>(null);
 
@@ -117,14 +112,6 @@ export function SocialesPanel({
     }
   };
 
-  const handleRefreshSociales = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['sociales', 'room', roomId] });
-    if (sociale?.id) {
-      await queryClient.invalidateQueries({ queryKey: ['sociale', sociale.id] });
-      await queryClient.invalidateQueries({ queryKey: ['socialites', sociale.id] });
-    }
-  };
-
   const handleCloseSociale = async (s: Sociale) => {
     if (
       !confirm(
@@ -136,11 +123,18 @@ export function SocialesPanel({
     try {
       setIsCancelingSocialeId(s.id);
 
-      await roomService.endSocialeInRoom({
-        roomId,
-        socialeId: s.id,
-        mode: 'cancel',
-      });
+      // Use different service based on whether this is the current active Sociale
+      if (primarySocialeId === s.id) {
+        // This is the current active Sociale - use room service to clear pointer
+        await roomService.endSocialeInRoom({
+          roomId,
+          socialeId: s.id,
+          mode: 'cancel',
+        });
+      } else {
+        // This is a draft/lobby Sociale - use cancel function
+        await cancelSociale(s.id);
+      }
 
       await invalidateSocialeQueries(s.id);
       onSocialeChange?.(null);
@@ -158,11 +152,19 @@ export function SocialesPanel({
     if (!confirmed) return;
 
     try {
-      await roomService.endSocialeInRoom({
-        roomId,
-        socialeId,
-        mode: 'end',
-      });
+      // Use different service based on whether this is the current active Sociale
+      if (primarySocialeId === socialeId) {
+        // This is the current active Sociale - use room service to clear pointer
+        await roomService.endSocialeInRoom({
+          roomId,
+          socialeId,
+          mode: 'end',
+        });
+      } else {
+        // This is a draft/lobby Sociale - use direct Sociale service
+        await endSociale(socialeId);
+      }
+      
       await invalidateSocialeQueries(socialeId);
       onSocialeChange?.(null);
     } catch (err) {
@@ -192,14 +194,11 @@ export function SocialesPanel({
             <Button variant="secondary" size="sm" onClick={onOpenSocialeSettings}>
               {sociale ? 'Sociale Settings' : 'Create Sociale'}
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => void handleRefreshSociales()}>
-              Load Sociale
-            </Button>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => void handleCloseSociale(s)}
-              disabled={isCancelingSocialeId === s.id}
+              onClick={() => sociale && void handleCloseSociale(sociale)}
+              disabled={!sociale || isCancelingSocialeId === sociale.id}
             >
               Close Sociale
             </Button>
@@ -331,9 +330,13 @@ export function SocialesPanel({
               Sociales
             </h4>
             <div className="flex gap-2">
-              <Button onClick={onOpenSocialeSettings} variant="primary" size="sm">
-                {sociale ? 'Sociale Settings' : 'Create Sociale'}
-              </Button>
+              <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                !isDark 
+                  ? 'bg-pink-500/20 text-pink-400 border border-pink-400/30' 
+                  : 'bg-pink-500/20 text-pink-400 border border-pink-400/30'
+              }`}>
+                {sociale ? 'Active' : 'No Sociale'}
+              </span>
             </div>
           </div>
 
@@ -355,17 +358,18 @@ export function SocialesPanel({
                     No Active Sociale
                   </div>
                   <p className={`text-sm ${!isDark ? 'text-slate-600' : 'text-cyan-300'}`}>
-                    Create a new Sociale to get started with the social gaming system
+                    Create a new Sociale or load an existing one to get started
                   </p>
                 </div>
                 <div className="space-y-3">
-                  <Button
-                    onClick={onOpenSocialeSettings}
-                    variant="primary"
-                    className="w-full"
-                  >
-                    {sociale ? 'Sociale Settings' : 'Create Sociale'}
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={onOpenSocialeSettings} variant="outline" size="sm" disabled={createSociale.isPending}>
+                      {createSociale.isPending ? 'Creating...' : 'Create Sociale'}
+                    </Button>
+                    <Button onClick={onOpenLoadSociale} variant="ghost" size="sm">
+                      Load Sociale
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (

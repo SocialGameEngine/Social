@@ -84,44 +84,77 @@ serve(async (req) => {
       )
     }
 
-    // Verify Sociale is active
-    if (sociale.status !== 'active') {
+    // Verify Sociale is active or paused (can pause from active, resume from paused)
+    if (!['active', 'paused'].includes(sociale.status)) {
       return new Response(
-        JSON.stringify({ error: 'Sociale must be active to pause/resume' }),
+        JSON.stringify({ error: 'Sociale must be active or paused to pause/resume' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Update the Sociale status
+    // Update the Sociale status and phase timing
     const newStatus = pause ? 'paused' : 'active'
+    let updateData: any = {
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+    }
+    
+    // Calculate timer duration for resume
+    let timerDuration = 90; // Default fallback duration
+    
+    // Handle phase timing
+    if (pause) {
+      // Pausing: clear phase_ends_at to stop the timer
+      updateData.phase_ends_at = null
+    } else {
+      // Resuming: set phase_ends_at to resume timer
+      // Get current round to determine timer duration
+      const { data: currentRound } = await supabaseClient
+        .from('sociale_rounds')
+        .select('settings')
+        .eq('id', sociale.current_round_id)
+        .single()
+      
+      timerDuration = (currentRound?.settings as any)?.answerSeconds ?? 90
+      
+      if (timerDuration > 0) {
+        updateData.phase_ends_at = new Date(
+          Date.now() + timerDuration * 1000
+        ).toISOString()
+      }
+    }
+    
     const { data: updatedSociale, error: updateError } = await supabaseClient
       .from('sociales')
-      .update({
-        status: newStatus,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', socialeId)
       .select()
       .single()
 
     if (updateError) throw updateError
 
-    // If pausing, also pause current round state
+    // If pausing, also pause current round state and clear timing
     if (pause) {
       await supabaseClient
         .from('sociale_round_state')
         .update({
           status: 'paused',
+          phase_ends_at: null, // Clear timing when paused
           updated_at: new Date().toISOString(),
         })
         .eq('sociale_id', socialeId)
         .eq('status', 'active')
     } else {
-      // If resuming, resume current round state
+      // If resuming, resume current round state and set timing
+      const phaseEndsAt = new Date(
+        Date.now() + timerDuration * 1000
+      ).toISOString()
+      
       await supabaseClient
         .from('sociale_round_state')
         .update({
           status: 'active',
+          phase_ends_at: phaseEndsAt,
           updated_at: new Date().toISOString(),
         })
         .eq('sociale_id', socialeId)

@@ -14,7 +14,9 @@ export type SessionDisplayState =
   | "countdown"
   | "joined"
   | "answer"
+  | "answered"
   | "vote"
+  | "voted"
   | "results"
   | "ended";
 

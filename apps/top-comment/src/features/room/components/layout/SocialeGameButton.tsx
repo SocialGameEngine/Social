@@ -96,7 +96,11 @@ export function SocialeGameButton({
           data-phase={phase}
           disabled={interactionDisabled}
           aria-disabled={interactionDisabled || undefined}
-          onClick={interactionDisabled ? () => {} : onClick}
+          onClick={(e) => {
+            if (interactionDisabled) return;
+            e.stopPropagation();
+            onClick();
+          }}
         >
           <div className="chaos-session-inner">
             <div className="chaos-session-topline">
@@ -109,7 +113,9 @@ export function SocialeGameButton({
                   displayState === 'joined' && 'chaos-session-badge--joined',
                   displayState === 'idle' && 'chaos-session-badge--quiet',
                   (displayState === 'answer' ||
+                    displayState === 'answered' ||
                     displayState === 'vote' ||
+                    displayState === 'voted' ||
                     displayState === 'results') &&
                     'chaos-session-badge--live'
                 )}

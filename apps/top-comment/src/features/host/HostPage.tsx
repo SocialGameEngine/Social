@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Button, Card, Modal, QRCodeBlock } from "@social/ui";
 import { PlayerAuthModal } from "../auth/PlayerAuthModal";
@@ -25,6 +26,7 @@ import {
   EndedPhase,
   CreateSessionModal,
   JoinSessionModal,
+  JoinSocialeModal,
 } from "./Phases";
 import { CreateRoomModal } from "./components/CreateRoomModal";
 import { PromptLibrarySelector } from "./components/PromptLibrarySelector";
@@ -33,9 +35,12 @@ import { HostInteractionsPanel } from "./components/HostInteractionsPanel";
 import { SessionsPanel } from "./components/SessionsPanel";
 import { SocialesPanel } from "./components/SocialesPanel";
 import { SocialeCreateModal } from "./components/SocialeCreateModal";
-import { handleCopyLink, handleCreateSession, handleUpdateSession, handleEndSession, handleHostVote, handlePrimaryAction } from "./Handlers";
+import { handleCopyLink, handleCreateSession, handleUpdateSession, handleEndSession, handleHostVote, handlePrimaryAction, handleSocialePrimaryAction } from "./Handlers";
 import { handleRoomKickPlayer, handleRoomBanPlayer } from "./Handlers/roomKickBanHandlers";
 import { setPromptLibrary, pauseSession } from "../session/sessionService";
+import { pauseSociale } from "../sociale/socialeService";
+import { useSocialites } from "../sociale/hooks/useSocialites";
+import { roomService } from "../../services/roomService";
 import { useHostRoomV2 } from "./useHostRoomV2";
 import { useHostSessionV2 } from "./useHostSessionV2";
 import { useHostComputations, useHostState } from "./hooks";
@@ -47,7 +52,7 @@ import { useAudienceSubmissions } from "../../hooks/useAudienceSubmissions";
 import { SubmissionReviewPanel } from "../room/components/submissions/SubmissionReviewPanel";
 // import { MobileHostControls } from "./components/MobileHostControls"; // Replaced by HostPanelV2
 import { HostPanelV2 } from "./components/HostPanelV2";
-import { useConnectionStatus, useSessionTimer } from "./hooks";
+import { useSessionTimer } from "./hooks";
 import { useSessionMachine } from "./state";
 import { useCommandPalette, CommandPalette } from "./components/shell";
 import type { PromptLibraryId } from "../../shared/promptLibraries";
@@ -63,6 +68,7 @@ export function HostPage() {
   const { isDark } = useTheme(); 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   
   // Account button state
   const [showAccountMenu, setShowAccountMenu] = useState(false);
@@ -128,6 +134,8 @@ export function HostPage() {
   const [showVenueAuthPrompt, setShowVenueAuthPrompt] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [isJoiningSession, setIsJoiningSession] = useState(false);
+  const [showJoinSocialeModal, setShowJoinSocialeModal] = useState(false);
+  const [isJoiningSociale, setIsJoiningSociale] = useState(false);
   
   const hostState = useHostState(storedSessionId);
   const {
@@ -321,8 +329,16 @@ export function HostPage() {
     );
   }, [storedRoomId, roomMemberships, room]);
 
+  // Fetch socialites for active Sociale
+  const activeSociale = activeSocialeQuery.data;
+  const { data: socialites = [] } = useSocialites(activeSociale?.id);
+
   // Session players for active session display, room members for lobby
   const lobbyTeams = useMemo(() => {
+    // When Sociale is active, show socialites (players who joined the Sociale)
+    if (activeSociale && socialites.length > 0) {
+      return socialites.filter(s => s.isActive && !s.isBanned);
+    }
     // When session is active, show session players
     if (session && sessionPlayers.length > 0) {
       return sessionPlayers;
@@ -332,7 +348,7 @@ export function HostPage() {
       return roomLobbyMembers;
     }
     return players;
-  }, [session, sessionPlayers, storedRoomId, roomLobbyMembers, players]);
+  }, [activeSociale, socialites, session, sessionPlayers, storedRoomId, roomLobbyMembers, players]);
 
   // Player count should match lobbyTeams
   const lobbyPlayerCount = lobbyTeams.length;
@@ -373,12 +389,13 @@ export function HostPage() {
     return false;
   }, [toast, authLoading, venueAccountLoading, canCreateSession]);
 
-  const handleOpenRoomSettings = useCallback(() => {
-    if (!requireVenueAccount()) {
-      return;
-    }
-    setRoomModalMode('settings');
-  }, [requireVenueAccount]);
+  // Room settings handler (session-based, kept for reference)
+  // const handleOpenRoomSettings = useCallback(() => {
+  //   if (!requireVenueAccount()) {
+  //     return;
+  //   }
+  //   setRoomModalMode('settings');
+  // }, [requireVenueAccount]);
 
   const handleOpenSocialeSettings = useCallback(() => {
     if (!requireVenueAccount()) {
@@ -414,6 +431,17 @@ export function HostPage() {
     }
     setShowCreateModal(true);
   }, [requireVenueAccount, setShowCreateModal, setShowRoomCreateModal, storedRoomId]);
+
+  const handleOpenSocialeModal = useCallback(() => {
+    if (!requireVenueAccount()) {
+      return;
+    }
+    if (!storedRoomId) {
+      setShowRoomCreateModal(true);
+      return;
+    }
+    setShowSocialeModal(true);
+  }, [requireVenueAccount, setShowSocialeModal, setShowRoomCreateModal, storedRoomId]);
 
   // Clear stored data when user signs out
   useEffect(() => {
@@ -594,6 +622,16 @@ export function HostPage() {
     setShowCreateModal,
   });
 
+  const socialePrimaryActionHandler = handleSocialePrimaryAction({
+    sociale: activeSocialeQuery.data ?? null,
+    roomId: storedRoomId ?? '',
+    isPerformingAction,
+    triggerPerformingAction,
+    toast,
+    setShowCreateModal: setShowSocialeModal,
+    queryClient,
+  });
+
   const confirmEndSessionHandler = handleEndSession({
     session,
     isEndingSession,
@@ -603,9 +641,44 @@ export function HostPage() {
     setHostGroupVotes,
   });
 
-  const showEndSessionModalHandler = () => {
+  const handleEndSocialeClick = useCallback(async () => {
+    const activeSociale = activeSocialeQuery.data;
+    if (!activeSociale || !storedRoomId) return;
+
+    setIsEndingSession(true);
+    try {
+      await roomService.endSocialeInRoom({
+        roomId: storedRoomId,
+        socialeId: activeSociale.id,
+        mode: 'end',
+      });
+      toast({
+        title: "Sociale ended",
+        variant: "success"
+      });
+      // Invalidate queries to refresh UI
+      queryClient.invalidateQueries({ queryKey: ['room', storedRoomId] });
+      queryClient.invalidateQueries({ queryKey: ['sociale', activeSociale.id] });
+    } catch (error: unknown) {
+      toast({
+        title: getErrorMessage(error, "Failed to end Sociale"),
+        variant: "error"
+      });
+    } finally {
+      setIsEndingSession(false);
+    }
+  }, [activeSocialeQuery.data, storedRoomId, toast, queryClient]);
+
+  const showEndSessionModalHandler = useCallback(() => {
+    // If Sociale is active, end it directly without modal
+    const activeSociale = activeSocialeQuery.data;
+    if (activeSociale) {
+      handleEndSocialeClick();
+      return;
+    }
+    // Otherwise show Session end modal
     setShowEndSessionModal(true);
-  };
+  }, [activeSocialeQuery.data, handleEndSocialeClick]);
 
   // Room-based kick/ban handlers for lobby phase
   const roomKickPlayerHandler = handleRoomKickPlayer({
@@ -629,6 +702,28 @@ export function HostPage() {
   const copyLinkHandler = handleCopyLink({ toast: toast });
 
   const handlePauseToggle = useCallback(async () => {
+    // Handle Sociale pause/resume
+    const activeSociale = activeSocialeQuery.data;
+    if (activeSociale && !isPausingSession) {
+      setIsPausingSession(true);
+      try {
+        const result = await pauseSociale(activeSociale.id, activeSociale.status !== 'paused');
+        toast({
+          title: result.status === 'paused' ? "Sociale paused" : "Sociale resumed",
+          variant: "success"
+        });
+      } catch (error: unknown) {
+        toast({
+          title: getErrorMessage(error, "Failed to pause/resume Sociale"),
+          variant: "error"
+        });
+      } finally {
+        setIsPausingSession(false);
+      }
+      return;
+    }
+
+    // Handle Session pause/resume (original logic)
     if (!session || isPausingSession) return;
 
     setIsPausingSession(true);
@@ -649,7 +744,7 @@ export function HostPage() {
     } finally {
       setIsPausingSession(false);
     }
-  }, [session, isPausingSession, toast]);
+  }, [session, activeSocialeQuery.data, isPausingSession, toast]);
 
   const handleLeaveSession = useCallback(() => {
     clearHostSession();
@@ -701,7 +796,11 @@ export function HostPage() {
   });
 
   const handlePrimaryClick = useCallback(() => {
-    if (!session) {
+    // Determine which game type is active
+    const activeSociale = activeSocialeQuery.data;
+    
+    // If no session and no Sociale
+    if (!session && !activeSociale) {
       if (!storedRoomId) {
         if (!requireVenueAccount()) {
           return;
@@ -709,11 +808,20 @@ export function HostPage() {
         setShowRoomCreateModal(true);
         return;
       }
-      handleOpenCreateModal();
+      // Room exists but no game - open Sociale modal (Sociales are the new default)
+      handleOpenSocialeModal();
       return;
     }
+    
+    // If Sociale is active, use Sociale handler
+    if (activeSociale) {
+      socialePrimaryActionHandler();
+      return;
+    }
+    
+    // Otherwise use Session handler
     primaryActionHandler();
-  }, [session, storedRoomId, requireVenueAccount, setShowRoomCreateModal, handleOpenCreateModal, primaryActionHandler]);
+  }, [session, activeSocialeQuery.data, storedRoomId, requireVenueAccount, setShowRoomCreateModal, handleOpenSocialeModal, primaryActionHandler, socialePrimaryActionHandler]);
 
   // Keyboard shortcuts for host
   useHostKeyboardShortcuts({
@@ -789,6 +897,34 @@ export function HostPage() {
       setIsJoiningSession(false);
     }
   }, [toast, setSessionId, setHostSession]);
+
+  const handleJoinSociale = async (socialeId: string) => {
+    setIsJoiningSociale(true);
+    try {
+      // Set the room's current_sociale_id to the selected Sociale
+      if (storedRoomId) {
+        const { error } = await supabase
+          .from('rooms')
+          .update({ current_sociale_id: socialeId } as any)
+          .eq('id', storedRoomId);
+
+        if (error) {
+          throw new Error(`Failed to set room pointer: ${error.message}`);
+        }
+
+        // Update local state
+        setActiveSocialeId(socialeId);
+        setShowJoinSocialeModal(false);
+        toast({ title: 'Sociale loaded successfully', variant: 'success' });
+      } else {
+        throw new Error('No room found');
+      }
+    } catch (error) {
+      toast({ title: getErrorMessage(error, 'Failed to load Sociale'), variant: 'error' });
+    } finally {
+      setIsJoiningSociale(false);
+    }
+  };
 
   const promptLibraryCard =
     session && session.status === "lobby" ? (
@@ -952,53 +1088,54 @@ export function HostPage() {
   ) : null;
 
   
-  // Lobby controls for when there's no active session
-  const lobbyControls = !session && storedRoomId ? (
+  // Lobby controls for when there's no active session or Sociale
+  const lobbyControls = !session && !activeSocialeQuery.data && storedRoomId ? (
     <div className="flex flex-wrap gap-2">
       <Button
         variant="secondary"
-        onClick={handleOpenCreateModal}
+        onClick={handleOpenSocialeModal}
       >
-        Create Session
+        Create Sociale
       </Button>
       <Button
         variant="ghost"
-        onClick={() => setShowJoinModal(true)}
+        onClick={() => setShowJoinSocialeModal(true)}
       >
-        Load Session
+        Load Sociale
       </Button>
     </div>
   ) : null;
 
   
   
-  // Action buttons content for lobby
-  const lobbyActionButtons = session && session.status === "lobby" ? (
-    <div className="flex flex-wrap gap-3">
-      <Button
-        onClick={handlePrimaryClick}
-        disabled={
-          isPerformingAction ||
-          isUpdatingPromptLibrary ||
-          lobbyPlayerCount === 0
-        }
-        isLoading={isPerformingAction}
-      >
-        {actionLabel[session.status]}
-      </Button>
-    </div>
-  ) : null;
+  // Action buttons content for lobby (session-based, kept for reference)
+  // const lobbyActionButtons = session && session.status === "lobby" ? (
+  //   <div className="flex flex-wrap gap-3">
+  //     <Button
+  //       onClick={handlePrimaryClick}
+  //       disabled={
+  //         isPerformingAction ||
+  //         isUpdatingPromptLibrary ||
+  //         lobbyPlayerCount === 0
+  //       }
+  //       isLoading={isPerformingAction}
+  //     >
+  //       {actionLabel[session.status]}
+  //     </Button>
+  //   </div>
+  // ) : null;
 
   const renderSocialesPanel = () => {
     if (!storedRoomId) return null;
     return (
       <SocialesPanel
         isDark={isDark}
-        roomId={storedRoomId}
+        roomId={storedRoomId ?? ''}
         userId={user?.id}
         primarySocialeId={primarySocialeId}
         onSocialeChange={setActiveSocialeId}
         onOpenSocialeSettings={handleOpenSocialeSettings}
+        onOpenLoadSociale={() => setShowJoinSocialeModal(true)}
       />
     );
   };
@@ -1222,13 +1359,6 @@ export function HostPage() {
     </Button>
   ) : null;
 
-  // Connection status monitoring for offline resilience
-  const connectionStatus = useConnectionStatus({
-    onStatusChange: (status) => {
-      console.log('Connection status changed:', status);
-    },
-  });
-
   // Session state machine integration
   const sessionMachine = useSessionMachine(session, roomMemberships.length);
 
@@ -1238,21 +1368,6 @@ export function HostPage() {
     activeSocialeQuery.data ??
     socialsByRoomQuery.data?.find((s) => s.id === primarySocialeId) ??
     null;
-
-  // Compute player count (active, non-banned members who aren't moderators)
-  const playerCount = useMemo(() => {
-    if (!room) return 0;
-    return roomMemberships.filter(
-      (m) => !m.isBanned && 
-             m.status === 'active' && 
-             !room.moderatorIds.includes(m.userId)
-    ).length;
-  }, [roomMemberships, room]);
-
-  // Phase name for display
-  const phaseName = session 
-    ? phaseCopy[session.status] 
-    : 'No Session';
 
   // Session timer - real-time countdown based on phase
   const sessionTimer = useSessionTimer({ session });
@@ -1291,12 +1406,12 @@ export function HostPage() {
       disabled: !sessionMachine.canEndSession || isEndingSession,
     },
     {
-      id: 'create-session',
-      label: 'Create Session',
-      description: 'Start a new session',
+      id: 'create-sociale',
+      label: 'Create Sociale',
+      description: 'Start a new Sociale',
       shortcut: 'N',
       category: 'session' as const,
-      action: handleOpenCreateModal,
+      action: handleOpenSocialeModal,
       disabled: !canCreateSession || isCreating,
     },
     {
@@ -1805,6 +1920,12 @@ export function HostPage() {
         onJoin={handleJoinSession}
         isJoining={isJoiningSession}
       />
+      <JoinSocialeModal
+        open={showJoinSocialeModal}
+        onClose={() => setShowJoinSocialeModal(false)}
+        onJoin={handleJoinSociale}
+        isJoining={isJoiningSociale}
+      />
 
       <Modal
         open={showPromptLibraryModal && Boolean(session)}
@@ -1948,17 +2069,19 @@ export function HostPage() {
     <>
       <HostPanelV2
         session={session}
+        sociale={activeSocialeQuery.data ?? null}
         room={room || null}
         memberships={roomMemberships}
         roomCode={roomJoinCode || (room?.code || '')}
         timer={timer}
         playerCount={lobbyPlayerCount}
         sessionPlayers={sessionPlayers}
+        socialites={socialites}
         onPrimaryAction={handlePrimaryClick}
         onPauseToggle={handlePauseToggle}
+        onEndSession={showEndSessionModalHandler}
         onOpenSettings={handleOpenSocialeSettings}
-        onCreateSession={handleOpenCreateModal}
-        onOpenSettings={() => setShowRoomCreateModal(true)}
+        onCreateSession={handleOpenSocialeModal}
         isPerformingAction={isPerformingAction}
         isPausingSession={isPausingSession}
         isEndingSession={isEndingSession}

@@ -8,12 +8,15 @@ import { createPortal } from 'react-dom';
 import { Button } from '@social/ui';
 import { FormField } from '@social/ui';
 import { useTheme } from '../../../shared/providers/ThemeProvider';
+import { supabase } from '../../../supabase/client';
+import { usePromptLibraries } from '../../../shared/hooks/usePromptLibraries';
 import type { CreateSocialeRequest, SocialeMode } from '../../../features/sociale';
 import { 
   generateTopicsOnlyRounds, 
   generateTriviaOnlyRounds, 
   generateAlternatingRounds 
 } from '../../../features/sociale/presets';
+import type { PromptLibraryId } from '../../../shared/promptLibraries';
 
 interface SocialeCreateModalProps {
   isOpen: boolean;
@@ -52,10 +55,340 @@ export function SocialeCreateModal({
   const [description, setDescription] = useState('');
   const [mode, setMode] = useState<CreateSocialeRequest['mode']>('alternating');
   const [totalRounds, setTotalRounds] = useState(5);
+  const [selectedLibraries, setSelectedLibraries] = useState<PromptLibraryId[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewData, setPreviewData] = useState<Array<{roundNumber: number, type: string, prompt: string}>>([]);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  
+  // Load available prompt libraries
+  const { data: libraries, isLoading: librariesLoading } = usePromptLibraries();
+
+  // Generate preview data for rounds (async with loading state)
+  const generatePreviewData = async () => {
+    if (selectedLibraries.length === 0) return;
+    
+    // Show loading state
+    setLoadingPreview(true);
+    setPreviewData([{ roundNumber: 1, type: 'Loading...', prompt: 'Loading questions...' }]);
+    
+    try {
+      const preview: Array<{roundNumber: number, type: string, prompt: string}> = [];
+      
+      // Get the appropriate libraries based on mode
+      let availableLibraries: typeof libraries = [];
+      if (mode === 'topics_only') {
+        availableLibraries = libraries?.filter(lib => lib.type === 'prompt') || [];
+      } else if (mode === 'trivia_only') {
+        availableLibraries = libraries?.filter(lib => lib.type === 'trivia') || [];
+      } else if (mode === 'alternating') {
+        availableLibraries = libraries || []; // All libraries for alternating
+      } else {
+        // Custom mode - don't show preview
+        setPreviewData([]);
+        setLoadingPreview(false);
+        return;
+      }
+      
+      // Filter selected libraries to only include ones that are appropriate for this mode
+      const validSelectedLibraries = selectedLibraries.filter(libId => 
+        availableLibraries.some(lib => lib.id === libId)
+      );
+      
+      if (validSelectedLibraries.length === 0) {
+        setPreviewData([]);
+        setLoadingPreview(false);
+        return;
+      }
+      
+      // For alternating mode, libraries are already filtered by the preset functions
+      
+      // Generate rounds using the exact same logic as the presets
+      let rounds: NonNullable<CreateSocialeRequest['rounds']> = [];
+      if (mode === 'topics_only') {
+        rounds = generateTopicsOnlyRounds(totalRounds, validSelectedLibraries);
+      } else if (mode === 'trivia_only') {
+        rounds = generateTriviaOnlyRounds(totalRounds, validSelectedLibraries);
+      } else if (mode === 'alternating') {
+        rounds = generateAlternatingRounds(totalRounds, validSelectedLibraries, availableLibraries);
+      }
+      
+      // For all libraries, fetch real content from database
+      const libraryContent: Record<string, string[]> = {};
+      
+      for (const libraryId of validSelectedLibraries) {
+        const library = libraries?.find(lib => lib.id === libraryId);
+        
+        if (library) {
+          try {
+            if (library.type === 'trivia') {
+              // Fetch real trivia questions for this pack
+              const { data: questions } = await supabase
+                .from('trivia_questions')
+                .select('prompt')
+                .eq('pack_id', libraryId)
+                .eq('status', 'published');
+              
+              if (questions && questions.length > 0) {
+                libraryContent[libraryId] = questions.map((q: any) => q.prompt);
+              } else {
+                libraryContent[libraryId] = [];
+              }
+            } else if (library.type === 'prompt') {
+              // Fetch real prompts for this library
+              const { data: prompts } = await supabase
+                .from('prompts')
+                .select('text')
+                .eq('library_id', libraryId)
+                .eq('is_active', true);
+              
+              if (prompts && prompts.length > 0) {
+                libraryContent[libraryId] = prompts.map((p: any) => p.text);
+              }
+            }
+          } catch (error) {
+            // Fallback to static content if available
+            if (library.prompts && library.prompts.length > 0) {
+              libraryContent[libraryId] = library.prompts;
+            } else {
+              libraryContent[libraryId] = library.type === 'trivia' 
+                ? [] // No fallback - use empty array to trigger "No trivia questions available"
+                : ['No prompts available'];
+            }
+          }
+        }
+      }
+      
+      // Generate preview using the actual round types from the presets
+      const usedContent = new Set<string>();
+      
+      rounds.forEach((round: any, index: number) => {
+        let prompt: string;
+        
+        if (round.type === 'trivia') {
+          // For trivia rounds, use real questions with duplicate prevention
+          const libraryId = round.settings.questionPackId;
+          const questions = libraryContent[libraryId];
+          
+          if (!questions || questions.length === 0) {
+            prompt = 'No trivia questions available';
+          } else {
+            let questionIndex = index % questions.length;
+            let attempts = 0;
+            
+            // Find a question that hasn't been used yet
+            while (usedContent.has(questions[questionIndex]) && attempts < questions.length) {
+              questionIndex = (questionIndex + 1) % questions.length;
+              attempts++;
+            }
+            
+            prompt = questions[questionIndex] || 'Trivia question';
+            usedContent.add(prompt);
+          }
+        } else {
+          // For topic/prompt rounds, use real prompts with duplicate prevention
+          const libraryId = round.settings.promptLibraryId;
+          const prompts = libraryContent[libraryId];
+          
+          if (!prompts || prompts.length === 0) {
+            prompt = 'No prompts available';
+          } else {
+            let promptIndex = index % prompts.length;
+            let attempts = 0;
+            
+            // Find a prompt that hasn't been used yet
+            while (usedContent.has(prompts[promptIndex]) && attempts < prompts.length) {
+              promptIndex = (promptIndex + 1) % prompts.length;
+              attempts++;
+            }
+            
+            prompt = prompts[promptIndex] || 'No prompt available';
+            usedContent.add(prompt);
+          }
+        }
+        
+        preview.push({
+          roundNumber: index + 1,
+          type: round.type,
+          prompt
+        });
+      });
+      
+      setPreviewData(preview);
+      setLoadingPreview(false);
+      
+    } catch (error) {
+      console.error('Failed to generate preview:', error);
+      setPreviewData([]);
+      setLoadingPreview(false);
+    }
+  };
+  
+  // Regenerate prompt for a specific round
+  const regenerateRoundPrompt = (roundNumber: number) => {
+    const roundIndex = roundNumber - 1;
+    const updatedPreview = [...previewData];
+    
+    // Get the round type from the preview
+    const roundType = updatedPreview[roundIndex].type;
+    
+    let newPrompt: string;
+    
+    if (roundType === 'trivia') {
+      // For trivia rounds, use different default questions
+      const triviaQuestions = [
+        "What is the capital of France?",
+        "Who painted the Mona Lisa?",
+        "What is the largest planet in our solar system?",
+        "In which year did World War II end?",
+        "What is the chemical symbol for gold?",
+        "Who wrote \"Romeo and Juliet\"?",
+        "What is the smallest country in the world?",
+        "How many continents are there on Earth?",
+        "What is the speed of light in vacuum?",
+        "Who invented the telephone?"
+      ];
+      
+      // Get a different question than the current one
+      const currentPrompt = updatedPreview[roundIndex].prompt;
+      const availableQuestions = triviaQuestions.filter(q => q !== currentPrompt);
+      
+      if (availableQuestions.length > 0) {
+        newPrompt = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
+      } else {
+        newPrompt = 'Trivia question';
+      }
+    } else {
+      // For topic/prompt rounds, use the original logic
+      const availableLibraries = libraries?.filter(lib => lib.type === 'prompt') || [];
+      const validSelectedLibraries = selectedLibraries.filter(libId => 
+        availableLibraries.some(lib => lib.id === libId)
+      );
+      
+      if (validSelectedLibraries.length === 0) return;
+      
+      const libraryId = validSelectedLibraries[roundIndex % validSelectedLibraries.length];
+      const library = libraries?.find(lib => lib.id === libraryId);
+      
+      if (library && library.prompts && library.prompts.length > 0) {
+        const currentPrompt = updatedPreview[roundIndex].prompt;
+        const availablePrompts = library.prompts.filter(p => p !== currentPrompt);
+        
+        if (availablePrompts.length > 0) {
+          newPrompt = availablePrompts[Math.floor(Math.random() * availablePrompts.length)];
+        } else {
+          newPrompt = 'No prompt available';
+        }
+      } else {
+        newPrompt = 'No prompt library selected';
+      }
+    }
+    
+    updatedPreview[roundIndex] = {
+      ...updatedPreview[roundIndex],
+      prompt: newPrompt
+    };
+    setPreviewData(updatedPreview);
+  };
+
+  // Auto-generate preview when libraries, mode, or rounds changes
+  React.useEffect(() => {
+    if (selectedLibraries.length > 0 && mode !== 'custom') {
+      generatePreviewData();
+    } else {
+      setPreviewData([]);
+    }
+  }, [selectedLibraries, mode, totalRounds]);
 
   const isEditing = Boolean(existingSociale?.id);
+
+  // Toggle library selection
+  const toggleLibrary = (libraryId: PromptLibraryId) => {
+    setSelectedLibraries(prev => {
+      const selected = prev;
+      if (selected.includes(libraryId)) {
+        return selected.filter(id => id !== libraryId);
+      } else if (selected.length < 6) {
+        return [...selected, libraryId];
+      }
+      return prev;
+    });
+  };
+
+  // Validate form can be submitted
+  // Get libraries grouped by type for the current mode
+  const getRequiredLibrarySections = () => {
+    const sections: Array<{type: 'prompt' | 'trivia', label: string, libraries: typeof libraries}> = [];
+    
+    if (mode === 'topics_only') {
+      sections.push({
+        type: 'prompt',
+        label: 'Prompt Libraries',
+        libraries: libraries?.filter(lib => lib.type === 'prompt') || []
+      });
+    } else if (mode === 'trivia_only') {
+      sections.push({
+        type: 'trivia', 
+        label: 'Trivia Libraries',
+        libraries: libraries?.filter(lib => lib.type === 'trivia') || []
+      });
+    } else if (mode === 'alternating') {
+      sections.push(
+        {
+          type: 'prompt',
+          label: 'Prompt Libraries',
+          libraries: libraries?.filter(lib => lib.type === 'prompt') || []
+        },
+        {
+          type: 'trivia',
+          label: 'Trivia Libraries', 
+          libraries: libraries?.filter(lib => lib.type === 'trivia') || []
+        }
+      );
+    }
+    
+    return sections;
+  };
+  const getLibraryValidationError = () => {
+    if (mode === 'custom') return null; // Custom mode has its own validation
+    
+    const selectedLibraryTypes = new Set(
+      selectedLibraries.map(libId => {
+        const lib = libraries?.find(l => l.id === libId);
+        return lib?.type;
+      }).filter((type): type is 'prompt' | 'trivia' => type !== undefined)
+    );
+    
+    const requiredTypes: ('prompt' | 'trivia')[] = [];
+    if (mode === 'topics_only') {
+      requiredTypes.push('prompt'); // Need prompt libraries
+    } else if (mode === 'trivia_only') {
+      requiredTypes.push('trivia'); // Need trivia libraries
+    } else if (mode === 'alternating') {
+      requiredTypes.push('prompt', 'trivia'); // Need both
+    }
+    
+    // Check if all required types are covered
+    const missingTypes = requiredTypes.filter(type => !selectedLibraryTypes.has(type));
+    
+    if (missingTypes.length > 0) {
+      const typeNames: Record<'prompt' | 'trivia', string> = {
+        'prompt': 'prompt libraries',
+        'trivia': 'trivia libraries'
+      };
+      
+      if (requiredTypes.length === 1) {
+        return `${mode === 'topics_only' ? 'Topics' : mode === 'trivia_only' ? 'Trivia' : 'This'} mode requires at least one ${typeNames[missingTypes[0]]}`;
+      } else {
+        return `Alternating mode requires both ${missingTypes.map(type => typeNames[type]).join(' and ')}`;
+      }
+    }
+    
+    return null;
+  };
+  
+  const libraryValidationError = getLibraryValidationError();
+  const canSubmit = mode === 'custom' || (selectedLibraries.length >= 1 && !libraryValidationError);
 
   // Prevent background page scroll while the full-screen modal is open.
   React.useEffect(() => {
@@ -122,12 +455,70 @@ export function SocialeCreateModal({
       // Generate rounds using preset functions
       let rounds: NonNullable<CreateSocialeRequest['rounds']> = [];
       if (mode === 'topics_only') {
-        rounds = generateTopicsOnlyRounds(totalRounds);
+        rounds = generateTopicsOnlyRounds(totalRounds, selectedLibraries);
       } else if (mode === 'trivia_only') {
-        rounds = generateTriviaOnlyRounds(totalRounds);
+        rounds = generateTriviaOnlyRounds(totalRounds, selectedLibraries);
       } else if (mode === 'alternating') {
-        rounds = generateAlternatingRounds(totalRounds);
+        rounds = generateAlternatingRounds(totalRounds, selectedLibraries, libraries);
       }
+
+      // Populate rounds with content from database
+      const populatedRounds = await Promise.all(
+        rounds.map(async (round: any) => {
+          let title: string | null = null;
+          let content: string | null = null;
+
+          try {
+            if (round.type === 'topic' && round.settings?.promptLibraryId) {
+              // Fetch a prompt from the prompt library
+              const { data: prompts } = await supabase
+                .from('prompts')
+                .select('text')
+                .eq('library_id', round.settings.promptLibraryId)
+                .eq('is_active', true)
+                .limit(1);
+
+              if (prompts && prompts.length > 0) {
+                title = 'Hot Topic';
+                content = prompts[0].text;
+              }
+            } else if (round.type === 'trivia' && round.settings?.questionPackId) {
+              // Fetch a question from the trivia pack
+              const { data: questions } = await supabase
+                .from('trivia_questions')
+                .select('prompt')
+                .eq('pack_id', round.settings.questionPackId)
+                .eq('status', 'published')
+                .limit(1);
+
+              if (questions && questions.length > 0) {
+                title = 'Trivia Question';
+                content = questions[0].prompt;
+              }
+            }
+
+            // Set fallback content if needed
+            if (!title || !content) {
+              title = round.type === 'topic' ? 'Hot Topic' : 'Trivia Question';
+              content = round.type === 'topic' 
+                ? 'No prompt available' 
+                : 'No trivia question available';
+            }
+          } catch (error) {
+            // Set fallback content on error
+            title = round.type === 'topic' ? 'Hot Topic' : 'Trivia Question';
+            content = round.type === 'topic' 
+              ? 'No prompt available' 
+              : 'No trivia question available';
+          }
+
+          return {
+            ...round,
+            title,
+            content,
+          };
+        })
+      );
 
       const request: CreateSocialeRequest = {
         roomId,
@@ -135,7 +526,8 @@ export function SocialeCreateModal({
         description: description || undefined,
         mode,
         totalRounds,
-        rounds: mode === 'custom' ? undefined : rounds,
+        selectedLibraries: mode === 'custom' ? undefined : selectedLibraries,
+        rounds: mode === 'custom' ? undefined : populatedRounds,
       };
 
       await onCreateSociale(request);
@@ -311,6 +703,97 @@ export function SocialeCreateModal({
                   </div>
                 </div>
 
+                {/* Prompt Library Selection */}
+                {mode !== 'custom' && (
+                  <div className="space-y-2">
+                    <label className={`text-sm font-semibold ${!isDark ? 'text-slate-700' : 'text-cyan-100'}`}>
+                      Select Prompt Libraries
+                    </label>
+                    <p className={`text-xs mb-3 ${!isDark ? 'text-slate-600' : 'text-cyan-300'}`}>
+                      {mode === 'topics_only' && 'Topics mode requires at least one prompt library'}
+                      {mode === 'trivia_only' && 'Trivia mode requires at least one trivia library'}
+                      {mode === 'alternating' && 'Alternating mode requires both prompt and trivia libraries'}
+                      {selectedLibraries.length}/6 libraries selected
+                    </p>
+                    {libraryValidationError && (
+                      <div className={`text-xs p-2 rounded ${!isDark ? 'bg-red-100 text-red-700' : 'bg-red-900/50 text-red-300'}`}>
+                        {libraryValidationError}
+                      </div>
+                    )}
+                    {librariesLoading ? (
+                      <div className={`text-center py-8 ${!isDark ? 'text-slate-600' : 'text-cyan-300'}`}>
+                        Loading libraries...
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {getRequiredLibrarySections().map((section) => (
+                          <div key={section.type} className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <label className={`text-sm font-semibold ${!isDark ? 'text-slate-700' : 'text-cyan-100'}`}>
+                                {section.label}
+                              </label>
+                              <span className={`text-xs px-2 py-1 rounded-full ${!isDark ? 'bg-slate-200 text-slate-600' : 'bg-slate-700 text-slate-300'}`}>
+                                {selectedLibraries.filter(id => 
+                                  libraries?.find(lib => lib.id === id)?.type === section.type
+                                ).length} selected
+                              </span>
+                            </div>
+                            {(section.libraries || []).length === 0 ? (
+                              <div className={`text-center py-4 rounded-lg border ${!isDark ? 'border-slate-300 bg-slate-50 text-slate-500' : 'border-slate-600 bg-slate-800 text-slate-400'}`}>
+                                No {section.type.toLowerCase()} libraries available yet
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                                {(section.libraries || []).map((library) => {
+                                  const isSelected = selectedLibraries.includes(library.id);
+                                  const canSelect = isSelected || selectedLibraries.length < 6;
+                                  const hasSelectedThisType = selectedLibraries.some(id => 
+                                    libraries?.find(lib => lib.id === id)?.type === section.type
+                                  );
+
+                                  return (
+                                    <button
+                                      key={library.id}
+                                      type="button"
+                                      onClick={() => canSelect && toggleLibrary(library.id)}
+                                      disabled={!canSelect}
+                                      className={`
+                                        relative rounded-lg p-3 text-center transition-all
+                                        ${isSelected
+                                          ? "border-brand-primary bg-brand-light scale-95"
+                                          : canSelect && !hasSelectedThisType
+                                            ? (!isDark ? "border-amber-300 bg-amber-50 hover:border-amber-400" : "border-amber-600 bg-amber-900/30 hover:border-amber-500")
+                                            : canSelect
+                                              ? (!isDark ? "border-slate-300 bg-white hover:border-slate-400" : "border-slate-600 bg-slate-800 hover:border-slate-500")
+                                              : "opacity-30 cursor-not-allowed border-slate-200 bg-slate-50"
+                                        }
+                                      `}
+                                    >
+                                      <div className="text-xl mb-1">{library.emoji}</div>
+                                      <div className={`text-xs font-semibold ${!isDark ? 'text-slate-900' : 'text-cyan-100'}`}>
+                                        {library.name}
+                                      </div>
+                                      <div className={`text-xs ${!isDark ? 'text-slate-500' : 'text-slate-400'} capitalize`}>
+                                        {library.type}
+                                      </div>
+                                      {isSelected && (
+                                        <div className="text-brand-primary text-xs mt-1">✓</div>
+                                      )}
+                                      {!hasSelectedThisType && (
+                                        <div className="text-amber-500 text-xs mt-1">•</div>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className={`text-sm font-semibold ${!isDark ? 'text-slate-700' : 'text-cyan-100'}`}>
                     Number of Rounds
@@ -345,6 +828,84 @@ export function SocialeCreateModal({
               You'll get a 6-character room code and QR to share with players.
               Anonymous sign-in keeps things lightweight.
             </p>
+
+            {/* Preview Section */}
+            {mode !== 'custom' && selectedLibraries.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className={`text-sm font-semibold ${!isDark ? 'text-slate-700' : 'text-cyan-100'}`}>
+                    Preview Rounds
+                  </label>
+                  <button
+                    type="button"
+                    onClick={generatePreviewData}
+                    className={`
+                      px-3 py-1 text-xs rounded-lg font-medium transition-all
+                      ${!isDark 
+                        ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' 
+                        : 'bg-amber-900/50 text-amber-300 hover:bg-amber-900/70'
+                      }
+                    `}
+                    title="Regenerate all prompts"
+                  >
+                    🔄 Regenerate All
+                  </button>
+                </div>
+                
+                {(loadingPreview || previewData.length > 0) && (
+                  <div className={`max-h-64 overflow-y-auto rounded-lg border ${!isDark ? 'border-slate-300 bg-slate-50' : 'border-slate-600 bg-slate-800'}`}>
+                    <div className="space-y-2 p-3">
+                      {loadingPreview ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mr-2"></div>
+                          <span className={`text-sm ${!isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                            Loading questions...
+                          </span>
+                        </div>
+                      ) : (
+                        previewData.map((round) => (
+                        <div 
+                          key={round.roundNumber}
+                          className={`p-2 rounded-lg border ${!isDark ? 'border-slate-200 bg-white' : 'border-slate-700 bg-slate-900'}`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs font-bold ${!isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                                Round {round.roundNumber}
+                              </span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                round.type === 'Topic' 
+                                  ? (!isDark ? 'bg-blue-100 text-blue-700' : 'bg-blue-900/50 text-blue-300')
+                                  : (!isDark ? 'bg-green-100 text-green-700' : 'bg-green-900/50 text-green-300')
+                              }`}>
+                                {round.type}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => regenerateRoundPrompt(round.roundNumber)}
+                              className={`
+                                px-2 py-1 text-xs rounded font-medium transition-all
+                                ${!isDark 
+                                  ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' 
+                                  : 'bg-amber-900/50 text-amber-300 hover:bg-amber-900/70'
+                                }
+                              `}
+                              title="Regenerate this prompt"
+                            >
+                              🔄
+                            </button>
+                          </div>
+                          <p className={`text-sm ${!isDark ? 'text-slate-700' : 'text-slate-300'}`}>
+                            {round.prompt}
+                          </p>
+                        </div>
+                      )))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </form>
         </div>
         
@@ -358,9 +919,9 @@ export function SocialeCreateModal({
               form="create-sociale-form"
               type="submit"
               isLoading={isCreating}
-              disabled={isCreating}
+              disabled={isCreating || !canSubmit}
             >
-              {isEditing ? 'Save settings' : 'Create session'}
+              {isEditing ? 'Save settings' : 'Create Sociale'}
             </Button>
           </div>
         </div>

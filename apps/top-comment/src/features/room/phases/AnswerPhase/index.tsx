@@ -29,7 +29,7 @@ export function AnswerPhase({ session, hasSubmitted, onOpenModal }: AnswerPhaseP
   return (
     <div className="w-full mb-8">
       <SessionButton
-        displayState={hasSubmitted ? "joined" : "answer"}
+        displayState={hasSubmitted ? "answered" : "answer"}
         session={session}
         isMainEventMode={isMainEventMode}
         phase="answer"

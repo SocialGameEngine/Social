@@ -46,6 +46,7 @@ interface SocialeRoomPhaseControllerProps {
   onOpenLeaderboard: () => void;
   onOpenSelfie: () => void;
   onOpenModal?: (type: 'answer' | 'vote') => void;
+  onJoinRoom?: () => void;
 }
 
 export function SocialeRoomPhaseController({
@@ -56,6 +57,7 @@ export function SocialeRoomPhaseController({
   onOpenLeaderboard,
   onOpenSelfie,
   onOpenModal,
+  onJoinRoom,
 }: SocialeRoomPhaseControllerProps) {
   const { dispatch, state } = useRoomPageContext();
   const { data: sociale, isLoading } = useSociale(socialeId);
@@ -68,6 +70,8 @@ export function SocialeRoomPhaseController({
 
   useEffect(() => {
     dispatch({ type: 'RESET_SUBMISSIONS' });
+    // Only close the active modal (answer/vote), not ended modals (leaderboard/selfie)
+    // Ended modals should persist across phase changes
     dispatch({ type: 'CLOSE_MODAL' });
   }, [roomPhase, dispatch]);
 
@@ -121,7 +125,7 @@ export function SocialeRoomPhaseController({
   switch (roomPhase) {
     case 'lobby':
       return (
-        <SocialeLobbyPhaseRoom sociale={sociale} roomId={roomId} memberships={memberships} />
+        <SocialeLobbyPhaseRoom sociale={sociale} roomId={roomId} memberships={memberships} onJoinRoom={onJoinRoom} />
       );
     case 'answer':
       return (
@@ -163,7 +167,7 @@ export function SocialeRoomPhaseController({
       );
     default:
       return (
-        <SocialeLobbyPhaseRoom sociale={sociale} roomId={roomId} memberships={memberships} />
+        <SocialeLobbyPhaseRoom sociale={sociale} roomId={roomId} memberships={memberships} onJoinRoom={onJoinRoom} />
       );
   }
 }

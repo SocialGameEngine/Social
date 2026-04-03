@@ -109,6 +109,73 @@ serve(async (req) => {
         .insert(roundsToCreate)
 
       if (roundsError) throw roundsError
+
+      // Prepare prompt decks for topic and prompt rounds asynchronously
+      const promptLibraryIds = new Set<string>()
+      rounds.forEach(round => {
+        if ((round.type === 'topic' || round.type === 'prompt') && round.settings?.promptLibraryId) {
+          promptLibraryIds.add(round.settings.promptLibraryId)
+        }
+      })
+
+      // Also add Sociale-level selected libraries
+      if (body.selectedLibraries && Array.isArray(body.selectedLibraries)) {
+        body.selectedLibraries.forEach((libId: string) => promptLibraryIds.add(libId))
+      }
+
+      // Create prompt decks for all libraries that will be used
+      const promptDecks: Record<string, any> = {}
+      for (const libraryId of promptLibraryIds) {
+        try {
+          // Get all prompts for this library
+          const { data: prompts, error: promptError } = await supabaseClient
+            .from('prompts')
+            .select('text')
+            .eq('library_id', libraryId)
+            .eq('is_active', true)
+            .order('sort_order', { ascending: true })
+
+          if (!promptError && prompts && prompts.length > 0) {
+            // Shuffle the prompts to create a deck
+            const shuffledPrompts = prompts
+              .map((p: any) => p.text)
+              .sort(() => Math.random() - 0.5) // Simple shuffle
+            
+            promptDecks[libraryId] = {
+              libraryId,
+              prompts: shuffledPrompts,
+              cursor: 0,
+              createdAt: new Date().toISOString()
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to create prompt deck for library ${libraryId}:`, error)
+        }
+      }
+
+      // Store prompt decks in runtime state
+      if (Object.keys(promptDecks).length > 0) {
+        await supabaseClient
+          .from('sociales')
+          .update({
+            runtime_state: {
+              promptDecks
+            }
+          })
+          .eq('id', sociale.id)
+      }
+    }
+
+    // Set the room's current_sociale_id pointer to make this Sociale immediately active
+    const { error: updateRoomError } = await supabaseClient
+      .from('rooms')
+      .update({ current_sociale_id: sociale.id })
+      .eq('id', roomId)
+
+    if (updateRoomError) {
+      // Rollback Sociale creation if room update fails
+      await supabaseClient.from('sociales').delete().eq('id', sociale.id)
+      throw new Error(`Failed to set room pointer: ${updateRoomError.message}`)
     }
 
     // Return the created Sociale

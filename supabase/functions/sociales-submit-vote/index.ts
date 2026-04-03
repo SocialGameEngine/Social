@@ -110,7 +110,12 @@ serve(async (req) => {
     }
 
     // Check if voting phase is active
+    console.log('🔥 Vote submission - Round state phase:', roundState.phase);
+    console.log('🔥 Vote submission - Round ID:', roundId);
+    console.log('🔥 Vote submission - Socialite ID:', socialiteId);
+    
     if (roundState.phase !== 'vote') {
+      console.log('🔥 Vote submission rejected - Not in voting phase, current phase:', roundState.phase);
       return new Response(
         JSON.stringify({ error: 'Not in voting phase' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -6,7 +6,7 @@
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../supabase/client';
-import type { Sociale, CreateSocialeRequest, UpdateSocialeRequest } from '../../domain/types/sociale.types';
+import type { Sociale, CreateSocialeRequest, UpdateSocialeRequest } from '../../../domain/types/sociale.types';
 import { mapSociale, createSociale, updateSociale } from '../socialeService';
 
 /**
@@ -96,7 +96,7 @@ export function useSocialesByRoom(roomId?: string) {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data.map(mapSociale);
+      return data.map(mapSociale).filter((s): s is Sociale => s !== null);
     },
     enabled: !!roomId,
   });
@@ -106,10 +106,23 @@ export function useSocialesByRoom(roomId?: string) {
  * Hook for creating a Sociale
  */
 export function useCreateSociale() {
+  const queryClient = useQueryClient();
+  
   return useMutation({
     mutationFn: async (request: CreateSocialeRequest) => {
       const data = await createSociale(request);
       return data.sociale;
+    },
+    onSuccess: (sociale, request) => {
+      console.log('🔥 OPTIMISTIC UPDATE: Sociale created, invalidating queries for room', request.roomId);
+      
+      // Invalidate Sociales list to include the newly created Sociale
+      queryClient.invalidateQueries({ queryKey: ['sociales', 'room', request.roomId] });
+      
+      // Invalidate specific Sociale query
+      queryClient.invalidateQueries({ queryKey: ['sociale', sociale.id] });
+      
+      console.log('🔥 OPTIMISTIC UPDATE: Sociale creation queries invalidated');
     },
   });
 }

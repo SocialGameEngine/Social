@@ -338,6 +338,7 @@ export function useRoom(options: UseRoomOptions = {}) {
         (payload) => {
           console.log('🔄 Room update received:', payload);
           console.log('🔄 New currentSessionId:', payload.new?.current_session_id);
+          console.log('🔄 New currentSocialeId:', payload.new?.current_sociale_id);
           loadRoom(undefined, true); // Silent refresh - no loading state
         }
       )

@@ -110,7 +110,7 @@ serve(async (req) => {
     }
 
     // Check if response phase is active
-    const responsePhases = ['question', 'answer']
+    const responsePhases = ['setup', 'question', 'answer']
     if (!responsePhases.includes(roundState.phase)) {
       return new Response(
         JSON.stringify({ error: 'Not in response phase' }),

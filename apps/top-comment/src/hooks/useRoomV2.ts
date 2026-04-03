@@ -353,68 +353,65 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
       return;
     }
 
-    logger.debug('Setting up room subscription', { roomId: targetRoomId });
     setConnectionStatus("connecting");
 
-    const channel = supabase
-      .channel(`room:${targetRoomId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'rooms',
-          filter: `id=eq.${targetRoomId}`,
-        },
-        (payload) => {
-          logger.debug('Room update received', {
-            roomId: targetRoomId,
-            newCurrentSessionId: payload.new?.current_session_id,
-            oldCurrentSessionId: payload.old?.current_session_id,
-          });
-          // Immediately update room state with new data from payload
-          // This ensures we don't wait for the refetch
-          if (payload.new) {
-            const newRoom = {
-              id: payload.new.id,
-              code: payload.new.code,
-              name: payload.new.name,
-              creatorId: payload.new.creator_id,
-              moderatorIds: payload.new.moderator_ids || [],
-              currentSessionId: payload.new.current_session_id,
-              settings: payload.new.settings || {},
-              status: payload.new.status,
-              createdAt: payload.new.created_at,
-              updatedAt: payload.new.updated_at,
-            };
-            logger.debug('Updating room state', { roomId: newRoom.id, sessionId: newRoom.currentSessionId });
-            setRoom(newRoom as Room);
-            setLastUpdatedAt(Date.now());
+    try {
+      const channel = supabase
+        .channel(`room:${targetRoomId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'rooms',
+            filter: `id=eq.${targetRoomId}`,
+          },
+          (payload) => {
+            // Immediately update room state with new data from payload
+            // This ensures we don't wait for the refetch
+            if (payload.new) {
+              const newRoom = {
+                id: (payload.new as any).id,
+                code: (payload.new as any).code,
+                name: (payload.new as any).name,
+                creatorId: (payload.new as any).creator_id,
+                moderatorIds: (payload.new as any).moderator_ids || [],
+                currentSessionId: (payload.new as any).current_session_id,
+                currentSocialeId: (payload.new as any).current_sociale_id,
+                settings: (payload.new as any).settings || {},
+                status: (payload.new as any).status,
+                createdAt: (payload.new as any).created_at,
+                updatedAt: (payload.new as any).updated_at,
+              };
+              setRoom(newRoom as Room);
+              setLastUpdatedAt(Date.now());
+            }
+            // Also trigger a full refresh to ensure consistency
+            loadRoom(true);
           }
-          // Also trigger a full refresh to ensure consistency
-          loadRoom(true);
-        }
-      )
-      .subscribe((status) => {
-        logger.debug('Room subscription status', { status, roomId: targetRoomId });
-        if (status === 'SUBSCRIBED') {
-          setConnectionStatus('connected');
-          reconnectAttempts.current = 0;
-        } else if (status === 'CHANNEL_ERROR') {
-          setConnectionStatus('error');
-          setSubscriptionError(new Error('Room subscription error'));
-        } else if (status === 'TIMED_OUT') {
-          reconnect();
-        }
-      });
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            setConnectionStatus('connected');
+            reconnectAttempts.current = 0;
+          } else if (status === 'CHANNEL_ERROR') {
+            setConnectionStatus('error');
+            setSubscriptionError(new Error('Room subscription error'));
+          } else if (status === 'TIMED_OUT') {
+            reconnect();
+          }
+        });
 
-    roomChannelRef.current = channel;
+      roomChannelRef.current = channel;
 
-    return () => {
-      logger.debug('Cleaning up room subscription', { roomId: targetRoomId });
-      supabase.removeChannel(channel);
-      roomChannelRef.current = null;
-    };
+      return () => {
+        supabase.removeChannel(channel);
+        roomChannelRef.current = null;
+      };
+    } catch (error) {
+      setConnectionStatus('error');
+      setSubscriptionError(error instanceof Error ? error : new Error('Failed to setup room subscription'));
+    }
   }, [room?.id, roomId, authLoading, loadRoom, reconnect]);
 
   // Real-time subscription for memberships - GUARDED by auth

@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Button } from '../../../components/Button';
 import { Timer } from '../../../components/Timer';
 import { useAuth } from '../../../shared/providers/AuthContext';
 import { validateAnswer } from '../utils/validation';
-import { useSubmitResponse, useCurrentSocialite } from '../../../features/sociale/hooks';
+import { useSubmitResponse, useCurrentSocialite, useMyResponses } from '../../../features/sociale/hooks';
 
 interface SocialeAnswerModalProps {
   isOpen: boolean;
@@ -18,6 +18,28 @@ interface SocialeAnswerModalProps {
 }
 
 const CHAR_LIMIT = 120;
+
+// Client-side storage key for submitted answers
+const getStoredAnswerKey = (socialeId: string, roundId: string, socialiteId: string) => 
+  `sociale-answer-${socialeId}-${roundId}-${socialiteId}`;
+
+// Store answer client-side to avoid DB calls
+const storeAnswerClientSide = (socialeId: string, roundId: string, socialiteId: string, answer: string) => {
+  const key = getStoredAnswerKey(socialeId, roundId, socialiteId);
+  localStorage.setItem(key, answer);
+};
+
+// Get stored answer client-side
+const getStoredAnswerClientSide = (socialeId: string, roundId: string, socialiteId: string): string | null => {
+  const key = getStoredAnswerKey(socialeId, roundId, socialiteId);
+  return localStorage.getItem(key);
+};
+
+// Clear stored answer for a round
+const clearStoredAnswerClientSide = (socialeId: string, roundId: string, socialiteId: string) => {
+  const key = getStoredAnswerKey(socialeId, roundId, socialiteId);
+  localStorage.removeItem(key);
+};
 
 export function SocialeAnswerModal({
   isOpen,
@@ -40,6 +62,34 @@ export function SocialeAnswerModal({
   
   // Get current user's socialite
   const { data: currentSocialite } = useCurrentSocialite(socialeId, user?.id);
+  
+  // Get user's existing responses (fallback if client storage is empty)
+  const { data: myResponses = [] } = useMyResponses(socialeId, currentSocialite?.id);
+  
+  // Populate answer from client-side storage or existing response when modal opens
+  useEffect(() => {
+    if (!isOpen || !currentSocialite) return;
+    
+    // First try client-side storage (fastest)
+    const storedAnswer = getStoredAnswerClientSide(socialeId, roundId, currentSocialite.id);
+    if (storedAnswer) {
+      setAnswer(storedAnswer);
+      return;
+    }
+    
+    // Fallback to existing response from database
+    const existingResponse = myResponses.find(r => r.roundId === roundId);
+    if (existingResponse) {
+      const answerValue = typeof existingResponse.value === 'string' 
+        ? existingResponse.value 
+        : String(existingResponse.value);
+      setAnswer(answerValue);
+      // Store it client-side for future use
+      storeAnswerClientSide(socialeId, roundId, currentSocialite.id, answerValue);
+    } else {
+      setAnswer('');
+    }
+  }, [isOpen, socialeId, roundId, currentSocialite, myResponses]);
 
   const handleSubmit = useCallback(async () => {
     if (!user || !currentSocialite) return;
@@ -61,6 +111,10 @@ export function SocialeAnswerModal({
         type: 'text',
         value: answer.trim(),
       });
+      
+      // Store answer client-side for instant retrieval
+      storeAnswerClientSide(socialeId, roundId, currentSocialite.id, answer.trim());
+      
       onSubmit();
       setAnswer('');
     } catch (err) {
@@ -69,6 +123,27 @@ export function SocialeAnswerModal({
       setIsSubmitting(false);
     }
   }, [answer, user, currentSocialite, socialeId, roundId, onSubmit, submitResponseMutation]);
+
+  // Clear client-side storage when round changes (cleanup)
+  useEffect(() => {
+    if (!currentSocialite) return;
+    
+    // Clear old round answers when we detect a new round
+    const clearOldRoundAnswers = () => {
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith(`sociale-answer-${socialeId}-`) && key.includes(currentSocialite.id)) {
+          const [_, ...parts] = key.split('-');
+          const storedRoundId = parts[2];
+          if (storedRoundId !== roundId) {
+            clearStoredAnswerClientSide(socialeId, storedRoundId, currentSocialite.id);
+          }
+        }
+      });
+    };
+    
+    clearOldRoundAnswers();
+  }, [socialeId, roundId, currentSocialite]);
 
   if (!isOpen) return null;
 
@@ -163,13 +238,13 @@ export function SocialeAnswerModal({
             {isSubmitting ? (
               <span className="flex items-center justify-center">
                 <svg className="animate-spin -ml-1 mr-2 h-3 w-3 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4}></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 Submitting...
               </span>
             ) : (
-              'Submit answer'
+              answer.trim() ? 'Update answer' : 'Submit answer'
             )}
           </Button>
 

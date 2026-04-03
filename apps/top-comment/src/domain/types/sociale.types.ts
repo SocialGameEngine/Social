@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // SOCIALE DOMAIN TYPES
 // =============================================================================
 // This file defines all domain types for the Sociale system.
@@ -151,6 +151,7 @@ export interface TriviaRoundSettings extends BaseRoundSettings {
  */
 export interface TopicRoundSettings extends BaseRoundSettings {
   topic?: string;
+  promptLibraryId?: string;
   sortBy?: 'newest' | 'upvotes';
   allowUpvotes?: boolean;
   maxResponses?: number;
@@ -205,30 +206,35 @@ export interface Sociale {
   status: SocialeStatus;
   
   // Orchestration ownership
-  currentRoundIndex: number | null;
-  currentRoundId: string | null;
-  currentPhase: string | null;
-  phaseStartedAt: string | null;
-  phaseEndsAt: string | null;
+  currentRoundIndex?: number | null;
+  currentRoundId?: string | null;
+  currentPhase?: string | null;
+  phaseStartedAt?: string | null;
+  phaseEndsAt?: string | null;
   
   // Round sequence metadata
-  totalRounds: number;
+  totalRounds?: number;
   
   // Settings
   settings: SocialeSettings;
   
   // Scoreboard / aggregate runtime state
-  scoreboard: Record<string, number>; // socialiteId -> score
-  runtimeState?: Record<string, unknown>;
+  scoreboard: Record<string, any>;
+  runtimeState?: Record<string, any>;
   
   // Timing
   createdAt: string;
   updatedAt: string;
-  startedAt?: string;
-  endedAt?: string;
+  startedAt?: string | null;
+  endedAt?: string | null;
   
   // Migration support
-  legacySessionId?: string;
+  legacySessionId?: string | null;
+  
+  // Prompt library fields (from Sessions)
+  promptLibraryId?: string | null;
+  selectedLibraries?: string[] | null;
+  currentLibraryIndex?: number | null;
 }
 
 /**
@@ -310,8 +316,8 @@ export interface Socialite {
   // Timing
   joinedAt: string;
   lastSeenAt?: string;
-
-  /** When set, player joins gameplay once `sociale.currentRoundIndex` reaches this index */
+  
+  // Mid-game join state
   pendingUntilRoundIndex?: number | null;
   
   createdAt: string;
@@ -495,6 +501,11 @@ export interface CreateSocialeRequest {
   mode: SocialeMode;
   totalRounds?: number;
   settings?: Partial<SocialeSettings>;
+  
+  // Prompt library fields (from Sessions)
+  promptLibraryId?: string;
+  selectedLibraries?: string[];
+  
   rounds?: Array<{
     type: SocialeRoundType;
     title?: string;
@@ -518,17 +529,9 @@ export interface UpdateSocialeRequest {
   socialeId: string;
   title?: string;
   description?: string;
-  /** Optional: update global Sociale settings (timers, flags, etc.) */
-  settings?: Partial<SocialeSettings>;
-  /** Optional: allow changing mode in lobby/draft via update edge function */
   mode?: SocialeMode;
-  /** Optional: allow changing total rounds in lobby/draft via update edge function */
   totalRounds?: number;
   settings?: Partial<SocialeSettings>;
-  /** Optional: allow changing mode in lobby/draft via update edge function */
-  mode?: SocialeMode;
-  /** Optional: allow changing total rounds in lobby/draft via update edge function */
-  totalRounds?: number;
 }
 
 /**
@@ -544,6 +547,30 @@ export interface StartSocialeRequest {
 export interface AdvanceSocialePhaseRequest {
   socialeId: string;
   targetPhase?: string; // Optional - defaults to next phase
+}
+
+/**
+ * Advance Sociale response
+ */
+export interface AdvanceSocialeResponse {
+  sociale: Sociale;
+  advanced: boolean;
+  nextPhase: string;
+}
+
+/**
+ * Pause Sociale request
+ */
+export interface PauseSocialeRequest {
+  socialeId: string;
+  pause: boolean;
+}
+
+/**
+ * Pause Sociale response
+ */
+export interface PauseSocialeResponse {
+  sociale: Sociale;
 }
 
 /**
@@ -563,7 +590,6 @@ export interface SubmitSocialeResponseRequest {
 export interface SubmitSocialeVoteRequest {
   socialeId: string;
   roundId: string;
-  socialiteId: string;
   targetResponseId: string;
 }
 
@@ -576,7 +602,6 @@ export interface JoinSocialeRequest {
   userId: string;
   displayName?: string;
   mascotId?: number;
-  /** When true, join during an active/paused game; play starts next round */
   joinNextRound?: boolean;
 }
 
@@ -585,7 +610,7 @@ export interface JoinSocialeRequest {
  */
 export interface JoinSocialeResponse {
   socialite: Socialite;
-  sociale?: Sociale;
+  sociale: Sociale;
 }
 
 // =============================================================================

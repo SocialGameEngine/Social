@@ -44,7 +44,7 @@ export function useActiveSocialeRoundState(socialeId: string | undefined, social
         .from('sociale_round_state')
         .select('*')
         .eq('sociale_id', socialeId)
-        .eq('status', 'active')
+        .in('status', ['active', 'paused']) // Include both active and paused states
         .maybeSingle();
       if (error) throw error;
       return data as ActiveSocialeRoundStateRow | null;

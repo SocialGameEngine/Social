@@ -9,6 +9,7 @@ interface SocialePanelProps {
   onOpenLeaderboard?: () => void;
   onOpenSelfie?: () => void;
   onOpenModal?: (type: 'answer' | 'vote') => void;
+  onJoinRoom?: () => void;
   isSticky?: boolean;
 }
 
@@ -20,6 +21,7 @@ export function SocialePanel({
   onOpenLeaderboard,
   onOpenSelfie,
   onOpenModal,
+  onJoinRoom,
   isSticky = false,
 }: SocialePanelProps) {
   return (
@@ -38,6 +40,7 @@ export function SocialePanel({
             onOpenLeaderboard={onOpenLeaderboard ?? (() => {})}
             onOpenSelfie={onOpenSelfie ?? (() => {})}
             onOpenModal={onOpenModal}
+            onJoinRoom={onJoinRoom}
           />
         ) : (
           <div className="text-center py-8">

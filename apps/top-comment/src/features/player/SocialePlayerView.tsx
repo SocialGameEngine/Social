@@ -326,8 +326,13 @@ function SocialePlayerAnswer({
   const [response, setResponse] = useState('');
 
   const handleSubmit = () => {
-    if (response.trim()) {
-      onSubmitResponse(response.trim());
+    // For trivia rounds, allow very short answers (even single characters)
+    // For other rounds, require some content
+    const trimmedResponse = response.trim();
+    const isTriviaRound = currentRound?.type === 'trivia';
+    
+    if (isTriviaRound ? trimmedResponse.length > 0 : trimmedResponse.length > 0) {
+      onSubmitResponse(trimmedResponse);
       setResponse('');
     }
   };
@@ -358,19 +363,35 @@ function SocialePlayerAnswer({
     <Card className="p-6" isDark={isDark}>
       <div className="space-y-6">
         <div className="text-center">
-          <h2 className={clsx(
-            'text-2xl font-bold mb-2',
-            isDark ? 'text-white' : 'text-slate-900'
-          )}>
-            {currentRound?.title || 'Your Turn!'}
-          </h2>
+          {currentRound?.title ? (
+            <h2 className={clsx(
+              'text-2xl font-bold mb-2',
+              isDark ? 'text-white' : 'text-slate-900'
+            )}>
+              {currentRound.title}
+            </h2>
+          ) : (
+            <div className={clsx(
+              'text-2xl font-bold mb-2 animate-pulse',
+              isDark ? 'text-white' : 'text-slate-900'
+            )}>
+              Loading prompt...
+            </div>
+          )}
           
-          {currentRound?.content && (
+          {currentRound?.content ? (
             <div className={clsx(
               'p-4 rounded-lg text-lg',
               isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-900'
             )}>
               {currentRound.content}
+            </div>
+          ) : (
+            <div className={clsx(
+              'p-8 rounded-lg text-lg text-center animate-pulse',
+              isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-900'
+            )}>
+              Loading prompt from library...
             </div>
           )}
         </div>

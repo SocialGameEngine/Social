@@ -20,6 +20,8 @@ export async function fetchPromptLibraries(): Promise<PromptLibrary[]> {
       return [];
     }
 
+    console.log('Found libraries in database:', libraries.map(l => l.id));
+
     // Fetch prompts for all libraries
     const { data: prompts, error: promptsError } = await supabase
       .from('prompts')
@@ -32,6 +34,8 @@ export async function fetchPromptLibraries(): Promise<PromptLibrary[]> {
       console.warn('No prompts found in database');
       return [];
     }
+
+    console.log('Found prompts in database:', prompts.length);
 
     // Group prompts by library
     const promptsByLibrary = new Map<string, string[]>();
@@ -48,8 +52,37 @@ export async function fetchPromptLibraries(): Promise<PromptLibrary[]> {
       name: library.name,
       emoji: library.emoji,
       description: library.description,
+      type: library.id === 'trivia-test' ? 'trivia' as const : 'prompt' as const, // Determine type based on library ID
       prompts: promptsByLibrary.get(library.id) || []
     }));
+
+    console.log('Final libraries with types:', result.map(l => ({ id: l.id, type: l.type, promptCount: l.prompts.length })));
+
+    // Add trivia question packs to the result so they show up in the UI
+    // This is a hybrid approach to make trivia packs selectable in the current UI
+    try {
+      const { data: triviaPacks } = await supabase
+        .from('trivia_question_packs')
+        .select('id, name, description, status')
+        .eq('status', 'published')
+        .order('created_at', { ascending: false });
+
+      if (triviaPacks && triviaPacks.length > 0) {
+        const triviaPackLibraries = triviaPacks.map(pack => ({
+          id: pack.id as PromptLibraryId,
+          name: pack.name,
+          emoji: '🧠', // Default trivia emoji
+          description: pack.description || 'Trivia questions',
+          type: 'trivia' as const,
+          prompts: ['Trivia questions available'] // Placeholder for UI display
+        }));
+        
+        console.log('Adding trivia packs:', triviaPackLibraries.map(p => ({ id: p.id, name: p.name })));
+        result.push(...triviaPackLibraries);
+      }
+    } catch (triviaError) {
+      console.warn('Failed to fetch trivia packs:', triviaError);
+    }
 
         return result;
 
@@ -68,12 +101,14 @@ export async function getPromptLibraries(): Promise<PromptLibrary[]> {
   const dynamicLibraries = await fetchPromptLibraries();
   
   if (dynamicLibraries.length > 0) {
+    console.log('Using database libraries, count:', dynamicLibraries.length);
     return dynamicLibraries;
   }
 
   // Fallback to static imports if database is empty or fails
   console.warn('Falling back to static prompt libraries');
   const { promptLibraries } = await import("./promptLibraries");
+  console.log('Static libraries count:', promptLibraries.length);
   return promptLibraries;
 }
 

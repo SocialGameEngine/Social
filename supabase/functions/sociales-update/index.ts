@@ -45,11 +45,11 @@ serve(async (req) => {
 
     // Parse request body
     const body: UpdateSocialeRequest = await req.json()
-    const { id, title, description, settings } = body
+    const { socialeId, title, description, mode, totalRounds, settings } = body
 
-    if (!id) {
+    if (!socialeId) {
       return new Response(
-        JSON.stringify({ error: 'Missing required field: id' }),
+        JSON.stringify({ error: 'Missing required field: socialeId' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -58,7 +58,7 @@ serve(async (req) => {
     const { data: sociale, error: fetchError } = await supabaseClient
       .from('sociales')
       .select('*')
-      .eq('id', id)
+      .eq('id', socialeId)
       .eq('created_by', user.id)
       .single()
 
@@ -84,6 +84,8 @@ serve(async (req) => {
 
     if (title !== undefined) updateData.title = title
     if (description !== undefined) updateData.description = description
+    if (mode !== undefined) updateData.mode = mode
+    if (totalRounds !== undefined) updateData.total_rounds = totalRounds
     if (settings !== undefined) {
       // Merge with existing settings
       updateData.settings = { ...sociale.settings, ...settings }
@@ -93,7 +95,7 @@ serve(async (req) => {
     const { data: updatedSociale, error: updateError } = await supabaseClient
       .from('sociales')
       .update(updateData)
-      .eq('id', id)
+      .eq('id', socialeId)
       .select()
       .single()
 
@@ -106,7 +108,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error updating Sociale:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

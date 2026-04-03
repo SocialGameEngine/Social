@@ -47,12 +47,18 @@ serve(async (req) => {
     const body: AdvanceSocialeRequest = await req.json()
     const { socialeId, targetPhase } = body
 
+    console.log('🔥 sociales-advance called with:', { socialeId, targetPhase })
+
     if (!socialeId) {
       return new Response(
         JSON.stringify({ error: 'Missing required field: socialeId' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Default targetPhase to 'next' if not provided
+    const effectiveTargetPhase = targetPhase || 'next'
+    console.log('🔥 Using targetPhase:', effectiveTargetPhase)
 
     // Get the Sociale
     const { data: sociale, error: fetchError } = await supabaseClient
@@ -132,11 +138,16 @@ serve(async (req) => {
     }
 
     if (stateError || !currentRoundState) {
+      console.log('🔥 Phase advance - No round state found, stateError:', stateError);
+      console.log('🔥 Phase advance - currentRoundState:', currentRoundState);
+      console.log('🔥 Phase advance - sociale.current_round_index:', sociale.current_round_index);
       return new Response(
         JSON.stringify({ error: 'No active round state found' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    console.log('🔥 Phase advance - Found round state:', currentRoundState);
 
     // Get current round
     const { data: currentRound, error: roundError } = await supabaseClient
@@ -152,18 +163,64 @@ serve(async (req) => {
       )
     }
 
-    // Determine next action
-    let nextPhase = targetPhase
+    let nextPhase = effectiveTargetPhase
     let nextRoundIndex = sociale.current_round_index
 
     // If targetPhase is 'next', calculate the next phase
-    if (targetPhase === 'next') {
-      // Simple phase progression logic (could be enhanced with round registry)
-      const phases = ['setup', 'question', 'answer', 'vote', 'results', 'reveal', 'discussion']
-      const currentPhaseIndex = phases.indexOf(currentRoundState.phase)
+    if (effectiveTargetPhase === 'next') {
+      // Get current round first
+      const { data: currentRound, error: roundError } = await supabaseClient
+        .from('sociale_rounds')
+        .select('*')
+        .eq('id', currentRoundState.round_id)
+        .single()
+
+      if (roundError || !currentRound) {
+        return new Response(
+          JSON.stringify({ error: 'Current round not found' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Get phase sequence from current round or fall back to default
+      let phases: string[]
+      
+      if (currentRound.phase_sequence && currentRound.phase_sequence.length > 0) {
+        // Use round-specific phase sequence
+        phases = currentRound.phase_sequence
+        console.log('🔥 Phase advance - Using round-specific phase sequence:', phases);
+      } else {
+        // Use default phase sequence based on round type
+        switch (currentRound.type || 'prompt') {
+          case 'trivia':
+            phases = ['answer', 'vote', 'results', 'reveal']
+            break
+          case 'topic':
+            phases = ['answer', 'vote', 'results', 'reveal', 'discussion']
+            break
+          case 'poll':
+            phases = ['poll', 'results', 'reveal']
+            break
+          case 'prompt':
+          default:
+            phases = ['answer', 'vote', 'results', 'reveal', 'discussion']
+            break
+        }
+        console.log('🔥 Phase advance - Using default phase sequence for round type:', currentRound.type, phases);
+      }
+      
+      // Get current phase from Sociale or round state
+      let currentPhase = currentRoundState?.phase || sociale.current_phase || 'answer'
+      const currentPhaseIndex = phases.indexOf(currentPhase)
+      
+      console.log('🔥 Phase advance - Current phase:', currentPhase);
+      console.log('🔥 Phase advance - Current phase index:', currentPhaseIndex);
+      console.log('🔥 Phase advance - Available phases:', phases);
       
       if (currentPhaseIndex < phases.length - 1) {
+        // Advance to next phase within current round
         nextPhase = phases[currentPhaseIndex + 1]
+        console.log('🔥 Phase advance - Advancing to next phase:', nextPhase);
       } else {
         // Move to next round
         nextRoundIndex = (sociale.current_round_index || 0) + 1
@@ -174,7 +231,7 @@ serve(async (req) => {
           const { error: endError } = await supabaseClient
             .from('sociales')
             .update({
-              status: 'ended',
+              status: 'completed',
               ended_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             })
@@ -182,25 +239,15 @@ serve(async (req) => {
 
           if (endError) throw endError
 
-          // End current round state
-          await supabaseClient
-            .from('sociale_round_state')
-            .update({
-              status: 'ended',
-              ended_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', currentRoundState.id)
-
           const response: AdvanceSocialeResponse = {
             sociale: {
               ...sociale,
-              status: 'ended',
+              status: 'completed',
               endedAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             },
             advanced: true,
-            nextPhase: 'ended',
+            nextPhase: 'completed',
           }
 
           return new Response(
@@ -208,7 +255,7 @@ serve(async (req) => {
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         } else {
-          // Move to next round
+          // Move to next round - get the next round and start with 'answer' phase
           const { data: nextRound, error: nextRoundError } = await supabaseClient
             .from('sociale_rounds')
             .select('*')
@@ -223,57 +270,116 @@ serve(async (req) => {
             )
           }
 
-          // New round starts on a "setup" phase in the DB, but the room UI
-          // treats non-`vote`/`results` phases as the "answer-like" phase for timing.
-          const nextPhaseDurationSeconds = (nextRound.settings as any)?.answerSeconds ?? 90
-          const phaseStartedAt = new Date().toISOString()
-          const phaseEndsAt = new Date(
-            Date.now() + nextPhaseDurationSeconds * 1000
-          ).toISOString()
+          // Assign prompt from pre-loaded deck for topic and prompt rounds if content is empty
+          if ((nextRound.type === 'topic' || nextRound.type === 'prompt') && (!nextRound.content || !nextRound.title)) {
+            const roundSettings = nextRound.settings as any
+            const promptLibraryId = roundSettings?.promptLibraryId || sociale.selected_libraries?.[0]
+            
+            if (promptLibraryId) {
+              const runtimeState = sociale.runtime_state || {}
+              const promptDecks = runtimeState.promptDecks || {}
+              const deck = promptDecks[promptLibraryId]
 
-          // End current round state
+              if (deck && deck.prompts && deck.prompts.length > 0) {
+                // Reset cursor if we've exhausted the deck
+                let cursor = deck.cursor || 0
+                if (cursor >= deck.prompts.length) {
+                  cursor = 0
+                }
+
+                const promptText = deck.prompts[cursor]
+                cursor += 1
+
+                // Update the round with the prompt content
+                const { error: updateError } = await supabaseClient
+                  .from('sociale_rounds')
+                  .update({
+                    title: promptText,
+                    content: promptText,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq('id', nextRound.id)
+
+                if (updateError) {
+                  console.error('Failed to update round with prompt:', updateError)
+                } else {
+                  console.log('✅ Updated round with prompt from pre-loaded deck (cursor:', cursor - 1, '):', promptText.substring(0, 50) + '...')
+                  // Update local nextRound object
+                  nextRound.title = promptText
+                  nextRound.content = promptText
+                }
+
+                // Update the deck cursor in runtime state
+                const updatedRuntimeState = {
+                  ...runtimeState,
+                  promptDecks: {
+                    ...promptDecks,
+                    [promptLibraryId]: { ...deck, cursor }
+                  }
+                }
+
+                await supabaseClient
+                  .from('sociales')
+                  .update({ runtime_state: updatedRuntimeState })
+                  .eq('id', socialeId)
+
+              } else {
+                console.error('No prompt deck available for library:', promptLibraryId)
+              }
+            }
+          }
+
+          // Start next round with 'answer' phase (not 'setup')
+          nextPhase = 'answer'
+
+          // Mark current round state as completed
+          if (currentRoundState) {
+            await supabaseClient
+              .from('sociale_round_state')
+              .update({
+                status: 'completed',
+                ended_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', currentRoundState.id)
+          }
+
+          // Create new round state for next round
+          const nowIso = new Date().toISOString()
+          const nextRoundSettings = nextRound.settings as any
+          const phaseDurationSeconds = nextRoundSettings?.answerSeconds ?? 90
+          const phaseEndsAt = new Date(Date.now() + phaseDurationSeconds * 1000).toISOString()
+
           await supabaseClient
-            .from('sociale_round_state')
-            .update({
-              status: 'ended',
-              ended_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', currentRoundState.id)
-
-          // Create new round state
-          const { error: newStateError } = await supabaseClient
             .from('sociale_round_state')
             .insert({
               sociale_id: socialeId,
               round_id: nextRound.id,
               status: 'active',
-              phase: 'setup',
-              started_at: phaseStartedAt,
-              phase_started_at: phaseStartedAt,
+              phase: 'answer',
+              started_at: nowIso,
+              phase_started_at: nowIso,
               phase_ends_at: phaseEndsAt,
-              created_at: new Date().toISOString(),
-              updated_at: phaseStartedAt,
+              created_at: nowIso,
+              updated_at: nowIso,
             })
 
-          if (newStateError) throw newStateError
-
-          // Update Sociale
-          const { data: updatedSociale, error: updateError } = await supabaseClient
+          // Update Sociale to point to next round
+          const { data: updatedSociale, error: socialeUpdateError } = await supabaseClient
             .from('sociales')
             .update({
               current_round_index: nextRoundIndex,
               current_round_id: nextRound.id,
-              current_phase: 'setup',
-              phase_started_at: phaseStartedAt,
+              current_phase: 'answer',
+              phase_started_at: nowIso,
               phase_ends_at: phaseEndsAt,
-              updated_at: phaseStartedAt,
+              updated_at: nowIso,
             })
             .eq('id', socialeId)
             .select()
             .single()
 
-          if (updateError) throw updateError
+          if (socialeUpdateError) throw socialeUpdateError
 
           const response: AdvanceSocialeResponse = {
             sociale: {
@@ -285,6 +391,9 @@ serve(async (req) => {
               mode: updatedSociale.mode,
               status: updatedSociale.status,
               currentRoundIndex: updatedSociale.current_round_index,
+              currentRoundId: updatedSociale.current_round_id,
+              currentPhase: updatedSociale.current_phase,
+              phaseStartedAt: updatedSociale.phase_started_at,
               phaseEndsAt: updatedSociale.phase_ends_at,
               totalRounds: updatedSociale.total_rounds,
               settings: updatedSociale.settings || {},
@@ -297,7 +406,7 @@ serve(async (req) => {
               legacySessionId: updatedSociale.legacy_session_id,
             },
             advanced: true,
-            nextPhase: 'setup',
+            nextPhase: 'answer',
           }
 
           return new Response(
@@ -308,22 +417,60 @@ serve(async (req) => {
       }
     }
 
-    // Update current round state phase
+    // Normal phase advancement within current round
+    // Calculate phase duration based on round settings and phase type
     const phaseDurationSeconds = (() => {
-      // Room UI only cares about `answer`/`vote`/`results` timers.
-      // Still, we set durations for all phases so `phase_ends_at` is never null.
-      switch (nextPhase) {
-        case 'vote':
-          return (currentRound.settings as any)?.votingSeconds ?? 30
-        case 'results':
-        case 'reveal':
-        case 'discussion':
-          return (currentRound.settings as any)?.resultsSeconds ?? 12
-        case 'setup':
-        case 'question':
-        case 'answer':
+      const roundSettings = currentRound?.settings as any
+      
+      if (roundSettings && typeof roundSettings === 'object') {
+        switch (nextPhase) {
+          case 'vote':
+          case 'voting': return roundSettings.votingSeconds || roundSettings.voteSeconds || 30
+          case 'results': return roundSettings.resultsSeconds || 12
+          case 'answer': return roundSettings.answerSeconds || 90
+          case 'reveal': return roundSettings.revealSeconds || 15
+          case 'discussion': return roundSettings.discussionSeconds || 180
+          default: return 90
+        }
+      }
+      
+      // Fall back to round type defaults
+      switch (currentRound?.type || 'prompt') {
+        case 'trivia':
+          switch (nextPhase) {
+            case 'answer': return 60
+            case 'results': return 8
+            case 'reveal': return 10
+            default: return 90
+          }
+        case 'topic':
+          switch (nextPhase) {
+            case 'answer': return 90
+            case 'vote':
+            case 'voting': return 30
+            case 'results': return 12
+            case 'reveal': return 15
+            case 'discussion': return 180
+            default: return 90
+          }
+        case 'poll':
+          switch (nextPhase) {
+            case 'poll': return 30
+            case 'results': return 10
+            case 'reveal': return 8
+            default: return 90
+          }
+        case 'prompt':
         default:
-          return (currentRound.settings as any)?.answerSeconds ?? 90
+          switch (nextPhase) {
+            case 'vote':
+            case 'voting': return 30
+            case 'results': return 12
+            case 'reveal': return 15
+            case 'answer': return 90
+            case 'discussion': return 180
+            default: return 90
+          }
       }
     })()
 
@@ -332,9 +479,10 @@ serve(async (req) => {
       Date.now() + phaseDurationSeconds * 1000
     ).toISOString()
 
-    // Update Sociale timing so existing clients that read `sociales.phase_ends_at`
-    // also get the right countdown target.
-    const { error: socialeUpdateError } = await supabaseClient
+    console.log('🔥 Phase advance - Updating to phase:', nextPhase, 'duration:', phaseDurationSeconds);
+
+    // Update Sociale timing and phase directly
+    const { data: updatedSociale, error: socialeUpdateError } = await supabaseClient
       .from('sociales')
       .update({
         current_phase: nextPhase,
@@ -343,23 +491,48 @@ serve(async (req) => {
         updated_at: phaseStartedAt,
       })
       .eq('id', socialeId)
+      .select()
+      .single()
 
     if (socialeUpdateError) throw socialeUpdateError
 
-    const { error: phaseError } = await supabaseClient
-      .from('sociale_round_state')
-      .update({
-        phase: nextPhase,
-        phase_started_at: phaseStartedAt,
-        phase_ends_at: phaseEndsAt,
-        updated_at: phaseStartedAt,
-      })
-      .eq('id', currentRoundState.id)
-
-    if (phaseError) throw phaseError
+    // Update round state if it exists
+    if (currentRoundState) {
+      await supabaseClient
+        .from('sociale_round_state')
+        .update({
+          phase: nextPhase,
+          phase_started_at: phaseStartedAt,
+          phase_ends_at: phaseEndsAt,
+          updated_at: phaseStartedAt,
+        })
+        .eq('id', currentRoundState.id)
+    }
 
     const response: AdvanceSocialeResponse = {
-      sociale,
+      sociale: {
+        id: updatedSociale.id,
+        roomId: updatedSociale.room_id,
+        createdBy: updatedSociale.created_by,
+        title: updatedSociale.title,
+        description: updatedSociale.description,
+        mode: updatedSociale.mode,
+        status: updatedSociale.status,
+        currentRoundIndex: updatedSociale.current_round_index,
+        currentRoundId: updatedSociale.current_round_id,
+        currentPhase: updatedSociale.current_phase,
+        phaseStartedAt: updatedSociale.phase_started_at,
+        phaseEndsAt: updatedSociale.phase_ends_at,
+        totalRounds: updatedSociale.total_rounds,
+        settings: updatedSociale.settings || {},
+        scoreboard: updatedSociale.scoreboard || {},
+        runtimeState: updatedSociale.runtime_state,
+        createdAt: updatedSociale.created_at,
+        updatedAt: updatedSociale.updated_at,
+        startedAt: updatedSociale.started_at,
+        endedAt: updatedSociale.ended_at,
+        legacySessionId: updatedSociale.legacy_session_id,
+      },
       advanced: true,
       nextPhase,
     }

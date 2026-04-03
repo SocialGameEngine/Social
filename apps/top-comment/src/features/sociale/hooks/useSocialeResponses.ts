@@ -6,7 +6,7 @@
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../supabase/client';
-import type { SocialeResponse, SubmitSocialeResponseRequest } from '../../domain/types/sociale.types';
+import type { SocialeResponse, SubmitSocialeResponseRequest } from '../../../domain/types/sociale.types';
 import { mapSocialeResponse, submitSocialeResponse } from '../socialeService';
 
 /**
@@ -170,9 +170,18 @@ export function useSubmitResponse() {
 export function useUpdateResponse() {
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<SocialeResponse> }) => {
+      // Convert the domain type to database-compatible updates
+      const dbUpdates = {
+        ...updates,
+        // Convert value to JSONB-compatible format if present
+        ...(updates.value !== undefined && { 
+          value: updates.value as any // Cast to any to bypass TypeScript Json type checking
+        })
+      };
+      
       const { data, error } = await supabase
         .from('sociale_responses')
-        .update(updates)
+        .update(dbUpdates)
         .eq('id', id)
         .select()
         .single();

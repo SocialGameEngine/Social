@@ -3,7 +3,7 @@
 // =============================================================================
 // Renders the appropriate Sociale phase based on current state
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useSociale } from '../../../features/sociale/hooks/useSociale';
 import { useSocialites } from '../../../features/sociale/hooks/useSocialites';
 import { useRoundResponses } from '../../../features/sociale/hooks/useSocialeResponses';
@@ -15,6 +15,7 @@ import {
   SocialeLobbyPhase,
   SocialeAnswerPhase,
   SocialeVotePhase,
+  SocialeRevealPhase,
   SocialeResultsPhase,
   SocialeEndedPhase
 } from '../SocialePhases';
@@ -47,11 +48,22 @@ export function SocialePhaseRenderer({
   const { data: sociale, isLoading: socialeLoading } = useSociale(socialeId);
   const { data: socialites = [], isLoading: socialitesLoading } = useSocialites(socialeId);
   const currentRoundId = sociale?.currentRoundId;
-  const { data: responses = [], isLoading: responsesLoading } = useRoundResponses(socialeId, currentRoundId);
-  const { data: votes = [], isLoading: votesLoading } = useRoundVotes(socialeId, currentRoundId);
+  const { data: responses = [], isLoading: responsesLoading } = useRoundResponses(socialeId, currentRoundId ?? undefined);
+  const { data: votes = [], isLoading: votesLoading } = useRoundVotes(socialeId, currentRoundId ?? undefined);
   
-  // Add orchestrator for real actions
-  const orchestrator = useSocialeOrchestrator({ socialeId });
+  // Add orchestrator for real actions with auto-advance enabled
+  const orchestrator = useSocialeOrchestrator({ 
+    socialeId, 
+    autoAdvance: true, 
+    enablePauseResume: true 
+  });
+  
+  // Keep orchestrator in sync with current Sociale state
+  useEffect(() => {
+    if (sociale) {
+      orchestrator.updateSociale(sociale);
+    }
+  }, [sociale, orchestrator.updateSociale]);
   
   // Temporary fix: Create basic rounds if none exist
   const createBasicRounds = useCallback(async () => {
@@ -67,7 +79,7 @@ export function SocialePhaseRenderer({
         content: 'Round 1: Icebreaker',
         order_index: 0,
         phase_sequence: ['answer', 'vote', 'results'],
-        settings: { answerSeconds: 60, voteSeconds: 30 }
+        settings: { answerSeconds: 60, voteSeconds: 30, resultsSeconds: 30 }
       },
       {
         id: crypto.randomUUID(),
@@ -76,7 +88,7 @@ export function SocialePhaseRenderer({
         content: 'Round 2: Would You Rather',
         order_index: 1,
         phase_sequence: ['answer', 'vote', 'results'],
-        settings: { answerSeconds: 60, voteSeconds: 30 }
+        settings: { answerSeconds: 60, voteSeconds: 30, resultsSeconds: 30 }
       },
       {
         id: crypto.randomUUID(),
@@ -85,7 +97,7 @@ export function SocialePhaseRenderer({
         content: 'Round 3: This or That',
         order_index: 2,
         phase_sequence: ['answer', 'vote', 'results'],
-        settings: { answerSeconds: 60, voteSeconds: 30 }
+        settings: { answerSeconds: 60, voteSeconds: 30, resultsSeconds: 30 }
       }
     ];
 
@@ -128,6 +140,12 @@ export function SocialePhaseRenderer({
   
   // Simple current round calculation without useMemo
   const currentRound = rounds?.find((r: { id: string }) => r.id === sociale?.currentRoundId) ?? null;
+  
+  // Convert database Json type to expected Record<string, any> type for components
+  const normalizedCurrentRound = currentRound ? {
+    ...currentRound,
+    settings: currentRound.settings as Record<string, any> || {}
+  } : null;
   
   // Simple current socialite without useMemo (for players, not host)
   const currentSocialite = userId ? socialites.find(s => s.userId === userId) ?? null : null;
@@ -196,7 +214,9 @@ export function SocialePhaseRenderer({
       // stuck in the previous phase (e.g. answer timer appears to reset).
       const currentPhase = sociale.currentPhase || 'answer';
       
-      if (currentPhase === 'answer') {
+      // Treat setup and question phases as answer phases for UI purposes
+      // (edge functions note: "UI treats `setup`/`question` as the 'answer-like' phase for timing")
+      if (currentPhase === 'setup' || currentPhase === 'question' || currentPhase === 'answer') {
         return (
           <SocialeAnswerPhase
             sociale={{
@@ -205,7 +225,7 @@ export function SocialePhaseRenderer({
               phaseEndsAt: sociale.phaseEndsAt,
               currentPhase
             }}
-            currentRound={currentRound}
+            currentRound={normalizedCurrentRound}
             socialites={socialites}
             responses={responses}
             currentSocialite={currentSocialite}
@@ -217,6 +237,12 @@ export function SocialePhaseRenderer({
           />
         );
       } else if (currentPhase === 'vote') {
+        // Only show vote phase for topic rounds, skip to reveal for trivia
+        if (normalizedCurrentRound?.type === 'trivia') {
+          // Skip vote phase for trivia, go directly to reveal
+          advancePhase();
+          return null;
+        }
         return (
           <SocialeVotePhase
             sociale={{
@@ -225,12 +251,33 @@ export function SocialePhaseRenderer({
               phaseEndsAt: sociale.phaseEndsAt,
               currentPhase
             }}
-            currentRound={currentRound}
+            currentRound={normalizedCurrentRound}
             socialites={socialites}
             responses={responses}
             votes={votes}
             currentSocialite={currentSocialite}
             onAdvancePhase={advancePhase}
+            isCurrentPlayerHost={isRoomHost}
+            isDark={isDark}
+          />
+        );
+      } else if (currentPhase === 'reveal') {
+        return (
+          <SocialeRevealPhase
+            sociale={{
+              id: sociale.id,
+              currentRoundId: sociale.currentRoundId || undefined,
+              phaseEndsAt: sociale.phaseEndsAt,
+              currentPhase
+            }}
+            currentRound={normalizedCurrentRound}
+            socialites={socialites}
+            responses={responses}
+            votes={votes}
+            currentSocialite={currentSocialite}
+            onAdvancePhase={advancePhase}
+            onSkipPhase={skipPhase}
+            onSkipRound={skipRound}
             isCurrentPlayerHost={isRoomHost}
             isDark={isDark}
           />
@@ -244,7 +291,7 @@ export function SocialePhaseRenderer({
               phaseEndsAt: sociale.phaseEndsAt,
               currentPhase
             }}
-            currentRound={currentRound}
+            currentRound={normalizedCurrentRound}
             socialites={socialites}
             responses={responses}
             votes={votes}
@@ -254,6 +301,10 @@ export function SocialePhaseRenderer({
             isDark={isDark}
           />
         );
+      } else if (currentPhase === 'discussion') {
+        // Skip discussion phase for both topics and trivia, go directly to results
+        advancePhase();
+        return null;
       }
       
       return (
@@ -263,7 +314,7 @@ export function SocialePhaseRenderer({
       );
 
     case 'completed':
-    case 'ended':
+    case 'cancelled':
       return (
         <SocialeEndedPhase
           sociale={{
@@ -363,7 +414,7 @@ export function SocialePhaseRenderer({
               phaseEndsAt: sociale.phaseEndsAt,
               currentPhase
             }}
-            currentRound={currentRound}
+            currentRound={normalizedCurrentRound}
             socialites={socialites}
             responses={responses}
             currentSocialite={currentSocialite}
@@ -383,7 +434,7 @@ export function SocialePhaseRenderer({
               phaseEndsAt: sociale.phaseEndsAt,
               currentPhase
             }}
-            currentRound={currentRound}
+            currentRound={normalizedCurrentRound}
             socialites={socialites}
             responses={responses}
             votes={votes}
@@ -402,7 +453,7 @@ export function SocialePhaseRenderer({
               phaseEndsAt: sociale.phaseEndsAt,
               currentPhase
             }}
-            currentRound={currentRound}
+            currentRound={normalizedCurrentRound}
             socialites={socialites}
             responses={responses}
             votes={votes}
@@ -416,7 +467,7 @@ export function SocialePhaseRenderer({
       break;
 
     case 'completed':
-    case 'ended':
+    case 'cancelled':
       return (
         <SocialeEndedPhase
           sociale={{
