@@ -95,19 +95,53 @@ export function SocialeRevealPhase({
         };
       }
 
+      const responseContent = typeof topResponse.value === 'string' 
+        ? topResponse.value 
+        : typeof topResponse.value === 'object' && topResponse.value !== null
+          ? JSON.stringify(topResponse.value)
+          : String(topResponse.value || 'No content');
+
       return {
         title: 'Most Popular Response',
-        content: topResponse.content,
+        content: responseContent,
         author: socialites.find(s => s.id === topResponse.socialiteId),
         voteCount: maxVotes,
       };
     } else if (currentRound.type === 'trivia') {
-      // For trivia, show the correct answer
+      // For trivia, use snapshot data to show the actual correct answer
+      const snap = currentRound.settings?.snapshot;
+      
+      if (snap && 'multipleChoice' in snap && snap.multipleChoice) {
+        const correctOption = snap.multipleChoice.options?.find(
+          (o: any) => o.id === snap.multipleChoice.correctOptionId
+        );
+        return {
+          title: 'Correct Answer',
+          content: correctOption?.text || 'Unknown option',
+          author: null,
+          voteCount: null,
+          explanation: snap.explanation || null,
+          prompt: snap.prompt || null,
+        };
+      } else if (snap && 'writtenAnswer' in snap && snap.writtenAnswer) {
+        return {
+          title: 'Correct Answer',
+          content: snap.writtenAnswer.correctAnswer || snap.writtenAnswer.acceptedAnswers?.[0] || 'Unknown',
+          author: null,
+          voteCount: null,
+          explanation: snap.explanation || null,
+          prompt: snap.prompt || null,
+        };
+      }
+
+      // Fallback if no snapshot
       return {
         title: 'Correct Answer',
         content: currentRound.content || 'No answer available',
         author: null,
         voteCount: null,
+        explanation: null,
+        prompt: null,
       };
     }
 
@@ -182,6 +216,15 @@ export function SocialeRevealPhase({
             </div>
           )}
 
+          {revealContent.explanation && (
+            <div className={clsx(
+              'mt-4 p-3 rounded-lg text-sm italic',
+              isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'
+            )}>
+              {revealContent.explanation}
+            </div>
+          )}
+
           {revealContent.voteCount !== null && (
             <div className={clsx(
               'mt-4 text-sm',
@@ -208,6 +251,14 @@ export function SocialeRevealPhase({
       {/* Host Controls */}
       {isCurrentPlayerHost && (
         <div className="flex justify-center space-x-4">
+          <Button
+            onClick={onAdvancePhase}
+            variant="primary"
+            size="lg"
+            isDark={isDark}
+          >
+            Show Results
+          </Button>
           {onSkipPhase && (
             <Button
               onClick={onSkipPhase}

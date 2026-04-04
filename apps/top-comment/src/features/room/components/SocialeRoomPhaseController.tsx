@@ -5,7 +5,8 @@ import {
   useCurrentSocialite,
   useMyResponses,
   useMyVotes,
-} from '../../../features/sociale';
+  useCurrentRound,
+} from '../../../features/sociale/hooks';
 import type { Sociale, Socialite } from '../../../domain/types/sociale.types';
 import { useRoomPageContext } from '../context/RoomPageContext';
 import { useActiveSocialeRoundState } from '../hooks/useActiveSocialeRoundState';
@@ -80,6 +81,9 @@ export function SocialeRoomPhaseController({
 
   const currentRoundId =
     activeRoundState?.round_id ?? sociale?.currentRoundId ?? undefined;
+  
+  // Get current round data for settings
+  const currentRound = useCurrentRound(socialeId, currentRoundId);
 
   const { data: myResponses = [] } = useMyResponses(socialeId, currentSocialite?.id);
   const { data: myVotes = [] } = useMyVotes(socialeId, currentSocialite?.id);
@@ -135,6 +139,8 @@ export function SocialeRoomPhaseController({
           hasSubmitted={hasSubmittedAnswer}
           onOpenModal={onOpenModal}
           participants={participants}
+          roundSettings={currentRound?.settings}
+          currentRound={currentRound}
         />
       );
     case 'vote':

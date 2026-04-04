@@ -109,6 +109,19 @@ export function SocialeAnswerPhase({
           </div>
         )}
 
+        {/* Trivia validation error — blocks gameplay */}
+        {currentRound?.type === 'trivia' && currentRound.settings?.validationError && (
+          <div className={clsx(
+            'max-w-2xl mx-auto p-6 rounded-lg text-center border-2',
+            isDark ? 'bg-red-900/30 border-red-700 text-red-300' : 'bg-red-50 border-red-300 text-red-700'
+          )}>
+            <div className="text-3xl mb-2">⚠️</div>
+            <div className="font-bold mb-1">Invalid Trivia Question</div>
+            <div className="text-sm">{currentRound.settings.validationError}</div>
+            <div className="text-xs mt-2 opacity-75">Skip this round to continue.</div>
+          </div>
+        )}
+
         {currentRound?.content ? (
           <div className={clsx(
             'max-w-2xl mx-auto p-4 rounded-lg text-lg',
@@ -122,6 +135,35 @@ export function SocialeAnswerPhase({
             isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-900'
           )}>
             Loading prompt from library...
+          </div>
+        )}
+
+        {/* Trivia MC options display (host sees options without correct marker) */}
+        {currentRound?.type === 'trivia' && currentRound.settings?.format === 'multiple_choice' 
+          && currentRound.settings?.snapshot?.multipleChoice?.options && (
+          <div className="max-w-2xl mx-auto space-y-2 mt-4">
+            {currentRound.settings.snapshot.multipleChoice.options.map((opt: any, i: number) => (
+              <div
+                key={opt.id}
+                className={clsx(
+                  'p-3 rounded-lg text-left',
+                  isDark ? 'bg-slate-700 text-white' : 'bg-white border border-slate-200 text-slate-900'
+                )}
+              >
+                <span className="font-semibold mr-2">{String.fromCharCode(65 + i)}.</span>
+                {opt.text}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Trivia written answer hint */}
+        {currentRound?.type === 'trivia' && currentRound.settings?.format === 'written_answer' && (
+          <div className={clsx(
+            'max-w-2xl mx-auto text-center text-sm mt-2',
+            isDark ? 'text-slate-400' : 'text-slate-500'
+          )}>
+            Players type their answer
           </div>
         )}
       </div>
@@ -259,7 +301,7 @@ export function SocialeAnswerPhase({
             <ul className="space-y-1">
               <li>• Wait for players to submit responses</li>
               <li>• Timer will automatically advance when it ends</li>
-              <li>• You can manually advance to voting phase</li>
+              <li>• You can manually advance to reveal phase</li>
               <li>• Skip phase or round if needed</li>
             </ul>
           </div>
@@ -290,8 +332,8 @@ export function SocialeAnswerPhase({
               {responseCount === 0 
                 ? 'Waiting for responses...' 
                 : responseCount === activePlayers.length 
-                  ? 'All Ready - Start Voting'
-                  : `Advance (${responseCount}/${activePlayers.length} responded)`
+                  ? 'All Ready - Show Reveal'
+                  : `Advance to Reveal (${responseCount}/${activePlayers.length} responded)`
               }
             </Button>
           </div>

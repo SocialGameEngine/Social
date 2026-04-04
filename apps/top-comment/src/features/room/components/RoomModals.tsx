@@ -16,14 +16,16 @@ export interface SocialeModalContext {
   prompt: string;
   roundIndex: number;
   roundType?: string;
+  roundSettings?: any; // Add round settings for MC/written answer
   phaseEndsAt?: string | null;
   paused: boolean;
 }
 
-interface RoomModalsProps {
+export interface RoomModalsProps {
   state: {
     endedModals: Array<'leaderboard' | 'selfie'>;
     activeModal: string | null;
+    socialeModalContext?: SocialeModalContext; // Add Sociale modal context
   };
   session: Session | null;
   sessionId: string | null;
@@ -33,8 +35,6 @@ interface RoomModalsProps {
   closeModal: () => void;
   markSubmitted: (type: 'answer' | 'vote') => void;
   handleLeaveRoom: () => void;
-  /** When set, answer/vote modals use Sociale flows instead of session modals */
-  socialeModalContext?: SocialeModalContext | null;
 }
 
 export function RoomModals({
@@ -47,11 +47,10 @@ export function RoomModals({
   closeModal,
   markSubmitted,
   handleLeaveRoom,
-  socialeModalContext = null,
 }: RoomModalsProps) {
   const { data: socialeVoteResponses = [] } = useRoundResponses(
-    socialeModalContext?.socialeId,
-    state.activeModal === 'vote' ? socialeModalContext?.roundId : undefined
+    state.socialeModalContext?.socialeId,
+    state.activeModal === 'vote' ? state.socialeModalContext?.roundId : undefined
   );
 
   return (
@@ -84,25 +83,26 @@ export function RoomModals({
         />
       )}
 
-      {state.activeModal === 'answer' && socialeModalContext && (
+      {state.activeModal === 'answer' && state.socialeModalContext && (
         <SocialeAnswerModal
           isOpen={true}
           onClose={() => closeModal()}
-          socialeId={socialeModalContext.socialeId}
-          roundId={socialeModalContext.roundId}
-          roundIndex={socialeModalContext.roundIndex}
-          roundType={socialeModalContext.roundType}
-          prompt={socialeModalContext.prompt}
+          socialeId={state.socialeModalContext.socialeId}
+          roundId={state.socialeModalContext.roundId}
+          roundIndex={state.socialeModalContext.roundIndex}
+          roundType={state.socialeModalContext.roundType}
+          prompt={state.socialeModalContext.prompt}
+          roundSettings={state.socialeModalContext.roundSettings}
           onSubmit={() => {
             markSubmitted('answer');
             closeModal();
           }}
-          endsAt={socialeModalContext.phaseEndsAt}
-          paused={socialeModalContext.paused}
+          endsAt={state.socialeModalContext.phaseEndsAt}
+          paused={state.socialeModalContext.paused}
         />
       )}
 
-      {state.activeModal === 'answer' && !socialeModalContext && session && sessionId && (
+      {state.activeModal === 'answer' && !state.socialeModalContext && session && sessionId && (
         <AnswerModal
           isOpen={true}
           onClose={() => closeModal()}
@@ -118,24 +118,24 @@ export function RoomModals({
         />
       )}
 
-      {state.activeModal === 'vote' && socialeModalContext && (
+      {state.activeModal === 'vote' && state.socialeModalContext && (
         <SocialeVoteModal
           isOpen={true}
           onClose={() => closeModal()}
-          socialeId={socialeModalContext.socialeId}
-          roundId={socialeModalContext.roundId}
+          socialeId={state.socialeModalContext.socialeId}
+          roundId={state.socialeModalContext.roundId}
           responses={socialeVoteResponses}
           onSubmit={() => {
             markSubmitted('vote');
             closeModal();
           }}
-          prompt={socialeModalContext.prompt}
-          endsAt={socialeModalContext.phaseEndsAt}
-          paused={socialeModalContext.paused}
+          prompt={state.socialeModalContext.prompt}
+          endsAt={state.socialeModalContext.phaseEndsAt}
+          paused={state.socialeModalContext.paused}
         />
       )}
 
-      {state.activeModal === 'vote' && !socialeModalContext && session && sessionId && (
+      {state.activeModal === 'vote' && !state.socialeModalContext && session && sessionId && (
         <SessionVoteModal
           isOpen={true}
           onClose={() => closeModal()}

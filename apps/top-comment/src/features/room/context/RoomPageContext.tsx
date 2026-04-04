@@ -2,6 +2,7 @@ import { createContext, useContext, useReducer, type ReactNode } from 'react';
 import type { RoomPageState, RoomPageAction, RoomPageContextValue } from '../types';
 import type { Room, RoomMembership } from '../../../shared/types';
 import type { Session } from '../../../shared/types';
+import type { SocialeModalContext } from '../types';
 
 const initialState: RoomPageState = {
   activeModal: null,
@@ -22,10 +23,18 @@ function roomPageReducer(state: RoomPageState, action: RoomPageAction): RoomPage
         activeModal: action.payload,
         error: null,
       };
+    case 'OPEN_SOCIALE_MODAL':
+      return {
+        ...state,
+        activeModal: action.payload.roundType === 'vote' ? 'vote' : 'answer',
+        socialeModalContext: action.payload,
+        error: null,
+      };
     case 'CLOSE_MODAL':
       return {
         ...state,
         activeModal: null,
+        socialeModalContext: undefined,
       };
     case 'SET_SUBMISSION_STATUS':
       return {

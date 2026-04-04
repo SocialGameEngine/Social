@@ -724,6 +724,7 @@ export async function returnSocialeToLobby(socialeId: string): Promise<Sociale> 
 
 /**
  * Populate a round's title and content from its library settings
+ * Only populates if content is missing - preserves pre-generated unique content
  */
 export async function populateRoundContent(roundId: string): Promise<void> {
   // First, get the round with its settings
@@ -735,6 +736,14 @@ export async function populateRoundContent(roundId: string): Promise<void> {
 
   if (roundError || !round) {
     throw new Error(`Failed to fetch round: ${roundError?.message}`);
+  }
+
+  // Skip population if round already has content AND snapshot (for trivia)
+  const hasContent = round.title && round.content;
+  const hasSnapshot = round.type === 'trivia' && round.settings && typeof round.settings === 'object' && 'snapshot' in round.settings && round.settings.snapshot;
+  
+  if (hasContent && (round.type !== 'trivia' || hasSnapshot)) {
+    return;
   }
 
   let title: string | null = null;
@@ -755,27 +764,96 @@ export async function populateRoundContent(roundId: string): Promise<void> {
         content = prompts[0].text;
       }
     } else if (round.type === 'trivia' && round.settings && typeof round.settings === 'object' && 'questionPackId' in round.settings) {
-      // Fetch a question from the trivia pack
+      // Fetch a complete question from the trivia pack with options
       const { data: questions } = await supabase
         .from('trivia_questions')
-        .select('prompt')
+        .select(`
+          prompt,
+          format,
+          explanation,
+          trivia_question_options(id, option_text, is_correct, sort_order),
+          trivia_question_aliases(alias_text, alias_normalized)
+        `)
         .eq('pack_id', (round.settings as any).questionPackId)
         .eq('status', 'published')
         .limit(1);
 
       if (questions && questions.length > 0) {
+        const question = questions[0];
         title = 'Trivia Question';
-        content = questions[0].prompt;
+        content = question.prompt;
+
+        // Create snapshot based on format
+        const settings = round.settings as any;
+        let snapshot: any = null;
+
+        if (question.format === 'multiple_choice' && question.trivia_question_options) {
+          const options = question.trivia_question_options
+            .sort((a: any, b: any) => a.sort_order - b.sort_order)
+            .map((opt: any) => ({
+              id: opt.option_id || opt.id, // Handle both field names
+              text: opt.option_text,
+            }));
+
+          const correctOption = question.trivia_question_options.find((opt: any) => opt.is_correct);
+          
+          snapshot = {
+            prompt: question.prompt,
+            explanation: question.explanation,
+            multipleChoice: {
+              options,
+              correctOptionId: correctOption?.option_id || correctOption?.id || '', // Handle both field names
+            },
+          };
+
+          // Update the round format to match the question
+          settings.format = 'multiple_choice';
+        } else if (question.format === 'written_answer') {
+          const aliases = question.trivia_question_aliases?.map((alias: any) => alias.alias_text) || [];
+          const acceptedAnswers = [question.prompt, ...aliases]; // Include the question itself as an accepted answer
+
+          snapshot = {
+            prompt: question.prompt,
+            explanation: question.explanation,
+            writtenAnswer: {
+              acceptedAnswers,
+              correctAnswer: question.prompt,
+            },
+          };
+
+          // Update the round format to match the question
+          settings.format = 'written_answer';
+        }
+
+        // Update the round with content and snapshot
+        const { error: updateError } = await supabase
+          .from('sociale_rounds')
+          .update({
+            title: title || round.title,
+            content: content || round.content,
+            settings: {
+              ...settings,
+              snapshot,
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', roundId);
+
+        if (updateError) {
+          throw new Error(`Failed to update round with trivia snapshot: ${updateError.message}`);
+        }
+
+        // Don't return early - continue to general update logic for non-trivia rounds
       }
     }
 
-    // Update the round with the fetched content
+    // Update the round with the fetched content only if missing
     if (title || content) {
       const { error: updateError } = await supabase
         .from('sociale_rounds')
         .update({
-          title,
-          content,
+          title: title || round.title,
+          content: content || round.content,
           updated_at: new Date().toISOString(),
         })
         .eq('id', roundId);
@@ -786,7 +864,7 @@ export async function populateRoundContent(roundId: string): Promise<void> {
     }
   } catch (error) {
     console.error(`Failed to populate content for round ${roundId}:`, error);
-    // Set fallback content
+    // Set fallback content only if missing
     const fallbackTitle = round.type === 'topic' ? 'Hot Topic' : 'Trivia Question';
     const fallbackContent = round.type === 'topic' 
       ? 'No prompt available' 
@@ -795,8 +873,8 @@ export async function populateRoundContent(roundId: string): Promise<void> {
     await supabase
       .from('sociale_rounds')
       .update({
-        title: fallbackTitle,
-        content: fallbackContent,
+        title: round.title || fallbackTitle,
+        content: round.content || fallbackContent,
         updated_at: new Date().toISOString(),
       })
       .eq('id', roundId);

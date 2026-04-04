@@ -118,14 +118,48 @@ serve(async (req) => {
       )
     }
 
+    // Get the round to access settings for trivia scoring
+    const { data: currentRound } = await supabaseClient
+      .from('sociale_rounds')
+      .select('type, settings')
+      .eq('id', roundId)
+      .single()
+
+    const roundType = currentRound?.type || 'prompt'
+    const roundSettings = (currentRound?.settings || {}) as any
+
     // Calculate score based on response type
     let scoreAwarded = 0
-    if (type === 'trivia' && isCorrect) {
-      scoreAwarded = 10 // Base score for correct trivia
+    let computedIsCorrect = isCorrect || false
+
+    if (roundType === 'trivia' && roundSettings?.snapshot) {
+      const snap = roundSettings.snapshot
+      const format = roundSettings.format
+      const pointsCorrect = roundSettings.pointsCorrect ?? 100
+
+      if (format === 'multiple_choice' && snap.multipleChoice) {
+        // MC: value should be the selected option ID string
+        const selectedOptionId = typeof value === 'string' ? value : String(value)
+        computedIsCorrect = selectedOptionId === snap.multipleChoice.correctOptionId
+        scoreAwarded = computedIsCorrect ? pointsCorrect : 0
+      } else if (format === 'written_answer' && snap.writtenAnswer) {
+        // Written answer: normalize and compare against acceptedAnswers
+        const submittedAnswer = (typeof value === 'string' ? value : String(value)).trim().toLowerCase()
+        const acceptedAnswers: string[] = snap.writtenAnswer.acceptedAnswers || []
+        computedIsCorrect = acceptedAnswers.some(
+          (accepted: string) => accepted.trim().toLowerCase() === submittedAnswer
+        )
+        scoreAwarded = computedIsCorrect ? pointsCorrect : 0
+      } else {
+        // Fallback for trivia without proper snapshot
+        scoreAwarded = computedIsCorrect ? 10 : 0
+      }
+    } else if (type === 'trivia' && isCorrect) {
+      scoreAwarded = 10 // Legacy fallback
     } else if (type === 'prompt') {
-      scoreAwarded = 5 // Base score for prompt response
+      scoreAwarded = 5
     } else if (type === 'topic') {
-      scoreAwarded = 3 // Base score for topic response
+      scoreAwarded = 3
     }
 
     // Fetch most recent existing response (if any).
@@ -149,7 +183,7 @@ serve(async (req) => {
       socialite_id: socialiteId,
       type,
       value,
-      is_correct: isCorrect || false,
+      is_correct: computedIsCorrect,
       score_awarded: scoreAwarded,
       updated_at: nowIso,
     }
@@ -222,7 +256,7 @@ serve(async (req) => {
         socialite_id: socialiteId,
         type,
         value,
-        is_correct: isCorrect || false,
+        is_correct: computedIsCorrect,
         score_awarded: scoreAwarded,
         created_at: nowIso,
         updated_at: nowIso,

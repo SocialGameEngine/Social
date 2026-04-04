@@ -3,6 +3,7 @@ import { SessionTimer } from '@social/ui';
 import { usePhaseTimer } from '../../../../shared/hooks';
 import { getIsMainEventModeFromSociale } from '../../components/PhaseController';
 import { buildSocialeTimerSessionShim } from '../../utils/socialeTimerShim';
+import { useRoomPageContext } from '../../context/RoomPageContext';
 import type { Sociale } from '../../../../domain/types/sociale.types';
 import type { SocialeGameParticipant } from '../../components/layout/SocialeGameButton';
 
@@ -12,6 +13,8 @@ interface SocialeAnswerPhaseRoomProps {
   onOpenModal?: (type: 'answer' | 'vote') => void;
   participants: SocialeGameParticipant[];
   phaseEndsAt?: string | null;
+  roundSettings?: any; // Add round settings
+  currentRound?: any; // Add current round data
 }
 
 export function SocialeAnswerPhaseRoom({
@@ -20,11 +23,35 @@ export function SocialeAnswerPhaseRoom({
   onOpenModal,
   participants,
   phaseEndsAt,
+  roundSettings,
+  currentRound,
 }: SocialeAnswerPhaseRoomProps) {
+  const { dispatch } = useRoomPageContext();
   const isMainEventMode = getIsMainEventModeFromSociale(sociale);
   const timerShim = buildSocialeTimerSessionShim(sociale, 'answer');
   const { totalSeconds } = usePhaseTimer({ session: timerShim });
   const isPaused = sociale.status === 'paused';
+
+  const handleOpenModal = () => {
+    if (sociale.currentRoundId && sociale.currentRoundIndex !== undefined) {
+      dispatch({
+        type: 'OPEN_SOCIALE_MODAL',
+        payload: {
+          socialeId: sociale.id,
+          roundId: sociale.currentRoundId,
+          prompt: currentRound?.content || 'Question', // Use round content, not snapshot
+          roundIndex: sociale.currentRoundIndex || 0,
+          roundType: roundSettings?.type,
+          roundSettings,
+          phaseEndsAt,
+          paused: isPaused,
+        },
+      });
+    } else {
+      // Fallback to old behavior if no round data
+      onOpenModal?.('answer');
+    }
+  };
 
   return (
     <div className="w-full mb-8">
@@ -33,7 +60,7 @@ export function SocialeAnswerPhaseRoom({
         participants={participants}
         isMainEventMode={isMainEventMode}
         phase="answer"
-        onClick={() => onOpenModal?.('answer')}
+        onClick={handleOpenModal}
       />
       <SessionTimer
         endTime={phaseEndsAt ?? undefined}

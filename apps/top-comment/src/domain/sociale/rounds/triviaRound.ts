@@ -48,7 +48,7 @@ function createInitialSettings(): TriviaRoundSettings {
 }
 
 /**
- * Validate trivia round settings
+ * Validate trivia round settings (Phase 2 rules)
  */
 function validateSettings(settings: TriviaRoundSettings): RoundSettingsValidation {
   const errors: string[] = [];
@@ -57,17 +57,52 @@ function validateSettings(settings: TriviaRoundSettings): RoundSettingsValidatio
   if (!settings.format) {
     errors.push('Trivia format is required');
   }
+  if (settings.format !== 'multiple_choice' && settings.format !== 'written_answer') {
+    errors.push(`Invalid trivia format: ${settings.format}`);
+  }
   if (settings.pointsCorrect < 0) {
     errors.push('Points for correct answer must be non-negative');
-  }
-  if (settings.speedBonusEnabled && !settings.maxSpeedBonus) {
-    warnings.push('Speed bonus enabled but max bonus not set');
   }
   if (settings.answerSeconds && settings.answerSeconds < 5) {
     errors.push('Answer time must be at least 5 seconds');
   }
-  if (settings.format === 'multiple_choice' && !settings.snapshot?.options?.length) {
-    warnings.push('Multiple choice format requires options in snapshot');
+
+  // Snapshot validation
+  const snap = settings.snapshot;
+  if (snap) {
+    if (!snap.prompt || snap.prompt.trim().length === 0) {
+      errors.push('Trivia question prompt is empty');
+    }
+
+    if (settings.format === 'multiple_choice') {
+      const mc = 'multipleChoice' in snap ? snap.multipleChoice : undefined;
+      if (!mc) {
+        errors.push('Multiple choice snapshot missing multipleChoice data');
+      } else {
+        if (!mc.options || mc.options.length < 2) {
+          errors.push('Multiple choice requires at least 2 options');
+        }
+        if (!mc.correctOptionId) {
+          errors.push('Multiple choice has no correct option');
+        } else if (mc.options && !mc.options.some(o => o.id === mc.correctOptionId)) {
+          errors.push('Correct option ID does not match any option');
+        }
+      }
+    } else if (settings.format === 'written_answer') {
+      const wa = 'writtenAnswer' in snap ? snap.writtenAnswer : undefined;
+      if (!wa) {
+        errors.push('Written answer snapshot missing writtenAnswer data');
+      } else {
+        if (!wa.acceptedAnswers || wa.acceptedAnswers.length === 0) {
+          errors.push('Written answer has no accepted answers');
+        }
+        if (!wa.correctAnswer || wa.correctAnswer.trim().length === 0) {
+          errors.push('Written answer has no canonical correct answer');
+        }
+      }
+    }
+  } else {
+    warnings.push('No snapshot data — trivia question may not render correctly');
   }
 
   return {

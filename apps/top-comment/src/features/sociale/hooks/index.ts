@@ -8,6 +8,7 @@ export { useSociale, useSocialesByRoom, useCreateSociale, useUpdateSociale, useD
 export { useSocialites, useCurrentSocialite, useJoinSociale, useUpdateSocialite, useLeaveSociale } from './useSocialites';
 export { useSocialeResponses, useRoundResponses, useMyResponses, useSubmitResponse, useUpdateResponse, useDeleteResponse } from './useSocialeResponses';
 export { useSocialeVotes, useRoundVotes, useMyVotes, useSubmitVote, useUpdateVote, useDeleteVote } from './useSocialeVotes';
+export { useSocialeRounds, useCurrentRound } from './useSocialeRounds';
 
 // Re-export for convenience
 export type {

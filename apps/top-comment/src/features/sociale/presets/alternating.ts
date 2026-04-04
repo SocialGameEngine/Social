@@ -5,11 +5,12 @@
 
 import type { SocialeRound } from '../../../domain/types/sociale.types';
 import { createInitialSettings } from '../../../domain/sociale/roundRegistry';
+import { supabase } from '../../../supabase/client';
 
 /**
  * Generate alternating topic/trivia rounds for a Sociale
  */
-export function generateAlternatingRounds(count: number, selectedLibraries?: string[], availableLibraries?: any[]): SocialeRound[] {
+export async function generateAlternatingRounds(count: number, selectedLibraries?: string[], availableLibraries?: any[]): Promise<SocialeRound[]> {
   // Filter selected libraries by type using the provided libraries
   const promptLibs = selectedLibraries?.filter(libId => {
     const lib = availableLibraries?.find(l => l.id === libId);
@@ -20,6 +21,28 @@ export function generateAlternatingRounds(count: number, selectedLibraries?: str
     const lib = availableLibraries?.find(l => l.id === libId);
     return lib?.type === 'trivia';
   }) || [];
+  
+  // Pre-detect formats for all trivia libraries to avoid repeated queries
+  const triviaFormats = new Map<string, 'multiple_choice' | 'written_answer'>();
+  
+  for (const triviaLibId of triviaLibs) {
+    let detectedFormat: 'multiple_choice' | 'written_answer' = 'written_answer';
+    try {
+      const { data: questions } = await supabase
+        .from('trivia_questions')
+        .select('format')
+        .eq('pack_id', triviaLibId)
+        .eq('status', 'published')
+        .limit(1);
+      
+      if (questions && questions.length > 0 && questions[0].format) {
+        detectedFormat = questions[0].format as 'multiple_choice' | 'written_answer';
+      }
+    } catch (error) {
+      console.warn(`Failed to detect trivia format for library ${triviaLibId}, defaulting to written_answer:`, error);
+    }
+    triviaFormats.set(triviaLibId, detectedFormat);
+  }
   
   return Array.from({ length: count }, (_, index) => {
     // If we only have trivia libraries, make all rounds trivia
@@ -52,11 +75,12 @@ export function generateAlternatingRounds(count: number, selectedLibraries?: str
     } else if (type === 'trivia' && triviaLibs.length > 0) {
       // For trivia rounds, use question pack system
       const questionPackId = triviaLibs[index % triviaLibs.length]; // Use selected trivia library
+      const detectedFormat = triviaFormats.get(questionPackId) || 'written_answer';
       
       settings = {
         ...createInitialSettings(type),
         questionPackId, // Use question pack instead of prompt library
-        format: 'written_answer' as const,
+        format: detectedFormat,
         difficulty: 'easy' as const,
         pointsCorrect: 100,
         pointsPartial: 50,

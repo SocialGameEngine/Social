@@ -93,7 +93,113 @@ serve(async (req) => {
 
     // Create rounds if provided
     if (rounds && rounds.length > 0) {
-      const roundsToCreate = rounds.map((round, index) => ({
+      // Create snapshots for all trivia rounds BEFORE inserting
+      const roundsWithSnapshots = await Promise.all(
+        rounds.map(async (round, index) => {
+          let finalRound = { ...round }
+          
+          if (round.type === 'trivia') {
+            const roundSettings = round.settings as any
+            const questionPackId = roundSettings?.questionPackId
+            
+            if (questionPackId && body.previewQuestions) {
+              // Use preview questions for exact order matching
+              const previewQuestion = body.previewQuestions.find(pq => pq.roundIndex === index)
+              
+              if (previewQuestion) {
+                console.log('🔥 Using preview question for round index:', index, 'prompt:', previewQuestion.prompt.substring(0, 50))
+                
+                // Fetch the complete question data for this preview question
+                const { data: questions, error: questionError } = await supabaseClient
+                  .from('trivia_questions')
+                  .select(`
+                    id,
+                    prompt,
+                    explanation,
+                    format,
+                    status,
+                    trivia_question_options (
+                      option_id,
+                      option_text,
+                      is_correct,
+                      sort_order
+                    )
+                  `)
+                  .eq('pack_id', questionPackId)
+                  .eq('prompt', previewQuestion.prompt)
+                  .eq('status', 'published')
+                  .limit(1)
+
+                if (questionError) {
+                  console.error('Failed to fetch preview question:', questionError)
+                  return finalRound
+                }
+
+                if (!questions || questions.length === 0) {
+                  console.error('Preview question not found in pack:', previewQuestion.prompt)
+                  return finalRound
+                }
+
+                const selectedQuestion = questions[0]
+                console.log('🔥 Found preview question:', { id: selectedQuestion.id, format: selectedQuestion.format })
+
+                // Create snapshot based on format
+                let snapshot = null
+
+                if (selectedQuestion.format === 'multiple_choice') {
+                  const options = selectedQuestion.trivia_question_options
+                    ?.sort((a: any, b: any) => a.sort_order - b.sort_order)
+                    .map((opt: any) => ({
+                      id: opt.option_id,
+                      text: opt.option_text,
+                    })) || []
+
+                  const correctOption = selectedQuestion.trivia_question_options?.find((opt: any) => opt.is_correct)
+                  
+                  if (options.length >= 2 && correctOption) {
+                    snapshot = {
+                      prompt: selectedQuestion.prompt,
+                      explanation: selectedQuestion.explanation || null,
+                      multipleChoice: {
+                        options,
+                        correctOptionId: correctOption.option_id,
+                      },
+                    }
+                  }
+                } else if (selectedQuestion.format === 'written_answer') {
+                  snapshot = {
+                    prompt: selectedQuestion.prompt,
+                    explanation: selectedQuestion.explanation || null,
+                    writtenAnswer: {
+                      acceptedAnswers: [],
+                    },
+                  }
+                }
+
+                if (snapshot) {
+                  console.log('✅ Created snapshot from preview question for round index:', index, 'format:', selectedQuestion.format)
+                  
+                  // Update the round with snapshot and correct content
+                  finalRound = {
+                    ...finalRound,
+                    settings: {
+                      ...roundSettings,
+                      format: selectedQuestion.format as string,
+                      snapshot,
+                    },
+                    content: selectedQuestion.prompt, // Update content with the question
+                  }
+                }
+              }
+            }
+          }
+          
+          return finalRound
+        })
+      )
+
+      // Now insert all rounds with their snapshots in one atomic operation
+      const roundsToCreate = roundsWithSnapshots.map((round, index) => ({
         sociale_id: sociale.id,
         order_index: index,
         type: round.type,
@@ -109,6 +215,8 @@ serve(async (req) => {
         .insert(roundsToCreate)
 
       if (roundsError) throw roundsError
+
+      console.log('✅ Successfully inserted all rounds with snapshots:', roundsToCreate.length)
 
       // Prepare prompt decks for topic and prompt rounds asynchronously
       const promptLibraryIds = new Set<string>()

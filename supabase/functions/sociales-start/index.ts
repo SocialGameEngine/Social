@@ -183,6 +183,141 @@ serve(async (req) => {
       }
     }
 
+    // Handle trivia rounds - create snapshot for first trivia round
+    if (firstRound.type === 'trivia') {
+      console.log('🔥 Checking trivia round for snapshot creation:', firstRound.id);
+      const roundSettings = firstRound.settings as any;
+      const questionPackId = roundSettings?.questionPackId;
+      const hasSnapshot = roundSettings?.snapshot;
+      
+      console.log('🔥 Trivia round data:', {
+        roundId: firstRound.id,
+        questionPackId,
+        hasSnapshot,
+        hasSettings: !!roundSettings,
+        settingsKeys: roundSettings ? Object.keys(roundSettings) : []
+      });
+      
+      // Only create snapshot if missing, regardless of content/title
+      if (!hasSnapshot && questionPackId) {
+        console.log('🔥 Loading trivia question for first round from pack:', questionPackId)
+        
+        // Fetch a question from the pack
+        const { data: questions, error: questionError } = await supabaseClient
+          .from('trivia_questions')
+          .select(`
+            id,
+            prompt,
+            format,
+            explanation,
+            trivia_question_options(id, option_text, is_correct, sort_order),
+            trivia_question_aliases(alias_text, alias_normalized)
+          `)
+          .eq('pack_id', questionPackId)
+          .eq('status', 'published')
+          .limit(1)
+
+        if (questionError) {
+          console.error('Failed to fetch trivia question:', questionError)
+        } else if (questions && questions.length > 0) {
+          const q = questions[0]
+          console.log('🔥 Found trivia question:', q.prompt, 'format:', q.format)
+          
+          let snapshot: any = null
+          let validationError: string | null = null
+          const detectedFormat = q.format || 'written_answer'
+
+          if (detectedFormat === 'multiple_choice') {
+            const options = q.trivia_question_options
+              ?.sort((a: any, b: any) => a.sort_order - b.sort_order)
+              .map((opt: any) => ({
+                id: opt.option_id, // Use option_id, not id
+                text: opt.option_text,
+              })) || []
+
+            const correctOption = q.trivia_question_options?.find((opt: any) => opt.is_correct)
+            
+            if (options.length < 2) {
+              validationError = 'Multiple choice question requires at least 2 options'
+            } else if (!correctOption) {
+              validationError = 'Multiple choice question has no correct option'
+            } else {
+              snapshot = {
+                prompt: q.prompt,
+                explanation: q.explanation || null,
+                multipleChoice: {
+                  options,
+                  correctOptionId: correctOption.option_id, // Use option_id, not id
+                },
+              }
+            }
+          } else if (detectedFormat === 'written_answer') {
+            const aliases = q.trivia_question_aliases?.map((alias: any) => alias.alias_text) || []
+            const acceptedAnswers: string[] = [q.prompt, ...aliases]
+
+            if (!q.prompt || q.prompt.trim().length === 0) {
+              validationError = 'Written answer question has empty prompt'
+            } else if (acceptedAnswers.length === 0) {
+              validationError = 'Written answer question has no accepted answers'
+            } else {
+              snapshot = {
+                prompt: q.prompt,
+                explanation: q.explanation || null,
+                writtenAnswer: {
+                  acceptedAnswers,
+                  correctAnswer: acceptedAnswers[0],
+                },
+              }
+            }
+          }
+
+          if (validationError) {
+            console.error('🚫 Trivia validation failed:', validationError)
+            const updatedSettings = {
+              ...roundSettings,
+              format: detectedFormat,
+              questionId: q.id,
+              validationError,
+            }
+            await supabaseClient
+              .from('sociale_rounds')
+              .update({ 
+                settings: updatedSettings,
+                title: 'Trivia Question',
+                content: 'Invalid question - see settings',
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', firstRound.id)
+            firstRound.settings = updatedSettings
+            firstRound.title = 'Trivia Question'
+            firstRound.content = 'Invalid question - see settings'
+          } else if (snapshot) {
+            const updatedSettings = {
+              ...roundSettings,
+              format: detectedFormat,
+              questionId: q.id,
+              snapshot,
+            }
+            await supabaseClient
+              .from('sociale_rounds')
+              .update({
+                settings: updatedSettings,
+                title: q.prompt.substring(0, 100),
+                content: q.prompt,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', firstRound.id)
+            firstRound.settings = updatedSettings
+            firstRound.title = q.prompt.substring(0, 100)
+            firstRound.content = q.prompt
+            console.log('✅ Built trivia snapshot for first round:', firstRound.id, 'format:', detectedFormat)
+          }
+        } else {
+          console.error('No published trivia questions found for pack:', questionPackId)
+        }
+      }
+    }
+
     // Start the Sociale
     const nowIso = new Date().toISOString()
     const phaseDurationSeconds =

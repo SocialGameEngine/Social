@@ -287,6 +287,9 @@ serve(async (req: Request) => {
       )
     }
 
+    // NOTE: Trivia snapshots are now created in sociales-create, not here
+    // This ensures all rounds have their snapshots ready before the Sociale starts
+
     // ATOMIC OPERATION: Update room with current Sociale pointer LAST
     // This ensures all Sociale data is committed before the room pointer changes
     console.log('About to update room pointer - all Sociale data should be committed:', {

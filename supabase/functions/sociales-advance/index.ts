@@ -168,14 +168,8 @@ serve(async (req) => {
 
     // If targetPhase is 'next', calculate the next phase
     if (effectiveTargetPhase === 'next') {
-      // Get current round first
-      const { data: currentRound, error: roundError } = await supabaseClient
-        .from('sociale_rounds')
-        .select('*')
-        .eq('id', currentRoundState.round_id)
-        .single()
-
-      if (roundError || !currentRound) {
+      // Use currentRound that was already fetched above (lines 153-164)
+      if (!currentRound) {
         return new Response(
           JSON.stringify({ error: 'Current round not found' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -193,17 +187,17 @@ serve(async (req) => {
         // Use default phase sequence based on round type
         switch (currentRound.type || 'prompt') {
           case 'trivia':
-            phases = ['answer', 'vote', 'results', 'reveal']
+            phases = ['answer', 'reveal', 'results']
             break
           case 'topic':
-            phases = ['answer', 'vote', 'results', 'reveal', 'discussion']
+            phases = ['answer', 'reveal', 'results']
             break
           case 'poll':
             phases = ['poll', 'results', 'reveal']
             break
           case 'prompt':
           default:
-            phases = ['answer', 'vote', 'results', 'reveal', 'discussion']
+            phases = ['answer', 'reveal', 'results']
             break
         }
         console.log('🔥 Phase advance - Using default phase sequence for round type:', currentRound.type, phases);
@@ -270,7 +264,8 @@ serve(async (req) => {
             )
           }
 
-          // Assign prompt from pre-loaded deck for topic and prompt rounds if content is empty
+          // Assign prompt from pre-loaded deck for topic and prompt rounds ONLY if content is missing
+          // Never overwrite content that was set during preview/create
           if ((nextRound.type === 'topic' || nextRound.type === 'prompt') && (!nextRound.content || !nextRound.title)) {
             const roundSettings = nextRound.settings as any
             const promptLibraryId = roundSettings?.promptLibraryId || sociale.selected_libraries?.[0]
@@ -325,6 +320,143 @@ serve(async (req) => {
 
               } else {
                 console.error('No prompt deck available for library:', promptLibraryId)
+              }
+            }
+          }
+
+          // Fetch trivia question data and build snapshot for trivia rounds ONLY if snapshot is missing
+          // Never overwrite content that was set during preview/create
+          if (nextRound.type === 'trivia') {
+            const roundSettings = nextRound.settings as any
+            const questionPackId = roundSettings?.questionPackId
+
+            // Only fetch if we don't have content and don't have a snapshot
+            if (questionPackId && !roundSettings?.snapshot && (!nextRound.content || !nextRound.title)) {
+              // Add timeout to prevent resource exhaustion
+              const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Trivia question fetch timeout')), 5000)
+              )
+              
+              // Fetch complete question data including options and accepted_answers
+              // Add limits to prevent resource exhaustion
+              const fetchPromise = supabaseClient
+                .from('trivia_questions')
+                .select(`
+                  id,
+                  prompt,
+                  format,
+                  explanation,
+                  accepted_answers,
+                  trivia_question_options(
+                    option_id,
+                    option_text,
+                    is_correct,
+                    sort_order
+                  ).limit(10)
+                `)
+                .eq('pack_id', questionPackId)
+                .eq('status', 'published')
+                .limit(1)
+
+              let questions, questionError
+              try {
+                const result = await Promise.race([fetchPromise, timeoutPromise]) as any
+                questions = result.data
+                questionError = result.error
+              } catch (timeoutError) {
+                console.error('Trivia question fetch timed out:', timeoutError)
+                questionError = { message: 'Fetch timeout' }
+              }
+
+              if (questionError) {
+                console.error('Failed to fetch trivia question:', questionError)
+              } else if (questions && questions.length > 0) {
+                const q = questions[0]
+                const detectedFormat = q.format || 'written_answer'
+                let snapshot: any = null
+                let validationError: string | null = null
+
+                if (detectedFormat === 'multiple_choice') {
+                  const options = (q.trivia_question_options || [])
+                    .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                    .map((opt: any) => ({
+                      id: opt.option_id, // Use option_id, not id
+                      text: opt.option_text,
+                    }))
+                  const correctOptions = options.filter((o: any) => o.is_correct)
+                  
+                  if (options.length < 2) {
+                    validationError = 'Multiple choice requires at least 2 options'
+                  } else if (correctOptions.length !== 1) {
+                    validationError = 'Multiple choice requires exactly 1 correct option'
+                  } else {
+                    snapshot = {
+                      prompt: q.prompt,
+                      explanation: q.explanation || null,
+                      multipleChoice: {
+                        options,
+                        correctOptionId: correctOptions[0].id, // Now using the correct option_id
+                      },
+                    }
+                  }
+                } else if (detectedFormat === 'written_answer') {
+                  const acceptedAnswers: string[] = q.accepted_answers || []
+
+                  if (!q.prompt || q.prompt.trim().length === 0) {
+                    validationError = 'Written answer question has empty prompt'
+                  } else if (acceptedAnswers.length === 0) {
+                    validationError = 'Written answer question has no accepted answers'
+                  } else {
+                    snapshot = {
+                      prompt: q.prompt,
+                      explanation: q.explanation || null,
+                      writtenAnswer: {
+                        acceptedAnswers,
+                        correctAnswer: acceptedAnswers[0],
+                      },
+                    }
+                  }
+                } else {
+                  validationError = `Unknown trivia format: ${detectedFormat}`
+                }
+
+                if (validationError) {
+                  console.error('🚫 Trivia validation failed:', validationError)
+                  // Store the error in settings so UI can display it
+                  const updatedSettings = {
+                    ...roundSettings,
+                    format: detectedFormat,
+                    questionId: q.id,
+                    validationError,
+                  }
+                  await supabaseClient
+                    .from('sociale_rounds')
+                    .update({ settings: updatedSettings, updated_at: new Date().toISOString() })
+                    .eq('id', nextRound.id)
+                  nextRound.settings = updatedSettings
+                } else if (snapshot) {
+                  const updatedSettings = {
+                    ...roundSettings,
+                    format: detectedFormat,
+                    questionId: q.id,
+                    snapshot,
+                  }
+                  await supabaseClient
+                    .from('sociale_rounds')
+                    .update({
+                      settings: updatedSettings,
+                      title: q.prompt.substring(0, 100),
+                      content: q.prompt,
+                      updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', nextRound.id)
+                  nextRound.settings = updatedSettings
+                  nextRound.title = q.prompt.substring(0, 100)
+                  nextRound.content = q.prompt
+                  console.log('✅ Built trivia snapshot for round:', nextRound.id, 'format:', detectedFormat)
+                }
+              } else {
+                console.error('No published trivia questions found for pack:', questionPackId)
               }
             }
           }

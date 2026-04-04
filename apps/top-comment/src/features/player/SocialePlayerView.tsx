@@ -126,6 +126,17 @@ export function SocialePlayerView({
           />
         );
 
+      case 'reveal':
+        return (
+          <SocialePlayerReveal
+            currentRound={currentRound}
+            currentSocialite={currentSocialite}
+            responses={responses}
+            votes={votes}
+            isDark={isDark}
+          />
+        );
+
       case 'results':
         return (
           <SocialePlayerResults
@@ -309,7 +320,7 @@ function SocialePlayerLobby({
   );
 }
 
-// Player Answer View
+// Player Answer View — format-aware for trivia (MC + written answer)
 function SocialePlayerAnswer({
   currentRound,
   currentSocialite,
@@ -324,16 +335,25 @@ function SocialePlayerAnswer({
   isDark: boolean;
 }) {
   const [response, setResponse] = useState('');
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+
+  const isTriviaRound = currentRound?.type === 'trivia';
+  const triviaFormat = currentRound?.settings?.format;
+  const snapshot = currentRound?.settings?.snapshot;
+  const validationError = currentRound?.settings?.validationError;
+  const isMC = isTriviaRound && triviaFormat === 'multiple_choice';
+  const isWrittenAnswer = isTriviaRound && triviaFormat === 'written_answer';
 
   const handleSubmit = () => {
-    // For trivia rounds, allow very short answers (even single characters)
-    // For other rounds, require some content
-    const trimmedResponse = response.trim();
-    const isTriviaRound = currentRound?.type === 'trivia';
-    
-    if (isTriviaRound ? trimmedResponse.length > 0 : trimmedResponse.length > 0) {
-      onSubmitResponse(trimmedResponse);
-      setResponse('');
+    if (isMC && selectedOptionId) {
+      onSubmitResponse(selectedOptionId);
+      setSelectedOptionId(null);
+    } else {
+      const trimmedResponse = response.trim();
+      if (trimmedResponse.length > 0) {
+        onSubmitResponse(trimmedResponse);
+        setResponse('');
+      }
     }
   };
 
@@ -346,7 +366,7 @@ function SocialePlayerAnswer({
             'text-2xl font-bold',
             isDark ? 'text-white' : 'text-slate-900'
           )}>
-            Response Submitted!
+            {isTriviaRound ? 'Answer Submitted!' : 'Response Submitted!'}
           </h2>
           <p className={clsx(
             'text-lg',
@@ -359,9 +379,39 @@ function SocialePlayerAnswer({
     );
   }
 
+  // Show validation error for invalid trivia questions
+  if (isTriviaRound && validationError) {
+    return (
+      <Card className="p-6" isDark={isDark}>
+        <div className="text-center space-y-4">
+          <div className="text-5xl">⚠️</div>
+          <h2 className={clsx(
+            'text-xl font-bold',
+            isDark ? 'text-red-300' : 'text-red-700'
+          )}>
+            Invalid Question
+          </h2>
+          <p className={clsx(
+            'text-sm',
+            isDark ? 'text-slate-400' : 'text-slate-600'
+          )}>
+            {validationError}
+          </p>
+          <p className={clsx(
+            'text-xs',
+            isDark ? 'text-slate-500' : 'text-slate-500'
+          )}>
+            The host will skip this round.
+          </p>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-6" isDark={isDark}>
       <div className="space-y-6">
+        {/* Question prompt */}
         <div className="text-center">
           {currentRound?.title ? (
             <h2 className={clsx(
@@ -396,38 +446,91 @@ function SocialePlayerAnswer({
           )}
         </div>
 
-        <div className="space-y-4">
-          <label className={clsx(
-            'block text-sm font-medium',
-            isDark ? 'text-slate-300' : 'text-slate-700'
-          )}>
-            Your Response
-          </label>
-          
-          <textarea
-            value={response}
-            onChange={(e) => setResponse(e.target.value)}
-            placeholder="Type your response here..."
-            className={clsx(
-              'w-full p-3 rounded-lg border resize-none',
-              'focus:outline-none focus:ring-2 focus:ring-cyan-500',
-              isDark 
-                ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-400'
-                : 'bg-white border-slate-300 text-slate-900 placeholder-slate-500'
+        {/* Multiple choice options */}
+        {isMC && snapshot?.multipleChoice?.options ? (
+          <div className="space-y-3">
+            {snapshot.multipleChoice.options.map((opt: any, i: number) => (
+              <button
+                key={opt.id}
+                onClick={() => setSelectedOptionId(opt.id)}
+                className={clsx(
+                  'w-full p-4 rounded-lg text-left transition-colors border-2',
+                  selectedOptionId === opt.id
+                    ? isDark
+                      ? 'bg-cyan-900/50 border-cyan-500 text-white'
+                      : 'bg-cyan-50 border-cyan-500 text-slate-900'
+                    : isDark
+                      ? 'bg-slate-800 border-slate-700 text-white hover:border-slate-500'
+                      : 'bg-white border-slate-200 text-slate-900 hover:border-slate-400'
+                )}
+              >
+                <span className="font-semibold mr-2">{String.fromCharCode(65 + i)}.</span>
+                {opt.text}
+              </button>
+            ))}
+            
+            <Button
+              onClick={handleSubmit}
+              variant="primary"
+              size="lg"
+              className="w-full"
+              disabled={!selectedOptionId}
+            >
+              {selectedOptionId ? 'Lock In Answer' : 'Select an option'}
+            </Button>
+          </div>
+        ) : (
+          /* Written answer or non-trivia text input */
+          <div className="space-y-4">
+            <label className={clsx(
+              'block text-sm font-medium',
+              isDark ? 'text-slate-300' : 'text-slate-700'
+            )}>
+              {isWrittenAnswer ? 'Your Answer' : 'Your Response'}
+            </label>
+            
+            {isWrittenAnswer ? (
+              <input
+                type="text"
+                value={response}
+                onChange={(e) => setResponse(e.target.value)}
+                placeholder="Type your answer..."
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
+                className={clsx(
+                  'w-full p-3 rounded-lg border',
+                  'focus:outline-none focus:ring-2 focus:ring-cyan-500',
+                  isDark 
+                    ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-400'
+                    : 'bg-white border-slate-300 text-slate-900 placeholder-slate-500'
+                )}
+              />
+            ) : (
+              <textarea
+                value={response}
+                onChange={(e) => setResponse(e.target.value)}
+                placeholder="Type your response here..."
+                className={clsx(
+                  'w-full p-3 rounded-lg border resize-none',
+                  'focus:outline-none focus:ring-2 focus:ring-cyan-500',
+                  isDark 
+                    ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-400'
+                    : 'bg-white border-slate-300 text-slate-900 placeholder-slate-500'
+                )}
+                rows={4}
+              />
             )}
-            rows={4}
-          />
-          
-          <Button
-            onClick={handleSubmit}
-            variant="primary"
-            size="lg"
-            className="w-full"
-            disabled={!response.trim()}
-          >
-            Submit Response
-          </Button>
-        </div>
+            
+            <Button
+              onClick={handleSubmit}
+              variant="primary"
+              size="lg"
+              className="w-full"
+              disabled={!response.trim()}
+            >
+              {isWrittenAnswer ? 'Submit Answer' : 'Submit Response'}
+            </Button>
+          </div>
+        )}
       </div>
     </Card>
   );
@@ -531,7 +634,7 @@ function SocialePlayerVote({
                       'text-lg',
                       isDark ? 'text-white' : 'text-slate-900'
                     )}>
-                      {response.content}
+                      {typeof response.value === 'string' ? response.value : JSON.stringify(response.value)}
                     </p>
                   </div>
                   
@@ -564,6 +667,128 @@ function SocialePlayerVote({
         >
           Cast Vote
         </Button>
+      </div>
+    </Card>
+  );
+}
+
+// Player Reveal View
+function SocialePlayerReveal({
+  currentRound,
+  currentSocialite,
+  responses,
+  votes,
+  isDark
+}: {
+  currentRound: any;
+  currentSocialite: Socialite | null;
+  responses: SocialeResponse[];
+  votes: SocialeVote[];
+  isDark: boolean;
+}) {
+  const getVoteCount = (responseId: string) => {
+    return votes.filter(v => v.targetResponseId === responseId).length;
+  };
+
+  // Find the top response for topic rounds
+  const topResponse = responses.length > 0 
+    ? responses.reduce((top, r) => {
+        const topVotes = getVoteCount(top.id);
+        const rVotes = getVoteCount(r.id);
+        return rVotes > topVotes ? r : top;
+      }, responses[0])
+    : null;
+
+  const topVotes = topResponse ? getVoteCount(topResponse.id) : 0;
+
+  return (
+    <Card className="p-6" isDark={isDark}>
+      <div className="space-y-6">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🎯</div>
+          <h2 className={clsx(
+            'text-2xl font-bold mb-4',
+            isDark ? 'text-white' : 'text-slate-900'
+          )}>
+            {currentRound?.type === 'trivia' ? 'Correct Answer' : 'Most Popular Response'}
+          </h2>
+
+          {currentRound?.type === 'trivia' ? (() => {
+            const snap = currentRound?.settings?.snapshot;
+            let correctText = currentRound?.content || 'No answer available';
+            let explanation: string | null = null;
+
+            if (snap && 'multipleChoice' in snap && snap.multipleChoice) {
+              const correctOpt = snap.multipleChoice.options?.find(
+                (o: any) => o.id === snap.multipleChoice.correctOptionId
+              );
+              correctText = correctOpt?.text || correctText;
+              explanation = snap.explanation || null;
+            } else if (snap && 'writtenAnswer' in snap && snap.writtenAnswer) {
+              correctText = snap.writtenAnswer.correctAnswer || snap.writtenAnswer.acceptedAnswers?.[0] || correctText;
+              explanation = snap.explanation || null;
+            }
+
+            return (
+              <div className={clsx(
+                'p-6 rounded-lg',
+                isDark ? 'bg-slate-800' : 'bg-slate-100'
+              )}>
+                <div className={clsx(
+                  'text-xl font-bold',
+                  isDark ? 'text-cyan-300' : 'text-cyan-600'
+                )}>
+                  {correctText}
+                </div>
+                {explanation && (
+                  <div className={clsx(
+                    'mt-3 text-sm italic',
+                    isDark ? 'text-slate-400' : 'text-slate-600'
+                  )}>
+                    {explanation}
+                  </div>
+                )}
+              </div>
+            );
+          })() : topResponse ? (
+            <div className={clsx(
+              'p-6 rounded-lg',
+              isDark ? 'bg-slate-800' : 'bg-slate-100'
+            )}>
+              <div className={clsx(
+                'text-xl font-bold mb-2',
+                isDark ? 'text-cyan-300' : 'text-cyan-600'
+              )}>
+                {typeof topResponse.value === 'string' ? topResponse.value : JSON.stringify(topResponse.value)}
+              </div>
+              <div className={clsx(
+                'text-sm',
+                isDark ? 'text-slate-400' : 'text-slate-600'
+              )}>
+                {topVotes} vote{topVotes !== 1 ? 's' : ''}
+              </div>
+            </div>
+          ) : (
+            <div className={clsx(
+              'p-6 rounded-lg',
+              isDark ? 'bg-slate-800' : 'bg-slate-100'
+            )}>
+              <div className={clsx(
+                'text-lg',
+                isDark ? 'text-slate-400' : 'text-slate-600'
+              )}>
+                No responses to reveal
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className={clsx(
+          'text-center text-sm',
+          isDark ? 'text-slate-400' : 'text-slate-600'
+        )}>
+          Get ready for the results...
+        </div>
       </div>
     </Card>
   );
@@ -621,7 +846,7 @@ function SocialePlayerResults({
                   'text-xl font-bold',
                   isDark ? 'text-cyan-300' : 'text-cyan-600'
                 )}>
-                  {winner.content}
+                  {typeof winner.value === 'string' ? winner.value : JSON.stringify(winner.value)}
                 </div>
                 <div className="text-sm mt-1">
                   {getVoteCount(winner.id)} votes

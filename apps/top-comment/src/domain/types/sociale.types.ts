@@ -135,14 +135,31 @@ export interface TriviaRoundSettings extends BaseRoundSettings {
   speedBonusEnabled: boolean;
   maxSpeedBonus?: number;
   
-  // Snapshot (immutable at launch)
-  snapshot?: {
-    prompt: string;
-    explanation?: string;
-    hint?: string;
-    options?: Array<{ id: string; text: string }>;
-    correctOptionId?: string;
-    acceptedAliases?: string[];
+  // Snapshot (immutable at launch) — format-specific
+  snapshot?: TriviaSnapshotMultipleChoice | TriviaSnapshotWrittenAnswer;
+}
+
+/**
+ * Snapshot for multiple-choice trivia
+ */
+export interface TriviaSnapshotMultipleChoice {
+  prompt: string;
+  explanation?: string | null;
+  multipleChoice: {
+    options: Array<{ id: string; text: string }>;
+    correctOptionId: string;
+  };
+}
+
+/**
+ * Snapshot for written-answer trivia
+ */
+export interface TriviaSnapshotWrittenAnswer {
+  prompt: string;
+  explanation?: string | null;
+  writtenAnswer: {
+    acceptedAnswers: string[];
+    correctAnswer: string;
   };
 }
 
@@ -511,6 +528,19 @@ export interface CreateSocialeRequest {
     title?: string;
     content?: string;
     settings?: SocialeRoundSettings;
+  }>;
+  
+  // Preview questions for exact order matching
+  previewQuestions?: Array<{
+    roundIndex: number;
+    prompt: string;
+    format: 'multiple_choice' | 'written_answer';
+    questionId: string;
+    options?: Array<{
+      id: string;
+      text: string;
+      is_correct: boolean;
+    }>;
   }>;
 }
 
