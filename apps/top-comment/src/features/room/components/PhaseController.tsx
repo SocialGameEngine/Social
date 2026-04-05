@@ -17,6 +17,7 @@ export type SessionDisplayState =
   | "answered"
   | "vote"
   | "voted"
+  | "reveal"
   | "results"
   | "ended";
 

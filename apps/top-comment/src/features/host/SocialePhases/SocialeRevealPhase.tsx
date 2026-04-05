@@ -63,48 +63,67 @@ export function SocialeRevealPhase({
   };
 
   const getRevealContent = () => {
-    if (!currentRound) return null;
+    if (!currentRound) {
+      return {
+        title: 'Reveal',
+        content: 'No round data available',
+        author: null,
+        voteCount: null,
+      };
+    }
 
     if (currentRound.type === 'topic') {
       // For topics, find the most voted response
       const responseVotes = new Map<string, number>();
       
-      votes.forEach(vote => {
-        const currentCount = responseVotes.get(vote.targetResponseId) || 0;
-        responseVotes.set(vote.targetResponseId, currentCount + 1);
-      });
+      // Ensure votes array exists and has valid data
+      if (Array.isArray(votes)) {
+        votes.forEach(vote => {
+          if (vote && vote.targetResponseId) {
+            const currentCount = responseVotes.get(vote.targetResponseId) || 0;
+            responseVotes.set(vote.targetResponseId, currentCount + 1);
+          }
+        });
+      }
 
       // Find the response with the most votes
       let topResponse: SocialeResponse | null = null;
       let maxVotes = 0;
 
-      responses.forEach(response => {
-        const voteCount = responseVotes.get(response.id) || 0;
-        if (voteCount > maxVotes) {
-          maxVotes = voteCount;
-          topResponse = response;
-        }
-      });
+      // Ensure responses array exists and has valid data
+      if (Array.isArray(responses)) {
+        responses.forEach(response => {
+          if (response && response.id) {
+            const voteCount = responseVotes.get(response.id) || 0;
+            if (voteCount > maxVotes) {
+              maxVotes = voteCount;
+              topResponse = response;
+            }
+          }
+        });
+      }
 
       if (!topResponse) {
         return {
           title: 'Most Popular Response',
-          content: 'No responses received',
+          content: responses.length > 0 ? 'No votes received' : 'No responses received',
           author: null,
-          voteCount: 0,
+          voteCount: maxVotes,
         };
       }
 
-      const responseContent = typeof topResponse.value === 'string' 
-        ? topResponse.value 
-        : typeof topResponse.value === 'object' && topResponse.value !== null
-          ? JSON.stringify(topResponse.value)
-          : String(topResponse.value || 'No content');
+      // Type assertion since we know topResponse exists
+      const response = topResponse as SocialeResponse;
+      const responseContent = typeof response.value === 'string' 
+        ? response.value 
+        : typeof response.value === 'object' && response.value !== null
+          ? JSON.stringify(response.value)
+          : String(response.value || 'No content');
 
       return {
         title: 'Most Popular Response',
         content: responseContent,
-        author: socialites.find(s => s.id === topResponse.socialiteId),
+        author: socialites.find(s => s.id === response.socialiteId) || null,
         voteCount: maxVotes,
       };
     } else if (currentRound.type === 'trivia') {
@@ -134,18 +153,28 @@ export function SocialeRevealPhase({
         };
       }
 
-      // Fallback if no snapshot
+      // Fallback if no snapshot - try to extract from content or settings
+      const fallbackContent = currentRound.content || 
+                            currentRound.title || 
+                            'Answer will be revealed in results';
+      
       return {
         title: 'Correct Answer',
-        content: currentRound.content || 'No answer available',
+        content: fallbackContent,
         author: null,
         voteCount: null,
         explanation: null,
-        prompt: null,
+        prompt: currentRound.content || null,
       };
     }
 
-    return null;
+    // Fallback for unknown round types
+    return {
+      title: 'Round Result',
+      content: currentRound?.content || 'Round complete',
+      author: null,
+      voteCount: null,
+    };
   };
 
   const revealContent = getRevealContent();
@@ -257,7 +286,7 @@ export function SocialeRevealPhase({
             size="lg"
             isDark={isDark}
           >
-            Show Results
+            Continue to Results
           </Button>
           {onSkipPhase && (
             <Button

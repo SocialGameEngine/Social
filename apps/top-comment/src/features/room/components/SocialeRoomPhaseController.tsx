@@ -14,6 +14,7 @@ import { deriveSocialeRoomGamePhase } from '../utils/deriveSocialeRoomPhase';
 import { SocialeLobbyPhaseRoom } from '../phases/SocialeLobbyPhaseRoom';
 import { SocialeAnswerPhaseRoom } from '../phases/SocialeAnswerPhaseRoom';
 import { SocialeVotePhaseRoom } from '../phases/SocialeVotePhaseRoom';
+import { SocialeRevealPhaseRoom } from '../phases/SocialeRevealPhaseRoom';
 import { SocialeResultsPhaseRoom } from '../phases/SocialeResultsPhaseRoom';
 import { SocialeEndedPhaseRoom } from '../phases/SocialeEndedPhaseRoom';
 import { SocialeMidGameJoinCard } from '../phases/SocialeMidGameJoinCard';
@@ -151,6 +152,14 @@ export function SocialeRoomPhaseController({
           hasSubmitted={hasSubmittedVote}
           onOpenModal={onOpenModal}
           participants={participants}
+        />
+      );
+    case 'reveal':
+      return (
+        <SocialeRevealPhaseRoom
+          sociale={sociale}
+          participants={participants}
+          phaseEndsAt={phaseEndsAt}
         />
       );
     case 'results':

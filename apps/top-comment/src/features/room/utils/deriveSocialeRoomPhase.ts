@@ -24,7 +24,8 @@ export function deriveSocialeRoomGamePhase(
     const p = String(raw).toLowerCase();
     if (p === 'setup' || p === 'answer') return 'answer';
     if (p === 'vote') return 'vote';
-    if (p === 'results' || p === 'reveal' || p === 'discussion') return 'results';
+    if (p === 'reveal') return 'reveal';
+    if (p === 'results' || p === 'discussion') return 'results';
     return 'answer';
   }
 

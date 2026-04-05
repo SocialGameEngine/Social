@@ -687,12 +687,14 @@ function SocialePlayerReveal({
   isDark: boolean;
 }) {
   const getVoteCount = (responseId: string) => {
-    return votes.filter(v => v.targetResponseId === responseId).length;
+    if (!Array.isArray(votes)) return 0;
+    return votes.filter(v => v && v.targetResponseId === responseId).length;
   };
 
   // Find the top response for topic rounds
-  const topResponse = responses.length > 0 
+  const topResponse = Array.isArray(responses) && responses.length > 0 
     ? responses.reduce((top, r) => {
+        if (!r || !r.id) return top;
         const topVotes = getVoteCount(top.id);
         const rVotes = getVoteCount(r.id);
         return rVotes > topVotes ? r : top;

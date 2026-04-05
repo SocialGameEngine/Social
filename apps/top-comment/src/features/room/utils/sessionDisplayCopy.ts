@@ -85,6 +85,14 @@ export function getSessionDisplayCopy(state: SessionDisplayState, ctx: SessionDi
         joinedCountText: null,
       };
 
+    case "reveal":
+      return {
+        statusBadgeText: "REVEAL",
+        headlineText: "ANSWER REVEALED",
+        supportText: "ROUND REVEAL IN PROGRESS",
+        joinedCountText: null,
+      };
+
     case "results":
       return {
         statusBadgeText: "RESULTS",
