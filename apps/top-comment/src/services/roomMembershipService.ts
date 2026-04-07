@@ -275,7 +275,7 @@ export async function kickMember(request: KickMemberRequest): Promise<KickMember
 
   // Delete user's interaction votes
   await supabase
-    .from('interaction_votes')
+    .from('interaction_votes' as any)
     .delete()
     .eq('membership_id', memberToKick.id);
 
@@ -382,7 +382,7 @@ export async function banMember(request: BanMemberRequest): Promise<BanMemberRes
   };
   
   const { error: banError } = await supabase
-    .from('top_comment_banned_players')
+    .from('top_comment_banned_players' as any)
     .insert(banData);
 
   if (banError) {
@@ -398,7 +398,7 @@ export async function banMember(request: BanMemberRequest): Promise<BanMemberRes
 
   // Delete user's interaction votes
   await supabase
-    .from('interaction_votes')
+    .from('interaction_votes' as any)
     .delete()
     .eq('membership_id', memberToBan.id);
 

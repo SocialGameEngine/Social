@@ -224,7 +224,7 @@ async function submitVote(interactionId: string, membershipId: string, responseI
   }
 
   const { data, error } = await supabase
-    .from("interaction_votes")
+    .from("interaction_votes" as any)
     .upsert(
       {
         interaction_id: interactionId,
@@ -242,7 +242,7 @@ async function submitVote(interactionId: string, membershipId: string, responseI
 
 async function getVotes(interactionId: string): Promise<InteractionVote[]> {
   const { data, error } = await supabase
-    .from("interaction_votes")
+    .from("interaction_votes" as any)
     .select("*")
     .eq("interaction_id", interactionId)
     .order("created_at", { ascending: true });

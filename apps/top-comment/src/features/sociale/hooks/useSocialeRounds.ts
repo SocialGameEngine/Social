@@ -3,10 +3,11 @@
 // =============================================================================
 // Hook for fetching Sociale rounds
 
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../supabase/client';
 import type { SocialeRound } from '../../../domain/types/sociale.types';
+import { useSocialeChannel } from './useSocialeChannel';
 
 /**
  * Hook for fetching rounds for a Sociale
@@ -14,24 +15,14 @@ import type { SocialeRound } from '../../../domain/types/sociale.types';
 export function useSocialeRounds(socialeId?: string) {
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!socialeId) return;
-
-    const channel = supabase
-      .channel(`sociale_rounds:${socialeId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'sociale_rounds', filter: `sociale_id=eq.${socialeId}` },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ['sociale_rounds', socialeId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
+  // Use unified sociale channel instead of dedicated rounds channel
+  const onPayload = useCallback((payload: any) => {
+    if (payload?.table === 'sociale_rounds') {
+      void queryClient.invalidateQueries({ queryKey: ['sociale_rounds', socialeId] });
+    }
   }, [socialeId, queryClient]);
+
+  useSocialeChannel(socialeId, onPayload);
 
   return useQuery({
     queryKey: ['sociale_rounds', socialeId],

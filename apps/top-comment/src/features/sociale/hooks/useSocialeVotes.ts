@@ -3,11 +3,12 @@
 // =============================================================================
 // Hook for fetching and managing Sociale vote data.
 
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../supabase/client';
-import type { SocialeVote, SubmitSocialeVoteRequest } from '../../domain/types/sociale.types';
+import type { SocialeVote, SubmitSocialeVoteRequest } from '../../../domain/types/sociale.types';
 import { mapSocialeVote } from '../socialeService';
+import { useSocialeChannel } from './useSocialeChannel';
 
 // Helper function to get auth headers
 const getAuthHeaders = async () => {
@@ -26,24 +27,14 @@ const getAuthHeaders = async () => {
 export function useSocialeVotes(socialeId?: string) {
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!socialeId) return;
-
-    const channel = supabase
-      .channel(`sociale-votes:${socialeId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'sociale_votes', filter: `sociale_id=eq.${socialeId}` },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ['sociale-votes', socialeId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
+  // Use unified sociale channel instead of dedicated votes channel
+  const onPayload = useCallback((payload: any) => {
+    if (payload?.table === 'sociale_votes') {
+      void queryClient.invalidateQueries({ queryKey: ['sociale-votes', socialeId] });
+    }
   }, [socialeId, queryClient]);
+
+  useSocialeChannel(socialeId, onPayload);
 
   return useQuery({
     queryKey: ['sociale-votes', socialeId],
@@ -69,24 +60,17 @@ export function useSocialeVotes(socialeId?: string) {
 export function useRoundVotes(socialeId?: string, roundId?: string) {
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!socialeId || !roundId) return;
-
-    const channel = supabase
-      .channel(`sociale-votes:${socialeId}:${roundId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'sociale_votes', filter: `round_id=eq.${roundId}` },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ['sociale-votes', socialeId, roundId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
+  // Use unified sociale channel — filters by table + roundId in callback
+  const onPayload = useCallback((payload: any) => {
+    if (payload?.table === 'sociale_votes' && roundId) {
+      const record = payload.new || payload.old;
+      if (record?.round_id === roundId) {
+        void queryClient.invalidateQueries({ queryKey: ['sociale-votes', socialeId, roundId] });
+      }
+    }
   }, [socialeId, roundId, queryClient]);
+
+  useSocialeChannel(socialeId, onPayload);
 
   return useQuery({
     queryKey: ['sociale-votes', socialeId, roundId],
@@ -113,24 +97,17 @@ export function useRoundVotes(socialeId?: string, roundId?: string) {
 export function useMyVotes(socialeId?: string, socialiteId?: string) {
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!socialeId || !socialiteId) return;
-
-    const channel = supabase
-      .channel(`sociale-votes:${socialeId}:me:${socialiteId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'sociale_votes', filter: `socialite_id=eq.${socialiteId}` },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ['sociale-votes', socialeId, socialiteId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
+  // Use unified sociale channel — filters by table + socialiteId in callback
+  const onPayload = useCallback((payload: any) => {
+    if (payload?.table === 'sociale_votes' && socialiteId) {
+      const record = payload.new || payload.old;
+      if (record?.socialite_id === socialiteId) {
+        void queryClient.invalidateQueries({ queryKey: ['sociale-votes', socialeId, socialiteId] });
+      }
+    }
   }, [socialeId, socialiteId, queryClient]);
+
+  useSocialeChannel(socialeId, onPayload);
 
   return useQuery({
     queryKey: ['sociale-votes', socialeId, socialiteId],

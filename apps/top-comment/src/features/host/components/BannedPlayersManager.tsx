@@ -46,7 +46,7 @@ export function BannedPlayersManager({
         {
           event: '*',
           schema: 'public',
-          table: 'top_comment_banned_players',
+          table: 'top_comment_banned_players' as any,
           filter: `room_id=eq.${roomId}`,
         },
         (payload: any) => {
@@ -69,7 +69,7 @@ export function BannedPlayersManager({
     try {
       
       const { data, error } = await supabase
-        .from("top_comment_banned_players")
+        .from("top_comment_banned_players" as any)
         .select("*")
         .eq("room_id", roomId)
         .order("created_at", { ascending: false });
@@ -104,7 +104,7 @@ export function BannedPlayersManager({
       console.log('🗑️ Deleting ban record with ID:', bannedPlayer.id);
       
       const { error } = await supabase
-        .from('top_comment_banned_players')
+        .from('top_comment_banned_players' as any)
         .delete()
         .eq('id', bannedPlayer.id);
 
@@ -117,7 +117,7 @@ export function BannedPlayersManager({
 
       // Verify the record was actually deleted
       const { data: verifyData, error: verifyError } = await supabase
-        .from('top_comment_banned_players')
+        .from('top_comment_banned_players' as any)
         .select('id')
         .eq('id', bannedPlayer.id)
         .single();

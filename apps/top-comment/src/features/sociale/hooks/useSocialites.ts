@@ -3,65 +3,12 @@
 // =============================================================================
 // Hook for fetching and managing Socialite data.
 
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../supabase/client';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Socialite, JoinSocialeRequest } from '../../../domain/types/sociale.types';
 import { mapSocialite, joinSociale } from '../socialeService';
-
-/**
- * Internal helper for authenticated realtime subscription setup.
- * Centralizes auth sync and channel creation for consistency.
- */
-async function setupAuthenticatedRealtimeSubscription({
-  channelName,
-  table,
-  filter,
-  onPayload,
-  onStatus,
-}: {
-  channelName: string;
-  table: string;
-  filter: string;
-  onPayload: (payload: any) => void;
-  onStatus?: (status: string, err?: any) => void;
-}): Promise<RealtimeChannel> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  // Explicitly sync auth before subscribing
-  console.log('🔥 Setting up realtime subscription:', {
-    channelName,
-    table,
-    hasSession: !!session,
-    sessionUserId: session?.user?.id,
-  });
-
-  // Explicitly set auth for realtime before subscribing
-  if (session?.access_token) {
-    console.log('🔥 Setting realtime auth token');
-    await supabase.realtime.setAuth(session.access_token);
-  }
-
-  return supabase
-    .channel(channelName)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table,
-        filter,
-      },
-      onPayload
-    )
-    .subscribe((status, err) => {
-      console.log(`${channelName} subscription status:`, status, err);
-      onStatus?.(status, err);
-    });
-}
+import { useSocialeChannel } from './useSocialeChannel';
 
 /**
  * Hook for fetching Socialites by Sociale
@@ -69,64 +16,25 @@ async function setupAuthenticatedRealtimeSubscription({
 export function useSocialites(socialeId?: string) {
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!socialeId) return;
+  // Use unified sociale channel instead of dedicated socialites channel
+  const onPayload = useCallback((payload: any) => {
+    if (payload?.table === 'socialites') {
+      void queryClient.invalidateQueries({ queryKey: ['socialites', socialeId] });
 
-    let cancelled = false;
-    let channel: RealtimeChannel | null = null;
+      // For precise invalidation of individual socialite queries
+      const userId = payload.eventType === 'DELETE'
+        ? payload.old?.user_id
+        : payload.new?.user_id;
 
-    async function setupRealtime() {
-      if (cancelled) return;
-
-      const channelName = `socialites:${socialeId}:${crypto.randomUUID()}`;
-
-      channel = await setupAuthenticatedRealtimeSubscription({
-        channelName,
-        table: 'socialites',
-        filter: `sociale_id=eq.${socialeId}`,
-        onPayload: (payload) => {
-          // Debug logging - can be removed in production
-          console.log('🔥 Socialites realtime payload:', {
-            eventType: payload.eventType,
-            oldRecord: payload.oldRecord?.user_id,
-            newRecord: payload.newRecord?.user_id,
-          });
-
-          // Always invalidate the socialites list for this Sociale
-          void queryClient.invalidateQueries({ queryKey: ['socialites', socialeId] });
-
-          // For precise invalidation of individual socialite queries
-          const userId = payload.eventType === 'DELETE' 
-            ? payload.oldRecord?.user_id 
-            : payload.newRecord?.user_id;
-            
-          if (userId) {
-            void queryClient.invalidateQueries({ 
-              queryKey: ['socialite', socialeId, userId] 
-            });
-          }
-        },
-        onStatus: (status, err) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('✅ Socialites realtime subscription active');
-          } else if (status === 'CHANNEL_ERROR') {
-            console.error('❌ Socialites realtime subscription failed:', err);
-          } else {
-            console.log('socialites subscription status:', status, err);
-          }
-        }
-      });
-    }
-
-    void setupRealtime();
-
-    return () => {
-      cancelled = true;
-      if (channel) {
-        void supabase.removeChannel(channel);
+      if (userId) {
+        void queryClient.invalidateQueries({
+          queryKey: ['socialite', socialeId, userId]
+        });
       }
-    };
+    }
   }, [socialeId, queryClient]);
+
+  useSocialeChannel(socialeId, onPayload);
 
   return useQuery({
     queryKey: ['socialites', socialeId],
@@ -152,63 +60,22 @@ export function useSocialites(socialeId?: string) {
 export function useCurrentSocialite(socialeId?: string, userId?: string) {
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!socialeId || !userId) return;
+  // Use unified sociale channel — filters by table + userId in callback
+  const onPayload = useCallback((payload: any) => {
+    if (payload?.table === 'socialites' && userId) {
+      const payloadUserId = payload.eventType === 'DELETE'
+        ? payload.old?.user_id
+        : payload.new?.user_id;
 
-    let cancelled = false;
-    let channel: RealtimeChannel | null = null;
-
-    async function setupRealtime() {
-      if (cancelled) return;
-
-      const channelName = `socialite:${socialeId}:${userId}:${crypto.randomUUID()}`;
-
-      channel = await setupAuthenticatedRealtimeSubscription({
-        channelName,
-        table: 'socialites',
-        filter: `sociale_id=eq.${socialeId}`,
-        onPayload: (payload) => {
-          // Debug logging - can be removed in production
-          console.log('🔥 Current socialite realtime payload:', {
-            eventType: payload.eventType,
-            targetUserId: userId,
-            payloadUserId: payload.eventType === 'DELETE' 
-              ? payload.oldRecord?.user_id 
-              : payload.newRecord?.user_id,
-          });
-
-          // Only invalidate if this payload affects the current user's socialite
-          const payloadUserId = payload.eventType === 'DELETE' 
-            ? payload.oldRecord?.user_id 
-            : payload.newRecord?.user_id;
-
-          if (payloadUserId === userId) {
-            void queryClient.invalidateQueries({ 
-              queryKey: ['socialite', socialeId, userId] 
-            });
-          }
-        },
-        onStatus: (status, err) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('✅ Current socialite realtime subscription active');
-          } else if (status === 'CHANNEL_ERROR') {
-            console.error('❌ Current socialite realtime subscription failed:', err);
-          } else {
-            console.log('current socialite subscription status:', status, err);
-          }
-        }
-      });
-    }
-
-    void setupRealtime();
-
-    return () => {
-      cancelled = true;
-      if (channel) {
-        void supabase.removeChannel(channel);
+      if (payloadUserId === userId) {
+        void queryClient.invalidateQueries({
+          queryKey: ['socialite', socialeId, userId]
+        });
       }
-    };
+    }
   }, [socialeId, userId, queryClient]);
+
+  useSocialeChannel(socialeId, onPayload);
 
   return useQuery({
     queryKey: ['socialite', socialeId, userId],

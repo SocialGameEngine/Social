@@ -23,6 +23,7 @@ import { roomService } from '../services/roomService';
 import { roomMembershipService } from '../services/roomMembershipService';
 import { supabase } from '../supabase/client';
 import { logger } from '../shared/utils/logger';
+import { throttle } from '../shared/utils/realtimeThrottle';
 import type { AsyncSubscriptionResult, ConnectionStatus } from './async/types';
 
 interface UseRoomOptions {
@@ -63,8 +64,7 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
   const [subscriptionError, setSubscriptionError] = useState<Error | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   
-  const roomChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const membershipChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const unifiedChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
   
@@ -162,14 +162,10 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
     reconnectAttempts.current += 1;
     setConnectionStatus("reconnecting");
 
-    // Cleanup existing channels
-    if (roomChannelRef.current) {
-      supabase.removeChannel(roomChannelRef.current);
-      roomChannelRef.current = null;
-    }
-    if (membershipChannelRef.current) {
-      supabase.removeChannel(membershipChannelRef.current);
-      membershipChannelRef.current = null;
+    // Cleanup existing channel
+    if (unifiedChannelRef.current) {
+      supabase.removeChannel(unifiedChannelRef.current);
+      unifiedChannelRef.current = null;
     }
 
     // Retry after delay
@@ -339,7 +335,8 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
     }
   }, [room, isHost]);
 
-  // Real-time subscription for room data - GUARDED by auth
+  // UNIFIED real-time subscription for room data + memberships - GUARDED by auth
+  // Consolidates 2 channels into 1 to reduce egress.
   useEffect(() => {
     // GUARD: Don't subscribe until auth is resolved
     if (authLoading) {
@@ -355,9 +352,13 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
 
     setConnectionStatus("connecting");
 
+    // Throttle membership refreshes to at most once per 2 seconds
+    const throttledRefresh = throttle(() => refreshMembers(), 2000);
+
     try {
       const channel = supabase
-        .channel(`room:${targetRoomId}`)
+        .channel(`room-unified:${targetRoomId}`)
+        // Room table updates
         .on(
           'postgres_changes',
           {
@@ -368,7 +369,6 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
           },
           (payload) => {
             // Immediately update room state with new data from payload
-            // This ensures we don't wait for the refetch
             if (payload.new) {
               const newRoom = {
                 id: (payload.new as any).id,
@@ -390,71 +390,47 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
             loadRoom(true);
           }
         )
+        // Room memberships changes
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'room_memberships',
+            filter: `room_id=eq.${targetRoomId}`,
+          },
+          (payload: any) => {
+            if (payload.eventType === 'DELETE' && payload.old && payload.old.user_id === user?.id) {
+              throttledRefresh();
+            } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              throttledRefresh();
+            }
+          }
+        )
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
             setConnectionStatus('connected');
             reconnectAttempts.current = 0;
           } else if (status === 'CHANNEL_ERROR') {
             setConnectionStatus('error');
-            setSubscriptionError(new Error('Room subscription error'));
+            setSubscriptionError(new Error('Room unified subscription error'));
           } else if (status === 'TIMED_OUT') {
             reconnect();
           }
         });
 
-      roomChannelRef.current = channel;
+      unifiedChannelRef.current = channel;
 
       return () => {
         supabase.removeChannel(channel);
-        roomChannelRef.current = null;
+        unifiedChannelRef.current = null;
+        throttledRefresh.cancel();
       };
     } catch (error) {
       setConnectionStatus('error');
       setSubscriptionError(error instanceof Error ? error : new Error('Failed to setup room subscription'));
     }
-  }, [room?.id, roomId, authLoading, loadRoom, reconnect]);
-
-  // Real-time subscription for memberships - GUARDED by auth
-  useEffect(() => {
-    // GUARD: Don't subscribe until auth is resolved
-    if (authLoading) return;
-
-    const targetRoomId = room?.id || roomId;
-    if (!targetRoomId) return;
-
-    const channel = supabase
-      .channel(`room_memberships:${targetRoomId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'room_memberships',
-          filter: `room_id=eq.${targetRoomId}`,
-        },
-        (payload: any) => {
-          // Refresh on all membership changes
-          if (payload.eventType === 'DELETE' && payload.old && payload.old.user_id === user?.id) {
-            refreshMembers();
-          } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            refreshMembers();
-          }
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-        } else if (status === 'CHANNEL_ERROR') {
-          setSubscriptionError(new Error('Membership subscription error'));
-        }
-      });
-
-    membershipChannelRef.current = channel;
-
-    return () => {
-      supabase.removeChannel(channel);
-      membershipChannelRef.current = null;
-    };
-  }, [room?.id, roomId, authLoading, refreshMembers, user?.id]);
+  }, [room?.id, roomId, authLoading, loadRoom, reconnect, refreshMembers, user?.id]);
 
   // Initial load effect - GUARDED by auth
   useEffect(() => {

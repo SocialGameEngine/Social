@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Modal } from "@social/ui";
 import { useVIBoxTheme } from "./ThemeProvider";
 import { supabase } from "../../../supabase/client";
+import { debouncedBroadcast, immediateBroadcast, flushAndStop } from "../../utils/debouncedBroadcast";
 import type { ViboxQueueItem, ViboxQueueInsert, Track, TrackMetadata, VibeHierarchy } from "../../types/vibox";
 import { viboxApi } from "../../api/vibox";
 import {
@@ -238,14 +239,8 @@ export function VIBoxJukeboxInner({
         
         setCurrentTrackInfo(updatedTrackInfo);
         
-        // Broadcast to all users via Supabase Realtime
-        supabase
-          .channel('vibox-current-track')
-          .send({
-            type: 'broadcast',
-            event: 'current_track_update',
-            payload: updatedTrackInfo
-          });
+        // Broadcast metadata update (non-critical, debounced)
+        debouncedBroadcast('vibox-current-track', 'current_track_update', updatedTrackInfo);
       }
     };
 
@@ -497,14 +492,8 @@ export function VIBoxJukeboxInner({
         // Update local state for immediate feedback
         setCurrentTrackInfo(trackInfo);
         
-        // Broadcast to all users via Supabase Realtime
-        supabase
-          .channel('vibox-current-track')
-          .send({
-            type: 'broadcast',
-            event: 'current_track_update',
-            payload: trackInfo
-          });
+        // Broadcast track change immediately (critical user action)
+        immediateBroadcast('vibox-current-track', 'current_track_update', trackInfo);
       }
     }
   };
@@ -560,7 +549,9 @@ export function VIBoxJukeboxInner({
     };
   }, [isOpen, mode, tracks]);
 
-  // Broadcast current time regularly from host for real-time progress updates
+  // Broadcast current time regularly from host for real-time progress updates.
+  // Uses debouncedBroadcast so actual sends happen at most every 3 seconds
+  // instead of every 1 second, reducing egress by ~67% for progress updates.
   useEffect(() => {
     if (!isOpen || mode !== "host" || !currentTrackInfo || !isPlaying) return;
 
@@ -575,18 +566,15 @@ export function VIBoxJukeboxInner({
         
         setCurrentTrackInfo(updatedTrackInfo);
         
-        // Broadcast to all users via Supabase Realtime
-        supabase
-          .channel('vibox-current-track')
-          .send({
-            type: 'broadcast',
-            event: 'current_track_update',
-            payload: updatedTrackInfo
-          });
+        // Debounced: batches sends to reduce egress
+        debouncedBroadcast('vibox-current-track', 'current_track_update', updatedTrackInfo);
       }
-    }, 1000); // Update every second
+    }, 1000); // Local state updates every second, broadcasts debounced to 3s
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      flushAndStop();
+    };
   }, [isOpen, mode, currentTrackInfo, isPlaying]);
 
   
@@ -627,14 +615,8 @@ export function VIBoxJukeboxInner({
       // Update local state for immediate feedback
       setCurrentTrackInfo(updatedTrackInfo);
       
-      // Broadcast to all users via Supabase Realtime
-      supabase
-        .channel('vibox-current-track')
-        .send({
-          type: 'broadcast',
-          event: 'current_track_update',
-          payload: updatedTrackInfo
-        });
+      // Immediate broadcast for play/pause (critical user action)
+      immediateBroadcast('vibox-current-track', 'current_track_update', updatedTrackInfo);
     }
   };
 

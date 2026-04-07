@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '../../supabase/client';
 import { logger } from '../../shared/utils/logger';
+import { throttle } from '../../shared/utils/realtimeThrottle';
 
 // Application types
 interface VoteCounts {
@@ -266,10 +267,20 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
   }, [roomId, membershipId]); // Reload when room/membership changes
 
   // Listen for vote updates directly from the vibox_votes table.
-  // This avoids relying on broadcast messages and keeps host/room in sync.
+  // Uses delta updates from the payload instead of full refetches to reduce egress.
+  // A throttled background sync ensures eventual consistency.
+  const throttledSyncRef = useRef<ReturnType<typeof throttle> | null>(null);
+
   useEffect(() => {
     if (!roomId) return;
-    
+
+    // Throttled full sync as a safety net — runs at most once every 10s
+    const throttledSync = throttle(() => {
+      fetchVoteCounts();
+      fetchUserVotes();
+    }, 10_000);
+    throttledSyncRef.current = throttledSync;
+
     const channel = supabase
       .channel(`vibox-votes:${roomId}`)
       .on(
@@ -280,17 +291,121 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
           table: 'vibox_votes',
           filter: `room_id=eq.${roomId}`,
         },
-        () => {
-          fetchVoteCounts();
-          fetchUserVotes();
+        (payload: any) => {
+          const eventType = payload.eventType as string;
+          const newRecord = payload.new as Record<string, any> | undefined;
+          const oldRecord = payload.old as Record<string, any> | undefined;
+
+          // Delta update: apply the change directly from the payload
+          if (eventType === 'INSERT' && newRecord) {
+            const trackId = newRecord.track_id;
+            const voteType = newRecord.vote_type as 'up' | 'down';
+
+            // Update vote counts optimistically
+            setVoteCounts(prev => {
+              const current = prev.get(trackId) || {
+                track_id: trackId, upvotes: 0, downvotes: 0,
+                total_votes: 0, net_votes: 0, last_voted_at: new Date().toISOString(),
+              };
+              const upvotes = voteType === 'up' ? current.upvotes + 1 : current.upvotes;
+              const downvotes = voteType === 'down' ? current.downvotes + 1 : current.downvotes;
+              const updated = new Map(prev);
+              updated.set(trackId, {
+                ...current, upvotes, downvotes,
+                total_votes: upvotes + downvotes,
+                net_votes: upvotes - downvotes,
+                last_voted_at: newRecord.created_at || new Date().toISOString(),
+              });
+              return updated;
+            });
+
+            // Update user votes if this is the current user's vote
+            if (newRecord.membership_id === membershipId) {
+              setUserVotes(prev => {
+                const updated = new Map(prev);
+                updated.set(trackId, {
+                  track_id: trackId, room_id: roomId,
+                  membership_id: membershipId!, vote_type: voteType,
+                  created_at: newRecord.created_at, updated_at: newRecord.updated_at || newRecord.created_at,
+                });
+                return updated;
+              });
+            }
+          } else if (eventType === 'DELETE' && oldRecord) {
+            const trackId = oldRecord.track_id;
+            const voteType = oldRecord.vote_type as 'up' | 'down';
+
+            setVoteCounts(prev => {
+              const current = prev.get(trackId);
+              if (!current) return prev;
+              const upvotes = voteType === 'up' ? Math.max(0, current.upvotes - 1) : current.upvotes;
+              const downvotes = voteType === 'down' ? Math.max(0, current.downvotes - 1) : current.downvotes;
+              const updated = new Map(prev);
+              updated.set(trackId, {
+                ...current, upvotes, downvotes,
+                total_votes: upvotes + downvotes,
+                net_votes: upvotes - downvotes,
+                last_voted_at: new Date().toISOString(),
+              });
+              return updated;
+            });
+
+            if (oldRecord.membership_id === membershipId) {
+              setUserVotes(prev => {
+                const updated = new Map(prev);
+                updated.delete(trackId);
+                return updated;
+              });
+            }
+          } else if (eventType === 'UPDATE' && newRecord) {
+            // Vote type changed (e.g. up → down)
+            const trackId = newRecord.track_id;
+            const oldVoteType = oldRecord?.vote_type as 'up' | 'down' | undefined;
+            const newVoteType = newRecord.vote_type as 'up' | 'down';
+
+            if (oldVoteType && oldVoteType !== newVoteType) {
+              setVoteCounts(prev => {
+                const current = prev.get(trackId);
+                if (!current) return prev;
+                let upvotes = current.upvotes;
+                let downvotes = current.downvotes;
+                if (oldVoteType === 'up') { upvotes = Math.max(0, upvotes - 1); downvotes += 1; }
+                else { downvotes = Math.max(0, downvotes - 1); upvotes += 1; }
+                const updated = new Map(prev);
+                updated.set(trackId, {
+                  ...current, upvotes, downvotes,
+                  total_votes: upvotes + downvotes,
+                  net_votes: upvotes - downvotes,
+                  last_voted_at: newRecord.updated_at || new Date().toISOString(),
+                });
+                return updated;
+              });
+            }
+
+            if (newRecord.membership_id === membershipId) {
+              setUserVotes(prev => {
+                const updated = new Map(prev);
+                updated.set(trackId, {
+                  track_id: trackId, room_id: roomId,
+                  membership_id: membershipId!, vote_type: newVoteType,
+                  created_at: newRecord.created_at, updated_at: newRecord.updated_at,
+                });
+                return updated;
+              });
+            }
+          }
+
+          // Schedule a throttled full sync as safety net for consistency
+          throttledSync();
         }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
+      throttledSync.cancel();
     };
-  }, [roomId, fetchVoteCounts, fetchUserVotes]); // Recreate channel when room changes
+  }, [roomId, membershipId, fetchVoteCounts, fetchUserVotes]);
 
   const getVoteCount = (trackId: string): VoteCounts | undefined => {
     return voteCounts.get(trackId);
