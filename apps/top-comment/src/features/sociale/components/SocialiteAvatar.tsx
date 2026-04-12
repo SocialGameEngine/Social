@@ -4,7 +4,7 @@
 // Displays a socialite's avatar with initials and optional status
 
 import React from 'react';
-import type { Socialite } from '../../domain/types/sociale.types';
+import type { Socialite } from '../../../domain/types/sociale.types';
 
 interface SocialiteAvatarProps {
   socialite: Socialite;
@@ -57,7 +57,7 @@ export function SocialiteAvatar({
   return (
     <div className={`relative inline-block ${className}`}>
       <div className={`${getSizeClasses()} ${getAvatarColor(socialite.id)} rounded-full flex items-center justify-center text-white font-medium`}>
-        {getInitials(socialite.playerName)}
+        {getInitials(socialite.displayName)}
       </div>
       
       {showStatus && (

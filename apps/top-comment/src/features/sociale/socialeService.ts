@@ -12,7 +12,6 @@ import type {
   Socialite,
   SocialeResponse,
   SocialeVote,
-  SocialeScoreEvent,
   SocialeScoreboardEntry,
   CreateSocialeRequest,
   CreateSocialeResponse,
@@ -49,6 +48,7 @@ export function mapSociale(data: any): Sociale | null {
     currentPhase: data.current_phase,
     phaseStartedAt: data.phase_started_at,
     phaseEndsAt: data.phase_ends_at,
+    pausedRemainingSeconds: data.paused_remaining_seconds,
     totalRounds: data.total_rounds,
     settings: data.settings ?? {},
     scoreboard: data.scoreboard ?? {},
@@ -403,7 +403,6 @@ export function subscribeToSocialeResponses(
  * Get auth headers for Edge Function calls
  */
 async function getAuthHeaders(): Promise<Record<string, string>> {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   
   let { data: { session } } = await supabase.auth.getSession();
@@ -791,7 +790,7 @@ export async function populateRoundContent(roundId: string): Promise<void> {
           const options = question.trivia_question_options
             .sort((a: any, b: any) => a.sort_order - b.sort_order)
             .map((opt: any) => ({
-              id: opt.option_id || opt.id, // Handle both field names
+              id: opt.id,
               text: opt.option_text,
             }));
 
@@ -802,7 +801,7 @@ export async function populateRoundContent(roundId: string): Promise<void> {
             explanation: question.explanation,
             multipleChoice: {
               options,
-              correctOptionId: correctOption?.option_id || correctOption?.id || '', // Handle both field names
+              correctOptionId: correctOption?.id || '',
             },
           };
 

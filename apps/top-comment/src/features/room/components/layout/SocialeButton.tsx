@@ -36,10 +36,10 @@ export function SocialeButton({
   });
   
   // Extract player initials for social proof (from socialites)
-  const playerInitials = socialites.slice(0, 3).map(s => 
+  const playerInitials = socialites.slice(0, 3).map((s: { displayName: string }) => 
     s.displayName
       .split(' ')
-      .map(n => n[0])
+      .map((n: string) => n[0])
       .join('')
       .toUpperCase()
       .slice(0, 2)

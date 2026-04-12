@@ -65,10 +65,14 @@ export function SocialeRoomPhaseController({
   const { data: sociale, isLoading } = useSociale(socialeId);
   const { data: activeRoundState } = useActiveSocialeRoundState(socialeId, sociale?.status);
   const roomPhase = deriveSocialeRoomGamePhase(sociale ?? null, activeRoundState ?? null);
-  const phaseEndsAt =
-    activeRoundState?.phase_ends_at ??
-    sociale?.phaseEndsAt ??
-    null;
+  // Use sociale (sociales table) as the single source of truth for all timer state.
+  // Both host and room subscribe to the same sociales realtime channel, so they stay
+  // in sync. Using activeRoundState for timer state caused desync because the two
+  // realtime subscriptions fire independently and the Database types don't include
+  // paused_remaining_seconds (column was added after types were generated).
+  const isPaused = sociale?.status === 'paused';
+  const phaseEndsAt = sociale?.phaseEndsAt ?? null;
+  const pausedRemainingSeconds = sociale?.pausedRemainingSeconds ?? null;
 
   useEffect(() => {
     dispatch({ type: 'RESET_SUBMISSIONS' });
@@ -137,6 +141,8 @@ export function SocialeRoomPhaseController({
         <SocialeAnswerPhaseRoom
           sociale={sociale}
           phaseEndsAt={phaseEndsAt}
+          pausedRemainingSeconds={pausedRemainingSeconds}
+          isPaused={isPaused}
           hasSubmitted={hasSubmittedAnswer}
           onOpenModal={onOpenModal}
           participants={participants}
@@ -149,6 +155,8 @@ export function SocialeRoomPhaseController({
         <SocialeVotePhaseRoom
           sociale={sociale}
           phaseEndsAt={phaseEndsAt}
+          pausedRemainingSeconds={pausedRemainingSeconds}
+          isPaused={isPaused}
           hasSubmitted={hasSubmittedVote}
           onOpenModal={onOpenModal}
           participants={participants}
@@ -160,6 +168,9 @@ export function SocialeRoomPhaseController({
           sociale={sociale}
           participants={participants}
           phaseEndsAt={phaseEndsAt}
+          pausedRemainingSeconds={pausedRemainingSeconds}
+          isPaused={isPaused}
+          currentRound={currentRound}
         />
       );
     case 'results':
@@ -168,6 +179,8 @@ export function SocialeRoomPhaseController({
           sociale={sociale}
           participants={participants}
           phaseEndsAt={phaseEndsAt}
+          pausedRemainingSeconds={pausedRemainingSeconds}
+          isPaused={isPaused}
           onOpenLeaderboard={onOpenLeaderboard}
         />
       );

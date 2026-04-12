@@ -14,6 +14,7 @@ interface ResponseCardProps {
   isWinner?: boolean;
   isVotedByCurrentUser?: boolean;
   showVotes?: boolean;
+  roundType?: string;
   size?: 'sm' | 'md' | 'lg';
   isDark?: boolean;
   onClick?: () => void;
@@ -26,6 +27,7 @@ export function ResponseCard({
   isWinner = false,
   isVotedByCurrentUser = false,
   showVotes = true,
+  roundType,
   size = 'md',
   isDark: propIsDark,
   onClick
@@ -111,13 +113,13 @@ export function ResponseCard({
         {String(getResponseText())}
       </div>
 
-      {/* Footer with metadata */}
-      {(response.isCorrect !== undefined || response.scoreAwarded !== undefined) && (
+      {/* Footer with metadata — only show correct/incorrect for trivia rounds */}
+      {(roundType === 'trivia' && response.isCorrect !== undefined) || response.scoreAwarded !== undefined ? (
         <div className="mt-2 pt-2 border-t border-slate-700 flex items-center gap-4 text-xs">
-          {response.isCorrect !== undefined && (
+          {roundType === 'trivia' && response.isCorrect !== undefined && (
             <span className={clsx(
-              response.isCorrect 
-                ? 'text-green-400' 
+              response.isCorrect
+                ? 'text-green-400'
                 : 'text-red-400'
             )}>
               {response.isCorrect ? '✓ Correct' : '✗ Incorrect'}
@@ -132,7 +134,7 @@ export function ResponseCard({
             </span>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

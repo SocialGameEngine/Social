@@ -20,6 +20,7 @@ interface SocialeVotePhaseProps {
     currentRoundId?: string;
     phaseEndsAt?: string | null;
     currentPhase?: string;
+    pausedRemainingSeconds?: number | null;
   };
   currentRound?: {
     id: string;
@@ -34,6 +35,7 @@ interface SocialeVotePhaseProps {
   currentSocialite?: Socialite | null;
   onAdvancePhase: () => void;
   isCurrentPlayerHost: boolean;
+  isPaused?: boolean;
   isDark?: boolean;
 }
 
@@ -46,6 +48,7 @@ export function SocialeVotePhase({
   currentSocialite,
   onAdvancePhase,
   isCurrentPlayerHost,
+  isPaused = false,
   isDark: propIsDark
 }: SocialeVotePhaseProps) {
   const { isDark: themeIsDark } = useTheme();
@@ -138,12 +141,13 @@ export function SocialeVotePhase({
 
       {/* Timer and Progress */}
       <div className="space-y-4">
-        {sociale.phaseEndsAt && (
+        {(sociale.phaseEndsAt || isPaused) && (
           <div className="flex justify-center">
             <SocialeTimer
-              phaseEndsAt={sociale.phaseEndsAt}
+              phaseEndsAt={isPaused ? undefined : sociale.phaseEndsAt ?? undefined}
               phase={sociale.currentPhase || 'vote'}
-              isPaused={false}
+              isPaused={isPaused}
+              pausedSeconds={isPaused ? sociale.pausedRemainingSeconds ?? undefined : undefined}
               size="lg"
               showLabel={true}
               position="inline"
@@ -155,7 +159,8 @@ export function SocialeVotePhase({
           <SocialePhaseProgress
             phaseEndsAt={sociale.phaseEndsAt || undefined}
             phaseDuration={getPhaseDuration()}
-            isPaused={false}
+            isPaused={isPaused}
+            pausedSeconds={isPaused ? sociale.pausedRemainingSeconds ?? undefined : undefined}
             showLabel={true}
           />
         </div>

@@ -10,6 +10,7 @@ export interface ActiveSocialeRoundStateRow {
   phase: string;
   phase_started_at: string | null;
   phase_ends_at: string | null;
+  paused_remaining_seconds?: number | null;
   started_at: string | null;
   ended_at?: string | null;
 }

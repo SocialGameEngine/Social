@@ -22,6 +22,7 @@ interface SocialeResultsPhaseProps {
     currentRoundId?: string;
     phaseEndsAt?: string | null;
     currentPhase?: string;
+    pausedRemainingSeconds?: number | null;
   };
   currentRound?: {
     id: string;
@@ -36,6 +37,7 @@ interface SocialeResultsPhaseProps {
   currentSocialite?: Socialite | null;
   onAdvancePhase: () => void;
   isCurrentPlayerHost: boolean;
+  isPaused?: boolean;
   isDark?: boolean;
 }
 
@@ -48,6 +50,7 @@ export function SocialeResultsPhase({
   currentSocialite,
   onAdvancePhase,
   isCurrentPlayerHost,
+  isPaused = false,
   isDark: propIsDark
 }: SocialeResultsPhaseProps) {
   const { isDark: themeIsDark } = useTheme();
@@ -58,8 +61,13 @@ export function SocialeResultsPhase({
     return votes.filter(v => v.targetResponseId === responseId).length;
   };
 
-  // Sort responses by votes (descending)
+  // Sort responses: trivia → correct first; others → by vote count descending
   const sortedResponses = [...responses].sort((a, b) => {
+    if (currentRound?.type === 'trivia') {
+      const aCorrect = a.isCorrect === true ? 0 : 1;
+      const bCorrect = b.isCorrect === true ? 0 : 1;
+      return aCorrect - bCorrect;
+    }
     const votesA = getVoteCount(a.id);
     const votesB = getVoteCount(b.id);
     return votesB - votesA;
@@ -159,12 +167,13 @@ export function SocialeResultsPhase({
 
       {/* Timer and Progress */}
       <div className="space-y-4">
-        {sociale.phaseEndsAt && (
+        {(sociale.phaseEndsAt || isPaused) && (
           <div className="flex justify-center">
             <SocialeTimer
-              phaseEndsAt={sociale.phaseEndsAt}
+              phaseEndsAt={isPaused ? undefined : sociale.phaseEndsAt ?? undefined}
               phase={sociale.currentPhase || 'results'}
-              isPaused={false}
+              isPaused={isPaused}
+              pausedSeconds={isPaused ? sociale.pausedRemainingSeconds ?? undefined : undefined}
               size="lg"
               showLabel={true}
               position="inline"
@@ -176,7 +185,8 @@ export function SocialeResultsPhase({
           <SocialePhaseProgress
             phaseEndsAt={sociale.phaseEndsAt || undefined}
             phaseDuration={getPhaseDuration()}
-            isPaused={false}
+            isPaused={isPaused}
+            pausedSeconds={isPaused ? sociale.pausedRemainingSeconds ?? undefined : undefined}
             showLabel={true}
           />
         </div>
@@ -186,23 +196,43 @@ export function SocialeResultsPhase({
       {sortedResponses.length > 0 && (
         <div className={clsx(
           'text-center p-6 rounded-lg',
-          isDark 
-            ? 'bg-gradient-to-br from-amber-900/50 to-amber-800/30 border border-amber-400/30' 
+          isDark
+            ? 'bg-gradient-to-br from-amber-900/50 to-amber-800/30 border border-amber-400/30'
             : 'bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200'
         )}>
-          <div className="text-6xl mb-2">👑</div>
-          <h2 className={clsx(
-            'text-2xl font-bold mb-2',
-            isDark ? 'text-amber-300' : 'text-amber-600'
-          )}>
-            Winner{sortedResponses.filter(r => getVoteCount(r.id) === getVoteCount(sortedResponses[0].id)).length > 1 ? 's' : ''}
-          </h2>
-          <p className={clsx(
-            'text-lg',
-            isDark ? 'text-amber-200' : 'text-amber-700'
-          )}>
-            {getVoteCount(sortedResponses[0].id)} vote{getVoteCount(sortedResponses[0].id) !== 1 ? 's' : ''}
-          </p>
+          {currentRound?.type === 'trivia' ? (
+            <>
+              <div className="text-6xl mb-2">✅</div>
+              <h2 className={clsx(
+                'text-2xl font-bold mb-2',
+                isDark ? 'text-amber-300' : 'text-amber-600'
+              )}>
+                Correct Answers
+              </h2>
+              <p className={clsx(
+                'text-lg',
+                isDark ? 'text-amber-200' : 'text-amber-700'
+              )}>
+                {responses.filter(r => r.isCorrect === true).length} of {responses.length} correct
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="text-6xl mb-2">👑</div>
+              <h2 className={clsx(
+                'text-2xl font-bold mb-2',
+                isDark ? 'text-amber-300' : 'text-amber-600'
+              )}>
+                Winner{sortedResponses.filter(r => getVoteCount(r.id) === getVoteCount(sortedResponses[0].id)).length > 1 ? 's' : ''}
+              </h2>
+              <p className={clsx(
+                'text-lg',
+                isDark ? 'text-amber-200' : 'text-amber-700'
+              )}>
+                {getVoteCount(sortedResponses[0].id)} vote{getVoteCount(sortedResponses[0].id) !== 1 ? 's' : ''}
+              </p>
+            </>
+          )}
         </div>
       )}
 
@@ -219,7 +249,9 @@ export function SocialeResultsPhase({
           {sortedResponses.map((response, index) => {
             const socialite = socialites.find(s => s.id === response.socialiteId);
             const voteCount = getVoteCount(response.id);
-            const isWinner = index === 0 && voteCount > 0;
+            const isWinner = currentRound?.type === 'trivia'
+              ? response.isCorrect === true
+              : index === 0 && voteCount > 0;
             const points = scoreChanges[response.socialiteId] || 0;
 
             if (!socialite) return null;
@@ -248,12 +280,14 @@ export function SocialeResultsPhase({
                   />
 
                   <div className="flex-1 flex items-center gap-2">
-                    <span className={clsx(
-                      'text-sm font-medium',
-                      isDark ? 'text-slate-300' : 'text-slate-600'
-                    )}>
-                      {voteCount} vote{voteCount !== 1 ? 's' : ''}
-                    </span>
+                    {currentRound?.type !== 'trivia' && (
+                      <span className={clsx(
+                        'text-sm font-medium',
+                        isDark ? 'text-slate-300' : 'text-slate-600'
+                      )}>
+                        {voteCount} vote{voteCount !== 1 ? 's' : ''}
+                      </span>
+                    )}
                     
                     {points > 0 && (
                       <ScoreChangeIndicator
@@ -271,7 +305,8 @@ export function SocialeResultsPhase({
                   votes={votes}
                   isWinner={isWinner}
                   isVotedByCurrentUser={false}
-                  showVotes={true}
+                  showVotes={currentRound?.type !== 'trivia'}
+                  roundType={currentRound?.type}
                   size="md"
                   isDark={isDark}
                 />

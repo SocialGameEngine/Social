@@ -164,7 +164,7 @@ async function resolveChallenge(interactionId: string): Promise<{
   if (intError || !interaction) throw new Error('Challenge not found');
 
   // Get responses from both players
-  const { data: responses, error: respError } = await supabase
+  const { data: responses, error: respError } = await (supabase as any)
     .from('responses')
     .select('*')
     .eq('interaction_id', interactionId);
@@ -172,7 +172,7 @@ async function resolveChallenge(interactionId: string): Promise<{
   if (respError) throw new Error('Failed to fetch responses');
 
   // Get votes
-  const { data: votes, error: voteError } = await supabase
+  const { data: votes, error: voteError } = await (supabase as any)
     .from('interaction_votes')
     .select('*')
     .eq('interaction_id', interactionId);
@@ -182,7 +182,8 @@ async function resolveChallenge(interactionId: string): Promise<{
   // Determine winner by vote count
   const voteCounts = new Map<string, number>();
   for (const v of (votes || [])) {
-    voteCounts.set(v.response_id, (voteCounts.get(v.response_id) || 0) + 1);
+    const voteRecord = v as { response_id: string };
+    voteCounts.set(voteRecord.response_id, (voteCounts.get(voteRecord.response_id) || 0) + 1);
   }
 
   let winnerId: string | null = null;
@@ -190,15 +191,17 @@ async function resolveChallenge(interactionId: string): Promise<{
   let maxVotes = 0;
 
   for (const r of (responses || [])) {
-    const count = voteCounts.get(r.id) || 0;
+    const response = r as { id: string; membership_id: string };
+    const count = voteCounts.get(response.id) || 0;
     if (count > maxVotes) {
       maxVotes = count;
-      winnerId = r.membership_id;
+      winnerId = response.membership_id;
     }
   }
 
   if (winnerId && responses && responses.length >= 2) {
-    loserId = responses.find((r: any) => r.membership_id !== winnerId)?.membership_id || null;
+    const typedResponses = responses as Array<{ membership_id: string }>;
+    loserId = typedResponses.find((r) => r.membership_id !== winnerId)?.membership_id || null;
   }
 
   // Close the challenge

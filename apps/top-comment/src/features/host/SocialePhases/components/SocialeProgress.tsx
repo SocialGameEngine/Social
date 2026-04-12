@@ -11,6 +11,7 @@ interface SocialePhaseProgressProps {
   phaseEndsAt?: string | null;
   phaseDuration?: number;
   isPaused?: boolean;
+  pausedSeconds?: number;
   showLabel?: boolean;
 }
 
@@ -18,6 +19,7 @@ export function SocialePhaseProgress({
   phaseEndsAt,
   phaseDuration = 30,
   isPaused = false,
+  pausedSeconds,
   showLabel = true
 }: SocialePhaseProgressProps) {
   const { isDark } = useTheme();
@@ -38,6 +40,7 @@ export function SocialePhaseProgress({
         variant="brand"
         isDark={isDark}
         paused={isPaused}
+        pausedSeconds={pausedSeconds}
       />
     </div>
   );

@@ -164,7 +164,7 @@ export function useSocialeOrchestrator(config: SocialeOrchestratorConfig): UseSo
         currentRoundComplete: false,
         allRoundsComplete: false,
         isPaused: sociale.status === 'paused',
-        currentRoundIndex: sociale.currentRoundIndex,
+        currentRoundIndex: sociale.currentRoundIndex ?? null,
       };
       
       // Calculate next phase using round registry
@@ -329,7 +329,7 @@ export function useSocialeOrchestrator(config: SocialeOrchestratorConfig): UseSo
       currentRoundComplete: false,
       allRoundsComplete: false,
       isPaused: currentSociale.status === 'paused',
-      currentRoundIndex: currentSociale.currentRoundIndex,
+      currentRoundIndex: currentSociale.currentRoundIndex ?? null,
     }) : false;
 
   // Cleanup on unmount

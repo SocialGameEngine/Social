@@ -3,7 +3,7 @@
 // =============================================================================
 // Renders the appropriate Sociale phase based on current state
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useSociale } from '../../../features/sociale/hooks/useSociale';
 import { useSocialites } from '../../../features/sociale/hooks/useSocialites';
 import { useRoundResponses } from '../../../features/sociale/hooks/useSocialeResponses';
@@ -172,6 +172,27 @@ export function SocialePhaseRenderer({
     startSociale();
   }, [rounds, createBasicRounds, startSociale]);
 
+  // Prevent double-advancing the same phase (guards against Strict Mode double-invoke)
+  const advancedPhaseRef = useRef<string | null>(null);
+
+  // Auto-advance phases that the host panel skips: trivia vote → reveal, discussion → results.
+  // Done in a useEffect to avoid calling advancePhase() during render.
+  useEffect(() => {
+    if (sociale?.status !== 'active') return;
+    const phase = sociale.currentPhase || 'answer';
+    const roundType = normalizedCurrentRound?.type;
+    const key = `${sociale.currentRoundId ?? ''}-${phase}`;
+
+    const shouldSkip =
+      (phase === 'vote' && roundType === 'trivia') ||
+      phase === 'discussion';
+
+    if (shouldSkip && advancedPhaseRef.current !== key) {
+      advancedPhaseRef.current = key;
+      advancePhase();
+    }
+  }, [sociale?.status, sociale?.currentPhase, sociale?.currentRoundId, normalizedCurrentRound?.type, advancePhase]);
+
   // Handle loading state
   if (isLoading) {
     return (
@@ -208,23 +229,29 @@ export function SocialePhaseRenderer({
         />
       );
 
-    case 'active':
+    case 'paused':
+    case 'active': {
       // Use canonical Sociale field so phase switches actually re-render.
       // `runtimeState.currentPhase` can be stale/undefined, which keeps the UI
       // stuck in the previous phase (e.g. answer timer appears to reset).
       const currentPhase = sociale.currentPhase || 'answer';
-      
+
       // Treat setup and question phases as answer phases for UI purposes
       // (edge functions note: "UI treats `setup`/`question` as the 'answer-like' phase for timing")
+      const isPaused = sociale.status === 'paused';
+
+      const socialeTimerProps = {
+        id: sociale.id,
+        currentRoundId: sociale.currentRoundId || undefined,
+        phaseEndsAt: sociale.phaseEndsAt,
+        pausedRemainingSeconds: sociale.pausedRemainingSeconds,
+        currentPhase,
+      };
+
       if (currentPhase === 'setup' || currentPhase === 'question' || currentPhase === 'answer') {
         return (
           <SocialeAnswerPhase
-            sociale={{
-              id: sociale.id,
-              currentRoundId: sociale.currentRoundId || undefined,
-              phaseEndsAt: sociale.phaseEndsAt,
-              currentPhase
-            }}
+            sociale={socialeTimerProps}
             currentRound={normalizedCurrentRound}
             socialites={socialites}
             responses={responses}
@@ -233,24 +260,18 @@ export function SocialePhaseRenderer({
             onSkipPhase={skipPhase}
             onSkipRound={skipRound}
             isCurrentPlayerHost={isRoomHost}
+            isPaused={isPaused}
             isDark={isDark}
           />
         );
       } else if (currentPhase === 'vote') {
-        // Only show vote phase for topic rounds, skip to reveal for trivia
+        // Trivia skips vote phase — useEffect handles the advance to reveal
         if (normalizedCurrentRound?.type === 'trivia') {
-          // Skip vote phase for trivia, go directly to reveal
-          advancePhase();
           return null;
         }
         return (
           <SocialeVotePhase
-            sociale={{
-              id: sociale.id,
-              currentRoundId: sociale.currentRoundId || undefined,
-              phaseEndsAt: sociale.phaseEndsAt,
-              currentPhase
-            }}
+            sociale={socialeTimerProps}
             currentRound={normalizedCurrentRound}
             socialites={socialites}
             responses={responses}
@@ -258,18 +279,14 @@ export function SocialePhaseRenderer({
             currentSocialite={currentSocialite}
             onAdvancePhase={advancePhase}
             isCurrentPlayerHost={isRoomHost}
+            isPaused={isPaused}
             isDark={isDark}
           />
         );
       } else if (currentPhase === 'reveal') {
         return (
           <SocialeRevealPhase
-            sociale={{
-              id: sociale.id,
-              currentRoundId: sociale.currentRoundId || undefined,
-              phaseEndsAt: sociale.phaseEndsAt,
-              currentPhase
-            }}
+            sociale={socialeTimerProps}
             currentRound={normalizedCurrentRound}
             socialites={socialites}
             responses={responses}
@@ -279,18 +296,14 @@ export function SocialePhaseRenderer({
             onSkipPhase={skipPhase}
             onSkipRound={skipRound}
             isCurrentPlayerHost={isRoomHost}
+            isPaused={isPaused}
             isDark={isDark}
           />
         );
       } else if (currentPhase === 'results') {
         return (
           <SocialeResultsPhase
-            sociale={{
-              id: sociale.id,
-              currentRoundId: sociale.currentRoundId || undefined,
-              phaseEndsAt: sociale.phaseEndsAt,
-              currentPhase
-            }}
+            sociale={socialeTimerProps}
             currentRound={normalizedCurrentRound}
             socialites={socialites}
             responses={responses}
@@ -298,20 +311,21 @@ export function SocialePhaseRenderer({
             currentSocialite={currentSocialite}
             onAdvancePhase={advancePhase}
             isCurrentPlayerHost={isRoomHost}
+            isPaused={isPaused}
             isDark={isDark}
           />
         );
       } else if (currentPhase === 'discussion') {
-        // Skip discussion phase for both topics and trivia, go directly to results
-        advancePhase();
+        // Discussion phase is skipped — useEffect handles the advance to results
         return null;
       }
-      
+
       return (
         <div className="min-h-[360px] flex flex-col items-center justify-center gap-4">
           <div className="text-lg">Unknown phase: {currentPhase}</div>
         </div>
       );
+    }
 
     case 'completed':
     case 'cancelled':

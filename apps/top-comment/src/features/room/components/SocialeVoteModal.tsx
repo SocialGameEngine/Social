@@ -96,7 +96,6 @@ export function SocialeVoteModal({
       await submitVoteMutation.mutateAsync({
         socialeId,
         roundId,
-        socialiteId: currentSocialite.id,
         targetResponseId: selectedResponseId,
       });
       

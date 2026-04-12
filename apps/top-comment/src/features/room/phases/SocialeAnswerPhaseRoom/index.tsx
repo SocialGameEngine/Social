@@ -13,6 +13,8 @@ interface SocialeAnswerPhaseRoomProps {
   onOpenModal?: (type: 'answer' | 'vote') => void;
   participants: SocialeGameParticipant[];
   phaseEndsAt?: string | null;
+  pausedRemainingSeconds?: number | null;
+  isPaused?: boolean;
   roundSettings?: any; // Add round settings
   currentRound?: any; // Add current round data
 }
@@ -23,6 +25,8 @@ export function SocialeAnswerPhaseRoom({
   onOpenModal,
   participants,
   phaseEndsAt,
+  pausedRemainingSeconds,
+  isPaused = sociale.status === 'paused',
   roundSettings,
   currentRound,
 }: SocialeAnswerPhaseRoomProps) {
@@ -30,7 +34,7 @@ export function SocialeAnswerPhaseRoom({
   const isMainEventMode = getIsMainEventModeFromSociale(sociale);
   const timerShim = buildSocialeTimerSessionShim(sociale, 'answer');
   const { totalSeconds } = usePhaseTimer({ session: timerShim });
-  const isPaused = sociale.status === 'paused';
+  const pausedSecondsValue = isPaused && pausedRemainingSeconds != null ? pausedRemainingSeconds : undefined;
 
   const handleOpenModal = () => {
     if (sociale.currentRoundId && sociale.currentRoundIndex !== undefined) {
@@ -66,6 +70,7 @@ export function SocialeAnswerPhaseRoom({
         endTime={phaseEndsAt ?? undefined}
         totalSeconds={totalSeconds}
         paused={isPaused}
+        pausedSeconds={pausedSecondsValue}
         variant="brand"
         isDark={false}
         position="inline"

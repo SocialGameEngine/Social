@@ -17,6 +17,7 @@ interface SocialeRevealPhaseProps {
     currentRoundId?: string;
     phaseEndsAt?: string | null;
     currentPhase?: string;
+    pausedRemainingSeconds?: number | null;
   };
   currentRound?: {
     id: string;
@@ -33,6 +34,7 @@ interface SocialeRevealPhaseProps {
   onSkipPhase?: () => void;
   onSkipRound?: () => void;
   isCurrentPlayerHost: boolean;
+  isPaused?: boolean;
   isDark?: boolean;
 }
 
@@ -47,6 +49,7 @@ export function SocialeRevealPhase({
   onSkipPhase,
   onSkipRound,
   isCurrentPlayerHost,
+  isPaused = false,
   isDark = false,
 }: SocialeRevealPhaseProps) {
   const getRoundTypeDisplay = (type: string) => {
@@ -199,11 +202,13 @@ export function SocialeRevealPhase({
       </div>
 
       {/* Timer */}
-      {sociale.phaseEndsAt && (
+      {(sociale.phaseEndsAt || isPaused) && (
         <div className="flex justify-center">
           <SocialeTimer
-            phaseEndsAt={sociale.phaseEndsAt}
+            phaseEndsAt={isPaused ? undefined : sociale.phaseEndsAt ?? undefined}
             phase="reveal"
+            isPaused={isPaused}
+            pausedSeconds={isPaused ? sociale.pausedRemainingSeconds ?? undefined : undefined}
           />
         </div>
       )}

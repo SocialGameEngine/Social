@@ -134,7 +134,7 @@ export function HostTopStatusBar({
         {/* Round indicator */}
         {totalRounds && (
           <span className="text-xs text-slate-400">
-            Round {roundIndex + 1}{totalRounds ? ` / ${totalRounds}` : ''}
+            Round {(roundIndex ?? 0) + 1}{totalRounds ? ` / ${totalRounds}` : ''}
           </span>
         )}
       </div>

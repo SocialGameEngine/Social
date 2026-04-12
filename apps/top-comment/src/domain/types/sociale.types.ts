@@ -228,6 +228,7 @@ export interface Sociale {
   currentPhase?: string | null;
   phaseStartedAt?: string | null;
   phaseEndsAt?: string | null;
+  pausedRemainingSeconds?: number | null;
   
   // Round sequence metadata
   totalRounds?: number;

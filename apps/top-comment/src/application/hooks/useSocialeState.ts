@@ -44,8 +44,8 @@ export function useSocialeState(config: SocialeStateConfig = {}): UseSocialeStat
 
   // TODO: Replace with actual hooks when implemented
   // For now, use mock data
-  const { sociale, loading: socialeLoading, hasSnapshot } = { sociale: null, loading: false, hasSnapshot: false };
-  const rounds = [];
+  const { sociale, loading: socialeLoading, hasSnapshot }: { sociale: Sociale | null; loading: boolean; hasSnapshot: boolean } = { sociale: null, loading: false, hasSnapshot: false };
+  const rounds: SocialeRound[] = [];
   const socialites: Socialite[] = [];
   const responses: SocialeResponse[] = [];
   const votes: SocialeVote[] = [];
@@ -68,10 +68,11 @@ export function useSocialeState(config: SocialeStateConfig = {}): UseSocialeStat
     try {
       // Basic state
       const isLoading = socialeLoading || !hasSnapshot;
+      const typedSociale = sociale as Sociale | null;
       
       // Get current round
-      const currentRound = sociale && sociale.currentRoundId 
-        ? rounds.find(r => r.id === sociale.currentRoundId)
+      const currentRound = typedSociale && typedSociale.currentRoundId 
+        ? rounds.find(r => r.id === typedSociale.currentRoundId)
         : null;
       
       // Build scoreboard
@@ -124,7 +125,7 @@ export function useSocialeState(config: SocialeStateConfig = {}): UseSocialeStat
       
       // Build state machine context
       const context = SocialeStateMachine.buildContext(
-        sociale, 
+        typedSociale, 
         socialites, 
         responses, 
         votes, 
@@ -132,34 +133,30 @@ export function useSocialeState(config: SocialeStateConfig = {}): UseSocialeStat
       );
       
       // Phase-specific state
-      const canAdvancePhase = sociale ? 
-        SocialeStateMachine.canTransition(
-          sociale.status as any, 
-          SocialeStateMachine.getNextPhase(context.currentPhase, context.currentRoundType, context) || 'ended'
-        ) : false;
-      const canPauseSociale = sociale ? SocialeStateMachine.isPlayable(sociale) : false;
-      const canResumeSociale = sociale ? sociale.status === 'paused' : false;
+      const canAdvancePhase = false; // TODO: Implement proper phase advancement logic
+      const canPauseSociale = typedSociale ? SocialeStateMachine.isPlayable(typedSociale) : false;
+      const canResumeSociale = typedSociale ? typedSociale.status === 'paused' : false;
 
       // Timer state
-      const timeRemaining = sociale?.phaseEndsAt 
-        ? Math.max(0, new Date(sociale.phaseEndsAt).getTime() - Date.now()) 
+      const timeRemaining = typedSociale?.phaseEndsAt 
+        ? Math.max(0, new Date(typedSociale.phaseEndsAt).getTime() - Date.now()) 
         : null;
-      const isTimedPhase = sociale ? SocialeStateMachine.isTimedPhase(context.currentPhase, context.currentRoundType) : false;
+      const isTimedPhase = typedSociale ? SocialeStateMachine.isTimedPhase(context.currentPhase, context.currentRoundType) : false;
 
       // Progress tracking
-      const roundProgress = sociale ? 
-        (sociale.currentRoundIndex ?? 0) / Math.max(sociale.totalRounds - 1, 1) 
+      const roundProgress = typedSociale ? 
+        (typedSociale.currentRoundIndex ?? 0) / Math.max((typedSociale.totalRounds ?? 1) - 1, 1) 
         : 0;
       
       // Phase progress (would need phase sequence from round type)
       const phaseProgress = 0; // TODO: Calculate based on current phase in sequence
 
       // User-specific state
-      const currentSocialite = userId ? socialites.find(s => s.userId === userId) : null;
+      const currentSocialite = userId ? (socialites.find(s => s.userId === userId) ?? null) : null;
       
       return {
         // Base Sociale state
-        sociale,
+        sociale: typedSociale,
         rounds,
         currentRound,
         currentRoundState,

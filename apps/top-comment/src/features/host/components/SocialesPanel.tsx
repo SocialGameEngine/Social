@@ -249,7 +249,7 @@ export function SocialesPanel({
       )}
 
       <div className="max-w-md mx-auto">
-        <SocialeRoundProgress currentRound={0} totalRounds={s.totalRounds} showLabel={true} />
+        <SocialeRoundProgress currentRound={0} totalRounds={s.totalRounds ?? 0} showLabel={true} />
       </div>
 
       <div className="space-y-3">

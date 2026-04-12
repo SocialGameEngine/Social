@@ -4,7 +4,7 @@
 // Displays a Sociale game card with status, participants, and actions
 
 import React from 'react';
-import type { Sociale } from '../../domain/types/sociale.types';
+import type { Sociale } from '../../../domain/types/sociale.types';
 
 interface SocialeCardProps {
   sociale: Sociale;

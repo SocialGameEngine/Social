@@ -641,13 +641,13 @@ export function SocialeCreateModal({
           return {
             roundIndex: index,
             prompt: preview.prompt,
-            format: 'multiple_choice', // We'll detect this in the edge function
-            questionId: preview.prompt, // Use prompt as temporary ID
+            format: 'multiple_choice' as const,
+            questionId: preview.prompt,
             libraryId: preview.libraryId,
           };
         }
         return null;
-      }).filter(Boolean);
+      }).filter((q): q is NonNullable<typeof q> => q !== null);
 
       const request: CreateSocialeRequest = {
         roomId,

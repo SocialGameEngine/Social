@@ -12,6 +12,8 @@ interface SocialeVotePhaseRoomProps {
   onOpenModal?: (type: 'answer' | 'vote') => void;
   participants: SocialeGameParticipant[];
   phaseEndsAt?: string | null;
+  pausedRemainingSeconds?: number | null;
+  isPaused?: boolean;
 }
 
 export function SocialeVotePhaseRoom({
@@ -20,11 +22,13 @@ export function SocialeVotePhaseRoom({
   onOpenModal,
   participants,
   phaseEndsAt,
+  pausedRemainingSeconds,
+  isPaused = sociale.status === 'paused',
 }: SocialeVotePhaseRoomProps) {
   const isMainEventMode = getIsMainEventModeFromSociale(sociale);
   const timerShim = buildSocialeTimerSessionShim(sociale, 'vote');
   const { totalSeconds } = usePhaseTimer({ session: timerShim });
-  const isPaused = sociale.status === 'paused';
+  const pausedSecondsValue = isPaused && pausedRemainingSeconds != null ? pausedRemainingSeconds : undefined;
 
   return (
     <div className="w-full mb-8">
@@ -39,6 +43,7 @@ export function SocialeVotePhaseRoom({
         endTime={phaseEndsAt ?? undefined}
         totalSeconds={totalSeconds}
         paused={isPaused}
+        pausedSeconds={pausedSecondsValue}
         variant="brand"
         isDark={false}
         position="inline"

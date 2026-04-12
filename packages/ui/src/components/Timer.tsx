@@ -8,6 +8,7 @@ interface TimerProps {
   size?: "sm" | "md" | "lg";
   isDark?: boolean;
   paused?: boolean;
+  pausedSeconds?: number;
   position?: "fixed" | "inline";
   showCriticalBar?: boolean;
 }
@@ -18,12 +19,17 @@ export function Timer({
   size = "lg",
   isDark: _isDark = false,
   paused = false,
+  pausedSeconds,
   position = "fixed",
   showCriticalBar = true,
 }: TimerProps) {
   const countdown = useCountdown(paused ? undefined : endTime);
-  const secondsLeft = Math.max(0, Math.ceil(countdown.milliseconds / 1000));
-  const secondsDisplay = paused ? "Paused" : secondsLeft;
+  // When paused, ALWAYS use pausedSeconds to prevent background countdown
+  const secondsLeft = paused
+    ? (pausedSeconds ?? 0)
+    : Math.max(0, Math.ceil(countdown.milliseconds / 1000));
+  // Only show "Paused" if explicitly paused AND we have valid pausedSeconds
+  const secondsDisplay = paused && pausedSeconds != null ? "Paused" : secondsLeft;
   const isCritical = !paused && secondsLeft > 0 && secondsLeft <= 10;
   const shouldShowCriticalBar =
     showCriticalBar && !paused && secondsLeft > 0 && secondsLeft <= 30;

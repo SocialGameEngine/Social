@@ -5,21 +5,7 @@
 
 import type { SocialeRound } from '../../../domain/types/sociale.types';
 import { createInitialSettings } from '../../../domain/sociale/roundRegistry';
-import { triviaService } from '../../../services/triviaService';
 import { supabase } from '../../../supabase/client';
-
-/**
- * Get the default trivia pack ID
- */
-async function getDefaultTriviaPackId(): Promise<string> {
-  try {
-    const packs = await triviaService.getQuestionPacks({ status: 'published' });
-    return packs[0]?.id || '550e8400-e29b-41d4-a716-446655440001'; // Fallback UUID
-  } catch (error) {
-    console.error('Failed to get trivia packs:', error);
-    return '550e8400-e29b-41d4-a716-446655440001'; // Fallback UUID
-  }
-}
 
 /**
  * Generate trivia-only rounds for a Sociale

@@ -134,20 +134,7 @@ export function useSocialeGameState(config: SocialeStateConfig = {}): UseSociale
       const currentSocialite = userId ? socialites.find(s => s.userId === userId) ?? null : null;
 
       // Phase-specific state
-      const canAdvancePhase = sociale ? 
-        SocialeStateMachine.canAdvancePhase(sociale, {
-          socialeId: sociale.id,
-          currentRoundType: currentRound?.type ?? 'prompt',
-          currentPhase: sociale.currentPhase ?? 'draft',
-          socialiteCount: socialites.filter(s => s.isActive).length,
-          hasResponses: responses.length > 0,
-          hasVotes: votes.length > 0,
-          currentRoundComplete: false,
-          allRoundsComplete: false,
-          isPaused: sociale.status === 'paused',
-          currentRoundIndex: sociale.currentRoundIndex,
-        }) : false;
-
+      const canAdvancePhase = false; // TODO: Implement phase advancement logic
       const canPauseSociale = sociale?.status === 'active';
       const canResumeSociale = sociale?.status === 'paused';
 

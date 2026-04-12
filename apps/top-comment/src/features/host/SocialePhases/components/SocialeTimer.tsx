@@ -10,6 +10,7 @@ interface SocialeTimerProps {
   phaseEndsAt?: string | null;
   phase?: string;
   isPaused?: boolean;
+  pausedSeconds?: number;
   size?: 'sm' | 'md' | 'lg';
   showLabel?: boolean;
   position?: 'fixed' | 'inline';
@@ -19,6 +20,7 @@ export function SocialeTimer({
   phaseEndsAt,
   phase,
   isPaused = false,
+  pausedSeconds,
   size = 'lg',
   showLabel = true,
   position = 'inline'
@@ -32,6 +34,7 @@ export function SocialeTimer({
       size={size}
       isDark={isDark}
       paused={isPaused}
+      pausedSeconds={pausedSeconds}
       position={position}
       showCriticalBar={true}
     />

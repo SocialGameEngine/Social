@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRoomPage } from '../hooks/useRoomPage';
 import { useAuth } from '../../../shared/providers/AuthContext';
@@ -374,19 +374,26 @@ export function RoomPageContentNew() {
     await interactionService.submitResponse(interactionId, myMembership.id, text);
   }, [myMembership]);
 
-  // Clear ended modals when leaving ended phase
+  // Clear ended modals only when transitioning away from a completed/cancelled state
+  // (e.g. a new Sociale started after the previous one ended).
+  // We must NOT close ended modals on every render — that was causing the leaderboard
+  // to flash open and immediately close mid-game when the Sociale is still 'active'.
+  const prevSocialeStatusRef = useRef<string | undefined>(undefined);
+  const endedModalsRef = useRef(state.endedModals);
+  endedModalsRef.current = state.endedModals;
+
   useEffect(() => {
-    // Check if either session or sociale is in ended status
-    const isSessionEnded = session?.status === 'ended';
-    const isSocialeEnded = activeRoomSociale?.status === 'completed';
-    
-    // Only close modals if neither session nor sociale is in ended status
-    if (!isSessionEnded && !isSocialeEnded) {
-      state.endedModals.forEach(modal => {
-        closeEndedModal(modal);
-      });
+    const prevStatus = prevSocialeStatusRef.current;
+    const currStatus = activeRoomSociale?.status;
+    prevSocialeStatusRef.current = currStatus;
+
+    const wasEnded = prevStatus === 'completed' || prevStatus === 'cancelled';
+    const isNowNotEnded = currStatus !== 'completed' && currStatus !== 'cancelled';
+
+    if (wasEnded && isNowNotEnded) {
+      endedModalsRef.current.forEach(modal => closeEndedModal(modal));
     }
-  }, [session?.status, activeRoomSociale?.status, state.endedModals, closeEndedModal]);
+  }, [activeRoomSociale?.status, closeEndedModal]);
 
   // Show auth modal for non-authenticated users
   if (!user) {
@@ -420,6 +427,7 @@ export function RoomPageContentNew() {
     sessionId,
     memberships,
     userId: user?.id,
+    currentSocialeId: room?.currentSocialeId ?? undefined,
     closeEndedModal,
     closeModal,
     markSubmitted,

@@ -64,6 +64,33 @@ export interface InteractionRow {
   voting_ends_at: string | null;
   created_at: string;
   updated_at: string;
+  target_type: string | null;
+  target_membership_id: string | null;
+  source_membership_id: string | null;
+  challenge_status: string | null;
+  challenge_expires_at: string | null;
+  points_wager: number | null;
+  closed_at: string | null;
+  response_count: number | null;
+  vote_count: number | null;
+}
+
+export interface ResponseRow {
+  id: string;
+  interaction_id: string;
+  membership_id: string;
+  response_text: string | null;
+  response_data: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InteractionVoteRow {
+  id: string;
+  interaction_id: string;
+  response_id: string;
+  voter_membership_id: string;
+  created_at: string;
 }
 
 // Trivia table types

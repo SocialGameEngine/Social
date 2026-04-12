@@ -1,9 +1,11 @@
 import { lazy, Suspense } from 'react';
 import { useRoundResponses } from '../../../features/sociale/hooks/useSocialeResponses';
+import { useSocialites } from '../../../features/sociale/hooks/useSocialites';
 import type { Session } from '../../../shared/types';
 import type { RoomMembership } from '../../../shared/types';
 
 const LeaderboardModal = lazy(() => import('./LeaderboardModal.tsx'));
+const SocialeLeaderboardModal = lazy(() => import('./SocialeLeaderboardModal.tsx'));
 const SelfieModal = lazy(() => import('./SelfieModal.tsx'));
 const AnswerModal = lazy(() => import('./AnswerModal.tsx'));
 const SessionVoteModal = lazy(() => import('./VoteModal.tsx'));
@@ -29,8 +31,9 @@ export interface RoomModalsProps {
   };
   session: Session | null;
   sessionId: string | null;
-    memberships: RoomMembership[] | null;
+  memberships: RoomMembership[] | null;
   userId: string | undefined;
+  currentSocialeId?: string;
   closeEndedModal: (modal: 'leaderboard' | 'selfie') => void;
   closeModal: () => void;
   markSubmitted: (type: 'answer' | 'vote') => void;
@@ -43,11 +46,15 @@ export function RoomModals({
   sessionId,
   memberships,
   userId,
+  currentSocialeId,
   closeEndedModal,
   closeModal,
   markSubmitted,
   handleLeaveRoom,
 }: RoomModalsProps) {
+  const { data: socialites = [] } = useSocialites(currentSocialeId);
+  const currentSocialiteId = socialites.find(s => s.userId === userId)?.id;
+
   const { data: socialeVoteResponses = [] } = useRoundResponses(
     state.socialeModalContext?.socialeId,
     state.activeModal === 'vote' ? state.socialeModalContext?.roundId : undefined
@@ -56,19 +63,38 @@ export function RoomModals({
   return (
     <Suspense fallback={null}>
       {state.endedModals.includes('leaderboard') && (
-        <LeaderboardModal
-          isOpen={true}
-          onClose={() => closeEndedModal('leaderboard')}
-          finalLeaderboard={memberships?.map((m, i) => ({
-            id: m.id,
-            teamName: m.playerName || 'Unknown', // Map playerName to teamName for UI
-            score: 0, // Will be populated from session data
-            rank: i + 1,
-            mascotId: m.mascotId,
-          })) || []}
-          currentMembershipId={memberships?.find(m => m.userId === userId)?.id}
-          onLeave={handleLeaveRoom}
-        />
+        currentSocialeId && socialites.length > 0 ? (
+          <SocialeLeaderboardModal
+            isOpen={true}
+            onClose={() => closeEndedModal('leaderboard')}
+            finalLeaderboard={[...socialites]
+              .filter(s => s.isActive && !s.isBanned)
+              .sort((a, b) => b.score - a.score)
+              .map((s, i) => ({
+                id: s.id,
+                teamName: s.displayName || 'Player',
+                score: s.score,
+                rank: i + 1,
+                mascotId: s.mascotId,
+              }))}
+            currentSocialiteId={currentSocialiteId}
+            onLeave={handleLeaveRoom}
+          />
+        ) : (
+          <LeaderboardModal
+            isOpen={true}
+            onClose={() => closeEndedModal('leaderboard')}
+            finalLeaderboard={memberships?.map((m, i) => ({
+              id: m.id,
+              teamName: m.playerName || 'Unknown',
+              score: 0,
+              rank: i + 1,
+              mascotId: m.mascotId,
+            })) || []}
+            currentMembershipId={memberships?.find(m => m.userId === userId)?.id}
+            onLeave={handleLeaveRoom}
+          />
+        )
       )}
       {state.endedModals.includes('selfie') && (
         <SelfieModal

@@ -20,6 +20,7 @@ interface SocialeAnswerPhaseProps {
     currentRoundId?: string;
     phaseEndsAt?: string | null;
     currentPhase?: string;
+    pausedRemainingSeconds?: number | null;
   };
   currentRound?: {
     id: string;
@@ -35,6 +36,7 @@ interface SocialeAnswerPhaseProps {
   onSkipPhase?: () => void;
   onSkipRound?: () => void;
   isCurrentPlayerHost: boolean;
+  isPaused?: boolean;
   isDark?: boolean;
 }
 
@@ -48,6 +50,7 @@ export function SocialeAnswerPhase({
   onSkipPhase,
   onSkipRound,
   isCurrentPlayerHost,
+  isPaused = false,
   isDark: propIsDark
 }: SocialeAnswerPhaseProps) {
   const { isDark: themeIsDark } = useTheme();
@@ -170,12 +173,13 @@ export function SocialeAnswerPhase({
 
       {/* Timer and Progress */}
       <div className="space-y-4">
-        {sociale.phaseEndsAt && (
+        {(sociale.phaseEndsAt || isPaused) && (
           <div className="flex justify-center">
             <SocialeTimer
-              phaseEndsAt={sociale.phaseEndsAt}
+              phaseEndsAt={isPaused ? undefined : sociale.phaseEndsAt ?? undefined}
               phase={sociale.currentPhase || 'answer'}
-              isPaused={false}
+              isPaused={isPaused}
+              pausedSeconds={isPaused ? sociale.pausedRemainingSeconds ?? undefined : undefined}
               size="lg"
               showLabel={true}
               position="inline"
@@ -187,7 +191,8 @@ export function SocialeAnswerPhase({
           <SocialePhaseProgress
             phaseEndsAt={sociale.phaseEndsAt || undefined}
             phaseDuration={getPhaseDuration()}
-            isPaused={false}
+            isPaused={isPaused}
+            pausedSeconds={isPaused ? sociale.pausedRemainingSeconds ?? undefined : undefined}
             showLabel={true}
           />
         </div>
@@ -269,6 +274,7 @@ export function SocialeAnswerPhase({
                       isWinner={false}
                       isVotedByCurrentUser={false}
                       showVotes={false}
+                      roundType={currentRound?.type}
                       size="sm"
                       isDark={isDark}
                     />

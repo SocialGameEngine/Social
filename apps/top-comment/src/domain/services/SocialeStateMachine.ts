@@ -131,7 +131,7 @@ export class SocialeStateMachine {
     const currentRoundComplete = this.isRoundComplete(currentPhase, currentRoundType, responses, votes);
 
     // Check if all rounds are complete
-    const allRoundsComplete = sociale.currentRoundIndex !== null 
+    const allRoundsComplete = (sociale.currentRoundIndex !== null && sociale.currentRoundIndex !== undefined && sociale.totalRounds !== undefined)
       ? sociale.currentRoundIndex >= sociale.totalRounds - 1 && currentRoundComplete
       : false;
 
@@ -145,7 +145,7 @@ export class SocialeStateMachine {
       currentRoundComplete,
       allRoundsComplete,
       isPaused: sociale.status === 'paused',
-      currentRoundIndex: sociale.currentRoundIndex,
+      currentRoundIndex: sociale.currentRoundIndex ?? null,
     };
   }
 
@@ -185,7 +185,7 @@ export class SocialeStateMachine {
             reason: 'Need at least 1 participant to start',
           };
         }
-        if (sociale.currentRoundIndex === null || sociale.currentRoundIndex >= sociale.totalRounds) {
+        if (sociale.currentRoundIndex === null || sociale.currentRoundIndex === undefined || sociale.totalRounds === undefined || sociale.currentRoundIndex >= sociale.totalRounds) {
           return {
             canTransition: false,
             reason: 'No valid round to start',
@@ -240,7 +240,7 @@ export class SocialeStateMachine {
 
     // Check if we should advance to next round instead of next phase
     if (isFinalPhase(context.currentRoundType, context.currentPhase) && context.currentRoundComplete) {
-      return (context.currentRoundIndex ?? 0) < sociale.totalRounds - 1;
+      return (context.currentRoundIndex ?? 0) < (sociale.totalRounds ?? 0) - 1;
     }
 
     return true;

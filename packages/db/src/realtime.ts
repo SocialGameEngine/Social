@@ -37,9 +37,9 @@ export function subscribeToSession(
 }
 
 export function subscribeToTeams(  // Updated: subscribeToPlayers → subscribeToTeams
-  client: SupabaseClient<Database>,
-  sessionId: string,
-  onUpdate: TeamUpdateCallback,  // Updated: PlayerUpdateCallback → TeamUpdateCallback
+  _client: SupabaseClient<Database>,
+  _sessionId: string,
+  _onUpdate: TeamUpdateCallback,  // Updated: PlayerUpdateCallback → TeamUpdateCallback
 ): RealtimeChannel | null {
   // Teams table doesn't exist in new schema - return null
   // TODO: Update to use socialites instead

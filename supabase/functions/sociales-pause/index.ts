@@ -104,24 +104,26 @@ serve(async (req) => {
     
     // Handle phase timing
     if (pause) {
-      // Pausing: clear phase_ends_at to stop the timer
-      updateData.phase_ends_at = null
-    } else {
-      // Resuming: set phase_ends_at to resume timer
-      // Get current round to determine timer duration
-      const { data: currentRound } = await supabaseClient
-        .from('sociale_rounds')
-        .select('settings')
-        .eq('id', sociale.current_round_id)
-        .single()
-      
-      timerDuration = (currentRound?.settings as any)?.answerSeconds ?? 90
-      
-      if (timerDuration > 0) {
-        updateData.phase_ends_at = new Date(
-          Date.now() + timerDuration * 1000
-        ).toISOString()
+      // Calculate remaining seconds from current phase_ends_at
+      let remainingSeconds = 0;
+      if (sociale.phase_ends_at) {
+        const endsAt = new Date(sociale.phase_ends_at).getTime();
+        const now = Date.now();
+        remainingSeconds = Math.max(0, Math.ceil((endsAt - now) / 1000));
       }
+      
+      updateData.phase_ends_at = null;
+      updateData.paused_remaining_seconds = remainingSeconds;
+    } else {
+      // Resuming: use stored remaining seconds, NOT full duration
+      const remainingSeconds = sociale.paused_remaining_seconds ?? 0;
+      
+      if (remainingSeconds > 0) {
+        updateData.phase_ends_at = new Date(
+          Date.now() + remainingSeconds * 1000
+        ).toISOString();
+      }
+      updateData.paused_remaining_seconds = null; // Clear after resume
     }
     
     const { data: updatedSociale, error: updateError } = await supabaseClient
@@ -135,30 +137,54 @@ serve(async (req) => {
 
     // If pausing, also pause current round state and clear timing
     if (pause) {
+      // Calculate remaining for round state too
+      const { data: currentRoundState } = await supabaseClient
+        .from('sociale_round_state')
+        .select('phase_ends_at')
+        .eq('sociale_id', socialeId)
+        .eq('status', 'active')
+        .maybeSingle();
+      
+      let roundRemaining = 0;
+      if (currentRoundState?.phase_ends_at) {
+        const endsAt = new Date(currentRoundState.phase_ends_at).getTime();
+        roundRemaining = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+      }
+      
       await supabaseClient
         .from('sociale_round_state')
         .update({
           status: 'paused',
-          phase_ends_at: null, // Clear timing when paused
+          phase_ends_at: null,
+          paused_remaining_seconds: roundRemaining,
           updated_at: new Date().toISOString(),
         })
         .eq('sociale_id', socialeId)
-        .eq('status', 'active')
+        .eq('status', 'active');
     } else {
-      // If resuming, resume current round state and set timing
-      const phaseEndsAt = new Date(
-        Date.now() + timerDuration * 1000
-      ).toISOString()
+      // Resume: use stored remaining seconds from round state
+      const { data: pausedRoundState } = await supabaseClient
+        .from('sociale_round_state')
+        .select('paused_remaining_seconds')
+        .eq('sociale_id', socialeId)
+        .eq('status', 'paused')
+        .maybeSingle();
+      
+      const roundRemaining = pausedRoundState?.paused_remaining_seconds ?? 0;
+      const phaseEndsAt = roundRemaining > 0
+        ? new Date(Date.now() + roundRemaining * 1000).toISOString()
+        : null;
       
       await supabaseClient
         .from('sociale_round_state')
         .update({
           status: 'active',
           phase_ends_at: phaseEndsAt,
+          paused_remaining_seconds: null,
           updated_at: new Date().toISOString(),
         })
         .eq('sociale_id', socialeId)
-        .eq('status', 'paused')
+        .eq('status', 'paused');
     }
 
     // Return the updated Sociale

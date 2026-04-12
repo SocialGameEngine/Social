@@ -10,6 +10,8 @@ interface SocialeResultsPhaseRoomProps {
   sociale: Sociale;
   participants: SocialeGameParticipant[];
   phaseEndsAt?: string | null;
+  pausedRemainingSeconds?: number | null;
+  isPaused?: boolean;
   onOpenLeaderboard?: () => void;
 }
 
@@ -17,15 +19,18 @@ export function SocialeResultsPhaseRoom({
   sociale,
   participants,
   phaseEndsAt,
+  pausedRemainingSeconds,
+  isPaused = sociale.status === 'paused',
   onOpenLeaderboard,
 }: SocialeResultsPhaseRoomProps) {
   const isMainEventMode = getIsMainEventModeFromSociale(sociale);
   const timerShim = buildSocialeTimerSessionShim(sociale, 'results');
   const { totalSeconds } = usePhaseTimer({ session: timerShim });
   const ended =
-    !sociale.phaseEndsAt ||
+    !phaseEndsAt ||
     sociale.status === 'completed' ||
-    (sociale.phaseEndsAt && new Date() >= new Date(sociale.phaseEndsAt));
+    (phaseEndsAt && new Date() >= new Date(phaseEndsAt));
+  const pausedSecondsValue = isPaused && pausedRemainingSeconds != null ? pausedRemainingSeconds : undefined;
 
   return (
     <div className="w-full mb-8">
@@ -39,7 +44,8 @@ export function SocialeResultsPhaseRoom({
       <SessionTimer
         endTime={phaseEndsAt ?? undefined}
         totalSeconds={totalSeconds}
-        paused={ended || sociale.status === 'paused'}
+        paused={ended || isPaused}
+        pausedSeconds={pausedSecondsValue}
         variant="brand"
         isDark={false}
         position="inline"

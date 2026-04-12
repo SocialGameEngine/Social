@@ -6,6 +6,7 @@ interface ProgressBarProps {
   variant?: "brand" | "neutral";
   isDark?: boolean;
   paused?: boolean;
+  pausedSeconds?: number;
 }
 
 export function ProgressBar({
@@ -14,11 +15,12 @@ export function ProgressBar({
   variant = "brand",
   isDark = false,
   paused = false,
+  pausedSeconds,
 }: ProgressBarProps) {
   const { milliseconds } = useCountdown(paused ? undefined : endTime, 200);
   const totalMs = totalSeconds * 1000;
   const percentage = paused
-    ? 100 // Show full bar when paused
+    ? (pausedSeconds != null ? Math.min(100, (pausedSeconds / totalSeconds) * 100) : 100)
     : totalMs === 0 ? 0 : Math.min(100, (milliseconds / totalMs) * 100);
   const secondsLeft = Math.max(0, Math.ceil(milliseconds / 1000));
   const isLowTime = !paused && secondsLeft > 0 && secondsLeft <= 15;

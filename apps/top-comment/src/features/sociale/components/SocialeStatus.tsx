@@ -4,7 +4,7 @@
 // Displays the current status of a Sociale with appropriate styling
 
 import React from 'react';
-import type { Sociale } from '../../domain/types/sociale.types';
+import type { Sociale } from '../../../domain/types/sociale.types';
 
 interface SocialeStatusProps {
   sociale: Sociale;

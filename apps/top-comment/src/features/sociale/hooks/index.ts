@@ -22,11 +22,13 @@ export type {
   SocialeScoreboardEntry,
   SocialeRoundSummary,
   SocialeMode,
-  SocialeStatus,
   SocialeRoundType,
   CreateSocialeRequest,
   UpdateSocialeRequest,
   JoinSocialeRequest,
   SubmitSocialeResponseRequest,
   SubmitSocialeVoteRequest,
-} from '../../domain/types/sociale.types';
+} from '../../../domain/types/sociale.types';
+
+// Export SocialeStatus type separately to avoid conflict with component
+export type { SocialeStatus } from '../../../domain/types/sociale.types';

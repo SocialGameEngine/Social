@@ -23,6 +23,13 @@ export const PHASE_CONFIG: PhaseConfigMap = {
     submittedText: 'Vote Cast',
     color: 'secondary',
   },
+  reveal: {
+    title: 'Reveal',
+    description: 'Revealing the answers',
+    buttonText: 'View Reveal',
+    submittedText: 'Revealed',
+    color: 'accent',
+  },
   results: {
     title: 'Results',
     description: 'View the results of the round',

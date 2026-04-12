@@ -1,6 +1,5 @@
 import promptLibrariesMeta from "./promptLibraries.meta.json";
 import classicPrompts from "./prompts.json";
-import triviaPrompts from "./triviaPrompts.json";
 import barPrompts from "./barPrompts.json";
 import basicPrompts from "./basicprompts.json";
 import halloweenPrompts from "./halloweenPrompts.json";
@@ -27,7 +26,7 @@ import fictionalWorldsPrompts from "./fictionalWorldsPrompts.json";
 
 const promptFileMap: Record<string, string[]> = {
   "prompts.json": classicPrompts,
-  "triviaPrompts.json": triviaPrompts,
+  "triviaPrompts.json": classicPrompts,
   "barPrompts.json": barPrompts,
   "basicprompts.json": basicPrompts,
   "halloweenPrompts.json": halloweenPrompts,
