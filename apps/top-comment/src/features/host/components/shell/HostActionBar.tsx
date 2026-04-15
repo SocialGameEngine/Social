@@ -87,15 +87,16 @@ export function HostActionBar({
 
   // If Sociale is active, use Sociale logic
   if (sociale) {
-    // Sociale ended - show new game button
+    // Sociale ended - show end game button to clean up
     if (sociale.status === 'completed' || sociale.status === 'cancelled') {
       return (
         <div className="host-action-bar-container">
           <Button
-            onClick={onCreateSociale}
+            onClick={onEndSociale}
+            variant="danger"
             className="w-full h-14 text-lg font-bold"
           >
-            New Sociale
+            End Sociale
           </Button>
         </div>
       );

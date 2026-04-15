@@ -99,83 +99,79 @@ serve(async (req) => {
       )
     }
 
-    // Check if Sociale is already ended
-    if (['completed', 'cancelled'].includes(socialeData.status)) {
-      return new Response(
-        JSON.stringify({ error: 'Sociale is already ended' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      )
-    }
-
     const nowIso = new Date().toISOString()
     const targetStatus = mode === 'cancel' ? 'cancelled' : 'completed'
+    const isAlreadyEnded = ['completed', 'cancelled'].includes(socialeData.status)
 
-    // Build update payload based on mode
-    // deno-lint-ignore no-explicit-any
-    const updatePayload: any = {
-      status: targetStatus,
-      ended_at: nowIso,
-      updated_at: nowIso,
-    }
-
-    // If cancelling, clear phase fields
-    if (mode === 'cancel') {
-      updatePayload.current_round_index = null
-      updatePayload.current_round_id = null
-      updatePayload.current_phase = null
-      updatePayload.phase_started_at = null
-      updatePayload.phase_ends_at = null
-    }
-
-    // If ending (completing), calculate final scoreboard
-    if (mode === 'end') {
-      const { data: socialites, error: socialitesError } = await supabase
-        .from('socialites')
-        .select('*')
-        .eq('sociale_id', requestData.socialeId)
-        .eq('is_active', true)
-        .order('score', { ascending: false })
-
-      if (!socialitesError && socialites) {
-        const finalScoreboard = socialites.map((socialite, index) => ({
-          socialiteId: socialite.id,
-          displayName: socialite.display_name,
-          mascotId: socialite.mascot_id,
-          score: socialite.score,
-          rank: index + 1,
-        }))
-        updatePayload.scoreboard = finalScoreboard
-      }
-    }
-
-    // End the Sociale
-    const { error: updateError } = await supabase
-      .from('sociales')
-      .update(updatePayload)
-      .eq('id', requestData.socialeId)
-
-    if (updateError) {
-      return new Response(
-        JSON.stringify({ error: updateError.message }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
-
-    // End any active round states
-    await supabase
-      .from('sociale_round_state')
-      .update({
-        status: 'completed',
+    // If Sociale is not already ended, update its status
+    if (!isAlreadyEnded) {
+      // Build update payload based on mode
+      // deno-lint-ignore no-explicit-any
+      const updatePayload: any = {
+        status: targetStatus,
         ended_at: nowIso,
         updated_at: nowIso,
-      })
-      .eq('sociale_id', requestData.socialeId)
-      .eq('status', 'active')
+      }
+
+      // If cancelling, clear phase fields
+      if (mode === 'cancel') {
+        updatePayload.current_round_index = null
+        updatePayload.current_round_id = null
+        updatePayload.current_phase = null
+        updatePayload.phase_started_at = null
+        updatePayload.phase_ends_at = null
+      }
+
+      // If ending (completing), calculate final scoreboard
+      if (mode === 'end') {
+        const { data: socialites, error: socialitesError } = await supabase
+          .from('socialites')
+          .select('*')
+          .eq('sociale_id', requestData.socialeId)
+          .eq('is_active', true)
+          .order('score', { ascending: false })
+
+        if (!socialitesError && socialites) {
+          const finalScoreboard = socialites.map((socialite, index) => ({
+            socialiteId: socialite.id,
+            displayName: socialite.display_name,
+            mascotId: socialite.mascot_id,
+            score: socialite.score,
+            rank: index + 1,
+          }))
+          updatePayload.scoreboard = finalScoreboard
+        }
+      }
+
+      // End the Sociale
+      const { error: updateError } = await supabase
+        .from('sociales')
+        .update(updatePayload)
+        .eq('id', requestData.socialeId)
+
+      if (updateError) {
+        return new Response(
+          JSON.stringify({ error: updateError.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        )
+      }
+
+      // End any active round states
+      await supabase
+        .from('sociale_round_state')
+        .update({
+          status: 'completed',
+          ended_at: nowIso,
+          updated_at: nowIso,
+        })
+        .eq('sociale_id', requestData.socialeId)
+        .eq('status', 'active')
+    }
 
     // Clear room pointer
     const { error: roomUpdateError } = await supabase
       .from('rooms')
-      .update({ 
+      .update({
         current_sociale_id: null,
       })
       .eq('id', requestData.roomId)
@@ -184,6 +180,10 @@ serve(async (req) => {
       console.error('Failed to clear room Sociale pointer:', roomUpdateError)
     }
 
+    // Clean up guest memberships for this room immediately — guests can never
+    // reclaim their session so there is no reason to keep them after a Sociale ends.
+    await supabase.rpc('cleanup_guest_memberships_for_room', { p_room_id: requestData.roomId })
+
     // Update room members' last active time
     await supabase
       .from('room_memberships')
@@ -191,8 +191,8 @@ serve(async (req) => {
       .eq('room_id', requestData.roomId)
       .eq('is_banned', false)
 
-    // Create analytics if ending (not cancelling)
-    if (mode === 'end') {
+    // Create analytics if ending (not cancelling) and not already ended
+    if (mode === 'end' && !isAlreadyEnded) {
       const { data: responses } = await supabase
         .from('sociale_responses')
         .select('*')
@@ -226,7 +226,7 @@ serve(async (req) => {
         .insert({
           sociale_id: requestData.socialeId,
           category: 'summary',
-          metric: mode === 'cancel' ? 'cancelled' : 'completed',
+          metric: 'completed',
           value: analytics,
           metadata: null,
           created_at: nowIso,

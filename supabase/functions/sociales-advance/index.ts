@@ -190,7 +190,7 @@ serve(async (req) => {
             phases = ['answer', 'reveal', 'results']
             break
           case 'topic':
-            phases = ['answer', 'reveal', 'results']
+            phases = ['answer', 'vote', 'results']
             break
           case 'poll':
             phases = ['poll', 'results', 'reveal']

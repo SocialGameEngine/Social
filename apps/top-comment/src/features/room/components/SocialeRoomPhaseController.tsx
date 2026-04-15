@@ -160,6 +160,8 @@ export function SocialeRoomPhaseController({
           hasSubmitted={hasSubmittedVote}
           onOpenModal={onOpenModal}
           participants={participants}
+          roundSettings={currentRound?.settings}
+          currentRound={currentRound}
         />
       );
     case 'reveal':

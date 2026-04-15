@@ -18,16 +18,16 @@ import type {
 
 /**
  * Default phase sequence for topic rounds
- * Answer → Reveal → Results
+ * Answer → Vote → Results
  */
-const TOPIC_PHASES = ['answer', 'reveal', 'results'];
+const TOPIC_PHASES = ['answer', 'vote', 'results'];
 
 /**
  * Default timing for topic phases (in seconds)
  */
 const TOPIC_PHASE_TIMING: Record<string, number> = {
   answer: 60,     // Players submit responses
-  reveal: 5,       // Show most voted response
+  vote: 30,       // Vote for best response
   results: 5,     // Show updated leaderboard
 };
 

@@ -3,6 +3,7 @@ import { SessionTimer } from '@social/ui';
 import { usePhaseTimer } from '../../../../shared/hooks';
 import { getIsMainEventModeFromSociale } from '../../components/PhaseController';
 import { buildSocialeTimerSessionShim } from '../../utils/socialeTimerShim';
+import { useRoomPageContext } from '../../context/RoomPageContext';
 import type { Sociale } from '../../../../domain/types/sociale.types';
 import type { SocialeGameParticipant } from '../../components/layout/SocialeGameButton';
 
@@ -14,6 +15,8 @@ interface SocialeVotePhaseRoomProps {
   phaseEndsAt?: string | null;
   pausedRemainingSeconds?: number | null;
   isPaused?: boolean;
+  roundSettings?: any;
+  currentRound?: any;
 }
 
 export function SocialeVotePhaseRoom({
@@ -24,11 +27,34 @@ export function SocialeVotePhaseRoom({
   phaseEndsAt,
   pausedRemainingSeconds,
   isPaused = sociale.status === 'paused',
+  roundSettings,
+  currentRound,
 }: SocialeVotePhaseRoomProps) {
+  const { dispatch } = useRoomPageContext();
   const isMainEventMode = getIsMainEventModeFromSociale(sociale);
   const timerShim = buildSocialeTimerSessionShim(sociale, 'vote');
   const { totalSeconds } = usePhaseTimer({ session: timerShim });
   const pausedSecondsValue = isPaused && pausedRemainingSeconds != null ? pausedRemainingSeconds : undefined;
+
+  const handleOpenModal = () => {
+    if (sociale.currentRoundId && sociale.currentRoundIndex !== undefined) {
+      dispatch({
+        type: 'OPEN_SOCIALE_MODAL',
+        payload: {
+          socialeId: sociale.id,
+          roundId: sociale.currentRoundId,
+          prompt: currentRound?.content || 'Question',
+          roundIndex: sociale.currentRoundIndex || 0,
+          roundType: 'vote',
+          roundSettings,
+          phaseEndsAt,
+          paused: isPaused,
+        },
+      });
+    } else {
+      onOpenModal?.('vote');
+    }
+  };
 
   return (
     <div className="w-full mb-8">
@@ -37,7 +63,7 @@ export function SocialeVotePhaseRoom({
         participants={participants}
         isMainEventMode={isMainEventMode}
         phase="vote"
-        onClick={() => onOpenModal?.('vote')}
+        onClick={handleOpenModal}
       />
       <SessionTimer
         endTime={phaseEndsAt ?? undefined}

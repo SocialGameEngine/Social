@@ -621,6 +621,7 @@ export interface SubmitSocialeResponseRequest {
 export interface SubmitSocialeVoteRequest {
   socialeId: string;
   roundId: string;
+  socialiteId: string;
   targetResponseId: string;
 }
 

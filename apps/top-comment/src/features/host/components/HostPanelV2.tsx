@@ -258,10 +258,10 @@ export function HostPanelV2({
         {/* Desktop main content */}
         <main className="max-w-7xl mx-auto px-4 py-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left column - Session Controls */}
+            {/* Left column - Sociale Controls */}
             <aside className="lg:col-span-1 space-y-4">
               <div className="bg-slate-800 rounded-2xl p-4 border border-cyan-400/20">
-                <h2 className="text-lg font-semibold text-white mb-4">Session Controls</h2>
+                <h2 className="text-lg font-semibold text-white mb-4">Sociale Controls</h2>
                 <HostActionBar
                   session={session}
                   sociale={sociale}
