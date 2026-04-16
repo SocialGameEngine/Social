@@ -110,6 +110,7 @@ export function useAudienceSubmissions({ roomId, membershipId, isHost }: UseAudi
     channelRef.current = channel;
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
       channelRef.current = null;
     };

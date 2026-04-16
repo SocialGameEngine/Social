@@ -96,6 +96,7 @@ export function useRoomChat({ roomId, userId, membershipId, displayName }: UseRo
     channelRef.current = channel;
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
       channelRef.current = null;
     };

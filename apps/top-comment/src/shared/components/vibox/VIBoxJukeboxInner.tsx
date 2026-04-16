@@ -545,6 +545,7 @@ export function VIBoxJukeboxInner({
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [isOpen, mode, tracks]);

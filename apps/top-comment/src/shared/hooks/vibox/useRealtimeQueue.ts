@@ -74,6 +74,7 @@ export const useRealtimeQueue = (roomId?: string): UseRealtimeQueueReturn => {
     return () => {
       isActive = false;
       if (channel) {
+        channel.unsubscribe();
         supabase.removeChannel(channel);
       }
       queueChannelRef.current = null;

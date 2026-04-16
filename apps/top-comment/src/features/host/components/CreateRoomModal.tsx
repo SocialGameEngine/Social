@@ -42,21 +42,22 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess, existingRoom, upda
   // Populate form with existing room data when editing
   useEffect(() => {
     if (existingRoom) {
-      const existingSettings = existingRoom.settings as any;
+      const existingSettings = existingRoom.settings as unknown as Record<string, unknown>;
+      const defaultSessionSettings = existingSettings?.defaultSessionSettings as Record<string, unknown> | undefined;
       setFormData({
         name: existingRoom.name || '',
         description: existingRoom.description || '',
         maxPlayers: existingRoom.maxPlayers || 50,
         settings: {
-          allowPlayerChat: existingSettings?.allowPlayerChat ?? true,
-          autoStartSession: existingSettings?.autoStartSession ?? false,
-          requireApproval: existingSettings?.requireApproval ?? false,
-          allowAnonymous: existingSettings?.allowAnonymous ?? true,
+          allowPlayerChat: typeof existingSettings?.allowPlayerChat === 'boolean' ? existingSettings.allowPlayerChat : true,
+          autoStartSession: typeof existingSettings?.autoStartSession === 'boolean' ? existingSettings.autoStartSession : false,
+          requireApproval: typeof existingSettings?.requireApproval === 'boolean' ? existingSettings.requireApproval : false,
+          allowAnonymous: typeof existingSettings?.allowAnonymous === 'boolean' ? existingSettings.allowAnonymous : true,
           defaultSessionSettings: {
-            answerSecs: existingSettings?.defaultSessionSettings?.answerSecs ?? 90,
-            voteSecs: existingSettings?.defaultSessionSettings?.voteSecs ?? 30,
-            resultsSecs: existingSettings?.defaultSessionSettings?.resultsSecs ?? 12,
-            gameMode: (existingSettings?.defaultSessionSettings?.gameMode as 'classic') ?? 'classic',
+            answerSecs: typeof defaultSessionSettings?.answerSecs === 'number' ? defaultSessionSettings.answerSecs : 90,
+            voteSecs: typeof defaultSessionSettings?.voteSecs === 'number' ? defaultSessionSettings.voteSecs : 30,
+            resultsSecs: typeof defaultSessionSettings?.resultsSecs === 'number' ? defaultSessionSettings.resultsSecs : 12,
+            gameMode: (defaultSessionSettings?.gameMode as 'classic') ?? 'classic',
           },
         },
       });
@@ -147,14 +148,14 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess, existingRoom, upda
     }
   };
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: string | number) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
     }));
   };
 
-  const handleSettingsChange = (field: string, value: any) => {
+  const handleSettingsChange = (field: string, value: boolean | number | string) => {
     setFormData(prev => ({
       ...prev,
       settings: {
@@ -164,7 +165,7 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess, existingRoom, upda
     }));
   };
 
-  const handleSessionSettingsChange = (field: string, value: any) => {
+  const handleSessionSettingsChange = (field: string, value: number | string) => {
     setFormData(prev => ({
       ...prev,
       settings: {

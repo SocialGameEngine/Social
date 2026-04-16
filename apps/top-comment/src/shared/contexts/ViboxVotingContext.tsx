@@ -402,6 +402,7 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
       throttledSync.cancel();
     };

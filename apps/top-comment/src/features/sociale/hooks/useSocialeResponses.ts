@@ -9,6 +9,7 @@ import { supabase } from '../../../supabase/client';
 import type { SocialeResponse, SubmitSocialeResponseRequest } from '../../../domain/types/sociale.types';
 import { mapSocialeResponse, submitSocialeResponse } from '../socialeService';
 import { useSocialeChannel } from './useSocialeChannel';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 /**
  * Hook for fetching responses by Sociale
@@ -17,7 +18,7 @@ export function useSocialeResponses(socialeId?: string) {
   const queryClient = useQueryClient();
 
   // Use unified sociale channel instead of dedicated responses channel
-  const onPayload = useCallback((payload: any) => {
+  const onPayload = useCallback((payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
     if (payload?.table === 'sociale_responses') {
       void queryClient.invalidateQueries({ queryKey: ['sociale-responses', socialeId] });
     }
@@ -50,10 +51,10 @@ export function useRoundResponses(socialeId?: string, roundId?: string) {
   const queryClient = useQueryClient();
 
   // Use unified sociale channel — filters by table + roundId in callback
-  const onPayload = useCallback((payload: any) => {
+  const onPayload = useCallback((payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
     if (payload?.table === 'sociale_responses' && roundId) {
-      const record = payload.new || payload.old;
-      if (record?.round_id === roundId) {
+      const record = (payload.new || payload.old) as Record<string, unknown> | undefined;
+      if (record && record.round_id === roundId) {
         void queryClient.invalidateQueries({ queryKey: ['sociale-responses', socialeId, roundId] });
       }
     }
@@ -95,10 +96,10 @@ export function useMyResponses(socialeId?: string, socialiteId?: string) {
   const queryClient = useQueryClient();
 
   // Use unified sociale channel — filters by table + socialiteId in callback
-  const onPayload = useCallback((payload: any) => {
+  const onPayload = useCallback((payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
     if (payload?.table === 'sociale_responses' && socialiteId) {
-      const record = payload.new || payload.old;
-      if (record?.socialite_id === socialiteId) {
+      const record = (payload.new || payload.old) as Record<string, unknown> | undefined;
+      if (record && record.socialite_id === socialiteId) {
         void queryClient.invalidateQueries({ queryKey: ['sociale-responses', socialeId, socialiteId] });
       }
     }
@@ -148,12 +149,8 @@ export function useUpdateResponse() {
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<SocialeResponse> }) => {
       // Convert the domain type to database-compatible updates
-      const dbUpdates = {
+      const dbUpdates: Record<string, unknown> = {
         ...updates,
-        // Convert value to JSONB-compatible format if present
-        ...(updates.value !== undefined && { 
-          value: updates.value as any // Cast to any to bypass TypeScript Json type checking
-        })
       };
       
       const { data, error } = await supabase

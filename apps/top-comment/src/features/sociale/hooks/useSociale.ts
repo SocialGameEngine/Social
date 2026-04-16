@@ -30,6 +30,7 @@ export function useSociale(socialeId?: string) {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       void supabase.removeChannel(channel);
     };
   }, [socialeId, queryClient]);
@@ -80,6 +81,7 @@ export function useSocialesByRoom(roomId?: string) {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       void supabase.removeChannel(channel);
     };
   }, [roomId, queryClient]);

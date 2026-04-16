@@ -363,6 +363,7 @@ export function useRoom(options: UseRoomOptions = {}) {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
       throttledRefresh.cancel();
     };

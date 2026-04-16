@@ -58,7 +58,8 @@ export function BannedPlayersManager({
       .subscribe();
 
     return () => {
-            supabase.removeChannel(channel);
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [roomId]);
 

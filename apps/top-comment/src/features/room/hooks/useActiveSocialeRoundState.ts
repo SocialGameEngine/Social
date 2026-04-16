@@ -33,6 +33,7 @@ export function useActiveSocialeRoundState(socialeId: string | undefined, social
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       void supabase.removeChannel(channel);
     };
   }, [socialeId, queryClient]);

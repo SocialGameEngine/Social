@@ -27,7 +27,8 @@ import {
 } from './shell';
 import { PHASE_STATUS_LABELS } from '../types/host-panel.types';
 import type { Session, Room, RoomMembership } from '../../../shared/types';
-import type { Sociale } from '../../../domain/types/sociale.types';
+import type { Sociale, Socialite } from '../../../domain/types/sociale.types';
+import type { SessionPlayer } from '../../../services/sessionPlayerService';
 
 interface HostPanelV2Props {
   session: Session | null;
@@ -37,8 +38,8 @@ interface HostPanelV2Props {
   roomCode: string;
   timer?: number;
   playerCount?: number;
-  sessionPlayers?: any[]; // SessionPlayer array
-  socialites?: any[]; // Socialite array
+  sessionPlayers?: SessionPlayer[];
+  socialites?: Socialite[];
   onPrimaryAction: () => void;
   onPauseToggle: () => void;
   onEndSession: () => void;

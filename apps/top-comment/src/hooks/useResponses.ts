@@ -54,6 +54,7 @@ export function useResponses({ interactionId }: UseResponsesOptions) {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [interactionId, refresh]);

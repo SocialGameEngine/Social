@@ -11,7 +11,6 @@ import { VenueRoomChecker } from "../auth/VenueRoomChecker";
 import { useGameState, useSessionOrchestrator, transformRoundSummariesForUI } from "../../application";
 import { useRoomV2 } from "../../hooks/useRoomV2";
 import { VIBoxJukebox } from "../../shared/components/vibox/VIBoxJukebox";
-// import { MobileLayout } from "../../shared/components/MobileLayout"; // Replaced by HostPanelV2
 import { useActiveGroupAnswers, usePlayerLookup, useToast } from "../../shared/hooks";
 import { useAuth } from "../../shared/providers/AuthContext";
 import { useTheme } from "../../shared/providers/ThemeProvider";
@@ -47,10 +46,8 @@ import { useHostComputations, useHostState } from "./hooks";
 import { useSessionPlayers } from "./hooks/useSessionPlayers";
 import { useHostRoomRecovery } from "./hooks/useHostRoomRecovery";
 import { useHostKeyboardShortcuts } from "../../hooks/useHostKeyboardShortcuts";
-// import { useResponsiveLayout } from "../room/hooks/useResponsiveLayout"; // Used by HostPanelV2 internally
 import { useAudienceSubmissions } from "../../hooks/useAudienceSubmissions";
 import { SubmissionReviewPanel } from "../room/components/submissions/SubmissionReviewPanel";
-// import { MobileHostControls } from "./components/MobileHostControls"; // Replaced by HostPanelV2
 import { HostPanelV2 } from "./components/HostPanelV2";
 import { useSessionTimer } from "./hooks";
 import { useSessionMachine } from "./state";
@@ -97,38 +94,30 @@ export function HostPage() {
   const hostSessionData = useHostSessionV2();
   const hostRoomData = useHostRoomV2();
   
-  // Only use hook data when user is authenticated
-  const shouldUseHostHooks = !authLoading && user && !user.is_anonymous;
-  
+  // Always destructure from hooks (React rules), apply conditions on values
   const {
-    sessionId: storedSessionId,
-    code: storedCode,
+    sessionId: _rawSessionId,
+    code: _rawSessionCode,
     isValidated: _sessionValidated,
     recoveryState: _sessionRecoveryState,
     setHostSession,
     clearHostSession,
-  } = shouldUseHostHooks ? hostSessionData : {
-    sessionId: null,
-    code: null,
-    isValidated: false,
-    recoveryState: { status: "expired", error: null },
-    setHostSession: hostSessionData.setHostSession, // Always use real function
-    clearHostSession: hostSessionData.clearHostSession, // Always use real function
-  };
+  } = hostSessionData;
   
   const {
-    roomId: storedRoomId,
-    code: storedRoomCode,
+    roomId: _rawRoomId,
+    code: _rawRoomCode,
     isValidated: _roomValidated,
     recoveryState: _roomRecoveryState,
     setHostRoom,
-  } = shouldUseHostHooks ? hostRoomData : {
-    roomId: null,
-    code: null,
-    isValidated: false,
-    recoveryState: { status: "expired", error: null },
-    setHostRoom: hostRoomData.setHostRoom, // CRITICAL: Always use real function so recovery works
-  };
+  } = hostRoomData;
+  
+  // Only use hook data when user is authenticated
+  const shouldUseHostHooks = !authLoading && user && !user.is_anonymous;
+  const storedSessionId = shouldUseHostHooks ? _rawSessionId : null;
+  const storedCode = shouldUseHostHooks ? _rawSessionCode : null;
+  const storedRoomId = shouldUseHostHooks ? _rawRoomId : null;
+  const storedRoomCode = shouldUseHostHooks ? _rawRoomCode : null;
   const [showBannedPlayersModal, setShowBannedPlayersModal] = useState(false);
   const [showVIBoxModal, setShowVIBoxModal] = useState(false);
   const [showVenueAuthPrompt, setShowVenueAuthPrompt] = useState(false);
@@ -388,14 +377,6 @@ export function HostPage() {
     }
     return false;
   }, [toast, authLoading, venueAccountLoading, canCreateSession]);
-
-  // Room settings handler (session-based, kept for reference)
-  // const handleOpenRoomSettings = useCallback(() => {
-  //   if (!requireVenueAccount()) {
-  //     return;
-  //   }
-  //   setRoomModalMode('settings');
-  // }, [requireVenueAccount]);
 
   const handleOpenSocialeSettings = useCallback(() => {
     if (!requireVenueAccount()) {
@@ -1108,23 +1089,6 @@ export function HostPage() {
 
   
   
-  // Action buttons content for lobby (session-based, kept for reference)
-  // const lobbyActionButtons = session && session.status === "lobby" ? (
-  //   <div className="flex flex-wrap gap-3">
-  //     <Button
-  //       onClick={handlePrimaryClick}
-  //       disabled={
-  //         isPerformingAction ||
-  //         isUpdatingPromptLibrary ||
-  //         lobbyPlayerCount === 0
-  //       }
-  //       isLoading={isPerformingAction}
-  //     >
-  //       {actionLabel[session.status]}
-  //     </Button>
-  //   </div>
-  // ) : null;
-
   const renderSocialesPanel = () => {
     if (!storedRoomId) return null;
     return (

@@ -155,6 +155,7 @@ export function TriviaModal({ interaction, isOpen, onClose, membershipId, onJoin
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [isOpen, interaction.id, interaction.responseCount]);

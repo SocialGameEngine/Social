@@ -61,15 +61,11 @@ export const handleRoomBanPlayer = ({
     setBanningPlayerId?.(playerId);
     
     try {
-      console.log('📞 Calling banMember with:', { roomId, userId });
-      
       await roomMembershipService.banMember({
         roomId,
         userId,
         reason: "Banned by host",
       });
-      
-      console.log('✅ Ban successful');
       
       toast({ 
         title: "Player banned from room", 
@@ -79,7 +75,7 @@ export const handleRoomBanPlayer = ({
       // Refresh the player list
       refresh?.();
     } catch (error) {
-      console.error("❌ Failed to ban player from room:", error);
+      console.error("Failed to ban player from room:", error);
       toast({ 
         title: "Failed to ban player", 
         variant: "error" 

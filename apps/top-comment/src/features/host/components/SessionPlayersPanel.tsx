@@ -1,9 +1,11 @@
 import { Card } from "@social/ui";
 import { useSessionPlayers } from "../hooks/useSessionPlayers";
+import type { Session } from "../../../shared/types";
+import type { SessionPlayer } from "../../../services/sessionPlayerService";
 
 interface SessionPlayersPanelProps {
   isDark: boolean;
-  session: any;
+  session: Session | null;
   sessionId: string | null;
 }
 
@@ -32,7 +34,7 @@ export function SessionPlayersPanel({
         
         <div className={`space-y-4 rounded-3xl p-5 shadow-lg border-[3px] ${!isDark ? 'bg-white shadow-slate-300/40 border-slate-200' : 'bg-slate-800 shadow-fuchsia-500/20 border-slate-600'}`}>
           <ul className="space-y-2">
-            {sessionPlayers.map((player: any) => (
+            {sessionPlayers.map((player: SessionPlayer) => (
               <li
                 key={player.id}
                 className="flex items-center justify-between rounded-2xl px-4 py-3 bg-slate-700"

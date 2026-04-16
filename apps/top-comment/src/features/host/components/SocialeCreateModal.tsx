@@ -211,9 +211,9 @@ export function SocialeCreateModal({
             validationError = 'No published questions in this pack';
             isValid = false;
           } else {
-            let questionIndex = index % questions.length;
+            let questionIndex = Math.floor(Math.random() * questions.length);
             let attempts = 0;
-            
+
             // Find a question that hasn't been used yet
             while (usedContent.has(questions[questionIndex]) && attempts < questions.length) {
               questionIndex = (questionIndex + 1) % questions.length;
@@ -241,9 +241,9 @@ export function SocialeCreateModal({
             validationError = 'No active prompts in this library';
             isValid = false;
           } else {
-            let promptIndex = index % prompts.length;
+            let promptIndex = Math.floor(Math.random() * prompts.length);
             let attempts = 0;
-            
+
             // Find a prompt that hasn't been used yet
             while (usedContent.has(prompts[promptIndex]) && attempts < prompts.length) {
               promptIndex = (promptIndex + 1) % prompts.length;
@@ -346,82 +346,190 @@ export function SocialeCreateModal({
   };
   
   // Change round type (toggle between topic and trivia for alternating mode)
-  const changeRoundType = (roundNumber: number) => {
+  const changeRoundType = async (roundNumber: number) => {
     if (mode !== 'alternating') return; // Only allow in alternating mode
-    
+
     const roundIndex = roundNumber - 1;
     const round = previewData[roundIndex];
     if (!round) return;
-    
+
     const newType = round.type === 'trivia' ? 'topic' : 'trivia';
-    const updatedPreview = [...previewData];
-    
+
     // Get appropriate library for new type
-    const appropriateLibs = libraries?.filter(lib => 
+    const appropriateLibs = libraries?.filter(lib =>
       lib.type === (newType === 'trivia' ? 'trivia' : 'prompt')
     ) || [];
     const selectedAppropriateLibs = selectedLibraries.filter(libId =>
       appropriateLibs.some(lib => lib.id === libId)
     );
-    
+
     if (selectedAppropriateLibs.length === 0) {
       // Can't change type if no libraries of that type are selected
       return;
     }
-    
+
     const newLibraryId = selectedAppropriateLibs[0];
     const newLibrary = libraries?.find(lib => lib.id === newLibraryId);
-    
-    updatedPreview[roundIndex] = {
-      ...updatedPreview[roundIndex],
-      type: newType,
-      libraryId: newLibraryId,
-      libraryName: newLibrary?.name || 'Unknown',
-      prompt: 'Loading...',
-      validationError: null,
-      isValid: true
-    };
-    setPreviewData(updatedPreview);
-    
-    // Regenerate content for the new type
-    setTimeout(() => regenerateRoundContent(roundNumber), 100);
+
+    // Set loading state with the new type/library immediately
+    setPreviewData(prev => {
+      const updated = [...prev];
+      updated[roundIndex] = {
+        ...updated[roundIndex],
+        type: newType,
+        libraryId: newLibraryId,
+        libraryName: newLibrary?.name || 'Unknown',
+        prompt: 'Loading...',
+        validationError: null,
+        isValid: true
+      };
+      return updated;
+    });
+
+    // Fetch content for the new type/library directly — avoids stale closure
+    try {
+      let newPrompt: string;
+      let validationError: string | null = null;
+      let isValid = true;
+
+      if (newType === 'trivia') {
+        const { data: questions } = await supabase
+          .from('trivia_questions')
+          .select('prompt')
+          .eq('pack_id', newLibraryId)
+          .eq('status', 'published');
+
+        if (questions && questions.length > 0) {
+          newPrompt = questions[Math.floor(Math.random() * questions.length)].prompt;
+        } else {
+          newPrompt = 'No trivia questions available';
+          validationError = 'No published questions in this pack';
+          isValid = false;
+        }
+      } else {
+        const { data: prompts } = await supabase
+          .from('prompts')
+          .select('text')
+          .eq('library_id', newLibraryId)
+          .eq('is_active', true);
+
+        if (prompts && prompts.length > 0) {
+          newPrompt = prompts[Math.floor(Math.random() * prompts.length)].text;
+        } else {
+          newPrompt = 'No prompts available';
+          validationError = 'No active prompts in this library';
+          isValid = false;
+        }
+      }
+
+      setPreviewData(prev => {
+        const updated = [...prev];
+        updated[roundIndex] = {
+          ...updated[roundIndex],
+          prompt: newPrompt,
+          validationError,
+          isValid
+        };
+        return updated;
+      });
+    } catch (err) {
+      console.error('Failed to change round type:', err);
+    }
   };
   
   // Change library for a specific round
-  const changeRoundLibrary = (roundNumber: number) => {
+  const changeRoundLibrary = async (roundNumber: number) => {
     const roundIndex = roundNumber - 1;
     const round = previewData[roundIndex];
     if (!round) return;
-    
+
     // Get appropriate libraries for this round type
-    const appropriateLibs = libraries?.filter(lib => 
+    const appropriateLibs = libraries?.filter(lib =>
       lib.type === (round.type === 'trivia' ? 'trivia' : 'prompt')
     ) || [];
     const selectedAppropriateLibs = selectedLibraries.filter(libId =>
       appropriateLibs.some(lib => lib.id === libId)
     );
-    
-    if (selectedAppropriateLibs.length <= 1) return; // Need at least 2 to cycle
-    
-    // Find next library in the list
-    const currentIndex = selectedAppropriateLibs.indexOf(round.libraryId || '');
-    const nextIndex = (currentIndex + 1) % selectedAppropriateLibs.length;
-    const newLibraryId = selectedAppropriateLibs[nextIndex];
+
+    if (selectedAppropriateLibs.length === 0) return; // No libraries of this type selected
+
+    // Cycle to next library; if only one, regenerate from the same library
+    let newLibraryId: string;
+    if (selectedAppropriateLibs.length === 1) {
+      newLibraryId = selectedAppropriateLibs[0];
+    } else {
+      const currentIndex = selectedAppropriateLibs.indexOf(round.libraryId || '');
+      const nextIndex = (currentIndex + 1) % selectedAppropriateLibs.length;
+      newLibraryId = selectedAppropriateLibs[nextIndex];
+    }
+
     const newLibrary = libraries?.find(lib => lib.id === newLibraryId);
-    
-    const updatedPreview = [...previewData];
-    updatedPreview[roundIndex] = {
-      ...updatedPreview[roundIndex],
-      libraryId: newLibraryId,
-      libraryName: newLibrary?.name || 'Unknown',
-      prompt: 'Loading...',
-      validationError: null,
-      isValid: true
-    };
-    setPreviewData(updatedPreview);
-    
-    // Regenerate content for the new library
-    setTimeout(() => regenerateRoundContent(roundNumber), 100);
+
+    // Set loading state with the new library immediately
+    setPreviewData(prev => {
+      const updated = [...prev];
+      updated[roundIndex] = {
+        ...updated[roundIndex],
+        libraryId: newLibraryId,
+        libraryName: newLibrary?.name || 'Unknown',
+        prompt: 'Loading...',
+        validationError: null,
+        isValid: true
+      };
+      return updated;
+    });
+
+    // Fetch content for the new library directly — avoids stale closure
+    try {
+      let newPrompt: string;
+      let validationError: string | null = null;
+      let isValid = true;
+
+      if (round.type === 'trivia') {
+        const { data: questions } = await supabase
+          .from('trivia_questions')
+          .select('prompt')
+          .eq('pack_id', newLibraryId)
+          .eq('status', 'published')
+          .neq('prompt', round.prompt);
+
+        if (questions && questions.length > 0) {
+          newPrompt = questions[Math.floor(Math.random() * questions.length)].prompt;
+        } else {
+          newPrompt = 'No trivia questions available';
+          validationError = 'No published questions in this pack';
+          isValid = false;
+        }
+      } else {
+        const { data: prompts } = await supabase
+          .from('prompts')
+          .select('text')
+          .eq('library_id', newLibraryId)
+          .eq('is_active', true)
+          .neq('text', round.prompt);
+
+        if (prompts && prompts.length > 0) {
+          newPrompt = prompts[Math.floor(Math.random() * prompts.length)].text;
+        } else {
+          newPrompt = 'No prompts available';
+          validationError = 'No active prompts in this library';
+          isValid = false;
+        }
+      }
+
+      setPreviewData(prev => {
+        const updated = [...prev];
+        updated[roundIndex] = {
+          ...updated[roundIndex],
+          prompt: newPrompt,
+          validationError,
+          isValid
+        };
+        return updated;
+      });
+    } catch (err) {
+      console.error('Failed to change round library:', err);
+    }
   };
 
   // Auto-generate preview when libraries, mode, or rounds changes
