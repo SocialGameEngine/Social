@@ -2,15 +2,11 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { Button, Card, Modal, QRCodeBlock } from "@social/ui";
-import { PlayerAuthModal } from "../auth/PlayerAuthModal";
-import { VenueAuthModal } from "../auth/VenueAuthModal";
-import { VenueRoomChecker } from "../auth/VenueRoomChecker";
+import { Button, Card, Modal } from "@social/ui";
 
 
 import { useGameState, useSessionOrchestrator, transformRoundSummariesForUI } from "../../application";
 import { useRoomV2 } from "../../hooks/useRoomV2";
-import { VIBoxJukebox } from "../../shared/components/vibox/VIBoxJukebox";
 import { useActiveGroupAnswers, usePlayerLookup, useToast } from "../../shared/hooks";
 import { useAuth } from "../../shared/providers/AuthContext";
 import { useTheme } from "../../shared/providers/ThemeProvider";
@@ -27,13 +23,9 @@ import {
   JoinSessionModal,
   JoinSocialeModal,
 } from "./Phases";
-import { CreateRoomModal } from "./components/CreateRoomModal";
-import { PromptLibrarySelector } from "./components/PromptLibrarySelector";
-import { BannedPlayersManager } from "./components/BannedPlayersManager";
 import { HostInteractionsPanel } from "./components/HostInteractionsPanel";
 import { SessionsPanel } from "./components/SessionsPanel";
 import { SocialesPanel } from "./components/SocialesPanel";
-import { SocialeCreateModal } from "./components/SocialeCreateModal";
 import { handleCopyLink, handleCreateSession, handleUpdateSession, handleEndSession, handleHostVote, handlePrimaryAction, handleSocialePrimaryAction } from "./Handlers";
 import { handleRoomKickPlayer, handleRoomBanPlayer } from "./Handlers/roomKickBanHandlers";
 import { setPromptLibrary, pauseSession } from "../session/sessionService";
