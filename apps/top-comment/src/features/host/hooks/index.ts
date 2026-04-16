@@ -6,3 +6,4 @@ export { useHostEffects } from './useHostEffects';
 export { useHostRecovery } from './useHostRecovery';
 export { useConnectionStatus } from './useConnectionStatus';
 export { useSessionTimer } from './useSessionTimer';
+export { useHostHandlers } from './useHostHandlers';
