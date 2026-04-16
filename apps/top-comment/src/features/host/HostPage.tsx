@@ -55,6 +55,7 @@ import { HostControlButtons } from "./components/HostControlButtons";
 import { HostSidePanel } from "./components/HostSidePanel";
 import { HostHeaderCard } from "./components/HostHeaderCard";
 import { HostVenueLoginPrompt } from "./components/HostVenueLoginPrompt";
+import { HostModalsContainer } from "./components/HostModalsContainer";
 import { useSessionTimer } from "./hooks";
 import { useSessionMachine } from "./state";
 import { useCommandPalette, CommandPalette } from "./components/shell";
@@ -1310,28 +1311,15 @@ export function HostPage() {
         </section>
       </div>
 
-      <CreateRoomModal
-        isOpen={showRoomCreateModal}
-        onClose={() => setRoomModalMode(null)}
-        onSuccess={handleRoomCreateSuccess}
-        existingRoom={room}
-      />
-
-      <SocialeCreateModal
-        isOpen={showSocialeModal}
-        onClose={() => setShowSocialeModal(false)}
-        roomId={storedRoomId || ''}
-        existingSociale={
-          settingsSociale
-            ? {
-                id: settingsSociale.id,
-                title: settingsSociale.title,
-                description: settingsSociale.description,
-                mode: settingsSociale.mode,
-                totalRounds: settingsSociale.totalRounds,
-              }
-            : null
-        }
+      <HostModalsContainer
+        showRoomCreateModal={showRoomCreateModal}
+        onCloseRoomModal={() => setRoomModalMode(null)}
+        onRoomCreateSuccess={handleRoomCreateSuccess}
+        room={room}
+        showSocialeModal={showSocialeModal}
+        setShowSocialeModal={setShowSocialeModal}
+        storedRoomId={storedRoomId}
+        settingsSociale={settingsSociale}
         onCreateSociale={async (request) => {
           await createSociale.mutateAsync(request);
         }}
@@ -1348,171 +1336,57 @@ export function HostPage() {
             totalRounds: updates.totalRounds,
           });
         }}
-      />
-
-      <CreateSessionModal
-        open={showCreateModal}
-        onClose={handleCreateModalClose}
+        showCreateModal={showCreateModal}
+        handleCreateModalClose={handleCreateModalClose}
+        showEditModal={showEditModal}
+        setShowEditModal={setShowEditModal}
         createForm={createForm}
         setCreateForm={setCreateForm}
         createErrors={createErrors}
         isCreating={isCreating}
+        isUpdatingSession={isUpdatingSession}
         canCreateSession={canCreateSession}
-        onSubmit={createSessionHandler}
-      />
-      <CreateSessionModal
-        open={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        title="Session settings"
-        submitLabel={isUpdatingSession ? "Saving..." : "Save settings"}
-        createForm={createForm}
-        setCreateForm={setCreateForm}
-        createErrors={createErrors}
-        isCreating={isUpdatingSession}
-        canCreateSession={canCreateSession}
-        onSubmit={updateSessionHandler}
-      />
-      <JoinSessionModal
-        open={showJoinModal}
-        onClose={() => setShowJoinModal(false)}
-        onJoin={handleJoinSession}
-        isJoining={isJoiningSession}
-      />
-      <JoinSocialeModal
-        open={showJoinSocialeModal}
-        onClose={() => setShowJoinSocialeModal(false)}
-        onJoin={handleJoinSociale}
-        isJoining={isJoiningSociale}
-      />
-
-      <Modal
-        open={showPromptLibraryModal && Boolean(session)}
-        onClose={() => setShowPromptLibraryModal(false)}
-        title="Choose a prompt library"
+        onCreateSession={createSessionHandler}
+        onUpdateSession={updateSessionHandler}
+        showJoinModal={showJoinModal}
+        setShowJoinModal={setShowJoinModal}
+        showJoinSocialeModal={showJoinSocialeModal}
+        setShowJoinSocialeModal={setShowJoinSocialeModal}
+        onJoinSession={handleJoinSession}
+        onJoinSociale={handleJoinSociale}
+        isJoiningSession={isJoiningSession}
+        isJoiningSociale={isJoiningSociale}
+        showPromptLibraryModal={showPromptLibraryModal}
+        setShowPromptLibraryModal={setShowPromptLibraryModal}
+        session={session}
+        selectedPromptLibraryId={selectedPromptLibraryId}
+        onPromptLibrarySelect={handlePromptLibrarySelect}
+        isUpdatingPromptLibrary={isUpdatingPromptLibrary}
         isDark={isDark}
-        footer={
-          <Button variant="ghost" onClick={() => setShowPromptLibraryModal(false)}>
-            Done
-          </Button>
-        }
-      >
-        {session ? (
-          <div className="space-y-3">
-            <PromptLibrarySelector
-              selectedId={selectedPromptLibraryId}
-              onSelect={handlePromptLibrarySelect}
-              disabled={isUpdatingPromptLibrary || session.status !== "lobby"}
-            />
-            <p className="text-xs text-slate-400">
-              You can switch decks any time before the first round begins.
-            </p>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-300">
-            Start a session to choose your prompt library.
-          </p>
-        )}
-      </Modal>
-
-      <Modal
-        open={showEndSessionModal}
-        onClose={() => setShowEndSessionModal(false)}
-        title="End Session"
-        isDark={isDark}
-        footer={
-          <div className="flex w-full items-center justify-between">
-            <Button variant="ghost" onClick={() => setShowEndSessionModal(false)}>
-              Back
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => {
-                setShowEndSessionModal(false);
-                confirmEndSessionHandler();
-              }}
-              disabled={isEndingSession}
-              isLoading={isEndingSession}
-            >
-              Confirm
-            </Button>
-          </div>
-        }
-      >
-        <p className="text-sm text-slate-300">
-          Are you sure you want to end this session? This action cannot be undone
-          and all players will be disconnected.
-        </p>
-      </Modal>
-      
-      <BannedPlayersManager
-        roomId={storedRoomId}
-        isOpen={showBannedPlayersModal}
-        onClose={() => setShowBannedPlayersModal(false)}
+        showEndSessionModal={showEndSessionModal}
+        setShowEndSessionModal={setShowEndSessionModal}
+        onConfirmEndSession={confirmEndSessionHandler}
+        isEndingSession={isEndingSession}
+        showBannedPlayersModal={showBannedPlayersModal}
+        setShowBannedPlayersModal={setShowBannedPlayersModal}
         toast={toast}
-      />
-      
-      <VIBoxJukebox
-        isOpen={showVIBoxModal}
-        onClose={() => setShowVIBoxModal(false)}
-        toast={toast}
-        room={room}
-        memberships={roomMemberships || []}
-        mode="host"
-        allowUploads={true}
-      />
-
-      <Modal
-        open={showVenueAuthPrompt}
-        onClose={() => setShowVenueAuthPrompt(false)}
-        title="Venue account required"
-        isDark={isDark}
-        footer={
-          <div className="flex w-full items-center justify-between">
-            <Button variant="ghost" onClick={() => setShowVenueAuthPrompt(false)}>
-              Maybe later
-            </Button>
-            <Button
-              onClick={() => {
-                setShowVenueAuthPrompt(false);
-                navigate("/venue-auth");
-              }}
-            >
-              Go to venue login
-            </Button>
-          </div>
-        }
-      >
-        <p className={`text-sm ${!isDark ? 'text-slate-600' : 'text-slate-300'}`}>
-          Only approved venue accounts can start Söcial sessions. Use your venue
-          credentials to sign in before creating a game.
-        </p>
-      </Modal>
-      {/* Authentication Modals */}
-      {showPlayerAuthModal && (
-        <PlayerAuthModal
-          open={showPlayerAuthModal}
-          onClose={() => setShowPlayerAuthModal(false)}
-        />
-      )}
-      {showVenueAuthModal && (
-        <VenueAuthModal
-          open={showVenueAuthModal}
-          onClose={() => setShowVenueAuthModal(false)}
-        />
-      )}
-      
-      {/* Venue Room Checker - Automatically shows CreateRoomModal if venue needs room */}
-      <VenueRoomChecker 
-        onRoomCreated={(roomCodeOrId) => {
-          // Show success notification and stay on host page
+        showVIBoxModal={showVIBoxModal}
+        setShowVIBoxModal={setShowVIBoxModal}
+        roomMemberships={roomMemberships}
+        showVenueAuthPrompt={showVenueAuthPrompt}
+        setShowVenueAuthPrompt={setShowVenueAuthPrompt}
+        onNavigateVenueAuth={() => navigate("/venue-auth")}
+        showPlayerAuthModal={showPlayerAuthModal}
+        setShowPlayerAuthModal={setShowPlayerAuthModal}
+        showVenueAuthModal={showVenueAuthModal}
+        setShowVenueAuthModal={setShowVenueAuthModal}
+        onVenueRoomCreated={(roomCodeOrId) => {
           toast({
             title: "Venue Room Created!",
             description: `Room code: ${roomCodeOrId}`,
             variant: "success",
           });
           setVenueRoomCreated(roomCodeOrId);
-          
-          // Update stored room to the new venue room
           setHostRoom({ roomId: roomCodeOrId, code: roomCodeOrId });
         }}
       />
