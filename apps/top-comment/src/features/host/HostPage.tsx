@@ -50,6 +50,8 @@ import { useAudienceSubmissions } from "../../hooks/useAudienceSubmissions";
 import { SubmissionReviewPanel } from "../room/components/submissions/SubmissionReviewPanel";
 import { HostPanelV2 } from "./components/HostPanelV2";
 import { HostAccountMenu } from "./components/HostAccountMenu";
+import { HostPromptLibraryCard } from "./components/HostPromptLibraryCard";
+import { HostControlButtons } from "./components/HostControlButtons";
 import { useSessionTimer } from "./hooks";
 import { useSessionMachine } from "./state";
 import { useCommandPalette, CommandPalette } from "./components/shell";
@@ -884,185 +886,43 @@ export function HostPage() {
     }
   };
 
-  const promptLibraryCard =
-    session && session.status === "lobby" ? (
-      <Card className="flex flex-col gap-4" isDark={isDark}>
-        <div className="flex items-start justify-between gap-2">
-          <div className={`flex flex-col gap-1 ${!isDark ? 'text-slate-700' : 'text-cyan-100'}`}>
-            <span className={`text-xs font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-400'}`}>
-              Prompt library
-            </span>
-            {session.settings?.gameMode === "mashup" ? (
-              <>
-                <p className={`text-lg font-bold ${!isDark ? 'text-slate-900' : 'text-pink-400'}`}>
-                  Mashup Mode
-                </p>
-                <p className={`text-sm ${!isDark ? 'text-slate-500' : 'text-cyan-300'}`}>
-                  Rotating through {session.selectedLibraries?.length ?? 0} libraries
-                </p>
-              </>
-            ) : currentPromptLibrary ? (
-              <>
-                <p className={`text-lg font-bold ${!isDark ? 'text-slate-900' : 'text-pink-400'}`}>
-                  {currentPromptLibrary.emoji} {currentPromptLibrary.name}
-                </p>
-                <p className={`text-sm ${!isDark ? 'text-slate-500' : 'text-cyan-300'}`}>
-                  {currentPromptLibrary.description}
-                </p>
-              </>
-            ) : (
-              <div className="flex items-center justify-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-400"></div>
-                <p className={`ml-2 text-sm ${!isDark ? 'text-slate-500' : 'text-cyan-300'}`}>
-                  Loading...
-                </p>
-              </div>
-            )}
-          </div>
-          {session.settings?.gameMode === "classic" && (
-            <Button
-              variant="secondary"
-              onClick={() => setShowPromptLibraryModal(true)}
-              disabled={isUpdatingPromptLibrary}
-            >
-              {session.promptLibraryId ? "Change" : "Choose"} prompts
-            </Button>
-          )}
-          {session.settings?.gameMode === "mashup" && (
-            <Button
-              variant="secondary"
-              onClick={handleOpenEditModal}
-            >
-              Edit Libraries
-            </Button>
-          )}
-        </div>
-        {session.settings?.gameMode === "classic" && currentPromptLibrary && currentPromptLibrary.prompts.length > 0 && (
-          <div className="space-y-2">
-            <p className={`text-xs font-semibold uppercase tracking-wide ${!isDark ? 'text-slate-500' : 'text-cyan-400'}`}>
-              Sample prompts
-            </p>
-            <div className="space-y-2">
-              {currentPromptLibrary.prompts.slice(0, 3).map((prompt, index) => (
-                <div
-                  key={index}
-                  className={`rounded-lg border px-3 py-2 text-sm ${!isDark ? 'border-slate-200 bg-slate-50 text-slate-700' : 'border-slate-600 bg-slate-700 text-cyan-100'}`}
-                >
-                  {prompt}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </Card>
-    ) : null;
-
-  // Session control buttons for lobby and ended states
-  const sessionControlButtons = session && (session.status === "lobby" || session.status === "ended") ? (
-    <div className="flex flex-wrap gap-2">
-      {session.status === "lobby" ? (
-        <>
-          <Button
-            variant="secondary"
-            onClick={handleCreateNewSession}
-            disabled={true}
-            title="End the current session before starting a new one."
-          >
-            New Session
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={handleOpenEditModal}
-            disabled={isUpdatingSession}
-          >
-            Session Settings
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => setShowJoinModal(true)}
-          >
-            Load Session
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={showEndSessionModalHandler}
-            disabled={isEndingSession}
-          >
-            End Session
-          </Button>
-        </>
-      ) : (
-        <>
-          <Button
-            variant="secondary"
-            onClick={handleCreateNewSession}
-          >
-            New Session
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => setShowJoinModal(true)}
-          >
-            Load Session
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={handleLeaveSession}
-          >
-            Leave Session
-          </Button>
-        </>
-      )}
-    </div>
+  const promptLibraryCard = session && session.status === "lobby" ? (
+    <HostPromptLibraryCard
+      session={session}
+      currentPromptLibrary={currentPromptLibrary}
+      isUpdatingPromptLibrary={isUpdatingPromptLibrary}
+      isDark={isDark}
+      onChangePrompts={() => setShowPromptLibraryModal(true)}
+      onEditLibraries={handleOpenEditModal}
+    />
   ) : null;
 
-  // Session Panel: Session-specific controls (answer, vote, results phases)
-  // CRITICAL: Include the primary action button for manual phase advancement
-  const activePhaseSessionControls = session && (session.status === "answer" || session.status === "vote" || session.status === "results") ? (
-    <div className="flex flex-wrap gap-2">
-      {/* PRIMARY ACTION: Advance to next phase - most important control */}
-      <Button
-        onClick={handlePrimaryClick}
-        disabled={isPerformingAction}
-        isLoading={isPerformingAction}
-      >
-        {actionLabel[session.status]}
-      </Button>
-      <Button
-        variant="ghost"
-        onClick={handlePauseToggle}
-        disabled={isPausingSession}
-      >
-        {session.paused ? "Resume" : "Pause"}
-      </Button>
-      <Button
-        variant="ghost"
-        onClick={showEndSessionModalHandler}
-        disabled={isEndingSession}
-      >
-        End Session
-      </Button>
-    </div>
-  ) : null;
+  // Control buttons - consolidated into single component
+  const controlButtons = (
+    <HostControlButtons
+      session={session}
+      activeSociale={activeSocialeQuery.data ?? null}
+      storedRoomId={storedRoomId}
+      isPerformingAction={isPerformingAction}
+      isPausingSession={isPausingSession}
+      isEndingSession={isEndingSession}
+      isUpdatingSession={isUpdatingSession}
+      onPrimaryClick={handlePrimaryClick}
+      onPauseToggle={handlePauseToggle}
+      onEndSession={showEndSessionModalHandler}
+      onCreateNewSession={handleCreateNewSession}
+      onOpenEditModal={handleOpenEditModal}
+      onJoinModal={() => setShowJoinModal(true)}
+      onLeaveSession={handleLeaveSession}
+      onOpenSocialeModal={handleOpenSocialeModal}
+      onJoinSocialeModal={() => setShowJoinSocialeModal(true)}
+    />
+  );
 
-  
-  // Lobby controls for when there's no active session or Sociale
-  const lobbyControls = !session && !activeSocialeQuery.data && storedRoomId ? (
-    <div className="flex flex-wrap gap-2">
-      <Button
-        variant="secondary"
-        onClick={handleOpenSocialeModal}
-      >
-        Create Sociale
-      </Button>
-      <Button
-        variant="ghost"
-        onClick={() => setShowJoinSocialeModal(true)}
-      >
-        Load Sociale
-      </Button>
-    </div>
-  ) : null;
+  // Keep these for backward compatibility with existing code
+  const sessionControlButtons = controlButtons;
+  const activePhaseSessionControls = controlButtons;
+  const lobbyControls = controlButtons;
 
   
   
