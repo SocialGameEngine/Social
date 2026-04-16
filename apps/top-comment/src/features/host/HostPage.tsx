@@ -53,6 +53,8 @@ import { HostAccountMenu } from "./components/HostAccountMenu";
 import { HostPromptLibraryCard } from "./components/HostPromptLibraryCard";
 import { HostControlButtons } from "./components/HostControlButtons";
 import { HostSidePanel } from "./components/HostSidePanel";
+import { HostHeaderCard } from "./components/HostHeaderCard";
+import { HostVenueLoginPrompt } from "./components/HostVenueLoginPrompt";
 import { useSessionTimer } from "./hooks";
 import { useSessionMachine } from "./state";
 import { useCommandPalette, CommandPalette } from "./components/shell";
@@ -1257,80 +1259,27 @@ export function HostPage() {
   const mainContent = (
     <>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-        <Card className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between" isDark={isDark}>
-          <div className="space-y-3">
-            {/* Host Console header - moved to top */}
-            <div>
-              <h1 className="text-3xl font-black text-pink-400">
-                {room?.name || "Host Console"}
-              </h1>
-              {session ? (
-                <p className="text-sm text-cyan-300">
-                  {phaseCopy[session.status]}
-                </p>
-              ) : storedRoomId ? (
-                <p className="text-sm text-cyan-300">
-                  Room active. Waiting for players to join.
-                </p>
-              ) : (
-                <p className="text-sm text-cyan-300">
-                  Create a game room when you're ready to host.
-                </p>
-              )}
-            </div>
-            
-            {/* Navigation buttons - wrap on mobile to prevent overflow */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              {presenterButton}
-              {storedRoomCode && user && !user.is_anonymous && (
-                <>
-                  <Button
-                    variant="ghost"
-                    onClick={() => navigate(`/analytics/${storedRoomCode}`)}
-                    className="text-xs sm:text-sm"
-                  >
-                    Analytics
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      setShowEditModal(false);
-                      setRoomModalMode('settings');
-                    }}
-                    className="text-xs sm:text-sm"
-                  >
-                    Room Settings
-                  </Button>
-                </>
-              )}
-              <button
-                onClick={() => setShowVIBoxModal(true)}
-                className="text-sm font-semibold text-cyan-400 hover:text-cyan-300 whitespace-nowrap"
-              >
-                Vibox
-              </button>
-            </div>
-          </div>
-        </Card>
+        <HostHeaderCard
+          room={room}
+          session={session}
+          storedRoomId={storedRoomId}
+          storedRoomCode={storedRoomCode}
+          user={user}
+          isDark={isDark}
+          presenterButton={presenterButton}
+          onNavigateAnalytics={() => navigate(`/analytics/${storedRoomCode}`)}
+          onOpenRoomSettings={() => {
+            setShowEditModal(false);
+            setRoomModalMode('settings');
+          }}
+          onOpenVIBox={() => setShowVIBoxModal(true)}
+        />
 
-        {!session && !venueAccountLoading && !canCreateSession && (
-          <Card className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between" isDark={isDark}>
-            <div>
-              <p className={`text-sm font-semibold ${!isDark ? 'text-slate-900' : 'text-pink-400'}`}>
-                Venue login required
-              </p>
-              <p className={`text-sm ${!isDark ? 'text-slate-600' : 'text-cyan-300'}`}>
-                Sign in with your venue credentials before creating a new game.
-              </p>
-            </div>
-            <Button
-              variant="secondary"
-              onClick={() => setShowVenueAuthPrompt(true)}
-            >
-              Open venue login
-            </Button>
-          </Card>
-        )}
+        <HostVenueLoginPrompt
+          show={!session && !venueAccountLoading && !canCreateSession}
+          isDark={isDark}
+          onOpenVenueLogin={() => setShowVenueAuthPrompt(true)}
+        />
 
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,_2fr)_minmax(0,_1fr)]">
           <div className="flex flex-col gap-6">
