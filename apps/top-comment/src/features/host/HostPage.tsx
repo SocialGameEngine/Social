@@ -42,7 +42,7 @@ import { useSocialites } from "../sociale/hooks/useSocialites";
 import { roomService } from "../../services/roomService";
 import { useHostRoomV2 } from "./useHostRoomV2";
 import { useHostSessionV2 } from "./useHostSessionV2";
-import { useHostComputations, useHostState } from "./hooks";
+import { useHostComputations, useHostState, useHostModalState } from "./hooks";
 import { useSessionPlayers } from "./hooks/useSessionPlayers";
 import { useHostRoomRecovery } from "./hooks/useHostRoomRecovery";
 import { useHostKeyboardShortcuts } from "../../hooks/useHostKeyboardShortcuts";
@@ -67,28 +67,42 @@ export function HostPage() {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   
-  // Account button state
-  const [showAccountMenu, setShowAccountMenu] = useState(false);
-  const [showPlayerAuthModal, setShowPlayerAuthModal] = useState(false);
-  const [showVenueAuthModal, setShowVenueAuthModal] = useState(false);
-  const [, setVenueRoomCreated] = useState<string | null>(null);
-  const accountMenuRef = useRef<HTMLDivElement>(null);
-  
-  // Modal mode state - null (closed), "create" (auto-opened for new venue), or "settings" (manually opened)
-  type HostRoomModalMode = null | "create" | "settings";
-  const [roomModalMode, setRoomModalMode] = useState<HostRoomModalMode>(null);
-  
-  // Sociale state
-  const [activeSocialeId, setActiveSocialeId] = useState<string | null>(null);
-  const [showSocialeModal, setShowSocialeModal] = useState(false);
-  
-  // Backward compatibility wrapper
-  const showRoomCreateModal = roomModalMode !== null;
-  const setShowRoomCreateModal = (show: boolean) => {
-    // Legacy calls that just want to show/hide without mode context
-    // Default to "create" mode when showing
-    setRoomModalMode(show ? "create" : null);
-  };
+  // Modal state - consolidated into single hook
+  const modalState = useHostModalState();
+  const {
+    showAccountMenu,
+    setShowAccountMenu,
+    showPlayerAuthModal,
+    setShowPlayerAuthModal,
+    showVenueAuthModal,
+    setShowVenueAuthModal,
+    setVenueRoomCreated,
+    accountMenuRef,
+    roomModalMode,
+    setRoomModalMode,
+    showRoomCreateModal,
+    setShowRoomCreateModal,
+    activeSocialeId,
+    setActiveSocialeId,
+    showSocialeModal,
+    setShowSocialeModal,
+    showBannedPlayersModal,
+    setShowBannedPlayersModal,
+    showVIBoxModal,
+    setShowVIBoxModal,
+    showVenueAuthPrompt,
+    setShowVenueAuthPrompt,
+    showJoinModal,
+    setShowJoinModal,
+    isJoiningSession,
+    setIsJoiningSession,
+    showJoinSocialeModal,
+    setShowJoinSocialeModal,
+    isJoiningSociale,
+    setIsJoiningSociale,
+    isRoomMembersOpen,
+    setIsRoomMembersOpen,
+  } = modalState;
   
   // Always call hooks (React rules), but conditionally use data
   const hostSessionData = useHostSessionV2();
@@ -118,13 +132,6 @@ export function HostPage() {
   const storedCode = shouldUseHostHooks ? _rawSessionCode : null;
   const storedRoomId = shouldUseHostHooks ? _rawRoomId : null;
   const storedRoomCode = shouldUseHostHooks ? _rawRoomCode : null;
-  const [showBannedPlayersModal, setShowBannedPlayersModal] = useState(false);
-  const [showVIBoxModal, setShowVIBoxModal] = useState(false);
-  const [showVenueAuthPrompt, setShowVenueAuthPrompt] = useState(false);
-  const [showJoinModal, setShowJoinModal] = useState(false);
-  const [isJoiningSession, setIsJoiningSession] = useState(false);
-  const [showJoinSocialeModal, setShowJoinSocialeModal] = useState(false);
-  const [isJoiningSociale, setIsJoiningSociale] = useState(false);
   
   const hostState = useHostState(storedSessionId);
   const {
@@ -1337,8 +1344,7 @@ export function HostPage() {
   const sessionTimer = useSessionTimer({ session });
   const timer = sessionTimer.remainingSeconds;
 
-  // Room members dropdown state
-  const [isRoomMembersOpen, setIsRoomMembersOpen] = useState(false);
+  // Room members dropdown state (now in modalState)
 
   // Command definitions for command palette
   const commands = useMemo(() => [
