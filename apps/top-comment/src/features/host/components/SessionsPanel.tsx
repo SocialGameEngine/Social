@@ -1,16 +1,17 @@
 
 import { Card } from "@social/ui";
 import type { ReactNode } from "react";
+import type { Session, Room, RoomMembership } from "../../../shared/types";
 
 interface SessionsPanelProps {
   isDark: boolean;
-  session: any;
+  session: Session | null;
   sessionId: string | null;
   sessionControls?: React.ReactNode;
   promptLibraryContent?: React.ReactNode;
   phaseContent?: React.ReactNode;
-  room?: any;
-  roomMemberships?: any[];
+  room?: Room | null;
+  roomMemberships?: RoomMembership[];
   pendingSubmissions?: React.ReactNode;
   copyLinkHandler?: (link: string) => void;
   roomJoinCode?: string;

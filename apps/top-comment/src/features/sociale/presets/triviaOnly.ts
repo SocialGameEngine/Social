@@ -4,13 +4,14 @@
 // Generates a Sociale with only trivia rounds.
 
 import type { SocialeRound } from '../../../domain/types/sociale.types';
+import type { PromptLibrary } from '../../../shared/promptLibraries';
 import { createInitialSettings } from '../../../domain/sociale/roundRegistry';
 import { supabase } from '../../../supabase/client';
 
 /**
  * Generate trivia-only rounds for a Sociale
  */
-export async function generateTriviaOnlyRounds(count: number, selectedLibraries?: string[], availableLibraries?: any[]): Promise<SocialeRound[]> {
+export async function generateTriviaOnlyRounds(count: number, selectedLibraries?: string[], availableLibraries?: PromptLibrary[]): Promise<SocialeRound[]> {
   // Filter selected libraries to only include trivia libraries
   const triviaLibs = selectedLibraries?.filter(libId => {
     const lib = availableLibraries?.find(l => l.id === libId);

@@ -25,8 +25,6 @@ export const handleSocialePrimaryAction = (deps: SocialePrimaryActionDeps) => as
     queryClient,
   } = deps;
 
-  console.log('🔥 Handler called with queryClient:', !!queryClient, 'roomId:', roomId);
-
   if (!sociale) {
     setShowCreateModal(true);
     return;
@@ -38,9 +36,6 @@ export const handleSocialePrimaryAction = (deps: SocialePrimaryActionDeps) => as
   try {
     // Draft or lobby: Start the Sociale
     if (sociale.status === "draft" || sociale.status === "lobby") {
-      console.log('🔥 About to call roomService.startSocialeInRoom with queryClient:', !!queryClient);
-      console.log('🔥 Sociale details:', { id: sociale.id, status: sociale.status });
-      
       try {
         const result = await roomService.startSocialeInRoom({
           roomId,
@@ -48,7 +43,6 @@ export const handleSocialePrimaryAction = (deps: SocialePrimaryActionDeps) => as
             socialeId: sociale.id,
           },
         }, queryClient);
-        console.log('🔥 roomService.startSocialeInRoom completed:', result);
         toast({ title: "Sociale started", variant: "success" });
       } catch (serviceError) {
         console.error('🔥 roomService.startSocialeInRoom failed:', serviceError);
@@ -59,14 +53,10 @@ export const handleSocialePrimaryAction = (deps: SocialePrimaryActionDeps) => as
     else if (sociale.status === "active" || sociale.status === "paused") {
       // If paused, unpause first
       if (sociale.status === "paused") {
-        console.log('🔥 Unpausing Sociale before advancing phase');
         await pauseSociale(sociale.id, false);
       }
       
-      console.log('🔥 Advancing phase from current phase:', sociale.currentPhase);
       const result = await advanceSocialePhase({ socialeId: sociale.id, targetPhase: 'next' });
-      console.log('🔥 Phase advanced to:', result.sociale.currentPhase);
-      console.log('🔥 New phase ends at:', result.sociale.phaseEndsAt);
       
       toast({ title: "Phase advanced", variant: "success" });
     }

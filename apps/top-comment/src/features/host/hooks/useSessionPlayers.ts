@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { supabase } from '../../../supabase/client';
 
 export interface SessionPlayer {
@@ -65,15 +66,15 @@ export function useSessionPlayers(sessionId: string | null) {
           schema: 'public',
           table: 'top_comment_players',
         },
-        (payload: any) => {
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           // Handle different event types
           if (payload.eventType === 'DELETE') {
             // DELETE events only contain primary key, so refetch all players
             fetchPlayers();
           } else {
             // INSERT/UPDATE events contain full data, so we can filter by session_id
-            const newSessionId = payload.new?.session_id;
-            const oldSessionId = payload.old?.session_id;
+            const newSessionId = (payload.new as any)?.session_id;
+            const oldSessionId = (payload.old as any)?.session_id;
             
             if (newSessionId === sessionId || oldSessionId === sessionId) {
               fetchPlayers();

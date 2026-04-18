@@ -13,6 +13,9 @@ import {
   ResponseCard
 } from './components';
 import type { Socialite, SocialeResponse } from '../../../domain/types/sociale.types';
+import type { TriviaInteractionSettings } from '../../../domain/types/interaction.types';
+
+type MCOption = NonNullable<TriviaInteractionSettings['snapshot']['multipleChoice']>['options'][number];
 
 interface SocialeAnswerPhaseProps {
   sociale: {
@@ -145,7 +148,7 @@ export function SocialeAnswerPhase({
         {currentRound?.type === 'trivia' && currentRound.settings?.format === 'multiple_choice' 
           && currentRound.settings?.snapshot?.multipleChoice?.options && (
           <div className="max-w-2xl mx-auto space-y-2 mt-4">
-            {currentRound.settings.snapshot.multipleChoice.options.map((opt: any, i: number) => (
+            {currentRound.settings.snapshot.multipleChoice.options.map((opt: MCOption, i: number) => (
               <div
                 key={opt.id}
                 className={clsx(

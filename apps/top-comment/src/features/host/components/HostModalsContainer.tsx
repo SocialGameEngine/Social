@@ -1,8 +1,27 @@
 import { Modal, Button } from "@social/ui";
 import type { User } from "@supabase/supabase-js";
 import type { Session, Room, RoomMembership } from "../../../shared/types";
-import type { Sociale } from "../../../domain/types/sociale.types";
+import type { Sociale, SocialeMode } from "../../../domain/types/sociale.types";
+import type { CreateSocialeRequest, UpdateSocialeRequest } from "../../../domain/types/sociale.types";
 import type { PromptLibraryId } from "../../../shared/promptLibraries";
+// Type definitions for modal props
+// Note: Using flexible types to avoid conflicts with existing codebase
+type ToastFunction = (options: { 
+  title: string; 
+  variant?: 'success' | 'error' | 'info'; 
+  description?: string; 
+}) => void;
+
+// Create session form type (shared with useHostState.ts)
+type CreateSessionForm = { 
+  venueName: string; 
+  gameMode: 'classic' | 'mashup'; 
+  selectedLibraries: string[]; 
+  totalRounds?: number;
+};
+
+import type { SetStateAction } from 'react';
+
 import { CreateRoomModal } from "./CreateRoomModal";
 import { SocialeCreateModal } from "./SocialeCreateModal";
 import { CreateSessionModal, JoinSessionModal, JoinSocialeModal } from "../Phases";
@@ -25,17 +44,22 @@ interface HostModalsContainerProps {
   setShowSocialeModal: (show: boolean) => void;
   storedRoomId: string | null;
   settingsSociale: Sociale | null;
-  onCreateSociale: (request: any) => Promise<void>;
-  onUpdateSociale: (updates: any) => Promise<void>;
+  onCreateSociale: (request: CreateSocialeRequest) => Promise<void>;
+  onUpdateSociale: (updates: {
+    title?: string;
+    description?: string;
+    mode?: SocialeMode;
+    totalRounds?: number;
+  }) => Promise<void>;
 
   // Session modals
   showCreateModal: boolean;
   handleCreateModalClose: () => void;
   showEditModal: boolean;
   setShowEditModal: (show: boolean) => void;
-  createForm: any;
-  setCreateForm: (form: any) => void;
-  createErrors: any;
+  createForm: CreateSessionForm;
+  setCreateForm: React.Dispatch<React.SetStateAction<CreateSessionForm>>;
+  createErrors: Record<string, string>;
   isCreating: boolean;
   isUpdatingSession: boolean;
   canCreateSession: boolean;
@@ -70,7 +94,7 @@ interface HostModalsContainerProps {
   // Banned players modal
   showBannedPlayersModal: boolean;
   setShowBannedPlayersModal: (show: boolean) => void;
-  toast: any;
+  toast: ToastFunction;
 
   // VIBox modal
   showVIBoxModal: boolean;

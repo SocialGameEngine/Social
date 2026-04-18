@@ -19,7 +19,20 @@ import type {
   JoinSocialeRequest,
   JoinSocialeResponse,
 } from '../../../domain/types/sociale.types';
+import type { TriviaInteractionSettings } from '../../../domain/types/interaction.types';
 import { mapSociale, mapSocialite } from './mappers';
+
+// DB row types for trivia questions
+interface TriviaQuestionOption {
+  id: string;
+  option_text: string;
+  is_correct: boolean;
+  sort_order: number | null;
+}
+
+interface TriviaQuestionAlias {
+  alias_text: string;
+}
 
 /**
  * Get auth headers for Edge Function calls
@@ -380,39 +393,45 @@ export async function populateRoundContent(roundId: string): Promise<void> {
         title = 'Trivia Question';
         content = question.prompt;
 
-        const settings = round.settings as any;
-        let snapshot: any = null;
+        const settings = round.settings as Partial<TriviaInteractionSettings>;
+        let snapshot: TriviaInteractionSettings['snapshot'] | null = null;
 
         if (question.format === 'multiple_choice' && question.trivia_question_options) {
           const options = question.trivia_question_options
-            .sort((a: any, b: any) => a.sort_order - b.sort_order)
-            .map((opt: any) => ({
+            .sort((a: TriviaQuestionOption, b: TriviaQuestionOption) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+            .map((opt: TriviaQuestionOption) => ({
               id: opt.id,
               text: opt.option_text,
             }));
 
-          const correctOption = question.trivia_question_options.find((opt: any) => opt.is_correct);
+          const correctOption = question.trivia_question_options.find((opt: TriviaQuestionOption) => opt.is_correct);
           
           snapshot = {
             prompt: question.prompt,
-            explanation: question.explanation,
+            categoryKey: (question as any).category_key || 'general',
+            difficulty: (question as any).difficulty || 'medium',
+            explanation: question.explanation ?? undefined,
             multipleChoice: {
               options,
               correctOptionId: correctOption?.id || '',
+              shuffleOptions: true,
             },
           };
 
           settings.format = 'multiple_choice';
         } else if (question.format === 'written_answer') {
-          const aliases = question.trivia_question_aliases?.map((alias: any) => alias.alias_text) || [];
-          const acceptedAnswers = [question.prompt, ...aliases];
+          const aliases = question.trivia_question_aliases?.map((alias: TriviaQuestionAlias) => alias.alias_text) || [];
 
           snapshot = {
             prompt: question.prompt,
-            explanation: question.explanation,
+            categoryKey: (question as any).category_key || 'general',
+            difficulty: (question as any).difficulty || 'medium',
+            explanation: question.explanation ?? undefined,
             writtenAnswer: {
-              acceptedAnswers,
-              correctAnswer: question.prompt,
+              acceptedAliases: aliases,
+              normalization: 'standard',
+              allowTypos: false,
+              allowWordOrderVariation: false,
             },
           };
 

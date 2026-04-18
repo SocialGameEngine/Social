@@ -11,7 +11,9 @@
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import type { Room, RoomMembership } from '../../../../shared/types';
+import type { Room, RoomMembership, Session } from '../../../../shared/types';
+import type { Sociale, Socialite } from '../../../../domain/types/sociale.types';
+import type { SessionPlayer } from '../../../../services/sessionPlayerService';
 import { getMascotById } from '../../../../shared/mascots';
 
 interface ParticipantsSheetProps {
@@ -19,10 +21,10 @@ interface ParticipantsSheetProps {
   onClose: () => void;
   memberships: RoomMembership[];
   room: Room | null;
-  session?: any; // Session object
-  sessionPlayers?: any[]; // SessionPlayer array
-  sociale?: any; // Sociale object
-  socialites?: any[]; // Socialite array
+  session?: Session | null;
+  sessionPlayers?: SessionPlayer[];
+  sociale?: Sociale | null;
+  socialites?: Socialite[];
   onKick: (membershipId: string) => void;
   onBan: (membershipId: string) => void;
   onMute?: (membershipId: string) => void;
@@ -61,7 +63,7 @@ export function ParticipantsSheet({
   const isSocialeActive = sociale && socialites;
   
   // Filter socialites when Sociale is active
-  let filteredSocialites: any[] = [];
+  let filteredSocialites: Socialite[] = [];
   if (isSocialeActive) {
     filteredSocialites = searchQuery
       ? socialites.filter(s => 
@@ -94,7 +96,7 @@ export function ParticipantsSheet({
   }
 
   // Session players (only if session is active and no Sociale)
-  let filteredSessionPlayers: any[] = [];
+  let filteredSessionPlayers: SessionPlayer[] = [];
   if (isSessionActive && !isSocialeActive) {
     filteredSessionPlayers = searchQuery
       ? sessionPlayers.filter(p => 
@@ -146,7 +148,7 @@ export function ParticipantsSheet({
   }, [onClose]);
 
   // Render socialite row
-  const renderSocialite = (socialite: any) => {
+  const renderSocialite = (socialite: Socialite) => {
     const mascot = getMascotById(socialite.mascotId);
     const isKicking = kickingPlayerId === socialite.id;
     const isBanning = banningPlayerId === socialite.id;
@@ -217,7 +219,7 @@ export function ParticipantsSheet({
   };
 
   // Render participant row
-  const renderParticipant = (participant: any, isModerator: boolean) => {
+  const renderParticipant = (participant: SessionPlayer | RoomMembership, isModerator: boolean) => {
     const isSessionPlayer = 'displayName' in participant; // Check if it's a session player
     const mascot = isSessionPlayer ? null : getMascotById(participant.mascotId);
     const isKicking = kickingPlayerId === participant.id;

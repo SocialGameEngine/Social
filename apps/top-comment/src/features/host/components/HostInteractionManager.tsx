@@ -4,6 +4,7 @@ import { useTheme } from '../../../shared/providers/ThemeProvider';
 import { Button } from '@social/ui';
 import { interactionService } from '../../../services/interactionService';
 import type { Interaction, RoomMembership } from '../../../shared/types';
+import type { TriviaInteractionSettings, TopicSortBy } from '../../../domain/types/interaction.types';
 
 const HostSendPromptModal = lazy(() => import('../components/HostSendPromptModal'));
 const HostSendHeadlineModal = lazy(() => import('../components/HostSendHeadlineModal'));
@@ -76,7 +77,7 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
   );
 
   const handleCreateTopic = useCallback(
-    async (question: string, description?: string, sortBy?: any) => {
+    async (question: string, description?: string, sortBy?: TopicSortBy) => {
       await interactionService.createTopic(room.id, question, description, sortBy);
     },
     [room.id]
@@ -90,7 +91,7 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
   );
 
   const handleCreateTrivia = useCallback(
-    async (questionId: string, answerSeconds?: number, scoring?: any, policy?: any) => {
+    async (questionId: string, answerSeconds?: number, scoring?: TriviaInteractionSettings['scoring'], policy?: TriviaInteractionSettings['policy']) => {
       await interactionService.createTriviaInteraction({
         roomId: room.id,
         questionId,

@@ -159,6 +159,7 @@ class SubscriptionPool {
     entry.callbacks.delete(callback);
 
     if (entry.callbacks.size === 0) {
+      entry.channel.unsubscribe();
       supabase.removeChannel(entry.channel);
       this.channels.delete(channelName);
       logger.debug('SubscriptionPool: removed channel (no listeners)', { channelName });
@@ -185,6 +186,7 @@ class SubscriptionPool {
   /** Remove all channels. Useful during logout / hard reset. */
   removeAll(): void {
     for (const [name, entry] of this.channels) {
+      entry.channel.unsubscribe();
       supabase.removeChannel(entry.channel);
       logger.debug('SubscriptionPool: removed channel (removeAll)', { channelName: name });
     }

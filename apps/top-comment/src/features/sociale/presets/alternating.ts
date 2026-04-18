@@ -4,13 +4,14 @@
 // Generates a Sociale with alternating topic and trivia rounds.
 
 import type { SocialeRound } from '../../../domain/types/sociale.types';
+import type { PromptLibrary } from '../../../shared/promptLibraries';
 import { createInitialSettings } from '../../../domain/sociale/roundRegistry';
 import { supabase } from '../../../supabase/client';
 
 /**
  * Generate alternating topic/trivia rounds for a Sociale
  */
-export async function generateAlternatingRounds(count: number, selectedLibraries?: string[], availableLibraries?: any[]): Promise<SocialeRound[]> {
+export async function generateAlternatingRounds(count: number, selectedLibraries?: string[], availableLibraries?: PromptLibrary[]): Promise<SocialeRound[]> {
   // Filter selected libraries by type using the provided libraries
   const promptLibs = selectedLibraries?.filter(libId => {
     const lib = availableLibraries?.find(l => l.id === libId);

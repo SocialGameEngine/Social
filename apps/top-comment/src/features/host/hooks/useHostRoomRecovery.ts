@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "../../../supabase/client";
 
 export type HostRoomRecoveryStatus = 
@@ -25,7 +26,7 @@ interface UseHostRoomRecoveryResult {
 }
 
 interface UseHostRoomRecoveryProps {
-  user: any;
+  user: User | null;
   authLoading: boolean;
   isVenueAccount: boolean;
   venueAccountLoading: boolean;
@@ -80,7 +81,7 @@ export function useHostRoomRecovery({
       setStatus('recovered');
       setRoomExistenceState('validating_storage');
       recoveryAttemptedRef.current = true;
-      // Note: Actual validation happens in useHostRoomV2
+      // Note: Actual validation happens in useHostRoom
       // For now, trust localStorage and mark as found
       setRoomExistenceState('room_found');
       return;

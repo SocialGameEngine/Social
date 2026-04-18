@@ -422,6 +422,7 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
       unifiedChannelRef.current = channel;
 
       return () => {
+        channel.unsubscribe();
         supabase.removeChannel(channel);
         unifiedChannelRef.current = null;
         throttledRefresh.cancel();

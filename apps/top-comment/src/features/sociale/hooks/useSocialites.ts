@@ -5,6 +5,7 @@
 
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { supabase } from '../../../supabase/client';
 import type { Socialite, JoinSocialeRequest } from '../../../domain/types/sociale.types';
 import { mapSocialite, joinSociale } from '../socialeService';
@@ -17,7 +18,7 @@ export function useSocialites(socialeId?: string) {
   const queryClient = useQueryClient();
 
   // Use unified sociale channel instead of dedicated socialites channel
-  const onPayload = useCallback((payload: any) => {
+  const onPayload = useCallback((payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
     if (payload?.table === 'socialites') {
       void queryClient.invalidateQueries({ queryKey: ['socialites', socialeId] });
 
@@ -61,7 +62,7 @@ export function useCurrentSocialite(socialeId?: string, userId?: string) {
   const queryClient = useQueryClient();
 
   // Use unified sociale channel — filters by table + userId in callback
-  const onPayload = useCallback((payload: any) => {
+  const onPayload = useCallback((payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
     if (payload?.table === 'socialites' && userId) {
       const payloadUserId = payload.eventType === 'DELETE'
         ? payload.old?.user_id

@@ -2,8 +2,10 @@ import { useCallback } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { User } from "@supabase/supabase-js";
-import type { Session } from "../../../shared/types";
+import type { Session, RoomMembership, SessionAnalytics } from "../../../shared/types";
 import type { Sociale } from "../../../domain/types/sociale.types";
+import type { RoundGroup } from "../../../domain/types/domain.types";
+import type { Toast } from "../../../shared/utils/error-handling";
 import { 
   handleCreateSession, 
   handleUpdateSession, 
@@ -14,9 +16,8 @@ import {
   handleCopyLink 
 } from "../Handlers";
 import { handleRoomKickPlayer, handleRoomBanPlayer } from "../Handlers/roomKickBanHandlers";
-import { pauseSession } from "../../session/sessionService";
-import { pauseSociale } from "../../sociale/socialeService";
 import { roomService } from "../../../services/roomService";
+import { usePauseManager } from "../../../shared/hooks/usePauseManager";
 import { getErrorMessage } from "../../../shared/utils/errors";
 
 interface UseHostHandlersParams {
@@ -28,7 +29,7 @@ interface UseHostHandlersParams {
   // Session state
   session: Session | null;
   sessionId: string | null;
-  setSessionId: (id: string | null) => void;
+  setSessionId: Dispatch<SetStateAction<string | null>>;
   setHostSession: (data: { sessionId: string; code: string }) => void;
   clearHostSession: () => void;
   
@@ -41,14 +42,13 @@ interface UseHostHandlersParams {
   activeSociale: Sociale | null;
   
   // Game state
-  players: any[];
-  activeGroup: any;
+  players: RoomMembership[];
+  activeGroup: RoundGroup | null;
   activeGroupVote: string | null;
-  setActiveGroupVote: Dispatch<SetStateAction<string | null>>;
-  
+
   // Form state
-  createForm: any;
-  setCreateErrors: (errors: any) => void;
+  createForm: { venueName: string; gameMode: 'classic' | 'mashup'; selectedLibraries: string[]; totalRounds?: number };
+  setCreateErrors: Dispatch<SetStateAction<Record<string, string>>>;
   
   // Loading states
   isCreating: boolean;
@@ -76,11 +76,11 @@ interface UseHostHandlersParams {
   setShowSocialeModal: Dispatch<SetStateAction<boolean>>;
   
   // Analytics
-  setAnalytics: (analytics: any) => void;
-  setHostGroupVotes: (votes: any) => void;
-  
+  setAnalytics: Dispatch<SetStateAction<SessionAnalytics | null>>;
+  setHostGroupVotes: Dispatch<SetStateAction<Record<string, string>>>;
+
   // Utils
-  toast: any;
+  toast: Toast;
   queryClient: ReturnType<typeof useQueryClient>;
 }
 
@@ -101,7 +101,6 @@ export function useHostHandlers(params: UseHostHandlersParams) {
     players,
     activeGroup,
     activeGroupVote,
-    setActiveGroupVote,
     createForm,
     setCreateErrors,
     isCreating,
@@ -259,50 +258,37 @@ export function useHostHandlers(params: UseHostHandlersParams) {
   // Copy link handler
   const copyLink = handleCopyLink({ toast });
 
-  // Pause/resume toggle handler
+  // Pause/resume toggle handler using unified usePauseManager hook
+  const sessionPauseManager = usePauseManager({
+    id: session?.id ?? '',
+    type: 'session',
+    toast,
+    onPause: () => setIsPausingSession(false),
+    onResume: () => setIsPausingSession(false),
+  });
+
+  const socialePauseManager = usePauseManager({
+    id: activeSociale?.id ?? '',
+    type: 'sociale',
+    toast,
+    onPause: () => setIsPausingSession(false),
+    onResume: () => setIsPausingSession(false),
+  });
+
   const pauseToggle = useCallback(async () => {
     // Handle Sociale pause/resume
-    if (activeSociale && !isPausingSession) {
+    if (activeSociale) {
       setIsPausingSession(true);
-      try {
-        const result = await pauseSociale(activeSociale.id, activeSociale.status !== 'paused');
-        toast({
-          title: result.status === 'paused' ? "Sociale paused" : "Sociale resumed",
-          variant: "success"
-        });
-      } catch (error: unknown) {
-        toast({
-          title: getErrorMessage(error, "Failed to pause/resume Sociale"),
-          variant: "error"
-        });
-      } finally {
-        setIsPausingSession(false);
-      }
+      await socialePauseManager.togglePause(activeSociale.status === 'paused');
       return;
     }
 
     // Handle Session pause/resume
-    if (!session || isPausingSession) return;
-
-    setIsPausingSession(true);
-    try {
-      await pauseSession({
-        sessionId: session.id,
-        pause: !session.paused
-      });
-      toast({
-        title: session.paused ? "Session resumed" : "Session paused",
-        variant: "success"
-      });
-    } catch (error: unknown) {
-      toast({
-        title: getErrorMessage(error, "Failed to pause/resume session"),
-        variant: "error"
-      });
-    } finally {
-      setIsPausingSession(false);
+    if (session) {
+      setIsPausingSession(true);
+      await sessionPauseManager.togglePause(session.paused ?? false);
     }
-  }, [session, activeSociale, isPausingSession, toast, setIsPausingSession]);
+  }, [session, activeSociale, sessionPauseManager, socialePauseManager, setIsPausingSession]);
 
   // Leave session handler
   const leaveSession = useCallback(() => {

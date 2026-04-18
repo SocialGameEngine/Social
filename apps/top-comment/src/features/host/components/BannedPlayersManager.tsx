@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Button, Card, Modal } from "@social/ui";
 import { supabase } from "../../../supabase/client";
 
@@ -49,9 +50,7 @@ export function BannedPlayersManager({
           table: 'top_comment_banned_players' as any,
           filter: `room_id=eq.${roomId}`,
         },
-        (payload: any) => {
-          console.log('🔔 Banned players change for room:', payload);
-          console.log('🔍 Event type:', payload.eventType, 'Payload:', payload);
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           fetchBannedPlayers();
         }
       )
@@ -98,42 +97,19 @@ export function BannedPlayersManager({
 
     setUnbanningPlayerId(bannedPlayer.id);
     try {
-      console.log('🔓 Unbanning player:', bannedPlayer.id);
-      console.log('🔍 Ban record to delete:', bannedPlayer);
-      
-      // Now that RLS policy is fixed, use clean delete approach
-      console.log('🗑️ Deleting ban record with ID:', bannedPlayer.id);
       
       const { error } = await supabase
         .from('top_comment_banned_players' as any)
         .delete()
         .eq('id', bannedPlayer.id);
 
-      console.log('📊 Delete result:', { error });
-
       if (error) {
         console.error('❌ Failed to delete ban record:', error);
         throw new Error(`Failed to unban player: ${error.message}`);
       }
 
-      // Verify the record was actually deleted
-      const { data: verifyData, error: verifyError } = await supabase
-        .from('top_comment_banned_players' as any)
-        .select('id')
-        .eq('id', bannedPlayer.id)
-        .single();
-
-      console.log('🔍 Verification after delete:', { verifyData, verifyError });
-
       // Remove from local state
-      setBannedPlayers(prev => {
-        console.log('🗑️ Removing from local state, current count:', prev.length);
-        const newBanned = prev.filter(p => p.id !== bannedPlayer.id);
-        console.log('✅ After removal, new count:', newBanned.length);
-        return newBanned;
-      });
-      
-      console.log('✅ Player unbanned and removed from ban list');
+      setBannedPlayers(prev => prev.filter(p => p.id !== bannedPlayer.id));
       
       // Force a refresh to ensure database state is reflected
       setTimeout(() => {

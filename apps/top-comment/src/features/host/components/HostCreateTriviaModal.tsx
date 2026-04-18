@@ -3,11 +3,12 @@ import { Button } from '@social/ui';
 import { HostModal } from './HostModal';
 import { triviaService } from '../../../services/triviaService';
 import type { QuestionPack, TriviaQuestion } from '../../../services/triviaService';
+import type { TriviaInteractionSettings } from '../../../domain/types/interaction.types';
 
 interface HostCreateTriviaModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (questionId: string, answerSeconds?: number, scoring?: any, policy?: any) => Promise<void>;
+  onSubmit: (questionId: string, answerSeconds?: number, scoring?: TriviaInteractionSettings['scoring'], policy?: TriviaInteractionSettings['policy']) => Promise<void>;
 }
 
 export default function HostCreateTriviaModal({ isOpen, onClose, onSubmit }: HostCreateTriviaModalProps) {

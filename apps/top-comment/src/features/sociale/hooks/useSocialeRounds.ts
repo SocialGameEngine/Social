@@ -5,6 +5,7 @@
 
 import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { supabase } from '../../../supabase/client';
 import type { SocialeRound } from '../../../domain/types/sociale.types';
 import { useSocialeChannel } from './useSocialeChannel';
@@ -16,7 +17,7 @@ export function useSocialeRounds(socialeId?: string) {
   const queryClient = useQueryClient();
 
   // Use unified sociale channel instead of dedicated rounds channel
-  const onPayload = useCallback((payload: any) => {
+  const onPayload = useCallback((payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
     if (payload?.table === 'sociale_rounds') {
       void queryClient.invalidateQueries({ queryKey: ['sociale_rounds', socialeId] });
     }
@@ -36,7 +37,7 @@ export function useSocialeRounds(socialeId?: string) {
         .order('order_index', { ascending: true });
       
       if (error) throw error;
-      return (data ?? []).map((round: any) => ({
+      return (data ?? []).map((round) => ({
         id: round.id,
         socialeId: round.sociale_id,
         orderIndex: round.order_index,

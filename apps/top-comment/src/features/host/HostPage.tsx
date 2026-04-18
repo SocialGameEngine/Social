@@ -32,15 +32,15 @@ import { setPromptLibrary, pauseSession } from "../session/sessionService";
 import { pauseSociale } from "../sociale/socialeService";
 import { useSocialites } from "../sociale/hooks/useSocialites";
 import { roomService } from "../../services/roomService";
-import { useHostRoomV2 } from "./useHostRoomV2";
-import { useHostSessionV2 } from "./useHostSessionV2";
-import { useHostComputations, useHostState, useHostModalState } from "./hooks";
+import { useHostRoom } from "./useHostRoom";
+import { useHostSession } from "./useHostSession";
+import { useHostComputations, useHostState, useHostModalState, useHostHandlers, useHostBootstrap } from "./hooks";
 import { useSessionPlayers } from "./hooks/useSessionPlayers";
 import { useHostRoomRecovery } from "./hooks/useHostRoomRecovery";
 import { useHostKeyboardShortcuts } from "../../hooks/useHostKeyboardShortcuts";
 import { useAudienceSubmissions } from "../../hooks/useAudienceSubmissions";
 import { SubmissionReviewPanel } from "../room/components/submissions/SubmissionReviewPanel";
-import { HostPanelV2 } from "./components/HostPanelV2";
+import { HostPanel } from "./components/HostPanel";
 import { HostAccountMenu } from "./components/HostAccountMenu";
 import { HostPromptLibraryCard } from "./components/HostPromptLibraryCard";
 import { HostControlButtons } from "./components/HostControlButtons";
@@ -55,6 +55,7 @@ import type { PromptLibraryId } from "../../shared/promptLibraries";
 import type { Room } from "../../shared/types";
 import { useVenueAccountResolver } from './useVenueAccountResolver';
 import { useCreateSociale, useSociale, useSocialesByRoom, useUpdateSociale } from "../sociale";
+import { HostGameProvider } from './context/HostGameContext';
 
 export function HostPage() {
   const { user, loading: authLoading, isAnonymous, signOut } = useAuth();
@@ -104,8 +105,8 @@ export function HostPage() {
   } = modalState;
   
   // Always call hooks (React rules), but conditionally use data
-  const hostSessionData = useHostSessionV2();
-  const hostRoomData = useHostRoomV2();
+  const hostSessionData = useHostSession();
+  const hostRoomData = useHostRoom();
   
   // Always destructure from hooks (React rules), apply conditions on values
   const {
@@ -221,7 +222,7 @@ export function HostPage() {
     retry: _retryRoom,
     refreshMembers,
   } = useRoomV2({
-    roomId: storedRoomId ?? undefined,  // This now comes from useHostRoomV2 (venue room)
+    roomId: storedRoomId ?? undefined,  // This now comes from useHostRoom (venue room)
   });
 
   // Extract room data from v2 hook
@@ -399,66 +400,23 @@ export function HostPage() {
     setShowSocialeModal(true);
   }, [requireVenueAccount, setShowSocialeModal, setShowRoomCreateModal, storedRoomId]);
 
-  // Clear stored data when user signs out
-  useEffect(() => {
-    if (!user || user.is_anonymous) {
-      // Clear any stored session/room data when user is not authenticated
-      clearHostSession();
-      setHostRoom({ roomId: '', code: '' });
-    }
-  }, [user, clearHostSession, setHostRoom]);
-
-  // Automatically load venue account when HostPage mounts
-  useEffect(() => {
-    if (user && !user.is_anonymous && !venueAccountLoading && !isVenueAccount) {
-      refreshVenueAccount().catch((error) => {
-        logger.error('Failed to load venue account on HostPage mount', { error });
-      });
-    }
-  }, [user, venueAccountLoading, isVenueAccount, refreshVenueAccount]);
-
-  // Auto-open create modal ONLY when room existence is conclusively "no_room_confirmed"
-  // This effect handles AUTOMATIC modal opening, NOT manual settings button
-  useEffect(() => {
-    // Never auto-open for unauthenticated users
-    if (!user || user.is_anonymous) {
-      if (roomModalMode === 'create') {
-        setRoomModalMode(null);
-      }
-      return;
-    }
-    
-    // CRITICAL: Only make decisions when bootstrap is COMPLETE
-    if (!isBootstrapComplete) {
-      // Force modal closed during bootstrap to prevent flicker
-      if (roomModalMode === 'create') {
-        setRoomModalMode(null);
-      }
-      return;
-    }
-    
-    // At this point, bootstrap is complete - make final decision based on room existence state
-    // ONLY auto-open when room existence is conclusively "no_room_confirmed"
-    const shouldAutoOpenCreate = isVenueAccount && 
-      roomRecovery.roomExistenceState === 'no_room_confirmed';
-    
-    // Only auto-open in "create" mode, never close "settings" mode
-    if (shouldAutoOpenCreate && roomModalMode === null) {
-      setRoomModalMode('create');
-    } else if (!shouldAutoOpenCreate && roomModalMode === 'create') {
-      setRoomModalMode(null);
-    }
-    // IMPORTANT: Never auto-close "settings" mode - user must close manually
-  }, [user, isBootstrapComplete, roomRecovery.roomExistenceState, isVenueAccount, roomModalMode, authLoading, venueAccountLoading]);
-
-  // Set sessionRef.current to latest session for auto advance actions.
-  useEffect(() => {
-    sessionRef.current = session ?? null;
-    // Update orchestrator with current session
-    if (session && 'updateSession' in orchestrator) {
-      (orchestrator as any).updateSession(session);
-    }
-  }, [session, orchestrator]);
+  // Bootstrap initialization effects consolidated into hook
+  useHostBootstrap({
+    user,
+    authLoading,
+    venueAccountLoading,
+    isVenueAccount,
+    refreshVenueAccount,
+    isBootstrapComplete,
+    roomExistenceState: roomRecovery.roomExistenceState,
+    session,
+    sessionRef,
+    orchestrator,
+    roomModalMode,
+    setRoomModalMode,
+    clearHostSession,
+    setHostRoom,
+  });
 
   // Helper to keep isPerformingAction state and ref synchronized
   const triggerPerformingAction = (value: boolean) => {
@@ -493,23 +451,6 @@ export function HostPage() {
     activeGroup,
   });
 
-// Extract effects into custom hook - DISABLED for room-based architecture
-  // useHostEffects({
-  //   session,
-  //   sessionId,
-  //   sessionSnapshotReady,
-  //   sessionRef,
-  //   setSessionId,
-  //   setHostSession,
-  //   clearHostSession,
-  //   setShowCreateModal,
-  //   setCurrentPhase,
-  //   setAnalytics,
-  //   setShowPromptLibraryModal,
-  //   setHostGroupVotes,
-  //   toast,
-  // });
-
   // Map player IDs to display names for lookup
   const playerLookup = usePlayerLookup(players);
 
@@ -520,197 +461,63 @@ export function HostPage() {
     players
   );
 
-  // Instantiate handlers with current dependencies
-  const createSessionHandler = handleCreateSession({
+  // Consolidated handlers using useHostHandlers hook
+  const handlers = useHostHandlers({
     user,
     authLoading,
     isVenueAccount,
-    toast,
+    session,
+    sessionId,
+    setSessionId,
+    setHostSession,
+    clearHostSession,
+    storedRoomId,
+    storedRoomCode,
+    refreshMembers,
+    activeSociale: activeSocialeQuery.data ?? null,
+    players,
+    activeGroup,
+    activeGroupVote,
+    createForm,
     setCreateErrors,
     isCreating,
     setIsCreating,
-    setSessionId,
-    setHostSession,
+    isUpdatingSession,
+    setIsUpdatingSession,
+    isEndingSession,
+    setIsEndingSession,
+    isPausingSession,
+    setIsPausingSession,
+    isPerformingAction,
+    triggerPerformingAction: () => triggerPerformingAction(true),
+    isSubmittingVote,
+    setIsSubmittingVote,
+    setKickingPlayerId,
+    setBanningPlayerId,
     setShowCreateModal,
-    onSessionCreated: () => {
-      // Refresh room data to get currentSessionId
-      if (storedRoomId) {
-        refreshMembers();
-      }
-    },
-    roomId: storedRoomId,
-    roomCode: storedRoomCode,
-    gameMode: createForm.gameMode,
-    selectedLibraries: createForm.selectedLibraries,
-    totalRounds: createForm.totalRounds,
-  });
-
-  const updateSessionHandler = handleUpdateSession({
-    user,
-    authLoading,
-    isVenueAccount,
-    toast,
-    setCreateErrors,
-    isUpdating: isUpdatingSession,
-    setIsUpdating: setIsUpdatingSession,
-    sessionId: session?.id ?? "",
-    onUpdated: ({ sessionId }) => {
-      setSessionId(sessionId);
-      // Always use room code to prevent room code from changing
-      if (storedRoomCode) {
-        setHostSession({ sessionId, code: storedRoomCode });
-      } else {
-        logger.warn('Room code not available during session update');
-      }
-    },
     setShowEditModal,
-    gameMode: createForm.gameMode,
-    selectedLibraries: createForm.selectedLibraries,
-    totalRounds: createForm.totalRounds,
-  });
-
-  const primaryActionHandler = handlePrimaryAction({
-    session,
-    players,
-    isPerformingAction,
-    triggerPerformingAction,
+    setShowEndSessionModal,
+    setShowPromptLibraryModal,
+    setShowSocialeModal,
+    setAnalytics,
+    setHostGroupVotes,
     toast,
-    setShowCreateModal,
-  });
-
-  const socialePrimaryActionHandler = handleSocialePrimaryAction({
-    sociale: activeSocialeQuery.data ?? null,
-    roomId: storedRoomId ?? '',
-    isPerformingAction,
-    triggerPerformingAction,
-    toast,
-    setShowCreateModal: setShowSocialeModal,
     queryClient,
   });
 
-  const confirmEndSessionHandler = handleEndSession({
-    session,
-    isEndingSession,
-    setIsEndingSession,
-    toast,
-    setAnalytics,
-    setHostGroupVotes,
-  });
-
-  const handleEndSocialeClick = useCallback(async () => {
-    const activeSociale = activeSocialeQuery.data;
-    if (!activeSociale || !storedRoomId) return;
-
-    setIsEndingSession(true);
-    try {
-      await roomService.endSocialeInRoom({
-        roomId: storedRoomId,
-        socialeId: activeSociale.id,
-        mode: 'end',
-      });
-      toast({
-        title: "Sociale ended",
-        variant: "success"
-      });
-      // Invalidate queries to refresh UI
-      queryClient.invalidateQueries({ queryKey: ['room', storedRoomId] });
-      queryClient.invalidateQueries({ queryKey: ['sociale', activeSociale.id] });
-    } catch (error: unknown) {
-      toast({
-        title: getErrorMessage(error, "Failed to end Sociale"),
-        variant: "error"
-      });
-    } finally {
-      setIsEndingSession(false);
-    }
-  }, [activeSocialeQuery.data, storedRoomId, toast, queryClient]);
-
-  const showEndSessionModalHandler = useCallback(() => {
-    // If Sociale is active, end it directly without modal
-    const activeSociale = activeSocialeQuery.data;
-    if (activeSociale) {
-      handleEndSocialeClick();
-      return;
-    }
-    // Otherwise show Session end modal
-    setShowEndSessionModal(true);
-  }, [activeSocialeQuery.data, handleEndSocialeClick]);
-
-  // Room-based kick/ban handlers for lobby phase
-  const roomKickPlayerHandler = handleRoomKickPlayer({
-    toast,
-    setKickingPlayerId,
-    refresh: () => {
-      // Use the proper refresh function from useRoom hook
-      refreshMembers();
-    },
-  });
-
-  const roomBanPlayerHandler = handleRoomBanPlayer({
-    toast,
-    setBanningPlayerId,
-    refresh: () => {
-      // Use the proper refresh function from useRoom hook
-      refreshMembers();
-    },
-  });
-
-  const copyLinkHandler = handleCopyLink({ toast: toast });
-
-  const handlePauseToggle = useCallback(async () => {
-    // Handle Sociale pause/resume
-    const activeSociale = activeSocialeQuery.data;
-    if (activeSociale && !isPausingSession) {
-      setIsPausingSession(true);
-      try {
-        const result = await pauseSociale(activeSociale.id, activeSociale.status !== 'paused');
-        toast({
-          title: result.status === 'paused' ? "Sociale paused" : "Sociale resumed",
-          variant: "success"
-        });
-      } catch (error: unknown) {
-        toast({
-          title: getErrorMessage(error, "Failed to pause/resume Sociale"),
-          variant: "error"
-        });
-      } finally {
-        setIsPausingSession(false);
-      }
-      return;
-    }
-
-    // Handle Session pause/resume (original logic)
-    if (!session || isPausingSession) return;
-
-    setIsPausingSession(true);
-    try {
-      await pauseSession({
-        sessionId: session.id,
-        pause: !session.paused
-      });
-      toast({
-        title: session.paused ? "Session resumed" : "Session paused",
-        variant: "success"
-      });
-    } catch (error: unknown) {
-      toast({
-        title: getErrorMessage(error, "Failed to pause/resume session"),
-        variant: "error"
-      });
-    } finally {
-      setIsPausingSession(false);
-    }
-  }, [session, activeSocialeQuery.data, isPausingSession, toast]);
-
-  const handleLeaveSession = useCallback(() => {
-    clearHostSession();
-    setSessionId(null);
-    setAnalytics(null);
-    setHostGroupVotes({});
-    setShowCreateModal(false);
-    setShowPromptLibraryModal(false);
-    setShowEndSessionModal(false);
-  }, [clearHostSession, setSessionId, setAnalytics, setHostGroupVotes, setShowCreateModal, setShowPromptLibraryModal, setShowEndSessionModal]);
+  // Destructure handlers for backward compatibility
+  const createSessionHandler = handlers.createSession;
+  const updateSessionHandler = handlers.updateSession;
+  const confirmEndSessionHandler = handlers.confirmEndSession;
+  const handleLeaveSession = handlers.leaveSession;
+  const primaryActionHandler = handlers.primaryAction;
+  const socialePrimaryActionHandler = handlers.socialePrimaryAction;
+  const handlePauseToggle = handlers.pauseToggle;
+  const showEndSessionModalHandler = handlers.showEndSessionModal;
+  const roomKickPlayerHandler = handlers.kickPlayer;
+  const roomBanPlayerHandler = handlers.banPlayer;
+  const hostVoteHandler = handlers.vote;
+  const copyLinkHandler = handlers.copyLink;
 
   const handlePromptLibrarySelect = useCallback(
     async (libraryId: PromptLibraryId) => {
@@ -740,16 +547,6 @@ export function HostPage() {
     },
     [session, isUpdatingPromptLibrary, toast],
   );
-
-  const hostVoteHandler = handleHostVote({
-    session,
-    activeGroup,
-    activeGroupVote,
-    toast,
-    setIsSubmittingVote,
-    setHostGroupVotes,
-    isSubmittingVote,
-  });
 
   const handlePrimaryClick = useCallback(() => {
     // Determine which game type is active
@@ -954,8 +751,21 @@ export function HostPage() {
     </div>
   );
 
-  // Render phase-specific content
+  /**
+   * Renders phase-specific content based on session status
+   * 
+   * Phase Flow: lobby → answer → vote → results → (repeat) → ended
+   * 
+   * - Loading: Shows spinner while session data loads
+   * - No Session: Shows lobby or create room prompt
+   * - Lobby: Session setup with prompt library selection
+   * - Answer: Players submit answers to prompts
+   * - Vote: Players vote on answers
+   * - Results: Shows round results and leaderboard
+   * - Ended: Final leaderboard and analytics
+   */
   const renderPhaseContent = () => {
+    // Loading state: Session ID exists but data not yet loaded
     if (sessionId && !session) {
       return (
         <Card className="min-h-[360px] flex flex-col items-center justify-center gap-4" isDark={isDark}>
@@ -967,6 +777,7 @@ export function HostPage() {
       );
     }
 
+    // No session state: Room exists but no active game
     if (!session) {
       if (storedRoomId) {
         // If there's an active Sociale, show the panel with the Sociale content underneath
@@ -974,6 +785,7 @@ export function HostPage() {
           return renderHostMainStack(null);
         }
         
+        // Room exists, show lobby controls to create session
         return renderHostMainStack(
           <SessionsPanel
             isDark={isDark}
@@ -986,6 +798,8 @@ export function HostPage() {
           />
         );
       }
+      
+      // No room exists, prompt to create one
       return (
         <Card className="min-h-[360px] flex items-center justify-center" isDark={isDark}>
           <p className="text-lg text-cyan-300">
@@ -995,6 +809,7 @@ export function HostPage() {
       );
     }
 
+    // Active session: Render phase-specific content
     switch (session.status) {
       case "lobby":
         return renderHostMainStack(
@@ -1388,28 +1203,35 @@ export function HostPage() {
     </>
   );
 
-  // Return HostPanelV2 for both mobile and desktop with responsive layout
+  // Prepare context value for HostGameContext
+  const hostGameContextValue = {
+    session,
+    sessionId,
+    room: room || null,
+    roomMemberships,
+    roomCode: roomJoinCode || (room?.code || ''),
+    activeSociale: activeSocialeQuery.data ?? null,
+    sessionPlayers,
+    socialites,
+    playerCount: lobbyPlayerCount,
+    isLoading: gameState.isLoading,
+  };
+
+  // Return HostPanel for both mobile and desktop with responsive layout
   return (
     <>
-      <HostPanelV2
-        session={session}
-        sociale={activeSocialeQuery.data ?? null}
-        room={room || null}
-        memberships={roomMemberships}
-        roomCode={roomJoinCode || (room?.code || '')}
-        timer={timer}
-        playerCount={lobbyPlayerCount}
-        sessionPlayers={sessionPlayers}
-        socialites={socialites}
-        onPrimaryAction={handlePrimaryClick}
-        onPauseToggle={handlePauseToggle}
-        onEndSession={showEndSessionModalHandler}
-        onOpenSettings={handleOpenSocialeSettings}
-        onCreateSession={handleOpenSocialeModal}
-        isPerformingAction={isPerformingAction}
-        isPausingSession={isPausingSession}
-        isEndingSession={isEndingSession}
-      >
+      <HostGameProvider value={hostGameContextValue}>
+        <HostPanel
+          timer={timer}
+          onPrimaryAction={handlePrimaryClick}
+          onPauseToggle={handlePauseToggle}
+          onEndSession={showEndSessionModalHandler}
+          onOpenSettings={handleOpenSocialeSettings}
+          onCreateSession={handleOpenSocialeModal}
+          isPerformingAction={isPerformingAction}
+          isPausingSession={isPausingSession}
+          isEndingSession={isEndingSession}
+        >
         <HostAccountMenu
           user={user}
           isAnonymous={isAnonymous}
@@ -1422,7 +1244,8 @@ export function HostPage() {
           onSignOut={signOut}
         />
         {mainContent}
-      </HostPanelV2>
+        </HostPanel>
+      </HostGameProvider>
 
       {/* Command Palette for desktop shortcuts */}
       <CommandPalette

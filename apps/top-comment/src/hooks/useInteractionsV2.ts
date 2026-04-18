@@ -100,6 +100,7 @@ export function useInteractionsV2({ roomId }: UseInteractionsOptions): AsyncSubs
     channelRef.current = channel;
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
       channelRef.current = null;
       setConnectionStatus("disconnected");

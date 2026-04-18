@@ -1,6 +1,6 @@
 import { AnswerCard } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
-import type { Answer, RoundGroup, Vote } from "../../../shared/types";
+import type { Answer, RoundGroup, Vote, RoomMembership } from "../../../shared/types";
 
 interface VotePhaseProps {
   totalGroups: number;
@@ -22,7 +22,7 @@ interface VotePhaseProps {
   voteSecs: number;
   sessionPaused?: boolean;
   votes: Vote[];
-  teams: any[];
+  teams: RoomMembership[];
   currentRoundIndex?: number;
 }
 

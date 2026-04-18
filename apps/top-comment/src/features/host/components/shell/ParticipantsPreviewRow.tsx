@@ -10,13 +10,14 @@
  * - Horizontal scroll for many participants
  */
 
-import type { RoomMembership } from '../../../../shared/types';
+import type { RoomMembership, Session } from '../../../../shared/types';
+import type { SessionPlayer } from '../../../../services/sessionPlayerService';
 import { getMascotById } from '../../../../shared/mascots';
 
 interface ParticipantsPreviewRowProps {
   memberships: RoomMembership[];
-  session?: any; // Session object
-  sessionPlayers?: any[]; // SessionPlayer array
+  session?: Session | null;
+  sessionPlayers?: SessionPlayer[];
   maxVisible?: number;
   onOpenSheet: () => void;
 }
@@ -31,19 +32,19 @@ export function ParticipantsPreviewRow({
   // Use session players when session is active, otherwise use room members
   const isSessionActive = session && sessionPlayers && sessionPlayers.length > 0;
   
-  let displayItems: any[];
-  let getItemName: (item: any) => string;
-  let getItemInitial: (item: any) => string;
+  let displayItems: (SessionPlayer | RoomMembership)[];
+  let getItemName: (item: SessionPlayer | RoomMembership) => string;
+  let getItemInitial: (item: SessionPlayer | RoomMembership) => string;
   
   if (isSessionActive) {
     displayItems = sessionPlayers.slice(0, maxVisible);
-    getItemName = (player) => player.displayName;
-    getItemInitial = (player) => player.displayName.charAt(0);
+    getItemName = (player) => (player as SessionPlayer).displayName;
+    getItemInitial = (player) => (player as SessionPlayer).displayName.charAt(0);
   } else {
     const activeMemberships = memberships.filter(m => !m.isBanned && m.status === 'active');
     displayItems = activeMemberships.slice(0, maxVisible);
-    getItemName = (member) => member.playerName;
-    getItemInitial = (member) => member.playerName.charAt(0);
+    getItemName = (member) => (member as RoomMembership).playerName;
+    getItemInitial = (member) => (member as RoomMembership).playerName.charAt(0);
   }
   
   const totalCount = isSessionActive ? sessionPlayers.length : memberships.filter(m => !m.isBanned && m.status === 'active').length;
@@ -72,7 +73,7 @@ export function ParticipantsPreviewRow({
         {displayItems.map((item, index) => {
           const itemName = getItemName(item);
           const itemInitial = getItemInitial(item);
-          const mascot = isSessionActive ? null : getMascotById(item.mascotId);
+          const mascot = isSessionActive ? null : getMascotById((item as RoomMembership).mascotId);
           
           return (
             <div

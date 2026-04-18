@@ -1,5 +1,5 @@
 /**
- * HostPanelV2 - Modern host panel with three-layer mobile layout
+ * HostPanel - Modern host panel with three-layer mobile layout
  * 
  * This component demonstrates the full integration of the new host panel
  * architecture from the 2026 implementation plan.
@@ -16,6 +16,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useResponsiveLayout } from '../../room/hooks/useResponsiveLayout';
 import { useConnectionStatus } from '../hooks/useConnectionStatus';
 import { useSessionMachine } from '../state/sessionMachine';
+import { useHostGame } from '../context/HostGameContext';
 import {
   HostMobileShell,
   HostTopStatusBar,
@@ -30,16 +31,8 @@ import type { Session, Room, RoomMembership } from '../../../shared/types';
 import type { Sociale, Socialite } from '../../../domain/types/sociale.types';
 import type { SessionPlayer } from '../../../services/sessionPlayerService';
 
-interface HostPanelV2Props {
-  session: Session | null;
-  sociale?: Sociale | null;
-  room: Room | null;
-  memberships: RoomMembership[];
-  roomCode: string;
+interface HostPanelProps {
   timer?: number;
-  playerCount?: number;
-  sessionPlayers?: SessionPlayer[];
-  socialites?: Socialite[];
   onPrimaryAction: () => void;
   onPauseToggle: () => void;
   onEndSession: () => void;
@@ -51,16 +44,8 @@ interface HostPanelV2Props {
   children?: React.ReactNode;
 }
 
-export function HostPanelV2({
-  session,
-  sociale,
-  room,
-  memberships,
-  roomCode,
+export function HostPanel({
   timer,
-  playerCount: propPlayerCount,
-  sessionPlayers,
-  socialites,
   onPrimaryAction,
   onPauseToggle,
   onEndSession,
@@ -70,29 +55,39 @@ export function HostPanelV2({
   isPausingSession,
   isEndingSession,
   children,
-}: HostPanelV2Props) {
+}: HostPanelProps) {
+  // Get data from context instead of props
+  const {
+    session,
+    room,
+    roomMemberships: memberships,
+    roomCode,
+    activeSociale: sociale,
+    sessionPlayers,
+    socialites,
+    playerCount: propPlayerCount,
+  } = useHostGame();
   const { isMobile } = useResponsiveLayout();
   const [showParticipantsSheet, setShowParticipantsSheet] = useState(false);
   const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
   
+  // Session state machine
+  const sessionMachine = useSessionMachine(session, memberships.length);
+  
   // Mock handlers for participant actions (to be implemented)
   const handleKick = useCallback((membershipId: string) => {
-    console.log('Kick member:', membershipId);
     // TODO: Implement kick logic
   }, []);
   
   const handleBan = useCallback((membershipId: string) => {
-    console.log('Ban member:', membershipId);
     // TODO: Implement ban logic
   }, []);
   
   const handleMute = useCallback((membershipId: string) => {
-    console.log('Mute member:', membershipId);
     // TODO: Implement mute logic
   }, []);
   
   const handleSpotlight = useCallback((membershipId: string) => {
-    console.log('Spotlight member:', membershipId);
     // TODO: Implement spotlight logic
   }, []);
 
@@ -100,12 +95,8 @@ export function HostPanelV2({
   const connectionStatus = useConnectionStatus({
     onStatusChange: (status) => {
       // Could integrate with session machine here
-      console.log('Connection status changed:', status);
     },
   });
-
-  // Session state machine
-  const sessionMachine = useSessionMachine(session, memberships.length);
 
   // Use passed playerCount or compute from memberships (for participants list)
   const computedPlayerCount = useMemo(() => {

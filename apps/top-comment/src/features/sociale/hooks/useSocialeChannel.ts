@@ -13,6 +13,7 @@
 import { useEffect } from 'react';
 import { subscriptionPool } from '../../../shared/services/SubscriptionPool';
 import type { PgChangesFilter } from '../../../shared/services/SubscriptionPool';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 /**
  * Subscribe to the unified sociale channel for a given socialeId.
@@ -25,7 +26,7 @@ import type { PgChangesFilter } from '../../../shared/services/SubscriptionPool'
  */
 export function useSocialeChannel(
   socialeId: string | undefined,
-  onPayload: (payload: any) => void,
+  onPayload: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void,
 ) {
   useEffect(() => {
     if (!socialeId) return;

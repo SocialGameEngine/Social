@@ -1,10 +1,11 @@
 import { Button, Card } from "@social/ui";
+import type { RoomMembership } from "../../../shared/types";
 import { HostInteractionManager } from "./HostInteractionManager";
 
 interface HostInteractionsPanelProps {
   isDark: boolean;
   room: { id: string; code: string } | null;
-  roomMemberships: any[];
+  roomMemberships: RoomMembership[];
   onOpenSettings?: () => void;
 }
 

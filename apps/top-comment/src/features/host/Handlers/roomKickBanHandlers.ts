@@ -1,5 +1,6 @@
 import type { Toast } from "../../../shared/hooks/useToast";
 import { roomMembershipService } from "../../../services/roomMembershipService";
+import { handleAsyncError } from '../../../shared/utils/handleAsyncError';
 
 interface RoomKickBanDeps {
   toast: Toast;
@@ -36,10 +37,10 @@ export const handleRoomKickPlayer = ({
       // Refresh the player list
       refresh?.();
     } catch (error) {
-      console.error("Failed to kick player from room:", error);
-      toast({ 
-        title: "Failed to kick player", 
-        variant: "error" 
+      handleAsyncError(error, {
+        toast,
+        context: 'kickPlayer',
+        userMessage: 'Failed to kick player',
       });
     } finally {
       setKickingPlayerId?.(null);
@@ -75,10 +76,10 @@ export const handleRoomBanPlayer = ({
       // Refresh the player list
       refresh?.();
     } catch (error) {
-      console.error("Failed to ban player from room:", error);
-      toast({ 
-        title: "Failed to ban player", 
-        variant: "error" 
+      handleAsyncError(error, {
+        toast,
+        context: 'banPlayer',
+        userMessage: 'Failed to ban player',
       });
     } finally {
       setBanningPlayerId?.(null);

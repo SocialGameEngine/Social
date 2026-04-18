@@ -10,7 +10,7 @@ import { FormField } from '@social/ui';
 import { useTheme } from '../../../shared/providers/ThemeProvider';
 import { supabase } from '../../../supabase/client';
 import { usePromptLibraries } from '../../../shared/hooks/usePromptLibraries';
-import type { CreateSocialeRequest, SocialeMode } from '../../../features/sociale';
+import type { CreateSocialeRequest, SocialeMode, SocialeRound } from '../../../features/sociale';
 import { 
   generateTopicsOnlyRounds, 
   generateTriviaOnlyRounds, 
@@ -131,7 +131,7 @@ export function SocialeCreateModal({
       
       // For all libraries, fetch real content from database
       const libraryContent: Record<string, string[]> = {};
-      const libraryQuestions: Record<string, any[]> = {};
+      const libraryQuestions: Record<string, unknown[]> = {};
       
       for (const libraryId of validSelectedLibraries) {
         const library = libraries?.find(lib => lib.id === libraryId);
@@ -157,7 +157,7 @@ export function SocialeCreateModal({
                 .eq('status', 'published');
               
               if (questions && questions.length > 0) {
-                libraryContent[libraryId] = questions.map((q: any) => q.prompt);
+                libraryContent[libraryId] = questions.map((q: { prompt: string }) => q.prompt);
                 // Store complete question data for edge function
                 libraryQuestions[libraryId] = questions;
               } else {
@@ -173,7 +173,7 @@ export function SocialeCreateModal({
                 .eq('is_active', true);
               
               if (prompts && prompts.length > 0) {
-                libraryContent[libraryId] = prompts.map((p: any) => p.text);
+                libraryContent[libraryId] = prompts.map((p: { text: string }) => p.text);
               }
             }
           } catch (error) {
@@ -192,7 +192,7 @@ export function SocialeCreateModal({
       // Generate preview using the actual round types from the presets
       const usedContent = new Set<string>();
       
-      rounds.forEach((round: any, index: number) => {
+      rounds.forEach((round: Partial<SocialeRound>, index: number) => {
         let prompt: string;
         let libraryId: string | undefined;
         let libraryName: string | undefined;
@@ -201,7 +201,7 @@ export function SocialeCreateModal({
         
         if (round.type === 'trivia') {
           // For trivia rounds, use real questions with duplicate prevention
-          libraryId = round.settings.questionPackId;
+          libraryId = (round.settings as any)?.questionPackId;
           const library = libraries?.find(lib => lib.id === libraryId);
           libraryName = library?.name || 'Unknown Pack';
           const questions = libraryId ? libraryContent[libraryId] : undefined;
@@ -231,7 +231,7 @@ export function SocialeCreateModal({
           }
         } else {
           // For topic/prompt rounds, use real prompts with duplicate prevention
-          libraryId = round.settings.promptLibraryId;
+          libraryId = (round.settings as any)?.promptLibraryId;
           const library = libraries?.find(lib => lib.id === libraryId);
           libraryName = library?.name || 'Unknown Library';
           const prompts = libraryId ? libraryContent[libraryId] : undefined;
@@ -263,7 +263,7 @@ export function SocialeCreateModal({
         
         preview.push({
           roundNumber: index + 1,
-          type: round.type,
+          type: round.type!,
           prompt,
           libraryId,
           libraryName,
@@ -718,15 +718,16 @@ export function SocialeCreateModal({
       }
 
       // Use the exact preview content that was shown to the user
-      const populatedRounds = rounds.map((round: any, roundIndex: number) => {
+      const populatedRounds = rounds.map((round: Partial<SocialeRound>, roundIndex: number) => {
         const previewRound = previewData[roundIndex];
         
         if (previewRound && previewRound.prompt) {
           // Use the exact content from preview
           return {
-            ...round,
+            type: round.type!,
             title: previewRound.type === 'topic' ? 'Hot Topic' : 'Trivia Question',
             content: previewRound.prompt,
+            settings: round.settings,
           };
         } else {
           // Fallback content if preview data is missing
@@ -736,9 +737,10 @@ export function SocialeCreateModal({
             : 'No trivia question available';
           
           return {
-            ...round,
+            type: round.type!,
             title: fallbackTitle,
             content: fallbackContent,
+            settings: round.settings,
           };
         }
       });

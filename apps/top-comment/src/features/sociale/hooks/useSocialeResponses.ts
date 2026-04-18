@@ -10,6 +10,7 @@ import type { SocialeResponse, SubmitSocialeResponseRequest } from '../../../dom
 import { mapSocialeResponse, submitSocialeResponse } from '../socialeService';
 import { useSocialeChannel } from './useSocialeChannel';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { handleSupabaseError } from '../../../shared/utils/handleAsyncError';
 
 /**
  * Hook for fetching responses by Sociale
@@ -160,7 +161,9 @@ export function useUpdateResponse() {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        handleSupabaseError(error, { context: 'updateResponse', rethrow: true });
+      }
       return mapSocialeResponse(data);
     },
   });

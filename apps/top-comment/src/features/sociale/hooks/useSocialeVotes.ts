@@ -5,6 +5,7 @@
 
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { supabase } from '../../../supabase/client';
 import type { SocialeVote, SubmitSocialeVoteRequest } from '../../../domain/types/sociale.types';
 import { mapSocialeVote } from '../socialeService';
@@ -28,7 +29,7 @@ export function useSocialeVotes(socialeId?: string) {
   const queryClient = useQueryClient();
 
   // Use unified sociale channel instead of dedicated votes channel
-  const onPayload = useCallback((payload: any) => {
+  const onPayload = useCallback((payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
     if (payload?.table === 'sociale_votes') {
       void queryClient.invalidateQueries({ queryKey: ['sociale-votes', socialeId] });
     }
@@ -61,10 +62,10 @@ export function useRoundVotes(socialeId?: string, roundId?: string) {
   const queryClient = useQueryClient();
 
   // Use unified sociale channel — filters by table + roundId in callback
-  const onPayload = useCallback((payload: any) => {
+  const onPayload = useCallback((payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
     if (payload?.table === 'sociale_votes' && roundId) {
       const record = payload.new || payload.old;
-      if (record?.round_id === roundId) {
+      if ((record as any)?.round_id === roundId) {
         void queryClient.invalidateQueries({ queryKey: ['sociale-votes', socialeId, roundId] });
       }
     }
@@ -98,10 +99,10 @@ export function useMyVotes(socialeId?: string, socialiteId?: string) {
   const queryClient = useQueryClient();
 
   // Use unified sociale channel — filters by table + socialiteId in callback
-  const onPayload = useCallback((payload: any) => {
+  const onPayload = useCallback((payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
     if (payload?.table === 'sociale_votes' && socialiteId) {
       const record = payload.new || payload.old;
-      if (record?.socialite_id === socialiteId) {
+      if ((record as any)?.socialite_id === socialiteId) {
         void queryClient.invalidateQueries({ queryKey: ['sociale-votes', socialeId, socialiteId] });
       }
     }

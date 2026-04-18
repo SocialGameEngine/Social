@@ -35,7 +35,6 @@ export const handleEndSession = (deps: EndSessionDeps) => async () => {
     setAnalytics(null);
     setHostGroupVotes({});
   } catch (error: unknown) {
-    console.log(error);
     toast({ title: "Could not end session. Please try again.", variant: "error" });
   } finally {
     setIsEndingSession(false);

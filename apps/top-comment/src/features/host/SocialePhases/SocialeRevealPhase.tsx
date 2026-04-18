@@ -10,6 +10,9 @@ import {
   SocialiteCard
 } from './components';
 import type { Socialite, SocialeResponse, SocialeVote } from '../../../domain/types/sociale.types';
+import type { TriviaInteractionSettings } from '../../../domain/types/interaction.types';
+
+type MCOption = NonNullable<TriviaInteractionSettings['snapshot']['multipleChoice']>['options'][number];
 
 interface SocialeRevealPhaseProps {
   sociale: {
@@ -135,7 +138,7 @@ export function SocialeRevealPhase({
       
       if (snap && 'multipleChoice' in snap && snap.multipleChoice) {
         const correctOption = snap.multipleChoice.options?.find(
-          (o: any) => o.id === snap.multipleChoice.correctOptionId
+          (o: MCOption) => o.id === snap.multipleChoice.correctOptionId
         );
         return {
           title: 'Correct Answer',

@@ -158,7 +158,7 @@ export function subscribeToSociale(
         filter: `id=eq.${socialeId}`,
       },
       (payload) => {
-        callback(mapSociale(payload.new));
+        callback(mapSociale(payload.new as any));
       }
     )
     .subscribe();

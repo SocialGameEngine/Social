@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import type { Session } from '../../../shared/types';
+import { PHASE_DURATIONS, TIMEOUTS } from '../../../shared/constants/timings';
 
 interface UseSessionTimerOptions {
   session: Session | null;
@@ -34,9 +35,9 @@ interface UseSessionTimerReturn {
 // Default phase durations in seconds
 const DEFAULT_PHASE_DURATIONS: Record<string, number> = {
   lobby: 0, // No timer in lobby
-  answer: 60, // 60 seconds to answer
-  vote: 30, // 30 seconds to vote
-  results: 15, // 15 seconds to show results
+  answer: PHASE_DURATIONS.ANSWER,
+  vote: PHASE_DURATIONS.VOTE,
+  results: PHASE_DURATIONS.RESULTS,
   ended: 0, // No timer when ended
 };
 
@@ -141,7 +142,7 @@ export function useSessionTimer({
       if (!isPaused) {
         setNow(Date.now());
       }
-    }, 30000); // Sync every 30 seconds
+    }, TIMEOUTS.LONG_POLL); // Sync every 30 seconds
 
     return () => clearInterval(syncInterval);
   }, [session, phaseDuration, isPaused]);

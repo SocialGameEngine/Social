@@ -50,7 +50,7 @@ import { ChatLobbyBottomSheet } from './bottomsheets/ChatLobbyBottomSheet';
 import { LeaderboardBottomSheet } from './bottomsheets/LeaderboardBottomSheet';
 import { HelpBottomSheet } from './bottomsheets/HelpBottomSheet';
 
-export function RoomPageContentNew() {
+export function RoomPageContent() {
   const { room, memberships, session, sessionId, state, openModal, closeModal, markSubmitted, openEndedModal, closeEndedModal, handleLeaveRoom } = useRoomPage();
   const { user } = useAuth();
   const { isMobile, isRailCollapsed, setIsRailCollapsed } = useResponsiveLayout();

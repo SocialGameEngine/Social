@@ -155,6 +155,7 @@ export function useReactionsV2({ roomId, membershipId }: UseReactionsOptions): A
     channelRef.current = channel;
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
       channelRef.current = null;
       setConnectionStatus("disconnected");

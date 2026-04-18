@@ -69,8 +69,6 @@ export function SocialePhaseRenderer({
   const createBasicRounds = useCallback(async () => {
     if (!socialeId) return;
     
-    console.log('Creating basic rounds for Sociale...');
-    
     const basicRounds = [
       {
         id: crypto.randomUUID(),
@@ -110,8 +108,6 @@ export function SocialePhaseRenderer({
         console.error('Failed to create rounds:', error);
         throw error;
       }
-      
-      console.log('Successfully created basic rounds');
     } catch (error) {
       console.error('Error creating rounds:', error);
       throw error;
@@ -220,10 +216,10 @@ export function SocialePhaseRenderer({
           socialites={socialites}
           currentSocialite={currentSocialite}
           onStartSociale={handleStartSociale}
-          onCreateSociale={() => console.log('Create new Sociale')}
-          onLoadSociale={() => console.log('Load existing Sociale')}
-          onSettings={() => console.log('Open Sociale settings')}
-          onCloseSociale={() => console.log('Close Sociale')}
+          onCreateSociale={() => {}}
+          onLoadSociale={() => {}}
+          onSettings={() => {}}
+          onCloseSociale={() => {}}
           isCurrentPlayerHost={isRoomHost}
           isDark={isDark}
         />
@@ -518,11 +514,9 @@ export function SocialePhaseRenderer({
           currentSocialite={currentSocialite}
           onCreateNewSociale={() => {
             // TODO: Create new Sociale functionality
-            console.log('Create new Sociale');
           }}
           onReturnToLobby={() => {
             // TODO: Return to lobby functionality
-            console.log('Return to lobby');
           }}
           isCurrentPlayerHost={isCurrentPlayerHost}
           isDark={isDark}
