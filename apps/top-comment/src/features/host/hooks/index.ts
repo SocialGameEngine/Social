@@ -8,3 +8,4 @@ export { useConnectionStatus } from './useConnectionStatus';
 export { useSessionTimer } from './useSessionTimer';
 export { useHostHandlers } from './useHostHandlers';
 export { useHostBootstrap } from './useHostBootstrap';
+export { useHostCallbacks } from './useHostCallbacks';
