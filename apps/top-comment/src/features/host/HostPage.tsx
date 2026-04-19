@@ -21,6 +21,7 @@ import { HostAccountMenu } from "./components/HostAccountMenu";
 import { HostControlButtons } from "./components/HostControlButtons";
 import { HostMainContent } from "./components/HostMainContent";
 import { HostCommandPaletteSection } from "./components/HostCommandPaletteSection";
+import { useCommandPalette } from "./components/shell";
 import { useSessionMachine } from "./state";
 import { useVenueAccountResolver } from './useVenueAccountResolver';
 import { useSocialites } from "../sociale/hooks/useSocialites";
@@ -257,7 +258,7 @@ export function HostPage() {
     isEndingSession, setIsEndingSession,
     isPausingSession, setIsPausingSession,
     isPerformingAction,
-    triggerPerformingAction: () => triggerPerformingAction(true),
+    triggerPerformingAction,
     isSubmittingVote, setIsSubmittingVote,
     setKickingPlayerId, setBanningPlayerId,
     setShowCreateModal, setShowEditModal,
@@ -338,6 +339,8 @@ export function HostPage() {
   const sessionTimer = useSessionTimer({ session });
   const timer = sessionTimer.remainingSeconds;
 
+  const commandPalette = useCommandPalette();
+
   const hostGameContextValue = {
     session, sessionId,
     room: room || null, roomMemberships,
@@ -347,6 +350,11 @@ export function HostPage() {
     playerCount: lobbyPlayerCount,
     isLoading: gameState.isLoading,
   };
+
+  const handleSignOut = useCallback(async () => {
+    await signOut();
+    window.location.reload();
+  }, [signOut]);
 
   return (
     <>
@@ -361,6 +369,7 @@ export function HostPage() {
           isPerformingAction={isPerformingAction}
           isPausingSession={isPausingSession}
           isEndingSession={isEndingSession}
+          onOpenCommandPalette={commandPalette.open}
         >
         <HostAccountMenu
           user={user}
@@ -371,7 +380,7 @@ export function HostPage() {
           accountMenuRef={accountMenuRef}
           onPlayerSignIn={handlePlayerSignIn}
           onVenueSignIn={handleVenueSignIn}
-          onSignOut={signOut}
+          onSignOut={handleSignOut}
         />
         <HostMainContent
           user={user}
@@ -391,7 +400,7 @@ export function HostPage() {
             setRoomModalMode('settings');
           }}
           onOpenVIBox={() => setShowVIBoxModal(true)}
-          onOpenVenueLogin={() => setShowVenueAuthPrompt(true)}
+          onOpenVenueLogin={() => setShowVenueAuthModal(true)}
           phaseContentProps={{
             isDark, sessionId, session, storedRoomId, room, roomMemberships,
             primarySocialeId, userId: user?.id,
@@ -471,6 +480,7 @@ export function HostPage() {
             onNavigateVenueAuth: () => navigate("/venue-auth"),
             showPlayerAuthModal, setShowPlayerAuthModal,
             showVenueAuthModal, setShowVenueAuthModal,
+            onOpenVenueLogin: () => setShowVenueAuthModal(true),
             onVenueRoomCreated: (roomCodeOrId: string) => {
               toast({ title: "Venue Room Created!", description: `Room code: ${roomCodeOrId}`, variant: "success" });
               setVenueRoomCreated(roomCodeOrId);
@@ -494,6 +504,7 @@ export function HostPage() {
         showEndSessionModalHandler={showEndSessionModalHandler}
         handleOpenSocialeModal={callbacks.handleOpenSocialeModal}
         toast={toast}
+        commandPalette={commandPalette}
       />
     </>
   );

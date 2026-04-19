@@ -26,6 +26,7 @@ import {
   OfflineBanner,
   ParticipantsSheet,
 } from './shell';
+import { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp';
 import { PHASE_STATUS_LABELS } from '../types/host-panel.types';
 import type { Session, Room, RoomMembership } from '../../../shared/types';
 import type { Sociale, Socialite } from '../../../domain/types/sociale.types';
@@ -38,6 +39,7 @@ interface HostPanelProps {
   onEndSession: () => void;
   onCreateSession: () => void;
   onOpenSettings?: () => void;
+  onOpenCommandPalette?: () => void;
   isPerformingAction: boolean;
   isPausingSession: boolean;
   isEndingSession: boolean;
@@ -51,6 +53,7 @@ export function HostPanel({
   onEndSession,
   onCreateSession,
   onOpenSettings,
+  onOpenCommandPalette,
   isPerformingAction,
   isPausingSession,
   isEndingSession,
@@ -235,15 +238,32 @@ export function HostPanel({
         {/* Desktop header */}
         <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-sm border-b border-cyan-400/20">
           <div className="max-w-7xl mx-auto px-4 py-3">
-            <HostTopStatusBar
-              roomCode={roomCode}
-              phaseName={phaseName}
-                            connectionStatus={connectionStatus.status}
-              isPaused={session?.paused ?? (sociale?.status === 'paused')}
-              roundIndex={sociale?.currentRoundIndex ?? session?.roundIndex}
-              totalRounds={sociale?.totalRounds ?? session?.settings?.totalRounds}
-              onSettingsOpen={onOpenSettings}
-            />
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <HostTopStatusBar
+                  roomCode={roomCode}
+                  phaseName={phaseName}
+                  connectionStatus={connectionStatus.status}
+                  isPaused={session?.paused ?? (sociale?.status === 'paused')}
+                  roundIndex={sociale?.currentRoundIndex ?? session?.roundIndex}
+                  totalRounds={sociale?.totalRounds ?? session?.settings?.totalRounds}
+                  onSettingsOpen={onOpenSettings}
+                />
+              </div>
+              {onOpenCommandPalette && (
+                <button
+                  type="button"
+                  onClick={onOpenCommandPalette}
+                  title="Command Palette (⌘K)"
+                  className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white hover:bg-slate-700 border border-slate-700 hover:border-slate-600 transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <span>⌘K</span>
+                </button>
+              )}
+            </div>
           </div>
         </header>
 
@@ -269,6 +289,7 @@ export function HostPanel({
                   onCreateSociale={onCreateSession}
                   onParticipantsOpen={() => setShowParticipantsSheet(true)}
                 />
+                <KeyboardShortcutsHelp />
               </div>
 
               

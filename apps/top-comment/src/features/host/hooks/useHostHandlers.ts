@@ -60,7 +60,7 @@ interface UseHostHandlersParams {
   isPausingSession: boolean;
   setIsPausingSession: Dispatch<SetStateAction<boolean>>;
   isPerformingAction: boolean;
-  triggerPerformingAction: () => void;
+  triggerPerformingAction: (value: boolean) => void;
   isSubmittingVote: boolean;
   setIsSubmittingVote: Dispatch<SetStateAction<boolean>>;
   

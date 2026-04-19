@@ -90,7 +90,7 @@ export async function updateSociale(payload: UpdateSocialeRequest): Promise<Soci
   const response = await fetch(`${supabaseUrl}/functions/v1/sociales-update`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ id: socialeId, ...rest }),
+    body: JSON.stringify({ socialeId, ...rest }),
   });
   
   if (!response.ok) {

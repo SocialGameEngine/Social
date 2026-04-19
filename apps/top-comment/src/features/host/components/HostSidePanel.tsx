@@ -108,7 +108,7 @@ export function HostSidePanel({
           {/* Dropdown content */}
           {isRoomMembersOpen && (
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {roomLobbyMembers.slice(0, 10).map((member) => {
+              {roomLobbyMembers.map((member) => {
                 const isMemberHost = room?.moderatorIds.includes(member.userId) || false;
                 return (
                   <div
@@ -155,11 +155,6 @@ export function HostSidePanel({
                   </div>
                 );
               })}
-              {roomLobbyMembers.length > 10 && (
-                <div className="text-center py-2 text-xs text-slate-400">
-                  Showing 10 of {roomLobbyMembers.length} members
-                </div>
-              )}
               {!roomLobbyMembers.length && (
                 <div className="text-center py-2 text-xs text-slate-400">
                   Room members will appear here as they join.

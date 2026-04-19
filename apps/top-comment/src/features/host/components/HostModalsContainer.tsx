@@ -111,6 +111,7 @@ interface HostModalsContainerProps {
   setShowPlayerAuthModal: (show: boolean) => void;
   showVenueAuthModal: boolean;
   setShowVenueAuthModal: (show: boolean) => void;
+  onOpenVenueLogin: () => void;
 
   // Venue room checker
   onVenueRoomCreated: (roomCodeOrId: string) => void;
@@ -172,6 +173,7 @@ export function HostModalsContainer({
   showVenueAuthModal,
   setShowVenueAuthModal,
   onVenueRoomCreated,
+  onOpenVenueLogin,
 }: HostModalsContainerProps) {
   return (
     <>
@@ -179,6 +181,7 @@ export function HostModalsContainer({
         isOpen={showRoomCreateModal}
         onClose={onCloseRoomModal}
         onSuccess={onRoomCreateSuccess}
+        onDeleted={() => window.location.reload()}
         existingRoom={room ?? undefined}
       />
 
@@ -210,8 +213,9 @@ export function HostModalsContainer({
         isCreating={isCreating}
         canCreateSession={canCreateSession}
         onSubmit={onCreateSession}
+        onOpenVenueLogin={onOpenVenueLogin}
       />
-      
+
       <CreateSessionModal
         open={showEditModal}
         onClose={() => setShowEditModal(false)}
@@ -223,6 +227,7 @@ export function HostModalsContainer({
         isCreating={isUpdatingSession}
         canCreateSession={canCreateSession}
         onSubmit={onUpdateSession}
+        onOpenVenueLogin={onOpenVenueLogin}
       />
       
       <JoinSessionModal

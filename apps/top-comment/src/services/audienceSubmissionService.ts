@@ -118,20 +118,29 @@ async function approveSubmission(
   submissionId: string,
   reviewerMembershipId: string
 ): Promise<AudienceSubmission> {
-  const { data, error } = await (supabase as any)
+  const { error } = await (supabase as any)
     .from('audience_submissions')
     .update({
       status: 'approved',
       reviewed_by: reviewerMembershipId,
       reviewed_at: new Date().toISOString(),
     })
-    .eq('id', submissionId)
-    .select('*, room_memberships:membership_id(player_name)')
-    .single();
+    .eq('id', submissionId);
 
   if (error) {
     logger.error('Failed to approve submission', { error: error.message });
     throw new Error(`Failed to approve submission: ${error.message}`);
+  }
+
+  const { data, error: fetchError } = await (supabase as any)
+    .from('audience_submissions')
+    .select('*, room_memberships:membership_id(player_name)')
+    .eq('id', submissionId)
+    .single();
+
+  if (fetchError) {
+    logger.error('Failed to fetch approved submission', { error: fetchError.message });
+    throw new Error(`Failed to fetch approved submission: ${fetchError.message}`);
   }
 
   return mapSubmission(data);
@@ -142,7 +151,7 @@ async function rejectSubmission(
   reviewerMembershipId: string,
   reason?: string
 ): Promise<AudienceSubmission> {
-  const { data, error } = await (supabase as any)
+  const { error } = await (supabase as any)
     .from('audience_submissions')
     .update({
       status: 'rejected',
@@ -150,13 +159,22 @@ async function rejectSubmission(
       reviewed_at: new Date().toISOString(),
       rejection_reason: reason ?? null,
     })
-    .eq('id', submissionId)
-    .select('*, room_memberships:membership_id(player_name)')
-    .single();
+    .eq('id', submissionId);
 
   if (error) {
     logger.error('Failed to reject submission', { error: error.message });
     throw new Error(`Failed to reject submission: ${error.message}`);
+  }
+
+  const { data, error: fetchError } = await (supabase as any)
+    .from('audience_submissions')
+    .select('*, room_memberships:membership_id(player_name)')
+    .eq('id', submissionId)
+    .single();
+
+  if (fetchError) {
+    logger.error('Failed to fetch rejected submission', { error: fetchError.message });
+    throw new Error(`Failed to fetch rejected submission: ${fetchError.message}`);
   }
 
   return mapSubmission(data);

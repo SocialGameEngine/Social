@@ -1,6 +1,15 @@
 import { useMemo, useCallback } from "react";
 import type { Session } from "../../../shared/types";
-import { useCommandPalette, CommandPalette } from "./shell";
+import { CommandPalette } from "./shell";
+
+interface CommandPaletteState {
+  isOpen: boolean;
+  open: () => void;
+  close: () => void;
+  toggle: () => void;
+  recentCommands: string[];
+  recordCommand: (id: string) => void;
+}
 
 interface HostCommandPaletteSectionProps {
   session: Session | null;
@@ -19,6 +28,7 @@ interface HostCommandPaletteSectionProps {
   showEndSessionModalHandler: () => void;
   handleOpenSocialeModal: () => void;
   toast: (options: { title: string; variant?: 'success' | 'error' | 'info'; description?: string }) => void;
+  commandPalette: CommandPaletteState;
 }
 
 export function HostCommandPaletteSection({
@@ -34,8 +44,8 @@ export function HostCommandPaletteSection({
   showEndSessionModalHandler,
   handleOpenSocialeModal,
   toast,
+  commandPalette,
 }: HostCommandPaletteSectionProps) {
-  const commandPalette = useCommandPalette();
 
   const commands = useMemo(() => [
     {

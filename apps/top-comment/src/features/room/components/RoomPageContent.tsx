@@ -27,6 +27,7 @@ import { ChallengeNotification } from './challenges/ChallengeNotification';
 import { ChallengeModal } from './challenges/ChallengeModal';
 import { SubmitQuestionButton } from './submissions/SubmitQuestionButton';
 import { SubmitQuestionModal } from './submissions/SubmitQuestionModal';
+import { AudienceQuestionsSheet } from './submissions/AudienceQuestionsSheet';
 import { logger } from '../../../shared/utils/logger';
 import { isCurrentUserModerator } from '../../../shared/utils/moderatorUtils';
 import { roomMembershipService } from '../../../services/roomMembershipService';
@@ -354,9 +355,12 @@ export function RoomPageContent() {
     declineChallenge,
   } = useChallenges({ roomId: room?.id, membershipId: myMembership?.id });
 
+  const [showQuestionsSheet, setShowQuestionsSheet] = useState(false);
+
   const {
     submitQuestion,
-  } = useAudienceSubmissions({ roomId: room?.id, membershipId: myMembership?.id, isHost: false });
+    approvedSubmissions,
+  } = useAudienceSubmissions({ roomId: room?.id, membershipId: myMembership?.id, isHost: false, loadApproved: true });
 
   const myDisplayName = myMembership?.playerName || user?.user_metadata?.display_name || 'Anonymous';
 
@@ -472,6 +476,11 @@ export function RoomPageContent() {
           onJoinRoom={() => setShowJoinModal(true)}
         />
       )}
+      <AudienceQuestionsSheet
+        isOpen={showQuestionsSheet}
+        onClose={() => setShowQuestionsSheet(false)}
+        submissions={approvedSubmissions}
+      />
     </>
   );
 
@@ -541,6 +550,7 @@ export function RoomPageContent() {
           onOpenLeaderboard={handleToggleLeaderboard}
           onOpenChat={handleToggleChat}
           onOpenCommunity={() => setShowCommunityModal(true)}
+          onOpenQuestions={() => setShowQuestionsSheet(true)}
         />
         
         {/* Section 4: Misc Section */}

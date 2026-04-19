@@ -10,16 +10,18 @@ interface CreateRoomModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (room: Room) => void;
+  onDeleted?: () => void;
   existingRoom?: Room | null;
   updateVenueRoomId?: boolean; // New prop for venue room creation
 }
 
-export function CreateRoomModal({ isOpen, onClose, onSuccess, existingRoom, updateVenueRoomId }: CreateRoomModalProps) {
+export function CreateRoomModal({ isOpen, onClose, onSuccess, onDeleted, existingRoom }: CreateRoomModalProps) {
   const { user } = useAuth();
   const { createRoom } = useRoom();
   const isEditing = !!existingRoom;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -98,22 +100,15 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess, existingRoom, upda
         };
 
         const room = await createRoom(roomRequest);
-        
-        // If this is a venue room creation, update the venue account with room_id
-        if (updateVenueRoomId && user) {
-          try {
-            const { error: updateError } = await (supabase as any).rpc('update_venue_room_id', {
-              p_user_id: user.id,
-              p_room_id: room.id
-            });
-            
-            if (updateError) {
-              console.error('Failed to update venue room_id:', updateError);
-              // Don't fail the whole operation, just log the error
-            }
-          } catch (error) {
-            console.error('Exception updating venue room_id:', error);
-            // Don't fail the whole operation, just log the error
+
+        // Always link the new room to the venue account so recovery doesn't re-open this modal
+        if (user) {
+          const { error: updateError } = await (supabase as any)
+            .from('venue_accounts')
+            .update({ room_id: room.id })
+            .eq('auth_user_id', user.id);
+          if (updateError) {
+            console.error('Failed to update venue room_id:', updateError);
           }
         }
         
@@ -176,6 +171,24 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess, existingRoom, upda
         },
       },
     }));
+  };
+
+  const handleDelete = async () => {
+    if (!existingRoom) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      await roomService.deleteRoom(existingRoom.id);
+      localStorage.removeItem('host_room_v2');
+      localStorage.removeItem('host_session_v2');
+      onClose();
+      onDeleted?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete room');
+    } finally {
+      setIsLoading(false);
+      setConfirmDelete(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -350,22 +363,58 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess, existingRoom, upda
         </div>
 
           {/* Actions - sticky on mobile with extra padding for bottom nav */}
-          <div className="sticky bottom-0 bg-slate-900 border-t border-slate-700 p-4 pb-20 md:p-6 flex justify-end space-x-3 flex-shrink-0">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-slate-300 bg-slate-700 hover:bg-slate-600 rounded-md transition-colors"
-              disabled={isLoading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 transition-colors disabled:opacity-50"
-              disabled={isLoading || !user}
-            >
-              {isLoading ? (isEditing ? 'Saving...' : 'Creating...') : (isEditing ? 'Save Settings' : 'Create Room')}
-            </button>
+          <div className="sticky bottom-0 bg-slate-900 border-t border-slate-700 p-4 pb-20 md:p-6 flex-shrink-0">
+            {isEditing && (
+              <div className="mb-3">
+                {!confirmDelete ? (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    disabled={isLoading}
+                    className="text-sm text-rose-400 hover:text-rose-300 underline transition-colors"
+                  >
+                    Delete this room
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-3 p-3 bg-rose-950/50 border border-rose-500/40 rounded-lg">
+                    <span className="text-sm text-rose-300 flex-1">Permanently delete room and all data?</span>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(false)}
+                      disabled={isLoading}
+                      className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      disabled={isLoading}
+                      className="px-3 py-1 text-xs bg-rose-600 hover:bg-rose-700 text-white rounded transition-colors disabled:opacity-50"
+                    >
+                      {isLoading ? 'Deleting...' : 'Confirm Delete'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-slate-300 bg-slate-700 hover:bg-slate-600 rounded-md transition-colors"
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 transition-colors disabled:opacity-50"
+                disabled={isLoading || !user}
+              >
+                {isLoading ? (isEditing ? 'Saving...' : 'Creating...') : (isEditing ? 'Save Settings' : 'Create Room')}
+              </button>
+            </div>
           </div>
         </form>
       </div>

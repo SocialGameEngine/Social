@@ -274,7 +274,7 @@ export async function generateUniqueRoomCode(): Promise<string> {
       .from('rooms')
       .select('code')
       .eq('code', code)
-      .single();
+      .maybeSingle();
 
     if (!data) {
       return code;
@@ -453,6 +453,44 @@ export async function endSocialeInRoom(request: EndSocialeInRoomRequest): Promis
   return data as EndSocialeInRoomResponse;
 }
 
+async function deleteRoom(roomId: string): Promise<void> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) throw new Error('User not authenticated');
+
+  // Delete legacy sessions (FK: top_comment_sessions_room_id_fkey → rooms.id, no cascade)
+  await supabase
+    .from('top_comment_sessions' as any)
+    .delete()
+    .eq('room_id', roomId);
+
+  // Null out venue_accounts.room_id (FK: venue_accounts_room_id_fkey → rooms.id, no cascade)
+  await supabase
+    .from('venue_accounts' as any)
+    .update({ room_id: null })
+    .eq('room_id', roomId);
+
+  // Explicit cleanup for socialites (FK: socialites_membership_id_fkey → room_memberships.id)
+  // which does not cascade from the rooms table directly.
+  const { data: memberships } = await supabase
+    .from('room_memberships')
+    .select('id')
+    .eq('room_id', roomId);
+
+  if (memberships?.length) {
+    for (const m of memberships) {
+      await supabase.from('socialites').delete().eq('membership_id', m.id);
+    }
+  }
+
+  const { error } = await supabase
+    .from('rooms')
+    .delete()
+    .eq('id', roomId)
+    .eq('host_uid', userData.user.id);
+
+  if (error) throw new Error(`Failed to delete room: ${error.message}`);
+}
+
 export const roomService = {
   createRoom,
   getRoom,
@@ -460,7 +498,8 @@ export const roomService = {
   getRoomAnalytics,
   startSessionInRoom,
   endSessionInRoom,
-   startSocialeInRoom,
-   endSocialeInRoom,
+  startSocialeInRoom,
+  endSocialeInRoom,
   archiveRoom,
+  deleteRoom,
 };

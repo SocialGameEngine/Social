@@ -284,6 +284,12 @@ export async function kickMember(request: KickMemberRequest): Promise<KickMember
     .delete()
     .eq('membership_id', memberToKick.id);
 
+  // Delete user's socialite records (FK: socialites_membership_id_fkey)
+  await supabase
+    .from('socialites')
+    .delete()
+    .eq('membership_id', memberToKick.id);
+
   // Now delete the membership
   const { error: deleteError } = await supabase
     .from('room_memberships')
@@ -404,6 +410,12 @@ export async function banMember(request: BanMemberRequest): Promise<BanMemberRes
 
   // Delete user's room reactions
   await (supabase.from('room_reactions' as any))
+    .delete()
+    .eq('membership_id', memberToBan.id);
+
+  // Delete user's socialite records (FK: socialites_membership_id_fkey)
+  await supabase
+    .from('socialites')
     .delete()
     .eq('membership_id', memberToBan.id);
 

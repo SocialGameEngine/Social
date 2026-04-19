@@ -58,32 +58,31 @@ export function useHostRoomRecovery({
 
   useEffect(() => {
     let cancelled = false;
-    
-    // Don't retry if already attempted
+
+    // If we have a room (from localStorage or after creation), always mark as found.
+    // This must run even if recovery was already attempted so that roomExistenceState
+    // stays 'room_found' after a room is created mid-session.
+    if (roomId) {
+      setStatus('recovered');
+      setRoomExistenceState('room_found');
+      recoveryAttemptedRef.current = true;
+      return;
+    }
+
+    // Don't retry DB recovery if already attempted
     if (recoveryAttemptedRef.current) return;
-    
+
     // Wait for auth and venue account to complete
     if (authLoading || venueAccountLoading) {
       setStatus('waiting_for_identity');
       setRoomExistenceState('unknown');
       return;
     }
-    
+
     // Not a venue account - skip recovery
     if (!user || user.is_anonymous || !isVenueAccount) {
       setStatus('idle');
       setRoomExistenceState('unknown');
-      return;
-    }
-    
-    // If we already have a validated room from localStorage, skip DB recovery
-    if (roomId) {
-      setStatus('recovered');
-      setRoomExistenceState('validating_storage');
-      recoveryAttemptedRef.current = true;
-      // Note: Actual validation happens in useHostRoom
-      // For now, trust localStorage and mark as found
-      setRoomExistenceState('room_found');
       return;
     }
 

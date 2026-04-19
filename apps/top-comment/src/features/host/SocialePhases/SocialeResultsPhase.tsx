@@ -170,7 +170,7 @@ export function SocialeResultsPhase({
         {(sociale.phaseEndsAt || isPaused) && (
           <div className="flex justify-center">
             <SocialeTimer
-              phaseEndsAt={isPaused ? undefined : sociale.phaseEndsAt ?? undefined}
+              phaseEndsAt={sociale.phaseEndsAt ?? undefined}
               phase={sociale.currentPhase || 'results'}
               isPaused={isPaused}
               pausedSeconds={isPaused ? sociale.pausedRemainingSeconds ?? undefined : undefined}

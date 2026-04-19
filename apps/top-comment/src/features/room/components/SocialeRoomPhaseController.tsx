@@ -29,11 +29,12 @@ function isWaitingForNextRound(sociale: Sociale, socialite: Socialite | null | u
 }
 
 function shouldOfferJoinNextRound(
-  sociale: Sociale,
+  sociale: Sociale | null | undefined,
   roomPhase: GamePhase,
   userId: string | undefined,
   socialite: Socialite | null | undefined
 ): boolean {
+  if (!sociale) return false;
   if (!userId) return false;
   if (socialite) return false;
   if (sociale.status !== 'active' && sociale.status !== 'paused') return false;

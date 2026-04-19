@@ -9,9 +9,10 @@ interface UseAudienceSubmissionsOptions {
   roomId: string | undefined;
   membershipId: string | undefined;
   isHost: boolean;
+  loadApproved?: boolean;
 }
 
-export function useAudienceSubmissions({ roomId, membershipId, isHost }: UseAudienceSubmissionsOptions) {
+export function useAudienceSubmissions({ roomId, membershipId, isHost, loadApproved = false }: UseAudienceSubmissionsOptions) {
   const [submissions, setSubmissions] = useState<AudienceSubmission[]>([]);
   const [mySubmissions, setMySubmissions] = useState<AudienceSubmission[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,9 +32,11 @@ export function useAudienceSubmissions({ roomId, membershipId, isHost }: UseAudi
     setIsLoading(true);
     const promises: Promise<any>[] = [];
 
-    if (isHost) {
+    if (isHost || loadApproved) {
       promises.push(
-        audienceSubmissionService.getSubmissions(roomId).then(setSubmissions)
+        audienceSubmissionService.getSubmissions(roomId).then((all) =>
+          setSubmissions(isHost ? all : all.filter((s) => s.status === 'approved' || s.status === 'used'))
+        )
       );
     }
 
@@ -80,7 +83,7 @@ export function useAudienceSubmissions({ roomId, membershipId, isHost }: UseAudi
             createdAt: raw.created_at,
           };
 
-          if (isHost) {
+          if (isHost || (loadApproved && (submission.status === 'approved' || submission.status === 'used'))) {
             setSubmissions((prev) => {
               const exists = prev.findIndex((s) => s.id === submission.id);
               if (exists >= 0) {
