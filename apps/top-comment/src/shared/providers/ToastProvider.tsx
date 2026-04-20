@@ -10,11 +10,13 @@ type ToastAction =
 
 function toastReducer(state: ToastState, action: ToastAction): ToastState {
   switch (action.type) {
-    case "add":
-      return [
+    case "add": {
+      const updated = [
         ...state.filter((toast) => toast.id !== action.toast.id),
         action.toast,
       ];
+      return updated.slice(-3); // Keep max 3 toasts
+    }
     case "dismiss":
       return state.filter((toast) => toast.id !== action.id);
     default:

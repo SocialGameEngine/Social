@@ -8,6 +8,7 @@ import { roomMembershipService } from "../../services/roomMembershipService";
 import { useAuth } from "../../shared/providers/AuthContext";
 import { PlayerAuthModal } from "../auth/PlayerAuthModal";
 import { VenueAuthModal } from "../auth/VenueAuthModal";
+import { logger } from "../../shared/utils/logger";
 
 interface JoinFormState {
   code: string;
@@ -68,7 +69,6 @@ export function JoinPage() {
       }
 
       // Verify room exists first
-      console.log('🔍 Verifying room exists:', normalizedCode);
       const roomResponse = await roomService.getRoom({ code: normalizedCode });
       
       if (!roomResponse.room) {
@@ -77,7 +77,6 @@ export function JoinPage() {
       }
 
       // Join the room
-      console.log('🚀 Joining room:', { roomCode: normalizedCode, playerName: normalizedName });
       const membershipResponse = await roomMembershipService.joinRoom({
         code: normalizedCode,
         playerName: normalizedName
@@ -87,7 +86,6 @@ export function JoinPage() {
         throw new Error("Failed to join room");
       }
 
-      console.log('✅ Successfully joined room:', membershipResponse.membership);
       
       // Navigate to room directly - no state management needed
       navigate(`/room/${normalizedCode}`);
@@ -99,7 +97,7 @@ export function JoinPage() {
       });
 
     } catch (error) {
-      console.error('❌ Failed to join room:', error);
+      logger.error('Failed to join room', { error: error instanceof Error ? error.message : String(error) });
       const errorMessage = error instanceof Error ? error.message : 'Failed to join room';
       
       setJoinErrors({ 
@@ -165,7 +163,7 @@ export function JoinPage() {
 
   // Simplified styling
   const mainClassName = "relative z-10 flex min-h-screen items-center justify-center px-3 py-10 sm:px-4 pb-10";
-  const contentWrapperClassName = "chaos-stack mx-auto flex w-[92vw] max-w-[440px] flex-col gap-4 sm:w-full sm:max-w-[520px] sm:gap-6";
+  const contentWrapperClassName = "chaos-stack mx-auto flex w-full max-w-[440px] flex-col gap-4 px-4 sm:max-w-[520px] sm:gap-6";
 
   return (
     <>

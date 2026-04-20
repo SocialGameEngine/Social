@@ -116,15 +116,11 @@ export function useCreateSociale() {
       return data.sociale;
     },
     onSuccess: (sociale, request) => {
-      console.log('🔥 OPTIMISTIC UPDATE: Sociale created, invalidating queries for room', request.roomId);
-      
       // Invalidate Sociales list to include the newly created Sociale
       queryClient.invalidateQueries({ queryKey: ['sociales', 'room', request.roomId] });
       
       // Invalidate specific Sociale query
       queryClient.invalidateQueries({ queryKey: ['sociale', sociale.id] });
-      
-      console.log('🔥 OPTIMISTIC UPDATE: Sociale creation queries invalidated');
     },
   });
 }
@@ -133,9 +129,15 @@ export function useCreateSociale() {
  * Hook for updating a Sociale
  */
 export function useUpdateSociale() {
+  const queryClient = useQueryClient();
+  
   return useMutation({
     mutationFn: async (updates: UpdateSocialeRequest) => {
       return await updateSociale(updates);
+    },
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ['sociale', variables.socialeId] });
+      void queryClient.invalidateQueries({ queryKey: ['sociales-by-room'] });
     },
   });
 }

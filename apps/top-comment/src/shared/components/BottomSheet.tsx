@@ -2,6 +2,8 @@ import { motion, useMotionValue, useTransform, useAnimation, type PanInfo } from
 import { useEffect, useState, useRef, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import type FocusTrapType from 'focus-trap-react';
+const FocusTrap = require('focus-trap-react') as typeof FocusTrapType;
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -93,6 +95,36 @@ export function BottomSheet({
     };
   }, [isOpen]);
 
+  // Reset state when sheet opens
+  useEffect(() => {
+    if (isOpen) {
+      isClosing.current = false;
+      y.set(0);
+      controls.start({ y: 0 });
+      setIsScrolledToTop(true);
+    }
+  }, [isOpen, y, controls]);
+
+  const handleExit = useCallback(() => {
+    if (isClosing.current) return;
+    isClosing.current = true;
+    
+    if (!hasUsedAnyExit.current) {
+      hasUsedAnyExit.current = true;
+      setShowHint(false);
+    }
+    
+    // Animate out before calling onClose
+    controls.start({
+      y: 500,
+      transition: shouldReduceMotion
+        ? { duration: 0.2 }
+        : { type: 'spring', damping: 30, stiffness: 300 }
+    }).then(() => {
+      onClose();
+    });
+  }, [controls, onClose, shouldReduceMotion]);
+
   // Escape key handler
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -105,17 +137,7 @@ export function BottomSheet({
       document.addEventListener('keydown', handleEscape);
     }
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen]);
-
-  // Reset state when sheet opens
-  useEffect(() => {
-    if (isOpen) {
-      isClosing.current = false;
-      y.set(0);
-      controls.start({ y: 0 });
-      setIsScrolledToTop(true);
-    }
-  }, [isOpen, y, controls]);
+  }, [isOpen, handleExit]);
 
   // Track scroll position for drag arbitration
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
@@ -193,27 +215,7 @@ export function BottomSheet({
           : { type: 'spring', damping: 30, stiffness: 400 }
       });
     }
-  }, [controls, shouldReduceMotion, enableHalfSnap, currentSnap]);
-
-  const handleExit = useCallback(() => {
-    if (isClosing.current) return;
-    isClosing.current = true;
-    
-    if (!hasUsedAnyExit.current) {
-      hasUsedAnyExit.current = true;
-      setShowHint(false);
-    }
-    
-    // Animate out before calling onClose
-    controls.start({
-      y: 500,
-      transition: shouldReduceMotion
-        ? { duration: 0.2 }
-        : { type: 'spring', damping: 30, stiffness: 300 }
-    }).then(() => {
-      onClose();
-    });
-  }, [controls, onClose, shouldReduceMotion]);
+  }, [controls, shouldReduceMotion, enableHalfSnap, currentSnap, handleExit]);
 
   const handleBackdropClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -258,66 +260,70 @@ export function BottomSheet({
         onDragEnd={!disableDrag ? handleDragEnd : undefined}
         style={{ y, height: sheetMaxHeight, maxHeight: sheetMaxHeight }}
         onClick={(e) => e.stopPropagation()}
-        className="relative box-border flex w-full max-w-full flex-col overflow-hidden rounded-t-3xl bg-slate-900 shadow-2xl"
+        className="relative box-border flex w-full sm:max-w-lg sm:mx-auto flex-col overflow-hidden rounded-t-3xl bg-slate-900 shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'bottom-sheet-title' : undefined}
       >
-        {/* Drag handle area - larger touch target */}
-        <div 
-          ref={dragHandleRef}
-          className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 touch-none cursor-grab active:cursor-grabbing"
-          style={{ touchAction: 'none' }}
-        >
-          {/* Centered grab handle indicator */}
-          <div className="flex justify-center pt-3 pb-1">
-            <div className="w-10 h-1 bg-slate-500 rounded-full" />
-          </div>
-          
-          <div className="flex items-center justify-between px-4 py-2">
-            <div className="flex items-center gap-3">
-              {title && (
-                <h2 id="bottom-sheet-title" className="text-lg font-semibold text-white">
-                  {title}
-                </h2>
-              )}
+        <FocusTrap focusTrapOptions={{ initialFocus: false, escapeDeactivates: false, allowOutsideClick: true }}>
+          <div className="flex flex-col h-full">
+            {/* Drag handle area - larger touch target */}
+            <div 
+              ref={dragHandleRef}
+              className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 touch-none cursor-grab active:cursor-grabbing"
+              style={{ touchAction: 'none' }}
+            >
+              {/* Centered grab handle indicator */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 bg-slate-500 rounded-full" />
+              </div>
+              
+              <div className="flex items-center justify-between px-4 py-2">
+                <div className="flex items-center gap-3">
+                  {title && (
+                    <h2 id="bottom-sheet-title" className="text-lg font-semibold text-white">
+                      {title}
+                    </h2>
+                  )}
+                </div>
+                {showCloseButton && (
+                  <button
+                    onClick={handleExit}
+                    className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+                    aria-label={title ? `Close ${title}` : 'Close'}
+                  >
+                    <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
-            {showCloseButton && (
-              <button
-                onClick={handleExit}
-                className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
-                aria-label={title ? `Close ${title}` : 'Close'}
+
+            {/* Scrollable content with scroll/drag arbitration */}
+            <div 
+              ref={contentRef}
+              onScroll={handleScroll}
+              className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom,0px)]"
+              style={{ touchAction: isScrolledToTop ? 'pan-y' : 'pan-y' }}
+            >
+              {children}
+            </div>
+
+            {/* Auto-fading contextual hint */}
+            {showHint && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.3 }}
+                className="pointer-events-none absolute bottom-[max(2rem,env(safe-area-inset-bottom,0px))] left-1/2 z-20 -translate-x-1/2 transform rounded-full bg-slate-800 px-4 py-2 text-sm text-white shadow-lg"
               >
-                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                Swipe down to close • Tap X to exit
+              </motion.div>
             )}
           </div>
-        </div>
-
-        {/* Scrollable content with scroll/drag arbitration */}
-        <div 
-          ref={contentRef}
-          onScroll={handleScroll}
-          className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom,0px)]"
-          style={{ touchAction: isScrolledToTop ? 'pan-y' : 'pan-y' }}
-        >
-          {children}
-        </div>
-
-        {/* Auto-fading contextual hint */}
-        {showHint && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.3 }}
-            className="pointer-events-none absolute bottom-[max(2rem,env(safe-area-inset-bottom,0px))] left-1/2 z-20 -translate-x-1/2 transform rounded-full bg-slate-800 px-4 py-2 text-sm text-white shadow-lg"
-          >
-            Swipe down to close • Tap X to exit
-          </motion.div>
-        )}
+        </FocusTrap>
       </motion.div>
     </motion.div>
   );

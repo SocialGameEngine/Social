@@ -3,13 +3,14 @@
 // =============================================================================
 // Hook for fetching and managing Sociale vote data.
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { supabase } from '../../../supabase/client';
 import type { SocialeVote, SubmitSocialeVoteRequest } from '../../../domain/types/sociale.types';
 import { mapSocialeVote } from '../socialeService';
 import { useSocialeChannel } from './useSocialeChannel';
+import { logger } from '../../../shared/utils/logger';
 
 // Helper function to get auth headers
 const getAuthHeaders = async () => {
@@ -35,7 +36,14 @@ export function useSocialeVotes(socialeId?: string) {
     }
   }, [socialeId, queryClient]);
 
-  useSocialeChannel(socialeId, onPayload);
+  const onPayloadRef = useRef(onPayload);
+  onPayloadRef.current = onPayload;
+
+  const stableCallback = useCallback((payload: any) => {
+    onPayloadRef.current(payload);
+  }, []);
+
+  useSocialeChannel(socialeId, stableCallback);
 
   return useQuery({
     queryKey: ['sociale-votes', socialeId],
@@ -48,7 +56,10 @@ export function useSocialeVotes(socialeId?: string) {
         .eq('sociale_id', socialeId)
         .order('created_at', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') return [];
+        throw error;
+      }
       return data.map(mapSocialeVote).filter(Boolean) as SocialeVote[];
     },
     enabled: !!socialeId,
@@ -85,7 +96,10 @@ export function useRoundVotes(socialeId?: string, roundId?: string) {
         .eq('round_id', roundId)
         .order('created_at', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') return [];
+        throw error;
+      }
       return data.map(mapSocialeVote).filter(Boolean) as SocialeVote[];
     },
     enabled: !!socialeId && !!roundId,
@@ -122,7 +136,10 @@ export function useMyVotes(socialeId?: string, socialiteId?: string) {
         .eq('socialite_id', socialiteId)
         .order('created_at', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') return [];
+        throw error;
+      }
       return data.map(mapSocialeVote).filter(Boolean) as SocialeVote[];
     },
     enabled: !!socialeId && !!socialiteId,
@@ -132,7 +149,9 @@ export function useMyVotes(socialeId?: string, socialiteId?: string) {
 /**
  * Hook for submitting a vote
  */
-export function useSubmitVote() {
+export function useSubmitVote(socialeId?: string) {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (request: SubmitSocialeVoteRequest) => {
       // Use the existing Edge Function which has proper RLS permissions
@@ -153,6 +172,37 @@ export function useSubmitVote() {
       const result = await response.json();
       return result.vote; // Return the vote object from Edge Function response
     },
+
+    onMutate: async (newVote) => {
+      const queryKey = ['sociale-votes', socialeId];
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<SocialeVote[]>(queryKey);
+
+      queryClient.setQueryData<SocialeVote[]>(queryKey, (old = []) => [
+        ...old,
+        {
+          id: `temp-${Date.now()}`,
+          socialeId: newVote.socialeId,
+          roundId: newVote.roundId,
+          socialiteId: newVote.socialiteId,
+          targetResponseId: newVote.targetResponseId,
+          createdAt: new Date().toISOString(),
+        } as SocialeVote,
+      ]);
+
+      return { previous };
+    },
+
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['sociale-votes', socialeId], context.previous);
+      }
+      logger.error('Vote submission failed', { error: _err instanceof Error ? _err.message : String(_err) });
+    },
+
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['sociale-votes', socialeId] });
+    },
   });
 }
 
@@ -169,8 +219,14 @@ export function useUpdateVote() {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') return null;
+        throw error;
+      }
       return mapSocialeVote(data);
+    },
+    onError: (error) => {
+      logger.error('Vote mutation failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }
@@ -186,8 +242,14 @@ export function useDeleteVote() {
         .delete()
         .eq('id', voteId);
       
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') return true;
+        throw error;
+      }
       return true;
+    },
+    onError: (error) => {
+      logger.error('Vote mutation failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }

@@ -7,6 +7,8 @@ interface SocialSectionProps {
   onOpenCommunity: () => void;
   onOpenQuestions?: () => void;
   isLoading?: boolean;
+  leaderboardExpanded?: boolean;
+  chatExpanded?: boolean;
 }
 
 export function SocialSection({
@@ -15,6 +17,8 @@ export function SocialSection({
   onOpenCommunity,
   onOpenQuestions,
   isLoading = false,
+  leaderboardExpanded,
+  chatExpanded,
 }: SocialSectionProps) {
   if (isLoading) {
     return <SkeletonGrid count={3} />;
@@ -35,6 +39,7 @@ export function SocialSection({
           label="Leaderboard"
           variant="social"
           onClick={onOpenLeaderboard}
+          aria-expanded={leaderboardExpanded}
         />
         <InteractionTypeButton
           icon={
@@ -45,6 +50,7 @@ export function SocialSection({
           label="Chat"
           variant="social"
           onClick={onOpenChat}
+          aria-expanded={chatExpanded}
         />
         <InteractionTypeButton
           icon={

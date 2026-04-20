@@ -297,7 +297,7 @@ export function HostModalsContainer({
           </div>
         }
       >
-        <p className="text-sm text-slate-300">
+        <p className="text-sm text-slate-200">
           Are you sure you want to end this session? This action cannot be undone
           and all players will be disconnected.
         </p>

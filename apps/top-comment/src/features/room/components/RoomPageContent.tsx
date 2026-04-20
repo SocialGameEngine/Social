@@ -30,6 +30,7 @@ import { SubmitQuestionModal } from './submissions/SubmitQuestionModal';
 import { AudienceQuestionsSheet } from './submissions/AudienceQuestionsSheet';
 import { logger } from '../../../shared/utils/logger';
 import { isCurrentUserModerator } from '../../../shared/utils/moderatorUtils';
+import { SessionSkeleton } from '../../../shared/components/skeletons/SessionSkeleton';
 import { roomMembershipService } from '../../../services/roomMembershipService';
 import { interactionService } from '../../../services/interactionService';
 import { getIsMainEventMode, getIsMainEventModeFromSociale } from './PhaseController';
@@ -53,7 +54,7 @@ import { HelpBottomSheet } from './bottomsheets/HelpBottomSheet';
 
 export function RoomPageContent() {
   const { room, memberships, session, sessionId, state, openModal, closeModal, markSubmitted, openEndedModal, closeEndedModal, handleLeaveRoom } = useRoomPage();
-  const { user } = useAuth();
+  const { user, loading: authLoading, signInAnonymously, sessionExpired, clearSessionExpired } = useAuth();
   const { isMobile, isRailCollapsed, setIsRailCollapsed } = useResponsiveLayout();
   const queryClient = useQueryClient();
   
@@ -173,93 +174,6 @@ export function RoomPageContent() {
     fibbageHasActivity: false,
     triviaHasActivity: false,
   });
-
-  // Update different interaction types at different intervals (staggered)
-  useEffect(() => {
-    if (!session) return;
-
-    // Start with activity enabled for testing
-    setMockData({
-      pollsParticipants: 5,
-      topicsParticipants: 4,
-      promptsParticipants: 3,
-      fibbageParticipants: 6,
-      triviaParticipants: 4,
-      pollsHasActivity: true,
-      topicsHasActivity: true,
-      promptsHasActivity: true,
-      fibbageHasActivity: true,
-      triviaHasActivity: true,
-    });
-
-    const intervals = [
-      // Polls update every 10 seconds (was 1 second)
-      setInterval(() => {
-        setMockData(prev => ({
-          ...prev,
-          pollsParticipants: Math.floor(Math.random() * 10) + 3,
-          pollsHasActivity: true, // 100% activity when number changes
-        }));
-        // Reset activity after 3 seconds
-        setTimeout(() => {
-          setMockData(prev => ({ ...prev, pollsHasActivity: false }));
-        }, 3000);
-      }, 10000),
-      
-      // Topics update every 12 seconds (was 1 second)  
-      setInterval(() => {
-        setMockData(prev => ({
-          ...prev,
-          topicsParticipants: Math.floor(Math.random() * 8) + 2,
-          topicsHasActivity: true, // 100% activity when number changes
-        }));
-        // Reset activity after 3 seconds
-        setTimeout(() => {
-          setMockData(prev => ({ ...prev, topicsHasActivity: false }));
-        }, 3000);
-      }, 12000),
-      
-      // Prompts update every 8 seconds (was 1 second)
-      setInterval(() => {
-        setMockData(prev => ({
-          ...prev,
-          promptsParticipants: Math.floor(Math.random() * 6) + 1,
-          promptsHasActivity: true, // 100% activity when number changes
-        }));
-        // Reset activity after 3 seconds
-        setTimeout(() => {
-          setMockData(prev => ({ ...prev, promptsHasActivity: false }));
-        }, 3000);
-      }, 8000),
-      
-      // Fibbage updates every 15 seconds (was 1 second)
-      setInterval(() => {
-        setMockData(prev => ({
-          ...prev,
-          fibbageParticipants: Math.floor(Math.random() * 12) + 4,
-          fibbageHasActivity: true, // 100% activity when number changes
-        }));
-        // Reset activity after 3 seconds
-        setTimeout(() => {
-          setMockData(prev => ({ ...prev, fibbageHasActivity: false }));
-        }, 3000);
-      }, 15000),
-      // Trivia updates every 20 seconds
-      setInterval(() => {
-        setMockData(prev => ({
-          ...prev,
-          triviaParticipants: Math.floor(Math.random() * 8) + 2,
-          triviaHasActivity: true,
-        }));
-        // Reset activity after 3 seconds
-        setTimeout(() => {
-          setMockData(prev => ({ ...prev, triviaHasActivity: false }));
-        }, 3000);
-      }, 20000),
-    ];
-
-    return () => intervals.forEach(clearInterval);
-  }, [session]);
 
   // Bottom sheet states
   const [showPollsSheet, setShowPollsSheet] = useState(false);
@@ -398,6 +312,46 @@ export function RoomPageContent() {
       endedModalsRef.current.forEach(modal => closeEndedModal(modal));
     }
   }, [activeRoomSociale?.status, closeEndedModal]);
+
+  // Auto-trigger anonymous auth for room visitors
+  useEffect(() => {
+    if (!user && !authLoading) {
+      signInAnonymously().catch(() => {
+        logger.error('Auto anonymous sign-in failed');
+      });
+    }
+  }, [user, authLoading, signInAnonymously]);
+
+  // Show loading skeleton while data is loading
+  const isDataLoading = !session && !primaryRoomSociale;
+  if (isDataLoading && (room?.currentSessionId || room?.currentSocialeId)) {
+    return <SessionSkeleton />;
+  }
+
+  // Show session expiry modal
+  if (sessionExpired) {
+    return (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div className="w-full max-w-sm bg-slate-800 rounded-2xl p-6 text-center border border-cyan-400/30 shadow-2xl">
+          <h2 className="text-xl font-bold text-white mb-2">Session Expired</h2>
+          <p className="text-slate-400 text-sm mb-6">Your session has expired. Please sign back in to continue.</p>
+          <button
+            onClick={async () => {
+              try {
+                await signInAnonymously();
+                clearSessionExpired();
+              } catch {
+                window.location.reload();
+              }
+            }}
+            className="w-full px-4 py-3 bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-400 hover:to-fuchsia-400 text-white font-semibold rounded-lg transition-all"
+          >
+            Continue as Guest
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Show auth modal for non-authenticated users
   if (!user) {
@@ -551,12 +505,15 @@ export function RoomPageContent() {
           onOpenChat={handleToggleChat}
           onOpenCommunity={() => setShowCommunityModal(true)}
           onOpenQuestions={() => setShowQuestionsSheet(true)}
+          leaderboardExpanded={showLeaderboardDrawer}
+          chatExpanded={showChatDrawer}
         />
         
         {/* Section 4: Misc Section */}
         <MiscSection
           onOpenVIBox={() => setShowVIBox(!showVIBox)}
           onOpenHelp={handleToggleHelp}
+          helpExpanded={showHowToPlay}
         />
       </div>
     </div>
@@ -624,11 +581,9 @@ export function RoomPageContent() {
           membershipId={myMembership?.id}
           displayName={myDisplayName}
           myMembershipId={myMembership?.id}
-          blockPlayer={async (membershipId: string) => {
-            logger.debug('RoomPageContentNew blockPlayer placeholder', { membershipId });
-          }}
+          blockPlayer={(membershipId: string) => blockPlayer(membershipId)}
           onChallengePlayer={(membershipId: string, playerName: string) => {
-            logger.debug('RoomPageContentNew onChallengePlayer placeholder', { membershipId, playerName });
+            sendChallenge(membershipId, `Challenge from ${myDisplayName || 'Player'}`, 100);
           }}
         />
         <LeaderboardBottomSheet
@@ -660,7 +615,7 @@ export function RoomPageContent() {
           targetName={challengeTarget?.name || ''}
         />
         {hasMembership && (
-          <div className="fixed bottom-20 left-4 z-30">
+          <div className="fixed left-4 z-30" style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
             <SubmitQuestionButton onClick={() => setShowSubmitQuestion(true)} />
           </div>
         )}
@@ -751,11 +706,9 @@ export function RoomPageContent() {
         membershipId={myMembership?.id}
         displayName={myDisplayName}
         myMembershipId={myMembership?.id}
-        blockPlayer={async (membershipId: string) => {
-          logger.debug('RoomPageContentNew blockPlayer placeholder', { membershipId });
-        }}
+        blockPlayer={(membershipId: string) => blockPlayer(membershipId)}
         onChallengePlayer={(membershipId: string, playerName: string) => {
-          logger.debug('RoomPageContentNew onChallengePlayer placeholder', { membershipId, playerName });
+          sendChallenge(membershipId, `Challenge from ${myDisplayName || 'Player'}`, 100);
         }}
       />
       <LeaderboardBottomSheet
@@ -789,7 +742,7 @@ export function RoomPageContent() {
       />
 
       {hasMembership && (
-        <div className="fixed bottom-20 left-4 z-30">
+        <div className="fixed left-4 z-30" style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
           <SubmitQuestionButton 
             onClick={() => setShowSubmitQuestion(true)} 
             isMember={hasMembership}

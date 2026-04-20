@@ -5,6 +5,7 @@ import { ResultsPhase } from '../phases/ResultsPhase';
 import { EndedPhase } from '../phases/EndedPhase';
 import { getSessionPhase } from '../utils/phaseConfig';
 import { useSubmissions } from '../hooks/useSubmissions';
+import { SessionSkeleton } from '../../../shared/components/skeletons/SessionSkeleton';
 import type { Session, RoomMembership } from '../../../shared/types';
 
 export type SessionDisplayState =
@@ -66,7 +67,7 @@ export function PhaseController({
       return <LobbyPhase session={session} memberships={memberships} />;
 
     case 'answer':
-      if (!session || !sessionId) return null;
+      if (!session || !sessionId) return <SessionSkeleton />;
       return (
         <AnswerPhase
           session={session}
@@ -78,7 +79,7 @@ export function PhaseController({
       );
 
     case 'vote':
-      if (!session || !sessionId) return null;
+      if (!session || !sessionId) return <SessionSkeleton />;
       return (
         <VotePhase
           session={session}

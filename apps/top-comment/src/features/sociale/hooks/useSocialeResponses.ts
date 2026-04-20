@@ -3,7 +3,7 @@
 // =============================================================================
 // Hook for fetching and managing Sociale response data.
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../supabase/client';
 import type { SocialeResponse, SubmitSocialeResponseRequest } from '../../../domain/types/sociale.types';
@@ -11,6 +11,7 @@ import { mapSocialeResponse, submitSocialeResponse } from '../socialeService';
 import { useSocialeChannel } from './useSocialeChannel';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { handleSupabaseError } from '../../../shared/utils/handleAsyncError';
+import { logger } from '../../../shared/utils/logger';
 
 /**
  * Hook for fetching responses by Sociale
@@ -25,7 +26,14 @@ export function useSocialeResponses(socialeId?: string) {
     }
   }, [socialeId, queryClient]);
 
-  useSocialeChannel(socialeId, onPayload);
+  const onPayloadRef = useRef(onPayload);
+  onPayloadRef.current = onPayload;
+
+  const stableCallback = useCallback((payload: any) => {
+    onPayloadRef.current(payload);
+  }, []);
+
+  useSocialeChannel(socialeId, stableCallback);
 
   return useQuery({
     queryKey: ['sociale-responses', socialeId],
@@ -38,7 +46,10 @@ export function useSocialeResponses(socialeId?: string) {
         .eq('sociale_id', socialeId)
         .order('created_at', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') return [];
+        throw error;
+      }
       return data.map(mapSocialeResponse).filter(Boolean) as SocialeResponse[];
     },
     enabled: !!socialeId,
@@ -75,7 +86,10 @@ export function useRoundResponses(socialeId?: string, roundId?: string) {
         .eq('round_id', roundId)
         .order('created_at', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') return [];
+        throw error;
+      }
       const mapped = data.map(mapSocialeResponse).filter(Boolean) as SocialeResponse[];
 
       // Ensure at most one response per socialite per round by keeping the
@@ -120,7 +134,10 @@ export function useMyResponses(socialeId?: string, socialiteId?: string) {
         .eq('socialite_id', socialiteId)
         .order('created_at', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') return [];
+        throw error;
+      }
       const mapped = data.map(mapSocialeResponse).filter(Boolean) as SocialeResponse[];
       // Keep only the latest response for this player (if they somehow have more).
       return mapped.length <= 1
@@ -134,11 +151,45 @@ export function useMyResponses(socialeId?: string, socialiteId?: string) {
 /**
  * Hook for submitting a response
  */
-export function useSubmitResponse() {
+export function useSubmitResponse(socialeId?: string) {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (request: SubmitSocialeResponseRequest) => {
-      // Use edge function for phase validation + server-side upsert behavior.
       return submitSocialeResponse(request);
+    },
+
+    onMutate: async (newResponse) => {
+      const queryKey = ['sociale-responses', socialeId];
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<SocialeResponse[]>(queryKey);
+
+      queryClient.setQueryData<SocialeResponse[]>(queryKey, (old = []) => [
+        ...old,
+        {
+          id: `temp-${Date.now()}`,
+          socialeId: newResponse.socialeId,
+          roundId: newResponse.roundId,
+          socialiteId: newResponse.socialiteId,
+          type: newResponse.type,
+          value: newResponse.value,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        } as SocialeResponse,
+      ]);
+
+      return { previous };
+    },
+
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['sociale-responses', socialeId], context.previous);
+      }
+      logger.error('Failed to submit response', { error: _err instanceof Error ? _err.message : String(_err) });
+    },
+
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['sociale-responses', socialeId] });
     },
   });
 }
@@ -180,8 +231,14 @@ export function useDeleteResponse() {
         .delete()
         .eq('id', responseId);
       
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') return true;
+        throw error;
+      }
       return true;
+    },
+    onError: (error) => {
+      logger.error('Failed to delete response', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }

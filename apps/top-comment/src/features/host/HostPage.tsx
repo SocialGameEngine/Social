@@ -16,6 +16,7 @@ import { useSessionPlayers } from "./hooks/useSessionPlayers";
 import { useHostRoomRecovery } from "./hooks/useHostRoomRecovery";
 import { useHostKeyboardShortcuts } from "../../hooks/useHostKeyboardShortcuts";
 import { useAudienceSubmissions } from "../../hooks/useAudienceSubmissions";
+import { HostSkeleton } from "../../shared/components/skeletons/HostSkeleton";
 import { HostPanel } from "./components/HostPanel";
 import { HostAccountMenu } from "./components/HostAccountMenu";
 import { HostControlButtons } from "./components/HostControlButtons";
@@ -29,7 +30,7 @@ import { useCreateSociale, useSociale, useSocialesByRoom, useUpdateSociale } fro
 import { HostGameProvider } from './context/HostGameContext';
 
 export function HostPage() {
-  const { user, loading: authLoading, isAnonymous, signOut } = useAuth();
+  const { user, loading: authLoading, isAnonymous, signOut, sessionExpired, clearSessionExpired, signInAnonymously } = useAuth();
   const { venueAccount, loading: venueAccountLoading, refresh: refreshVenueAccount } = useVenueAccountResolver();
   const isVenueAccount = Boolean(venueAccount?.isActive);
   const { toast } = useToast();
@@ -341,7 +342,7 @@ export function HostPage() {
 
   const commandPalette = useCommandPalette();
 
-  const hostGameContextValue = {
+  const hostGameContextValue = useMemo(() => ({
     session, sessionId,
     room: room || null, roomMemberships,
     roomCode: roomJoinCode || (room?.code || ''),
@@ -349,12 +350,40 @@ export function HostPage() {
     sessionPlayers, socialites,
     playerCount: lobbyPlayerCount,
     isLoading: gameState.isLoading,
-  };
+  }), [session, sessionId, room, roomMemberships, roomJoinCode, activeSocialeQuery.data, sessionPlayers, socialites, lobbyPlayerCount, gameState.isLoading]);
 
   const handleSignOut = useCallback(async () => {
     await signOut();
     window.location.reload();
   }, [signOut]);
+
+  if (!isBootstrapComplete) {
+    return <HostSkeleton />;
+  }
+
+  if (sessionExpired) {
+    return (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div className="w-full max-w-sm bg-slate-800 rounded-2xl p-6 text-center border border-cyan-400/30 shadow-2xl">
+          <h2 className="text-xl font-bold text-white mb-2">Session Expired</h2>
+          <p className="text-slate-400 text-sm mb-6">Your session has expired. Please sign back in to continue.</p>
+          <button
+            onClick={async () => {
+              try {
+                await signInAnonymously();
+                clearSessionExpired();
+              } catch {
+                window.location.reload();
+              }
+            }}
+            className="w-full px-4 py-3 bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-400 hover:to-fuchsia-400 text-white font-semibold rounded-lg transition-all"
+          >
+            Continue as Guest
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

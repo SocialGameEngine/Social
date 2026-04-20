@@ -137,7 +137,7 @@ export function HostMainContent({
           onOpenVenueLogin={onOpenVenueLogin}
         />
 
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,_2fr)_minmax(0,_1fr)]">
+        <section className="grid grid-cols-1 gap-6 md:grid-cols-[3fr_1fr] lg:grid-cols-[minmax(0,_2fr)_minmax(0,_1fr)]">
           <div className="flex flex-col gap-6">
             <HostPhaseContent {...phaseContentProps} />
           </div>

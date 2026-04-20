@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
 import { Button } from "@social/ui";
 import { generatePlayerName } from "../utils/nameGenerator";
+import type FocusTrapType from 'focus-trap-react';
+const FocusTrap = require('focus-trap-react') as typeof FocusTrapType;
 
 interface JoinRoomModalProps {
   isOpen: boolean;
@@ -59,8 +61,9 @@ export function JoinRoomModal({ isOpen, onClose, roomCode, onJoin }: JoinRoomMod
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="relative w-full max-w-md bg-slate-800 rounded-2xl border border-cyan-400/50 shadow-2xl shadow-fuchsia-500/20 max-h-[90vh] overflow-y-auto">
+    <FocusTrap focusTrapOptions={{ initialFocus: false, escapeDeactivates: false }}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="join-room-title">
+      <div className="relative w-full max-w-md bg-slate-800 rounded-2xl border border-cyan-400/50 shadow-2xl shadow-fuchsia-500/20 max-h-[90dvh] overflow-y-auto">
         <button
           onClick={handleClose}
           className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors z-10"
@@ -73,7 +76,7 @@ export function JoinRoomModal({ isOpen, onClose, roomCode, onJoin }: JoinRoomMod
 
         <div className="p-6">
           <header className="mb-6 text-center">
-            <h2 className="text-2xl font-bold text-pink-400 mb-2">Join Room</h2>
+            <h2 id="join-room-title" className="text-2xl font-bold text-pink-400 mb-2">Join Room</h2>
             <p className="text-sm text-slate-400">Room: {roomCode}</p>
           </header>
 
@@ -123,5 +126,6 @@ export function JoinRoomModal({ isOpen, onClose, roomCode, onJoin }: JoinRoomMod
         </div>
       </div>
     </div>
+    </FocusTrap>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PropsWithChildren } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
@@ -10,8 +10,11 @@ import { AuthContext } from "./AuthContext";
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false); // Don't block UI - load auth in background
+  const [loading, setLoading] = useState(true); // Block UI until initial session check completes
   const [error, setError] = useState<Error | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  const clearSessionExpired = useCallback(() => setSessionExpired(false), []);
 
 
   useEffect(() => {
@@ -33,8 +36,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     // Subscribe to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         if (cancelled) return;
+
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          setSessionExpired(true);
+          return;
+        }
+
+        if (event === 'SIGNED_OUT') {
+          setSessionExpired(true);
+        }
+
         setUser(session?.user ?? null);
       }
     );
@@ -122,10 +135,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
       error,
       isAuthenticated,
       isAnonymous,
+      sessionExpired,
       signIn,
       signUp,
       signOut,
       signInAnonymously,
+      clearSessionExpired,
     }),
     [
       user,
@@ -133,6 +148,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       error,
       isAuthenticated,
       isAnonymous,
+      sessionExpired,
+      clearSessionExpired,
     ],
   );
 

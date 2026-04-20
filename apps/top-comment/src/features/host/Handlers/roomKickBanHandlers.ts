@@ -7,12 +7,14 @@ interface RoomKickBanDeps {
   setKickingPlayerId?: React.Dispatch<React.SetStateAction<string | null>>;
   setBanningPlayerId?: React.Dispatch<React.SetStateAction<string | null>>;
   refresh?: () => void;
+  optimisticRemove?: (userId: string) => void;
 }
 
 export const handleRoomKickPlayer = ({
   toast,
   setKickingPlayerId,
   refresh,
+  optimisticRemove,
 }: RoomKickBanDeps) => {
   return async (playerId: string, userId: string, roomId: string) => {
     if (!userId || !roomId) {
@@ -23,6 +25,7 @@ export const handleRoomKickPlayer = ({
     setKickingPlayerId?.(playerId);
     
     try {
+      optimisticRemove?.(userId);
       await roomMembershipService.kickMember({
         roomId,
         userId,
@@ -52,6 +55,7 @@ export const handleRoomBanPlayer = ({
   toast,
   setBanningPlayerId,
   refresh,
+  optimisticRemove,
 }: RoomKickBanDeps) => {
   return async (playerId: string, userId: string, roomId: string) => {
     if (!userId || !roomId) {
@@ -62,6 +66,7 @@ export const handleRoomBanPlayer = ({
     setBanningPlayerId?.(playerId);
     
     try {
+      optimisticRemove?.(userId);
       await roomMembershipService.banMember({
         roomId,
         userId,

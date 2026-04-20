@@ -3,6 +3,8 @@ import type { Toast } from "../../../shared/hooks/useToast";
 import type { QueryClient } from "@tanstack/react-query";
 import { roomService } from "../../../services/roomService";
 import { advanceSocialePhase, pauseSociale } from "../../sociale/socialeService";
+import { getErrorMessage } from '../../../shared/utils/errors';
+import { logger } from "../../../shared/utils/logger";
 
 interface SocialePrimaryActionDeps {
   sociale: Sociale | null;
@@ -45,7 +47,7 @@ export const handleSocialePrimaryAction = (deps: SocialePrimaryActionDeps) => as
         }, queryClient);
         toast({ title: "Sociale started", variant: "success" });
       } catch (serviceError) {
-        console.error('🔥 roomService.startSocialeInRoom failed:', serviceError);
+        logger.error('roomService.startSocialeInRoom failed', { error: serviceError instanceof Error ? serviceError.message : String(serviceError) });
         throw serviceError;
       }
     } 
@@ -65,17 +67,8 @@ export const handleSocialePrimaryAction = (deps: SocialePrimaryActionDeps) => as
       setShowCreateModal(true);
     }
   } catch (error: unknown) {
-    console.error("Sociale primary action error:", error);
-
-    let errorMessage = "Please try again.";
-    
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    } else if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
-      errorMessage = error.message;
-    }
-
-    toast({ title: errorMessage, variant: "error" });
+    logger.error('Sociale primary action error', { error: error instanceof Error ? error.message : String(error) });
+    toast({ title: getErrorMessage(error, "Please try again."), variant: "error" });
   } finally {
     triggerPerformingAction(false);
   }

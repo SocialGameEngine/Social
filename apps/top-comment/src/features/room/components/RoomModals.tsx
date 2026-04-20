@@ -61,7 +61,11 @@ export function RoomModals({
   );
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="h-12 w-12 border-4 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
+      </div>
+    }>
       {state.endedModals.includes('leaderboard') && (
         currentSocialeId && socialites.length > 0 ? (
           <SocialeLeaderboardModal

@@ -13,6 +13,7 @@ import { SessionsPanel } from "./SessionsPanel";
 import { SocialesPanel } from "./SocialesPanel";
 import { HostPromptLibraryCard } from "./HostPromptLibraryCard";
 import { SubmissionReviewPanel } from "../../room/components/submissions/SubmissionReviewPanel";
+import { SessionSkeleton } from "../../../shared/components/skeletons/SessionSkeleton";
 
 interface UIRoundSummary {
   group: RoundGroup;
@@ -162,14 +163,7 @@ export function HostPhaseContent(props: HostPhaseContentProps) {
   ) : null;
 
   if (sessionId && !session) {
-    return (
-      <Card className="min-h-[360px] flex flex-col items-center justify-center gap-4" isDark={isDark}>
-        <div className="animate-spin h-10 w-10 border-4 border-cyan-400 border-t-transparent rounded-full" />
-        <p className="text-lg text-cyan-300 animate-pulse">
-          Loading session state...
-        </p>
-      </Card>
-    );
+    return <SessionSkeleton />;
   }
 
   if (!session) {

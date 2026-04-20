@@ -67,6 +67,7 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
   const unifiedChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
+  const isInitialLoadComplete = useRef(false);
   
   // Retry state for room loading (handles race conditions)
   const loadAttempts = useRef(0);
@@ -126,12 +127,13 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
       setLastUpdatedAt(Date.now());
       setError(null);
       if (!silent) setConnectionStatus("connected");
+      isInitialLoadComplete.current = true;
     } catch (err) {
       setIsRetrying(false);
       const errorObj = err instanceof Error ? err : new Error('Failed to load room');
       setError(errorObj);
       setConnectionStatus("error");
-      console.error('❌ useRoomV2: Error loading room', err);
+      logger.error('useRoomV2: Error loading room', { error: err instanceof Error ? err.message : String(err) });
     }
   }, [roomId, roomCode]);
 
@@ -145,7 +147,7 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
       setMemberships(membershipsData.members);
       setLastUpdatedAt(Date.now());
     } catch (err) {
-      console.error('❌ refreshMembers error:', err);
+      logger.error('refreshMembers error', { error: err instanceof Error ? err.message : String(err) });
       const errorObj = err instanceof Error ? err : new Error('Failed to load members');
       setSubscriptionError(errorObj);
     }
@@ -164,6 +166,7 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
 
     // Cleanup existing channel
     if (unifiedChannelRef.current) {
+      unifiedChannelRef.current.unsubscribe();
       supabase.removeChannel(unifiedChannelRef.current);
       unifiedChannelRef.current = null;
     }
@@ -387,7 +390,9 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
               setLastUpdatedAt(Date.now());
             }
             // Also trigger a full refresh to ensure consistency
-            loadRoom(true);
+            if (isInitialLoadComplete.current) {
+              loadRoom(true);
+            }
           }
         )
         // Room memberships changes

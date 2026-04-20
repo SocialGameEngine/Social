@@ -7,6 +7,7 @@ export interface AuthContextValue {
   error: Error | null;
   isAuthenticated: boolean;
   isAnonymous: boolean;
+  sessionExpired: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (
     email: string,
@@ -15,6 +16,7 @@ export interface AuthContextValue {
   ) => Promise<void>;
   signOut: () => Promise<void>;
   signInAnonymously: () => Promise<void>;
+  clearSessionExpired: () => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(

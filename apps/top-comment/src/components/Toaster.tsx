@@ -13,10 +13,11 @@ export function Toaster() {
   if (!toasts.length) return null;
 
   return (
-    <div className="fixed top-4 left-1/2 z-50 flex w-full max-w-md -translate-x-1/2 flex-col gap-2 px-4 sm:left-auto sm:right-4 sm:translate-x-0">
+    <div className="fixed top-4 left-1/2 z-50 flex w-full max-w-md -translate-x-1/2 flex-col gap-2 px-4 sm:left-auto sm:right-4 sm:translate-x-0" role="status" aria-live="polite">
       {toasts.map((toast) => (
         <div
           key={toast.id}
+          role={toast.variant === "error" ? "alert" : undefined}
           className={clsx(
             "w-full rounded-xl px-4 py-3 text-left shadow-lg outline-none transition",
             variantStyles[toast.variant ?? "info"],
