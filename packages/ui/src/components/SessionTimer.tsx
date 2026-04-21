@@ -6,6 +6,7 @@ interface SessionTimerProps {
   endTime?: string;
   totalSeconds: number;
   paused?: boolean;
+  pausedSeconds?: number;
   label?: ReactNode;
   size?: "sm" | "md" | "lg";
   showProgressBar?: boolean;
@@ -19,6 +20,7 @@ export function SessionTimer({
   endTime,
   totalSeconds,
   paused = false,
+  pausedSeconds,
   label,
   size = "lg",
   showProgressBar = false,
@@ -36,6 +38,7 @@ export function SessionTimer({
         size={size}
         isDark={isDark}
         paused={paused}
+        pausedSeconds={pausedSeconds}
         position={position}
         showCriticalBar={showCriticalBar}
       />
@@ -46,6 +49,7 @@ export function SessionTimer({
           variant={variant}
           isDark={isDark}
           paused={paused}
+          pausedSeconds={pausedSeconds}
         />
       )}
     </div>

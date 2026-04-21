@@ -1,4 +1,4 @@
-import { Card, Leaderboard } from "@social/ui";
+import { Leaderboard } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 import type { SessionAnalytics } from "../../../shared/types";
 
@@ -17,7 +17,7 @@ interface EndedPhaseProps {
 export function EndedPhase({ leaderboard, analytics }: EndedPhaseProps) {
   const { isDark } = useTheme();
   return (
-    <Card className="space-y-6" isDark={isDark}>
+    <div className="space-y-6">
       <div>
         <h3 className={`text-2xl font-bold ${!isDark ? 'text-slate-900' : 'text-white'}`}>Game complete</h3>
         <p className={`text-sm ${!isDark ? 'text-slate-600' : 'text-slate-300'}`}>
@@ -72,6 +72,6 @@ export function EndedPhase({ leaderboard, analytics }: EndedPhaseProps) {
           </dl>
         </div>
       )}
-    </Card>
+    </div>
   );
 }

@@ -131,8 +131,7 @@ export function LeaderboardModal({
                     <img
                       src={selfieImage}
                       alt="Selfie with score"
-                      className="max-w-full h-auto rounded-2xl shadow-lg"
-                      style={{ maxHeight: "300px" }}
+                      className="max-w-full h-auto max-h-[300px] rounded-2xl shadow-lg"
                     />
                   </div>
                   <div className="flex gap-2">
@@ -173,7 +172,7 @@ export function LeaderboardModal({
           {/* Leaderboard */}
           <div
             ref={scoreboardRef}
-            className="elevated-card max-h-80 overflow-y-auto p-4"
+            className="elevated-card max-h-modal-scroll overflow-y-auto p-4"
           >
             <Leaderboard
               leaderboard={finalLeaderboard}

@@ -145,7 +145,7 @@ async function getQuestions(filters: QuestionFilters = {}): Promise<TriviaQuesti
     createdAt: q.created_at || '',
     updatedAt: q.updated_at || '',
     options: (q as any).trivia_question_options?.map((opt: any) => ({
-      id: opt.id,
+      id: opt.option_id, // Use option_id from database
       text: opt.option_text,
       isCorrect: opt.is_correct,
       sortOrder: opt.sort_order,

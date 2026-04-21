@@ -55,8 +55,7 @@ export function PeakTimesHeatmap({ peakTimes, isLoading }: PeakTimesHeatmapProps
               {HOURS.filter((h) => h % 3 === 0).map((h) => (
                 <span
                   key={h}
-                  className="text-[9px] text-slate-500 font-mono"
-                  style={{ width: `${(100 / 8)}%` }}
+                  className="text-[9px] text-slate-500 font-mono w-[12.5%]"
                 >
                   {formatHour(h)}
                 </span>

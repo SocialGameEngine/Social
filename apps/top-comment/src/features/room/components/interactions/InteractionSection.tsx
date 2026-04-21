@@ -273,8 +273,7 @@ export function InteractionSection({
             
             <button
               onClick={() => setShowHeadlineModal(true)}
-              className="w-full chaos-interaction-card px-3 py-6 sm:py-8 shadow-xl border-2 border-purple-500/80 transform transition-transform hover:scale-[1.02] active:scale-[0.98] min-h-[100px] sm:min-h-[120px]"
-              style={{ transform: 'rotate(-1deg) scale(0.95)' }}
+              className="w-full chaos-interaction-card px-3 py-6 sm:py-8 shadow-xl border-2 border-purple-500/80 card-tilt-neg1 transition-transform hover:scale-[1.02] active:scale-[0.98] min-h-[100px] sm:min-h-[120px]"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-shrink-0 w-16 sm:w-20">
@@ -363,8 +362,7 @@ export function InteractionSection({
             {isModerator && (
               <button
                 onClick={() => setShowSendModal(true)}
-                className="w-full chaos-interaction-card pl-4 pr-2 py-2 shadow-xl border-2 border-black/80 transform transition-all hover:scale-[1.04] active:scale-[0.96] opacity-60"
-                style={{ transform: 'rotate(2deg) scale(0.9)' }}
+                className="w-full chaos-interaction-card pl-4 pr-2 py-2 shadow-xl border-2 border-black/80 card-tilt-pos2 transition-all hover:scale-[1.04] active:scale-[0.96] opacity-60"
               >
                 <p className="text-sm sm:text-base font-black text-black/60">
                   + Send Another Prompt

@@ -27,6 +27,11 @@ export interface Room {
   updatedAt: string;
   settings: RoomSettings;
   currentSessionId?: string;
+  /**
+   * Pointer to the currently active Sociale in this room.
+   * Mirrors currentSessionId semantics for Sessions.
+   */
+  currentSocialeId?: string | null;
   totalSessionsPlayed: number;
 }
 

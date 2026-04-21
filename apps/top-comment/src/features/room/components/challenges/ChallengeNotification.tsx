@@ -106,8 +106,8 @@ function ChallengeToast({
       {/* Progress bar */}
       <div className="mt-2 h-0.5 bg-slate-700 rounded-full overflow-hidden">
         <div
-          className="h-full bg-amber-400 transition-all duration-250"
-          style={{ width: `${progress * 100}%` }}
+          className="progress-width-var h-full bg-amber-400 transition-all duration-250"
+          style={{ '--progress-width': `${progress * 100}%` } as React.CSSProperties}
         />
       </div>
 

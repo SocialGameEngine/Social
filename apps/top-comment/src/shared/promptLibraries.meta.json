@@ -7,6 +7,13 @@
     "promptFile": "prompts.json"
   },
   {
+    "id": "trivia-test",
+    "name": "Trivia Test",
+    "emoji": "🧠",
+    "description": "General knowledge trivia questions for quiz nights.",
+    "promptFile": "triviaPrompts.json"
+  },
+  {
     "id": "dangerfield",
     "name": "Modern Day Dangerfield",
     "emoji": "👨",

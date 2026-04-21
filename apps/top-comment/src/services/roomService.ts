@@ -13,6 +13,10 @@ import type {
   StartSessionInRoomResponse,
   EndSessionInRoomRequest,
   EndSessionInRoomResponse,
+  StartSocialeInRoomRequest,
+  StartSocialeInRoomResponse,
+  EndSocialeInRoomRequest,
+  EndSocialeInRoomResponse,
 } from '../shared/types';
 import type { Room, RoomMembership } from '../domain/types/room.types';
 
@@ -33,6 +37,7 @@ function mapRoom(data: any): Room | null {
     updatedAt: data.updated_at,
     settings: data.settings || {},
     currentSessionId: data.current_session_id,
+    currentSocialeId: data.current_sociale_id ?? null,
     totalSessionsPlayed: data.total_sessions_played || 0,
   };
 }
@@ -269,7 +274,7 @@ export async function generateUniqueRoomCode(): Promise<string> {
       .from('rooms')
       .select('code')
       .eq('code', code)
-      .single();
+      .maybeSingle();
 
     if (!data) {
       return code;
@@ -360,6 +365,132 @@ export async function endSessionInRoom(request: EndSessionInRoomRequest): Promis
   return data;
 }
 
+// Start a Sociale in a room (pointer-aware orchestration)
+export async function startSocialeInRoom(
+  request: StartSocialeInRoomRequest,
+  queryClient?: any
+): Promise<StartSocialeInRoomResponse> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) {
+    throw new Error("User not authenticated");
+  }
+
+  const { data, error } = await supabase.functions.invoke<StartSocialeInRoomResponse>('rooms-start-sociale', {
+    body: {
+      roomId: request.roomId,
+      socialeSettings: request.socialeSettings,
+    },
+  });
+
+  if (error) {
+    // Try to parse the error context for more details
+    let errorMessage = `Failed to start Sociale: ${error.message}`;
+    let errorDetails = null;
+    
+    try {
+      if (error.context && typeof error.context === 'string') {
+        const parsed = JSON.parse(error.context);
+        if (parsed.error || parsed.details) {
+          errorMessage = parsed.error || errorMessage;
+          errorDetails = parsed.details;
+        }
+      }
+    } catch (e) {
+      // If parsing fails, use the original error
+    }
+    
+    const fullError = new Error(errorMessage);
+    if (errorDetails) {
+      (fullError as any).details = errorDetails;
+    }
+    throw fullError;
+  }
+
+  // OPTIMISTIC UPDATE: Immediately invalidate queries so UI updates from edge function response
+  // This eliminates dependency on real-time event timing
+  if (queryClient && data) {
+    console.log('🔥 OPTIMISTIC UPDATE: Invalidating queries for room', request.roomId);
+    
+    // Invalidate room query to pick up the new currentSocialeId
+    queryClient.invalidateQueries({ queryKey: ['room', request.roomId] });
+    queryClient.invalidateQueries({ queryKey: ['rooms'] });
+    
+    // Invalidate Sociales list to include the newly started Sociale
+    console.log('🔥 OPTIMISTIC UPDATE: Invalidating Sociales list for room', request.roomId);
+    queryClient.invalidateQueries({ queryKey: ['sociales', 'room', request.roomId] });
+    
+    // If the response includes the Sociale, we could also set it directly
+    if (data.sociale) {
+      console.log('🔥 OPTIMISTIC UPDATE: Invalidating specific Sociale', data.sociale.id);
+      queryClient.invalidateQueries({ queryKey: ['sociale', data.sociale.id] });
+    }
+    
+    console.log('🔥 OPTIMISTIC UPDATE: All queries invalidated, UI should update now');
+  }
+
+  return data as StartSocialeInRoomResponse;
+}
+
+// End or cancel a Sociale in a room (clears pointer)
+export async function endSocialeInRoom(request: EndSocialeInRoomRequest): Promise<EndSocialeInRoomResponse> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) {
+    throw new Error("User not authenticated");
+  }
+
+  const { data, error } = await supabase.functions.invoke<EndSocialeInRoomResponse>('rooms-end-sociale', {
+    body: {
+      roomId: request.roomId,
+      socialeId: request.socialeId,
+      mode: request.mode ?? 'end',
+    },
+  });
+
+  if (error) {
+    throw new Error(`Failed to end Sociale: ${error.message}`);
+  }
+
+  return data as EndSocialeInRoomResponse;
+}
+
+async function deleteRoom(roomId: string): Promise<void> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) throw new Error('User not authenticated');
+
+  // Delete legacy sessions (FK: top_comment_sessions_room_id_fkey → rooms.id, no cascade)
+  await supabase
+    .from('top_comment_sessions' as any)
+    .delete()
+    .eq('room_id', roomId);
+
+  // Null out venue_accounts.room_id (FK: venue_accounts_room_id_fkey → rooms.id, no cascade)
+  await supabase
+    .from('venue_accounts' as any)
+    .update({ room_id: null })
+    .eq('room_id', roomId);
+
+  // Explicit cleanup for socialites (FK: socialites_membership_id_fkey → room_memberships.id)
+  // which does not cascade from the rooms table directly.
+  const { data: memberships } = await supabase
+    .from('room_memberships')
+    .select('id')
+    .eq('room_id', roomId);
+
+  if (memberships?.length) {
+    for (const m of memberships) {
+      await supabase.from('socialites').delete().eq('membership_id', m.id);
+    }
+  }
+
+  const { error } = await supabase
+    .from('rooms')
+    .delete()
+    .eq('id', roomId)
+    .eq('host_uid', userData.user.id);
+
+  if (error) throw new Error(`Failed to delete room: ${error.message}`);
+}
+
 export const roomService = {
   createRoom,
   getRoom,
@@ -367,5 +498,8 @@ export const roomService = {
   getRoomAnalytics,
   startSessionInRoom,
   endSessionInRoom,
+  startSocialeInRoom,
+  endSocialeInRoom,
   archiveRoom,
+  deleteRoom,
 };

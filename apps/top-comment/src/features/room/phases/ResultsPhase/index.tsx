@@ -6,9 +6,10 @@ import type { Session } from '../../../../shared/types';
 
 interface ResultsPhaseProps {
   session: Session;
+  onOpenLeaderboard: () => void;
 }
 
-export function ResultsPhase({ session }: ResultsPhaseProps) {
+export function ResultsPhase({ session, onOpenLeaderboard }: ResultsPhaseProps) {
   const isMainEventMode = getIsMainEventMode(session);
   const { totalSeconds } = usePhaseTimer({ session });
   
@@ -19,7 +20,7 @@ export function ResultsPhase({ session }: ResultsPhaseProps) {
         session={session}
         isMainEventMode={isMainEventMode}
         phase="results"
-        onClick={() => {}}
+        onClick={onOpenLeaderboard}
       />
       <SessionTimer
         endTime={session?.endsAt}

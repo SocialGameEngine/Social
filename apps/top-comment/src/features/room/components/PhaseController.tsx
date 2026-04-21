@@ -5,6 +5,7 @@ import { ResultsPhase } from '../phases/ResultsPhase';
 import { EndedPhase } from '../phases/EndedPhase';
 import { getSessionPhase } from '../utils/phaseConfig';
 import { useSubmissions } from '../hooks/useSubmissions';
+import { SessionSkeleton } from '../../../shared/components/skeletons/SessionSkeleton';
 import type { Session, RoomMembership } from '../../../shared/types';
 
 export type SessionDisplayState =
@@ -14,7 +15,10 @@ export type SessionDisplayState =
   | "countdown"
   | "joined"
   | "answer"
+  | "answered"
   | "vote"
+  | "voted"
+  | "reveal"
   | "results"
   | "ended";
 
@@ -22,6 +26,20 @@ export function getIsMainEventMode(session: Session | null): boolean {
   if (!session) return false;
   const status = session.status;
   return status === 'lobby' || status === 'answer' || status === 'vote' || status === 'results';
+}
+
+/** Room main column highlight when the canonical game is a Sociale (mirrors session "live" phases). */
+export function getIsMainEventModeFromSociale(
+  sociale: { status: string } | null | undefined
+): boolean {
+  if (!sociale) return false;
+  const s = sociale.status;
+  return (
+    s === 'draft' ||
+    s === 'lobby' ||
+    s === 'active' ||
+    s === 'paused'
+  );
 }
 
 interface PhaseControllerProps {
@@ -49,7 +67,7 @@ export function PhaseController({
       return <LobbyPhase session={session} memberships={memberships} />;
 
     case 'answer':
-      if (!session || !sessionId) return null;
+      if (!session || !sessionId) return <SessionSkeleton />;
       return (
         <AnswerPhase
           session={session}
@@ -61,7 +79,7 @@ export function PhaseController({
       );
 
     case 'vote':
-      if (!session || !sessionId) return null;
+      if (!session || !sessionId) return <SessionSkeleton />;
       return (
         <VotePhase
           session={session}
@@ -74,7 +92,7 @@ export function PhaseController({
 
     case 'results':
       if (!session) return null;
-      return <ResultsPhase session={session} />;
+      return <ResultsPhase session={session} onOpenLeaderboard={onOpenLeaderboard} />;
 
     case 'ended':
       if (!session) return null;

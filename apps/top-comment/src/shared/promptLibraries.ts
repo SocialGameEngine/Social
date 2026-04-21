@@ -26,6 +26,7 @@ import fictionalWorldsPrompts from "./fictionalWorldsPrompts.json";
 
 const promptFileMap: Record<string, string[]> = {
   "prompts.json": classicPrompts,
+  "triviaPrompts.json": classicPrompts,
   "barPrompts.json": barPrompts,
   "basicprompts.json": basicPrompts,
   "halloweenPrompts.json": halloweenPrompts,
@@ -58,6 +59,7 @@ export interface PromptLibrary {
   name: string;
   emoji: string;
   description: string;
+  type: 'prompt' | 'trivia'; // Library type for validation
   prompts: string[];
 }
 
@@ -67,6 +69,7 @@ export const promptLibraries: PromptLibrary[] = promptLibrariesMeta.map(
     name: meta.name,
     emoji: meta.emoji,
     description: meta.description,
+    type: meta.id === 'trivia-test' ? 'trivia' as const : 'prompt' as const,
     prompts: promptFileMap[meta.promptFile] ?? classicPrompts,
   }),
 );

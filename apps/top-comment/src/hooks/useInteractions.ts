@@ -69,6 +69,7 @@ export function useInteractions({ roomId }: UseInteractionsOptions) {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [roomId, refresh]);

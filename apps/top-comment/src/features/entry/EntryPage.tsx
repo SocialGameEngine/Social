@@ -228,12 +228,7 @@ export function EntryPage() {
                   viewBox="0 0 32 32" 
                   fill="none" 
                   xmlns="http://www.w3.org/2000/svg"
-                  className={`${!isDark ? 'text-cyan-500' : 'text-cyan-300'}`}
-                  style={{
-                    filter: !isDark 
-                      ? 'drop-shadow(0 0 2px #06b6d4) drop-shadow(0 0 4px rgba(6, 182, 212, 0.1))'
-                      : 'drop-shadow(0 0 2px #67e8f9) drop-shadow(0 0 4px rgba(103, 232, 249, 0.1))'
-                  }}
+                  className={`${!isDark ? 'text-cyan-500 drop-shadow-cyan-glow' : 'text-cyan-300 drop-shadow-cyan-light-glow'}`}
                 >
                   {/* Cocktail glass outline */}
                   <path 
@@ -274,11 +269,7 @@ export function EntryPage() {
                 
                 {/* Brand Name */}
                 <h1 
-                  className={`text-6xl font-black`}
-                  style={{
-                    color: '#ff00ff',
-                    filter: 'drop-shadow(0 0 2px #ff00ff) drop-shadow(0 0 4px rgba(255, 0, 255, 0.1))'
-                  }}
+                  className="text-6xl font-black drop-shadow-magenta-glow"
                 >
                   Pub Söcial
                 </h1>

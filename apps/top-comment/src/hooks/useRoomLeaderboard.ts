@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../supabase/client';
 
 export interface SessionLeaderboardEntry {
@@ -28,69 +28,73 @@ export function useRoomLeaderboard({ roomId, currentSessionId }: UseRoomLeaderbo
   const [isLoading, setIsLoading] = useState(false);
 
   // Fetch current session leaderboard
-  useEffect(() => {
+  const fetchCurrent = useCallback(async () => {
     if (!currentSessionId) {
       setCurrentLeaderboard(null);
       return;
     }
 
-    const fetchCurrent = async () => {
-      const { data: session } = await supabase
-        .from('top_comment_sessions')
-        .select('id, code, status, started_at, ended_at')
-        .eq('id', currentSessionId)
-        .single();
+    const { data: session } = await supabase
+      .from('top_comment_sessions')
+      .select('id, code, status, started_at, ended_at')
+      .eq('id', currentSessionId)
+      .single();
 
-      if (!session) {
-        setCurrentLeaderboard(null);
-        return;
+    if (!session) {
+      setCurrentLeaderboard(null);
+      return;
+    }
+
+    const { data: players } = await supabase
+      .from('top_comment_players')
+      .select('id, display_name, score')
+      .eq('session_id', currentSessionId)
+      .order('score', { ascending: false });
+
+    if (!players) {
+      setCurrentLeaderboard(null);
+      return;
+    }
+
+    const entries = rankPlayers(players);
+    setCurrentLeaderboard({
+      sessionId: session.id,
+      sessionCode: session.code,
+      status: session.status,
+      startedAt: session.started_at,
+      endedAt: session.ended_at,
+      entries,
+    });
+  }, [currentSessionId]);
+
+  // Initial fetch + smart polling instead of realtime subscription.
+  // Leaderboard updates every 5s — acceptable latency for scores.
+  // This eliminates one Supabase Realtime channel per room.
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!currentSessionId) {
+      setCurrentLeaderboard(null);
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
       }
+      return;
+    }
 
-      const { data: players } = await supabase
-        .from('top_comment_players')
-        .select('id, display_name, score')
-        .eq('session_id', currentSessionId)
-        .order('score', { ascending: false });
-
-      if (!players) {
-        setCurrentLeaderboard(null);
-        return;
-      }
-
-      const entries = rankPlayers(players);
-      setCurrentLeaderboard({
-        sessionId: session.id,
-        sessionCode: session.code,
-        status: session.status,
-        startedAt: session.started_at,
-        endedAt: session.ended_at,
-        entries,
-      });
-    };
-
+    // Initial fetch
     fetchCurrent();
 
-    // Subscribe to player score changes for current session
-    const channel = supabase
-      .channel(`leaderboard:${currentSessionId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'top_comment_players',
-          filter: `session_id=eq.${currentSessionId}`,
-        },
-        () => {
-          fetchCurrent();
-        }
-      )
-      .subscribe();
+    // Poll every 5 seconds
+    pollIntervalRef.current = setInterval(fetchCurrent, 5000);
 
     return () => {
-      supabase.removeChannel(channel);
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
     };
-  }, [currentSessionId]);
+  }, [currentSessionId, fetchCurrent]);
 
   // Fetch past session leaderboards for this room
   useEffect(() => {

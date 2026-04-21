@@ -35,8 +35,8 @@ export function PromptLibraryChart({ libraries, isLoading }: PromptLibraryChartP
               </span>
               <div className="flex-1 h-5 bg-slate-700/50 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-pink-500 to-fuchsia-500 rounded-full transition-all"
-                  style={{ width: `${maxCount > 0 ? (lib.sessionCount / maxCount) * 100 : 0}%` }}
+                  className="progress-width-var h-full bg-gradient-to-r from-pink-500 to-fuchsia-500 rounded-full transition-all"
+                  style={{ '--progress-width': `${maxCount > 0 ? (lib.sessionCount / maxCount) * 100 : 0}%` } as React.CSSProperties}
                 />
               </div>
               <span className="text-xs text-slate-400 w-8 text-right shrink-0">{lib.sessionCount}</span>

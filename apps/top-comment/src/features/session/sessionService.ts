@@ -12,6 +12,8 @@ import type {
   TransitionPhaseRequest,
   SetPromptLibraryRequest,
   SetPromptLibraryResponse,
+  PauseSessionRequest,
+  PauseSessionResponse,
   Answer,
   Session,
   SessionSettings,
@@ -555,12 +557,13 @@ export const fetchAnalytics = async (
   return data.analytics;
 };
 
-export const pauseSession = async (payload: { sessionId: string; pause: boolean }) => {
-  const { data, error } = await supabase.functions.invoke<{ session: Session }>(
+export const pauseSession = async (payload: PauseSessionRequest): Promise<PauseSessionResponse> => {
+  const { data, error } = await supabase.functions.invoke<PauseSessionResponse>(
     "top-comment-sessions-pause",
     { body: payload }
   );
   if (error) throw error;
+  if (!data) throw new Error("No response data from pause session");
   return data;
 };
 

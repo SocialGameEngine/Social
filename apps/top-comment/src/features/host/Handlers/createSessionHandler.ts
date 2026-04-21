@@ -114,7 +114,6 @@ export const handleCreateSession =
         // Force refresh room data to ensure players get the session update
         // The session creation edge function should update the room's currentSessionId
         // If the real-time subscription doesn't work, players may need to refresh
-        console.log('Session created, room should update automatically via real-time subscription');
         
         toast({ title: "Game session created!", variant: "success" });
       }

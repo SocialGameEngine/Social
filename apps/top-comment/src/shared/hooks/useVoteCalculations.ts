@@ -63,7 +63,7 @@ export function useVoteCalculations({
 
   const myRoundPoints = useMemo(() => {
     if (!myAnswer || !roundSummaries) return 0;
-    const basePoints = (voteCounts.get(myAnswer.id) ?? 0) * 100;
+    const basePoints = voteCounts.get(myAnswer.id) ?? 0;
     const wonGroup = roundSummaries.some((summary) =>
       summary.winners.some((winner) => winner.answer.id === myAnswer.id),
     );

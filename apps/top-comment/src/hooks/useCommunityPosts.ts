@@ -284,6 +284,7 @@ export function useCommunityPosts({ roomId, membershipId, limit = 50 }: UseCommu
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [roomId, membershipId]);
@@ -491,6 +492,7 @@ export function usePostReplies(postId: string, membershipId?: string) {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [postId]);

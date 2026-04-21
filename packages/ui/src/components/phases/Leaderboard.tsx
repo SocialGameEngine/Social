@@ -107,7 +107,7 @@ export function Leaderboard({
               <div className="flex-shrink-0 text-right min-w-0 ml-1 sm:ml-2">
                 <p className={`text-sm sm:text-xl font-bold whitespace-nowrap transition-all duration-200 ${
                   !isDark ? 'text-cyan-400' : 'text-cyan-300 drop-shadow-sm'
-                }`}>{team.score * 100}</p>
+                }`}>{team.score}</p>
                 <p className={`text-sm transition-all duration-200 ${
                   !isDark ? 'text-cyan-200' : 'text-slate-400'
                 }`}>pts</p>
@@ -184,7 +184,7 @@ export function Leaderboard({
               <div className="flex-shrink-0 text-right min-w-0 ml-2">
                 <p className={`text-sm font-bold ${
                   !isDark ? 'text-slate-700' : 'text-slate-200'
-                }`}>{team.score * 100}</p>
+                }`}>{team.score}</p>
                 <p className={`text-xs ${
                   !isDark ? 'text-slate-500' : 'text-slate-400'
                 }`}>pts</p>
@@ -279,7 +279,7 @@ export function Leaderboard({
                     : (!isDark ? "text-slate-800" : "text-cyan-300")
                 }`}
               >
-                {team.score * 100}
+                {team.score}
               </p>
               <p className={`text-xs ${
                 !isDark ? 'text-slate-600' : 'text-slate-300'

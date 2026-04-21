@@ -9,6 +9,7 @@ interface InteractionTypeButtonProps {
   onClick: () => void;
   isLive?: boolean;
   participantCount?: number;
+  'aria-expanded'?: boolean;
 }
 
 export function InteractionTypeButton({
@@ -19,6 +20,7 @@ export function InteractionTypeButton({
   onClick,
   isLive,
   participantCount,
+  'aria-expanded': ariaExpanded,
 }: InteractionTypeButtonProps) {
   const variantClass = `section-button--${variant}`;
   const [animateClass, setAnimateClass] = useState('');
@@ -56,6 +58,7 @@ export function InteractionTypeButton({
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp} // Reset if mouse leaves
       className={`section-button ${variantClass} relative ${animateClass}`}
+      aria-expanded={ariaExpanded}
     >
       {/* Live indicator */}
       {isLive && (

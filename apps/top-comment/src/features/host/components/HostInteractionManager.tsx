@@ -1,9 +1,10 @@
 import { lazy, Suspense, useState, useCallback } from 'react';
 import { useInteractions } from '../../../hooks/useInteractions';
 import { useTheme } from '../../../shared/providers/ThemeProvider';
-import { Button, Card } from '@social/ui';
+import { Button } from '@social/ui';
 import { interactionService } from '../../../services/interactionService';
 import type { Interaction, RoomMembership } from '../../../shared/types';
+import type { TriviaInteractionSettings, TopicSortBy } from '../../../domain/types/interaction.types';
 
 const HostSendPromptModal = lazy(() => import('../components/HostSendPromptModal'));
 const HostSendHeadlineModal = lazy(() => import('../components/HostSendHeadlineModal'));
@@ -76,7 +77,7 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
   );
 
   const handleCreateTopic = useCallback(
-    async (question: string, description?: string, sortBy?: any) => {
+    async (question: string, description?: string, sortBy?: TopicSortBy) => {
       await interactionService.createTopic(room.id, question, description, sortBy);
     },
     [room.id]
@@ -90,7 +91,7 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
   );
 
   const handleCreateTrivia = useCallback(
-    async (questionId: string, answerSeconds?: number, scoring?: any, policy?: any) => {
+    async (questionId: string, answerSeconds?: number, scoring?: TriviaInteractionSettings['scoring'], policy?: TriviaInteractionSettings['policy']) => {
       await interactionService.createTriviaInteraction({
         roomId: room.id,
         questionId,
@@ -103,7 +104,7 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
   );
 
   return (
-    <Card className="flex flex-col gap-4" isDark={isDark}>
+    <div className="flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className={`flex flex-col gap-1 ${!isDark ? 'text-slate-700' : 'text-cyan-100'}`}>
@@ -122,28 +123,40 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
             size="sm"
             onClick={() => setShowTopicModal(true)}
           >
-            💬 Topic
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            Topic
           </Button>
           <Button
             variant="secondary"
             size="sm"
             onClick={() => setShowPollModal(true)}
           >
-            📊 Poll
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Poll
           </Button>
           <Button
             variant="secondary"
             size="sm"
             onClick={() => setShowTriviaModal(true)}
           >
-            🧠 Trivia
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            Trivia
           </Button>
           <Button
             variant="secondary"
             size="sm"
             onClick={() => setShowHeadlineModal(true)}
           >
-            🎭 Fibbage
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 16h4m10 0h4" />
+            </svg>
+            Fibbage
           </Button>
           <Button
             variant="secondary"
@@ -165,14 +178,26 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm ${!isDark ? 'text-slate-700' : 'text-cyan-100'} line-clamp-2`}>
-                    {interaction.type === 'headline_fibbage'
-                      ? `🎭 ${(interaction.settings as any)?.headlineBlank || interaction.question}`
-                      : interaction.type === 'trivia'
-                      ? `🧠 ${(interaction.settings as any)?.snapshot?.prompt || interaction.question}`
-                      : interaction.question
-                    }
-                  </p>
+                  <div className={`flex items-start gap-2 text-sm ${!isDark ? 'text-slate-700' : 'text-cyan-100'} line-clamp-2`}>
+                    {interaction.type === 'headline_fibbage' && (
+                      <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 16h4m10 0h4" />
+                      </svg>
+                    )}
+                    {interaction.type === 'trivia' && (
+                      <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                    )}
+                    <span>
+                      {interaction.type === 'headline_fibbage'
+                        ? (interaction.settings as any)?.headlineBlank || interaction.question
+                        : interaction.type === 'trivia'
+                        ? (interaction.settings as any)?.snapshot?.prompt || interaction.question
+                        : interaction.question
+                      }
+                    </span>
+                  </div>
                   {interaction.type === 'headline_fibbage' && (
                     <p className={`text-xs ${!isDark ? 'text-slate-500' : 'text-slate-400'} mt-1`}>
                       {(interaction.settings as any)?.sourceName} • {(interaction.settings as any)?.publishedAt ? new Date((interaction.settings as any).publishedAt).toLocaleDateString() : ''}
@@ -335,7 +360,7 @@ export function HostInteractionManager({ room, memberships }: HostInteractionMan
           />
         )}
       </Suspense>
-    </Card>
+    </div>
   );
 }
 

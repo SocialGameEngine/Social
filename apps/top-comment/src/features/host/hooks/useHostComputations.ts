@@ -1,14 +1,19 @@
 import { useMemo } from "react";
-import type { Session } from "../../../shared/types";
+import type { Session, RoundGroup } from "../../../shared/types";
 import type { PromptLibraryId, PromptLibrary } from "../../../shared/promptLibraries";
 import { usePromptLibraries } from "../../../shared/hooks/usePromptLibraries";
 import { transformLeaderboardSimple } from "../../../application";
+import type { LeaderboardEntry } from "../../../domain/types/domain.types";
+
+interface GameState {
+  leaderboard: LeaderboardEntry[];
+}
 
 interface UseHostComputationsProps {
-  gameState: any;
+  gameState: GameState;
   session: Session | null;
   hostGroupVotes: Record<string, string>;
-  activeGroup: any;
+  activeGroup: RoundGroup | null;
 }
 
 export function useHostComputations({

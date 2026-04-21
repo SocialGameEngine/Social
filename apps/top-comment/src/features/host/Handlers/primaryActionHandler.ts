@@ -1,6 +1,8 @@
 import type { Session } from "../../../shared/types";
 import type { Toast } from "../../../shared/hooks/useToast";
 import { advancePhase, startGame, pauseSession } from "../../session/sessionService";
+import { getErrorMessage } from '../../../shared/utils/errors';
+import { logger } from '../../../shared/utils/logger';
 
 interface PrimaryActionDeps {
   session: Session | null;
@@ -47,18 +49,8 @@ export const handlePrimaryAction = (deps: PrimaryActionDeps) => async () => {
       await advancePhase({ sessionId: session.id, targetPhase: 'next' });
     }
   } catch (error: unknown) {
-    console.error("Primary action error:", error);
-
-    // Extract error message
-    let errorMessage = "Please try again.";
-    
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    } else if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
-      errorMessage = error.message;
-    }
-
-    toast({ title: errorMessage, variant: "error" });
+    logger.error('Primary action error', { error: error instanceof Error ? error.message : String(error) });
+    toast({ title: getErrorMessage(error, "Please try again."), variant: "error" });
   } finally {
     triggerPerformingAction(false);
   }

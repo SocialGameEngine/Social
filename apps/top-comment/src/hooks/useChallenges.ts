@@ -114,6 +114,7 @@ export function useChallenges({ roomId, membershipId }: UseChallengesOptions) {
     channelRef.current = channel;
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
       channelRef.current = null;
     };

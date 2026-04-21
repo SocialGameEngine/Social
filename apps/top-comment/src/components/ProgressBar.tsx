@@ -19,10 +19,10 @@ export function ProgressBar({
   return (
     <div className="h-2 w-full rounded-full bg-slate-200">
       <div
-        className={`h-full rounded-full transition-all duration-200 ${
+        className={`progress-width-var h-full rounded-full transition-all duration-200 ${
           variant === "brand" ? "bg-brand-primary" : "bg-slate-900"
         }`}
-        style={{ width: `${percentage}%` }}
+        style={{ '--progress-width': `${percentage}%` } as React.CSSProperties}
       />
     </div>
   );

@@ -196,8 +196,7 @@ export function HowToPlayModal({ open, onClose, initialPhase }: HowToPlayModalPr
       <div className="relative">
         <div
           ref={contentRef}
-          className="max-h-[60vh] overflow-y-auto pr-2 space-y-3 sm:space-y-4"
-          style={{ scrollbarWidth: 'thin' }}
+          className="max-h-[60vh] overflow-y-auto pr-2 space-y-3 sm:space-y-4 scrollbar-thin-custom"
         >
           {steps.map((step, index) => {
             const isOpen = openSteps.has(index);

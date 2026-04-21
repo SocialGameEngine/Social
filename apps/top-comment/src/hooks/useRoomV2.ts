@@ -22,6 +22,8 @@ import type {
 import { roomService } from '../services/roomService';
 import { roomMembershipService } from '../services/roomMembershipService';
 import { supabase } from '../supabase/client';
+import { logger } from '../shared/utils/logger';
+import { throttle } from '../shared/utils/realtimeThrottle';
 import type { AsyncSubscriptionResult, ConnectionStatus } from './async/types';
 
 interface UseRoomOptions {
@@ -37,6 +39,8 @@ interface RoomData {
 }
 
 export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult<RoomData> & {
+  // Retry state for race condition handling
+  isRetrying: boolean;
   // Mutations
   createRoom: (request: CreateRoomRequest) => Promise<Room>;
   joinRoom: (request: JoinRoomRequest) => Promise<RoomMembership>;
@@ -60,10 +64,16 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
   const [subscriptionError, setSubscriptionError] = useState<Error | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   
-  const roomChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const membershipChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const unifiedChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
+  const isInitialLoadComplete = useRef(false);
+  
+  // Retry state for room loading (handles race conditions)
+  const loadAttempts = useRef(0);
+  const maxLoadAttempts = 3;
+  const loadRetryDelayMs = 1000;
+  const [isRetrying, setIsRetrying] = useState(false);
 
   // Derived data
   const myMembership = user ? memberships.find(m => m.userId === user.id) || null : null;
@@ -76,7 +86,7 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
     isHost,
   } : null;
 
-  // Load room data
+  // Load room data with retry logic for race conditions
   const loadRoom = useCallback(async (silent = false) => {
     if (!roomId && !roomCode) return;
 
@@ -92,18 +102,38 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
       }
 
       if (!roomData?.room) {
+        // Room not found - check if we should retry
+        if (loadAttempts.current < maxLoadAttempts) {
+          loadAttempts.current += 1;
+          logger.debug(`Room not found, retrying`, { attempt: loadAttempts.current, maxAttempts: maxLoadAttempts });
+          setIsRetrying(true);
+          
+          // Wait and retry
+          await new Promise(resolve => setTimeout(resolve, loadRetryDelayMs));
+          
+          // Recursive retry
+          return loadRoom(silent);
+        }
+        
+        // Max retries reached, show error
+        setIsRetrying(false);
         throw new Error(roomCode ? `Room code "${roomCode}" not found` : `Room ID "${roomId}" not found`);
       }
 
+      // Success - reset retry counter
+      loadAttempts.current = 0;
+      setIsRetrying(false);
       setRoom(roomData.room);
       setLastUpdatedAt(Date.now());
       setError(null);
       if (!silent) setConnectionStatus("connected");
+      isInitialLoadComplete.current = true;
     } catch (err) {
+      setIsRetrying(false);
       const errorObj = err instanceof Error ? err : new Error('Failed to load room');
       setError(errorObj);
       setConnectionStatus("error");
-      console.error('❌ useRoomV2: Error loading room', err);
+      logger.error('useRoomV2: Error loading room', { error: err instanceof Error ? err.message : String(err) });
     }
   }, [roomId, roomCode]);
 
@@ -117,7 +147,7 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
       setMemberships(membershipsData.members);
       setLastUpdatedAt(Date.now());
     } catch (err) {
-      console.error('❌ refreshMembers error:', err);
+      logger.error('refreshMembers error', { error: err instanceof Error ? err.message : String(err) });
       const errorObj = err instanceof Error ? err : new Error('Failed to load members');
       setSubscriptionError(errorObj);
     }
@@ -134,14 +164,11 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
     reconnectAttempts.current += 1;
     setConnectionStatus("reconnecting");
 
-    // Cleanup existing channels
-    if (roomChannelRef.current) {
-      supabase.removeChannel(roomChannelRef.current);
-      roomChannelRef.current = null;
-    }
-    if (membershipChannelRef.current) {
-      supabase.removeChannel(membershipChannelRef.current);
-      membershipChannelRef.current = null;
+    // Cleanup existing channel
+    if (unifiedChannelRef.current) {
+      unifiedChannelRef.current.unsubscribe();
+      supabase.removeChannel(unifiedChannelRef.current);
+      unifiedChannelRef.current = null;
     }
 
     // Retry after delay
@@ -311,7 +338,8 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
     }
   }, [room, isHost]);
 
-  // Real-time subscription for room data - GUARDED by auth
+  // UNIFIED real-time subscription for room data + memberships - GUARDED by auth
+  // Consolidates 2 channels into 1 to reduce egress.
   useEffect(() => {
     // GUARD: Don't subscribe until auth is resolved
     if (authLoading) {
@@ -327,81 +355,88 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
 
     setConnectionStatus("connecting");
 
-    const channel = supabase
-      .channel(`room:${targetRoomId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'rooms',
-          filter: `id=eq.${targetRoomId}`,
-        },
-        () => {
-          loadRoom(true);
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          setConnectionStatus('connected');
-          reconnectAttempts.current = 0;
-        } else if (status === 'CHANNEL_ERROR') {
-          setConnectionStatus('error');
-          setSubscriptionError(new Error('Room subscription error'));
-        } else if (status === 'TIMED_OUT') {
-          reconnect();
-        }
-      });
+    // Throttle membership refreshes to at most once per 2 seconds
+    const throttledRefresh = throttle(() => refreshMembers(), 2000);
 
-    roomChannelRef.current = channel;
-
-    return () => {
-      supabase.removeChannel(channel);
-      roomChannelRef.current = null;
-    };
-  }, [room?.id, roomId, authLoading, loadRoom, reconnect]);
-
-  // Real-time subscription for memberships - GUARDED by auth
-  useEffect(() => {
-    // GUARD: Don't subscribe until auth is resolved
-    if (authLoading) return;
-
-    const targetRoomId = room?.id || roomId;
-    if (!targetRoomId) return;
-
-    const channel = supabase
-      .channel(`room_memberships:${targetRoomId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'room_memberships',
-          filter: `room_id=eq.${targetRoomId}`,
-        },
-        (payload: any) => {
-          // Refresh on all membership changes
-          if (payload.eventType === 'DELETE' && payload.old && payload.old.user_id === user?.id) {
-            refreshMembers();
-          } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            refreshMembers();
+    try {
+      const channel = supabase
+        .channel(`room-unified:${targetRoomId}`)
+        // Room table updates
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'rooms',
+            filter: `id=eq.${targetRoomId}`,
+          },
+          (payload) => {
+            // Immediately update room state with new data from payload
+            if (payload.new) {
+              const newRoom = {
+                id: (payload.new as any).id,
+                code: (payload.new as any).code,
+                name: (payload.new as any).name,
+                creatorId: (payload.new as any).creator_id,
+                moderatorIds: (payload.new as any).moderator_ids || [],
+                currentSessionId: (payload.new as any).current_session_id,
+                currentSocialeId: (payload.new as any).current_sociale_id,
+                settings: (payload.new as any).settings || {},
+                status: (payload.new as any).status,
+                createdAt: (payload.new as any).created_at,
+                updatedAt: (payload.new as any).updated_at,
+              };
+              setRoom(newRoom as Room);
+              setLastUpdatedAt(Date.now());
+            }
+            // Also trigger a full refresh to ensure consistency
+            if (isInitialLoadComplete.current) {
+              loadRoom(true);
+            }
           }
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-        } else if (status === 'CHANNEL_ERROR') {
-          setSubscriptionError(new Error('Membership subscription error'));
-        }
-      });
+        )
+        // Room memberships changes
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'room_memberships',
+            filter: `room_id=eq.${targetRoomId}`,
+          },
+          (payload: any) => {
+            if (payload.eventType === 'DELETE' && payload.old && payload.old.user_id === user?.id) {
+              throttledRefresh();
+            } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              throttledRefresh();
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            setConnectionStatus('connected');
+            reconnectAttempts.current = 0;
+          } else if (status === 'CHANNEL_ERROR') {
+            setConnectionStatus('error');
+            setSubscriptionError(new Error('Room unified subscription error'));
+          } else if (status === 'TIMED_OUT') {
+            reconnect();
+          }
+        });
 
-    membershipChannelRef.current = channel;
+      unifiedChannelRef.current = channel;
 
-    return () => {
-      supabase.removeChannel(channel);
-      membershipChannelRef.current = null;
-    };
-  }, [room?.id, roomId, authLoading, refreshMembers, user?.id]);
+      return () => {
+        channel.unsubscribe();
+        supabase.removeChannel(channel);
+        unifiedChannelRef.current = null;
+        throttledRefresh.cancel();
+      };
+    } catch (error) {
+      setConnectionStatus('error');
+      setSubscriptionError(error instanceof Error ? error : new Error('Failed to setup room subscription'));
+    }
+  }, [room?.id, roomId, authLoading, loadRoom, reconnect, refreshMembers, user?.id]);
 
   // Initial load effect - GUARDED by auth
   useEffect(() => {
@@ -414,9 +449,10 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
     }
   }, [roomId, roomCode, authLoading, loadRoom, refreshMembers]);
 
-  // Calculate status
+  // Calculate status - includes retry state for better UX
   const getStatus = () => {
     if (authLoading) return "booting" as const;
+    if (isRetrying) return "loading" as const; // Show loading during retry, not error
     if (connectionStatus === "connecting") return "loading" as const;
     if (connectionStatus === "reconnecting") return "reconnecting" as const;
     if (connectionStatus === "error") return "error" as const;
@@ -439,6 +475,7 @@ export function useRoomV2(options: UseRoomOptions = {}): AsyncSubscriptionResult
     retry: reconnect,
     lastUpdatedAt,
     isStale,
+    isRetrying, // Expose retry state for UI to show "Looking for room..."
     canInteract,
     connectionStatus,
     reconnect,

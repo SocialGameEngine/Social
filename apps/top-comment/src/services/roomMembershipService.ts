@@ -91,24 +91,32 @@ export async function joinRoom(request: JoinRoomRequest): Promise<JoinRoomRespon
   }
 
   // Check if user is already in room
-  const { data: existingMembership } = await supabase
+  const { data: existingMembership, error: existingMembershipError } = await supabase
     .from('room_memberships')
     .select('*')
     .eq('room_id', room.id)
     .eq('user_id', userData.user.id)
-    .single();
+    .maybeSingle(); // Use maybeSingle() to handle "not in room" gracefully
+
+  if (existingMembershipError) {
+    throw new Error(`Failed to check existing membership: ${existingMembershipError.message}`);
+  }
 
   if (existingMembership) {
     throw new Error("You are already in this room");
   }
 
   // Check if player name is already taken (for all users now)
-  const { data: existingPlayer } = await supabase
+  const { data: existingPlayer, error: existingPlayerError } = await supabase
     .from('room_memberships')
     .select('id')
     .eq('room_id', room.id)
     .eq('player_name', request.playerName)
-    .single();
+    .maybeSingle(); // Use maybeSingle() to handle "name not taken" gracefully
+
+  if (existingPlayerError) {
+    throw new Error(`Failed to check player name availability: ${existingPlayerError.message}`);
+  }
 
   if (existingPlayer) {
     throw new Error("Player name is already taken in this room");
@@ -161,16 +169,23 @@ export async function leaveRoom(request: LeaveRoomRequest): Promise<LeaveRoomRes
     throw new Error("User not authenticated");
   }
 
-  // Get membership to verify
+  // Check if user is in the room
   const { data: membership, error: membershipError } = await supabase
     .from('room_memberships')
     .select('*')
     .eq('room_id', request.roomId)
     .eq('user_id', userData.user.id)
-    .single();
+    .maybeSingle();
 
-  if (membershipError || !membership) {
-    throw new Error("You are not in this room");
+  if (membershipError) {
+    throw new Error(`Failed to check room membership: ${membershipError.message}`);
+  }
+
+  // If user is not in the room, just return success (nothing to leave)
+  if (!membership) {
+    return {
+      success: true,
+    };
   }
 
   // Host cannot leave room (must transfer or archive)
@@ -260,12 +275,18 @@ export async function kickMember(request: KickMemberRequest): Promise<KickMember
 
   // Delete user's interaction votes
   await supabase
-    .from('interaction_votes')
+    .from('interaction_votes' as any)
     .delete()
     .eq('membership_id', memberToKick.id);
 
   // Delete user's room reactions
   await (supabase.from('room_reactions' as any))
+    .delete()
+    .eq('membership_id', memberToKick.id);
+
+  // Delete user's socialite records (FK: socialites_membership_id_fkey)
+  await supabase
+    .from('socialites')
     .delete()
     .eq('membership_id', memberToKick.id);
 
@@ -367,7 +388,7 @@ export async function banMember(request: BanMemberRequest): Promise<BanMemberRes
   };
   
   const { error: banError } = await supabase
-    .from('top_comment_banned_players')
+    .from('top_comment_banned_players' as any)
     .insert(banData);
 
   if (banError) {
@@ -383,12 +404,18 @@ export async function banMember(request: BanMemberRequest): Promise<BanMemberRes
 
   // Delete user's interaction votes
   await supabase
-    .from('interaction_votes')
+    .from('interaction_votes' as any)
     .delete()
     .eq('membership_id', memberToBan.id);
 
   // Delete user's room reactions
   await (supabase.from('room_reactions' as any))
+    .delete()
+    .eq('membership_id', memberToBan.id);
+
+  // Delete user's socialite records (FK: socialites_membership_id_fkey)
+  await supabase
+    .from('socialites')
     .delete()
     .eq('membership_id', memberToBan.id);
 

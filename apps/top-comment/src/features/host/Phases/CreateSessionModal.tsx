@@ -1,5 +1,4 @@
 import React from "react";
-import { Link } from "react-router-dom";
 import { Button } from "../../../components/Button";
 import { FormField } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
@@ -19,6 +18,7 @@ interface CreateSessionModalProps {
   isCreating: boolean;
   canCreateSession: boolean;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onOpenVenueLogin?: () => void;
 }
 
 export function CreateSessionModal({
@@ -32,6 +32,7 @@ export function CreateSessionModal({
   isCreating,
   canCreateSession,
   onSubmit,
+  onOpenVenueLogin,
 }: CreateSessionModalProps) {
   const { isDark } = useTheme();
   const { data: libraries, isLoading: librariesLoading } = usePromptLibraries();
@@ -90,13 +91,14 @@ export function CreateSessionModal({
                 ? "Creating session..."
                 : "Sign in with your venue credentials before hosting."}
             </p>
-            {!isCreating && (
-              <Link
-                to="/venue-auth"
+            {!isCreating && onOpenVenueLogin && (
+              <button
+                type="button"
+                onClick={onOpenVenueLogin}
                 className={`mt-2 inline-flex text-sm font-semibold underline ${!isDark ? 'text-brand-primary' : 'text-cyan-200'}`}
               >
                 Open venue login
-              </Link>
+              </button>
             )}
           </div>
         )}

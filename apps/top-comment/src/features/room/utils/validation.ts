@@ -11,15 +11,23 @@ export function sanitizeInput(input: string): string {
     .slice(0, 500); // Max 500 characters
 }
 
-export function validateAnswer(answer: string): { valid: boolean; error?: string } {
+export function validateAnswer(answer: string, roundType?: string): { valid: boolean; error?: string } {
   const sanitized = sanitizeInput(answer);
   
   if (!sanitized) {
     return { valid: false, error: 'Answer cannot be empty' };
   }
   
-  if (sanitized.length < 3) {
-    return { valid: false, error: 'Answer must be at least 3 characters' };
+  // For trivia rounds, allow very short answers (even single characters)
+  // For other rounds, require at least 3 characters
+  const minLength = roundType === 'trivia' ? 1 : 3;
+  
+  if (sanitized.length < minLength) {
+    if (roundType === 'trivia') {
+      return { valid: false, error: 'Answer cannot be empty' };
+    } else {
+      return { valid: false, error: 'Answer must be at least 3 characters' };
+    }
   }
   
   if (sanitized.length > 500) {

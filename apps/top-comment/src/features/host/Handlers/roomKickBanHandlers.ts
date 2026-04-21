@@ -1,17 +1,20 @@
 import type { Toast } from "../../../shared/hooks/useToast";
 import { roomMembershipService } from "../../../services/roomMembershipService";
+import { handleAsyncError } from '../../../shared/utils/handleAsyncError';
 
 interface RoomKickBanDeps {
   toast: Toast;
   setKickingPlayerId?: React.Dispatch<React.SetStateAction<string | null>>;
   setBanningPlayerId?: React.Dispatch<React.SetStateAction<string | null>>;
   refresh?: () => void;
+  optimisticRemove?: (userId: string) => void;
 }
 
 export const handleRoomKickPlayer = ({
   toast,
   setKickingPlayerId,
   refresh,
+  optimisticRemove,
 }: RoomKickBanDeps) => {
   return async (playerId: string, userId: string, roomId: string) => {
     if (!userId || !roomId) {
@@ -22,6 +25,7 @@ export const handleRoomKickPlayer = ({
     setKickingPlayerId?.(playerId);
     
     try {
+      optimisticRemove?.(userId);
       await roomMembershipService.kickMember({
         roomId,
         userId,
@@ -36,10 +40,10 @@ export const handleRoomKickPlayer = ({
       // Refresh the player list
       refresh?.();
     } catch (error) {
-      console.error("Failed to kick player from room:", error);
-      toast({ 
-        title: "Failed to kick player", 
-        variant: "error" 
+      handleAsyncError(error, {
+        toast,
+        context: 'kickPlayer',
+        userMessage: 'Failed to kick player',
       });
     } finally {
       setKickingPlayerId?.(null);
@@ -51,6 +55,7 @@ export const handleRoomBanPlayer = ({
   toast,
   setBanningPlayerId,
   refresh,
+  optimisticRemove,
 }: RoomKickBanDeps) => {
   return async (playerId: string, userId: string, roomId: string) => {
     if (!userId || !roomId) {
@@ -61,15 +66,12 @@ export const handleRoomBanPlayer = ({
     setBanningPlayerId?.(playerId);
     
     try {
-      console.log('📞 Calling banMember with:', { roomId, userId });
-      
+      optimisticRemove?.(userId);
       await roomMembershipService.banMember({
         roomId,
         userId,
         reason: "Banned by host",
       });
-      
-      console.log('✅ Ban successful');
       
       toast({ 
         title: "Player banned from room", 
@@ -79,10 +81,10 @@ export const handleRoomBanPlayer = ({
       // Refresh the player list
       refresh?.();
     } catch (error) {
-      console.error("❌ Failed to ban player from room:", error);
-      toast({ 
-        title: "Failed to ban player", 
-        variant: "error" 
+      handleAsyncError(error, {
+        toast,
+        context: 'banPlayer',
+        userMessage: 'Failed to ban player',
       });
     } finally {
       setBanningPlayerId?.(null);

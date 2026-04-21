@@ -4,6 +4,7 @@ import { ensureAnonymousAuth } from "../../../supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import type { ViboxQueueItem } from "../../types/vibox";
 import { viboxApi } from "../../api/vibox";
+import { throttle } from "../../utils/realtimeThrottle";
 
 interface UseRealtimeQueueReturn {
   queue: ViboxQueueItem[];
@@ -41,7 +42,10 @@ export const useRealtimeQueue = (roomId?: string): UseRealtimeQueueReturn => {
       // Initial fetch
       fetchQueue();
 
-      // Setup realtime subscription using the working pattern from other hooks
+      // Setup realtime subscription with throttled refetch.
+      // Queue changes are batched (e.g. bulk add/remove) so throttle to 2s.
+      const throttledFetch = throttle(fetchQueue, 2000);
+
       channel = supabase
         .channel(`vibox-queue-${roomId}`)
         .on(
@@ -53,7 +57,7 @@ export const useRealtimeQueue = (roomId?: string): UseRealtimeQueueReturn => {
             filter: `room_id=eq.${roomId}`,
           },
           () => {
-            fetchQueue();
+            throttledFetch();
           }
         )
         .subscribe((status, err) => {
@@ -70,9 +74,11 @@ export const useRealtimeQueue = (roomId?: string): UseRealtimeQueueReturn => {
     return () => {
       isActive = false;
       if (channel) {
+        channel.unsubscribe();
         supabase.removeChannel(channel);
       }
       queueChannelRef.current = null;
+      // throttledFetch is scoped inside setupSubscription, cleanup handled by channel removal
     };
   }, [roomId]);
 

@@ -54,6 +54,7 @@ export function useVotes({ interactionId }: UseVotesOptions) {
 
     return () => {
       mounted = false;
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [interactionId]);

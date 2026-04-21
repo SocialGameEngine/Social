@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "../../../supabase/client";
 
 export type HostRoomRecoveryStatus = 
@@ -25,7 +26,7 @@ interface UseHostRoomRecoveryResult {
 }
 
 interface UseHostRoomRecoveryProps {
-  user: any;
+  user: User | null;
   authLoading: boolean;
   isVenueAccount: boolean;
   venueAccountLoading: boolean;
@@ -54,35 +55,45 @@ export function useHostRoomRecovery({
   const [error, setError] = useState<Error | null>(null);
   const [roomExistenceState, setRoomExistenceState] = useState<RoomExistenceState>('unknown');
   const recoveryAttemptedRef = useRef(false);
+  const lastUserIdRef = useRef<string | null | undefined>(undefined);
+
+  // Reset recovery state when a new authenticated user appears (e.g. sign-out then sign-in).
+  useEffect(() => {
+    const newUserId = user?.id ?? null;
+    if (lastUserIdRef.current !== undefined && lastUserIdRef.current !== newUserId) {
+      recoveryAttemptedRef.current = false;
+    }
+    lastUserIdRef.current = newUserId;
+  }, [user?.id]);
 
   useEffect(() => {
     let cancelled = false;
-    
-    // Don't retry if already attempted
+
+    // If we have a room (from localStorage or after creation), always mark as found.
+    // This must run even if recovery was already attempted so that roomExistenceState
+    // stays 'room_found' after a room is created mid-session.
+    if (roomId) {
+      setStatus('recovered');
+      setRoomExistenceState('room_found');
+      recoveryAttemptedRef.current = true;
+      return;
+    }
+
+    // Don't retry DB recovery if already attempted
     if (recoveryAttemptedRef.current) return;
-    
+
     // Wait for auth and venue account to complete
     if (authLoading || venueAccountLoading) {
       setStatus('waiting_for_identity');
       setRoomExistenceState('unknown');
       return;
     }
-    
-    // Not a venue account - skip recovery
+
+    // Not a venue account - skip recovery but mark as complete
     if (!user || user.is_anonymous || !isVenueAccount) {
       setStatus('idle');
-      setRoomExistenceState('unknown');
-      return;
-    }
-    
-    // If we already have a validated room from localStorage, skip DB recovery
-    if (roomId) {
-      setStatus('recovered');
-      setRoomExistenceState('validating_storage');
+      setRoomExistenceState('no_room_confirmed');
       recoveryAttemptedRef.current = true;
-      // Note: Actual validation happens in useHostRoomV2
-      // For now, trust localStorage and mark as found
-      setRoomExistenceState('room_found');
       return;
     }
 

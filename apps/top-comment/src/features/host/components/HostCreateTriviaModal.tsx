@@ -3,11 +3,12 @@ import { Button } from '@social/ui';
 import { HostModal } from './HostModal';
 import { triviaService } from '../../../services/triviaService';
 import type { QuestionPack, TriviaQuestion } from '../../../services/triviaService';
+import type { TriviaInteractionSettings } from '../../../domain/types/interaction.types';
 
 interface HostCreateTriviaModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (questionId: string, answerSeconds?: number, scoring?: any, policy?: any) => Promise<void>;
+  onSubmit: (questionId: string, answerSeconds?: number, scoring?: TriviaInteractionSettings['scoring'], policy?: TriviaInteractionSettings['policy']) => Promise<void>;
 }
 
 export default function HostCreateTriviaModal({ isOpen, onClose, onSubmit }: HostCreateTriviaModalProps) {
@@ -149,7 +150,9 @@ export default function HostCreateTriviaModal({ isOpen, onClose, onSubmit }: Hos
         )}
 
         <div className="flex items-center gap-3">
-          <span className="text-3xl">🧠</span>
+          <svg className="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
           <h2 className="text-2xl font-bold text-white">
             Create Trivia
           </h2>
@@ -283,7 +286,9 @@ export default function HostCreateTriviaModal({ isOpen, onClose, onSubmit }: Hos
                 return (
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">🧠</span>
+                      <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
                       <div>
                         <p className="text-white font-semibold">{question.prompt}</p>
                         <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">

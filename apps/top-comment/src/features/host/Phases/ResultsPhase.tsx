@@ -1,4 +1,4 @@
-import { Card, RoundSummaryCard, SessionTimer } from "@social/ui";
+import { RoundSummaryCard } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
 import type { RoundGroup, Answer } from "../../../shared/types";
 
@@ -26,7 +26,7 @@ export function ResultsPhase({
 }: ResultsPhaseProps) {
   const { isDark } = useTheme();
   return (
-    <Card className="space-y-6" isDark={isDark}>
+    <div className="space-y-6">
       <div className="flex flex-col gap-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-brand-primary">
           Round results
@@ -38,19 +38,10 @@ export function ResultsPhase({
           Highlight the winning answers from each group below.
         </p>
         
-        <SessionTimer
-          endTime={sessionEndsAt}
-          totalSeconds={resultsSecs}
-          paused={sessionPaused}
-          label={
-            <span className="flex items-center">
-              Next round starts soon
-              <span className="ml-1 dots" />
-            </span>
-          }
-          size="md"
-          isDark={isDark}
-        />
+        <span className="flex items-center">
+          Next round starts soon
+          <span className="ml-1 dots" />
+        </span>
       </div>
       <div className="space-y-4">
         {roundSummaries.length ? (
@@ -83,6 +74,6 @@ export function ResultsPhase({
           </p>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Modal } from "@social/ui";
 import { useVIBoxTheme } from "./ThemeProvider";
 import { supabase } from "../../../supabase/client";
+import { debouncedBroadcast, immediateBroadcast, flushAndStop } from "../../utils/debouncedBroadcast";
 import type { ViboxQueueItem, ViboxQueueInsert, Track, TrackMetadata, VibeHierarchy } from "../../types/vibox";
 import { viboxApi } from "../../api/vibox";
 import {
@@ -238,14 +239,8 @@ export function VIBoxJukeboxInner({
         
         setCurrentTrackInfo(updatedTrackInfo);
         
-        // Broadcast to all users via Supabase Realtime
-        supabase
-          .channel('vibox-current-track')
-          .send({
-            type: 'broadcast',
-            event: 'current_track_update',
-            payload: updatedTrackInfo
-          });
+        // Broadcast metadata update (non-critical, debounced)
+        debouncedBroadcast('vibox-current-track', 'current_track_update', updatedTrackInfo);
       }
     };
 
@@ -497,14 +492,8 @@ export function VIBoxJukeboxInner({
         // Update local state for immediate feedback
         setCurrentTrackInfo(trackInfo);
         
-        // Broadcast to all users via Supabase Realtime
-        supabase
-          .channel('vibox-current-track')
-          .send({
-            type: 'broadcast',
-            event: 'current_track_update',
-            payload: trackInfo
-          });
+        // Broadcast track change immediately (critical user action)
+        immediateBroadcast('vibox-current-track', 'current_track_update', trackInfo);
       }
     }
   };
@@ -556,11 +545,14 @@ export function VIBoxJukeboxInner({
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [isOpen, mode, tracks]);
 
-  // Broadcast current time regularly from host for real-time progress updates
+  // Broadcast current time regularly from host for real-time progress updates.
+  // Uses debouncedBroadcast so actual sends happen at most every 3 seconds
+  // instead of every 1 second, reducing egress by ~67% for progress updates.
   useEffect(() => {
     if (!isOpen || mode !== "host" || !currentTrackInfo || !isPlaying) return;
 
@@ -575,18 +567,15 @@ export function VIBoxJukeboxInner({
         
         setCurrentTrackInfo(updatedTrackInfo);
         
-        // Broadcast to all users via Supabase Realtime
-        supabase
-          .channel('vibox-current-track')
-          .send({
-            type: 'broadcast',
-            event: 'current_track_update',
-            payload: updatedTrackInfo
-          });
+        // Debounced: batches sends to reduce egress
+        debouncedBroadcast('vibox-current-track', 'current_track_update', updatedTrackInfo);
       }
-    }, 1000); // Update every second
+    }, 1000); // Local state updates every second, broadcasts debounced to 3s
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      flushAndStop();
+    };
   }, [isOpen, mode, currentTrackInfo, isPlaying]);
 
   
@@ -627,14 +616,8 @@ export function VIBoxJukeboxInner({
       // Update local state for immediate feedback
       setCurrentTrackInfo(updatedTrackInfo);
       
-      // Broadcast to all users via Supabase Realtime
-      supabase
-        .channel('vibox-current-track')
-        .send({
-          type: 'broadcast',
-          event: 'current_track_update',
-          payload: updatedTrackInfo
-        });
+      // Immediate broadcast for play/pause (critical user action)
+      immediateBroadcast('vibox-current-track', 'current_track_update', updatedTrackInfo);
     }
   };
 
@@ -1791,8 +1774,8 @@ export function VIBoxJukeboxInner({
               >
                 {((currentTrack || currentTrackInfo) && (
                   <div 
-                    className="h-full [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)] absolute top-0 left-0 transition-all"
-                    style={{ width: `${(currentTime / (audioRef.current?.duration || currentTrackInfo?.track_duration || 1)) * 100}%` }}
+                    className="progress-width-var h-full [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)] absolute top-0 left-0 transition-all"
+                    style={{ '--progress-width': `${(currentTime / (audioRef.current?.duration || currentTrackInfo?.track_duration || 1)) * 100}%` } as React.CSSProperties}
                   />
                 ))}
               </div>
@@ -1997,8 +1980,8 @@ export function VIBoxJukeboxInner({
                       onTouchStart={mode === "host" ? handleProgressTouchStart : undefined}
                     >
                       <div 
-                        className={`h-full rounded-full transition-all relative [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)]`}
-                        style={{ width: `${(currentTime / (mode === "host" ? (audioRef.current?.duration || currentTrackInfo?.track_duration || currentTrack?.duration || 1) : (currentTrackInfo?.track_duration || 1))) * 100}%` }}
+                        className={`progress-width-var h-full rounded-full transition-all relative [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)]`}
+                        style={{ '--progress-width': `${(currentTime / (mode === "host" ? (audioRef.current?.duration || currentTrackInfo?.track_duration || currentTrack?.duration || 1) : (currentTrackInfo?.track_duration || 1))) * 100}%` } as React.CSSProperties}
                       >
                         <div className={`absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full shadow-lg [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)]`} />
                       </div>
@@ -2021,8 +2004,8 @@ export function VIBoxJukeboxInner({
                         onTouchStart={handleVolumeTouchStart}
                       >
                         <div 
-                          className="h-full rounded-full transition-all [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)]"
-                          style={{ width: `${volume * 100}%` }}
+                          className="progress-width-var h-full rounded-full transition-all [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)]"
+                          style={{ '--progress-width': `${volume * 100}%` } as React.CSSProperties}
                         />
                       </div>
                       <span className="text-xs [--tw-text-opacity:0.8] text-[var(--color-text-secondary)] w-10 text-right">

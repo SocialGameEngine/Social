@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BottomSheet } from '../../../../shared/components/BottomSheet';
+import { FullscreenModal } from '../../../../shared/components/FullscreenModal';
 import { EmptyState } from '../../../../shared/components/EmptyState';
 import type { ReactNode } from 'react';
 
@@ -15,6 +16,8 @@ interface InteractionListBottomSheetProps<T> {
   renderListItem: (item: T, onSelect: () => void) => ReactNode;
   renderDetailView: (item: T, onBack: () => void) => ReactNode;
   getItemId: (item: T) => string;
+  /** If true, detail view opens in fullscreen modal instead of inline */
+  useFullscreenDetail?: boolean;
 }
 
 export function InteractionListBottomSheet<T>({
@@ -28,22 +31,80 @@ export function InteractionListBottomSheet<T>({
   renderListItem,
   renderDetailView,
   getItemId,
+  useFullscreenDetail = true, // Default to fullscreen modal for better UX
 }: InteractionListBottomSheetProps<T>) {
   const [selectedItem, setSelectedItem] = useState<T | null>(null);
+  // Track if sheet should stay minimized while modal is open
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setSelectedItem(null);
+    setIsDetailModalOpen(false);
     onClose();
-  };
+  }, [onClose]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     setSelectedItem(null);
-  };
+    setIsDetailModalOpen(false);
+  }, []);
 
-  const handleSelectItem = (item: T) => {
+  const handleSelectItem = useCallback((item: T) => {
     setSelectedItem(item);
-  };
+    if (useFullscreenDetail) {
+      setIsDetailModalOpen(true);
+    }
+  }, [useFullscreenDetail]);
 
+  // When using fullscreen detail, the sheet stays open showing the list
+  // and the detail opens in a separate fullscreen modal on top
+  if (useFullscreenDetail) {
+    return (
+      <>
+        <BottomSheet 
+          isOpen={isOpen && !isDetailModalOpen} 
+          onClose={handleClose} 
+          title={title} 
+          showCloseButton={true}
+        >
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <div className="px-6 pt-4 pb-6">
+              {items.length === 0 ? (
+                <EmptyState
+                  icon={emptyIcon}
+                  title={emptyTitle}
+                  description={emptyDescription}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {items.map((item) => (
+                    <div key={getItemId(item)}>
+                      {renderListItem(item, () => handleSelectItem(item))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </BottomSheet>
+
+        {/* Fullscreen modal for detail view */}
+        <FullscreenModal
+          isOpen={isDetailModalOpen && selectedItem !== null}
+          onClose={handleBack}
+          title={title}
+          maxWidth="2xl"
+        >
+          {selectedItem && renderDetailView(selectedItem, handleBack)}
+        </FullscreenModal>
+      </>
+    );
+  }
+
+  // Legacy inline detail view (kept for backwards compatibility)
   return (
     <BottomSheet isOpen={isOpen} onClose={handleClose} title={title} showCloseButton={!selectedItem} disableDrag={!!selectedItem}>
       <AnimatePresence mode="wait">

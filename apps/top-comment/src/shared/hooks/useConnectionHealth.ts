@@ -80,6 +80,7 @@ export function useConnectionHealth() {
     channelRef.current = channel;
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
       channelRef.current = null;
     };

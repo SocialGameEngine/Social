@@ -12,7 +12,7 @@ interface UseHostEffectsProps {
   clearHostSession: () => void;
   setShowCreateModal: (show: boolean) => void;
   setCurrentPhase: (phase: SessionStatus | null) => void;
-  setAnalytics: (data: any) => void;
+  setAnalytics: (data: unknown) => void;
   setShowPromptLibraryModal: (show: boolean) => void;
   setHostGroupVotes: (votes: Record<string, string>) => void;
   toast: (options: { title: string; variant: "success" | "error" }) => void;

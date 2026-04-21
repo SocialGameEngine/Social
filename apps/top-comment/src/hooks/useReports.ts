@@ -71,6 +71,7 @@ export function useReports({ roomId }: UseReportsOptions) {
     channelRef.current = channel;
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
       channelRef.current = null;
     };

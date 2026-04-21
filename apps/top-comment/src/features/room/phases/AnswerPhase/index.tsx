@@ -2,6 +2,7 @@ import { SessionButton } from '../../components/layout/SessionButton';
 import { SessionTimer } from '@social/ui';
 import { usePhaseTimer } from '../../../../shared/hooks';
 import { getIsMainEventMode } from '../../components/PhaseController';
+import { getTimerPausedState } from '../../../../shared/utils/sessionUtils';
 import type { Session } from '../../../../shared/types';
 
 interface AnswerPhaseProps {
@@ -22,10 +23,13 @@ export function AnswerPhase({ session, hasSubmitted, onOpenModal }: AnswerPhaseP
     }
   };
 
+  // Use explicit paused state from session, not derived from endsAt
+  const isPaused = getTimerPausedState(session);
+
   return (
     <div className="w-full mb-8">
       <SessionButton
-        displayState={hasSubmitted ? "joined" : "answer"}
+        displayState={hasSubmitted ? "answered" : "answer"}
         session={session}
         isMainEventMode={isMainEventMode}
         phase="answer"
@@ -34,7 +38,7 @@ export function AnswerPhase({ session, hasSubmitted, onOpenModal }: AnswerPhaseP
       <SessionTimer
         endTime={session?.endsAt}
         totalSeconds={totalSeconds}
-        paused={!session?.endsAt || session?.status === 'ended' || (!session?.endsAt ? false : new Date() >= new Date(session.endsAt))}
+        paused={isPaused}
         variant="brand"
         isDark={false}
         position="inline"

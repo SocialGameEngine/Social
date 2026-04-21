@@ -35,13 +35,13 @@ export function useRoomChat({ roomId, userId, membershipId, displayName }: UseRo
     if (!roomId) return;
 
     setIsLoading(true);
-    supabase
+    (supabase as any)
       .from('room_messages')
       .select('*')
       .eq('room_id', roomId)
       .order('created_at', { ascending: true })
       .limit(100)
-      .then(({ data, error }) => {
+      .then(({ data, error }: { data: any; error: any }) => {
         if (error) {
           console.error('Error fetching chat messages:', error);
         } else if (data) {
@@ -96,6 +96,7 @@ export function useRoomChat({ roomId, userId, membershipId, displayName }: UseRo
     channelRef.current = channel;
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
@@ -112,7 +113,7 @@ export function useRoomChat({ roomId, userId, membershipId, displayName }: UseRo
 
       setIsSending(true);
       const filteredContent = censorText(content.trim());
-      const { error } = await supabase.from('room_messages').insert({
+      const { error } = await (supabase as any).from('room_messages').insert({
         room_id: roomId,
         user_id: userId,
         membership_id: membershipId,

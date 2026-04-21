@@ -61,11 +61,35 @@ export function getSessionDisplayCopy(state: SessionDisplayState, ctx: SessionDi
         joinedCountText: null,
       };
 
+    case "answered":
+      return {
+        statusBadgeText: "ANSWERED",
+        headlineText: "ANSWER SUBMITTED",
+        supportText: "WAITING FOR OTHER PLAYERS",
+        joinedCountText: null,
+      };
+
     case "vote":
       return {
         statusBadgeText: "VOTE",
         headlineText: "PICK A WINNER",
         supportText: "THE ROOM IS VOTING",
+        joinedCountText: null,
+      };
+
+    case "voted":
+      return {
+        statusBadgeText: "VOTED",
+        headlineText: "VOTE SUBMITTED",
+        supportText: "WAITING FOR VOTING TO END",
+        joinedCountText: null,
+      };
+
+    case "reveal":
+      return {
+        statusBadgeText: "REVEAL",
+        headlineText: "ANSWER REVEALED",
+        supportText: "ROUND REVEAL IN PROGRESS",
         joinedCountText: null,
       };
 

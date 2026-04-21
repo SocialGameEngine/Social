@@ -5,12 +5,14 @@ interface MiscSectionProps {
   onOpenVIBox: () => void;
   onOpenHelp: () => void;
   isLoading?: boolean;
+  helpExpanded?: boolean;
 }
 
 export function MiscSection({
   onOpenVIBox,
   onOpenHelp,
   isLoading = false,
+  helpExpanded,
 }: MiscSectionProps) {
   if (isLoading) {
     return <SkeletonGrid count={2} />;
@@ -42,6 +44,7 @@ export function MiscSection({
           label="Help"
           variant="misc"
           onClick={onOpenHelp}
+          aria-expanded={helpExpanded}
         />
       </div>
     </div>

@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "../../../supabase/client";
 
 interface UseHostRecoveryProps {
-  user: any;
+  user: User | null;
   authLoading: boolean;
   isVenueAccount: boolean;
   venueAccountLoading: boolean;

@@ -1,7 +1,7 @@
 import type { Dispatch } from 'react';
 import type { Session, Room, RoomMembership } from '../../../shared/types';
 
-export type GamePhase = 'lobby' | 'answer' | 'vote' | 'results' | 'ended';
+export type GamePhase = 'lobby' | 'answer' | 'vote' | 'reveal' | 'results' | 'ended';
 export type ModalType = 'answer' | 'vote' | 'leaderboard' | 'selfie' | null;
 
 export interface SubmissionStatus {
@@ -15,12 +15,24 @@ export interface RoomPageError {
   recoverable: boolean;
 }
 
+export interface SocialeModalContext {
+  socialeId: string;
+  roundId: string;
+  prompt: string;
+  roundIndex: number;
+  roundType?: string;
+  roundSettings?: any; // Add round settings for MC/written answer
+  phaseEndsAt?: string | null;
+  paused: boolean;
+}
+
 export interface RoomPageState {
   activeModal: ModalType;
   submissionStatus: SubmissionStatus;
   error: RoomPageError | null;
   isLoading: boolean;
   endedModals: ('leaderboard' | 'selfie')[];
+  socialeModalContext?: SocialeModalContext; // Add Sociale modal context
 }
 
 export interface PhaseConfig {
@@ -44,6 +56,7 @@ export interface RoomPageContextValue {
 
 export type RoomPageAction =
   | { type: 'OPEN_MODAL'; payload: ModalType }
+  | { type: 'OPEN_SOCIALE_MODAL'; payload: SocialeModalContext }
   | { type: 'CLOSE_MODAL' }
   | { type: 'SET_SUBMISSION_STATUS'; payload: { type: 'answer' | 'vote'; submitted: boolean } }
   | { type: 'SET_ERROR'; payload: RoomPageError | null }

@@ -19,6 +19,10 @@ import type {
   RoomAnalytics
 } from "../domain/types/room.types";
 import type {
+  Sociale,
+  SocialeSettings,
+} from "../domain/types/sociale.types";
+import type {
   InteractionType,
   InteractionStatus,
   Interaction,
@@ -57,6 +61,12 @@ export type {
   Interaction,
   InteractionResponse,
   InteractionVote,
+};
+
+// Re-export Sociale domain types
+export type {
+  Sociale,
+  SocialeSettings,
 };
 
 // Session analytics type
@@ -158,6 +168,15 @@ export interface SetPromptLibraryRequest {
 }
 
 export interface SetPromptLibraryResponse {
+  session: Session;
+}
+
+export interface PauseSessionRequest {
+  sessionId: string;
+  pause: boolean;
+}
+
+export interface PauseSessionResponse {
   session: Session;
 }
 
@@ -280,6 +299,18 @@ export interface StartSessionInRoomResponse {
   room: Room;
 }
 
+// Sociale orchestration in room context (pointer-aware)
+export interface StartSocialeInRoomRequest {
+  roomId: string;
+  // Allow partial Sociale settings; exact shape resolved by edge function.
+  socialeSettings?: Partial<SocialeSettings>;
+}
+
+export interface StartSocialeInRoomResponse {
+  sociale: any; // Narrow to Sociale domain type when fully wired
+  room: Room;
+}
+
 export interface EndSessionInRoomRequest {
   roomId: string;
   sessionId: string;
@@ -287,5 +318,17 @@ export interface EndSessionInRoomRequest {
 
 export interface EndSessionInRoomResponse {
   session: Session;
+  room: Room;
+}
+
+export interface EndSocialeInRoomRequest {
+  roomId: string;
+  socialeId: string;
+  // 'end' = completed, 'cancel' = cancelled
+  mode?: 'end' | 'cancel';
+}
+
+export interface EndSocialeInRoomResponse {
+  sociale: any;
   room: Room;
 }

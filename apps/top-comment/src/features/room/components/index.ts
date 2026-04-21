@@ -1,5 +1,5 @@
 export * from './RoomPage';
-export { RoomPageContentNew as RoomPageContent } from './RoomPageContentNew';
+export { RoomPageContent } from './RoomPageContent';
 export { PhaseCardButton } from './PhaseCardButton';
 export { AnswerModal } from './AnswerModal';
 export { VoteModal as SessionVoteModal } from './VoteModal';

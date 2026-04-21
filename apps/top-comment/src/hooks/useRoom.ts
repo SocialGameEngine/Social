@@ -9,6 +9,7 @@ import type {
 import { roomService } from '../services/roomService';
 import { roomMembershipService } from '../services/roomMembershipService';
 import { supabase } from '../supabase/client';
+import { throttle } from '../shared/utils/realtimeThrottle';
 
 interface UseRoomOptions {
   roomId?: string;
@@ -318,15 +319,18 @@ export function useRoom(options: UseRoomOptions = {}) {
     }
   }, [room, isHost]);
 
-  // Real-time subscription for room data (session changes)
+  // UNIFIED real-time subscription for room data + memberships
+  // Consolidates 2 channels into 1 to reduce egress.
   useEffect(() => {
     const targetRoomId = room?.id || roomId;
     if (!targetRoomId) return;
 
-    console.log('🔔 Setting up room subscription for:', targetRoomId);
+    // Throttle membership refreshes to at most once per 2 seconds
+    const throttledRefresh = throttle(() => refreshMembers(), 2000);
 
     const channel = supabase
-      .channel(`room:${targetRoomId}`)
+      .channel(`room-unified:${targetRoomId}`)
+      // Room table updates
       .on(
         'postgres_changes',
         {
@@ -335,30 +339,11 @@ export function useRoom(options: UseRoomOptions = {}) {
           table: 'rooms',
           filter: `id=eq.${targetRoomId}`,
         },
-        (payload) => {
-          console.log('🔄 Room update received:', payload);
-          console.log('🔄 New currentSessionId:', payload.new?.current_session_id);
+        () => {
           loadRoom(undefined, true); // Silent refresh - no loading state
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Room subscription status:', status);
-      });
-
-    return () => {
-      console.log('🔕 Cleaning up room subscription for:', targetRoomId);
-      supabase.removeChannel(channel);
-    };
-  }, [room?.id, roomId, loadRoom]);
-
-  // Real-time subscription for room memberships
-  useEffect(() => {
-    const targetRoomId = room?.id || roomId;
-    if (!targetRoomId) return;
-
-    
-    const channel = supabase
-      .channel(`room_memberships:${targetRoomId}`)
+      // Room memberships changes
       .on(
         'postgres_changes',
         {
@@ -368,26 +353,21 @@ export function useRoom(options: UseRoomOptions = {}) {
           filter: `room_id=eq.${targetRoomId}`,
         },
         (payload: any) => {
-                    
-          // Check if this is a DELETE event for the current user
           if (payload.eventType === 'DELETE' && payload.old && payload.old.user_id === user?.id) {
-                        refreshMembers(); // Only refresh on DELETE events for current user
+            throttledRefresh();
           } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            refreshMembers(); // Refresh on INSERT/UPDATE events
+            throttledRefresh();
           }
-          // Don't refresh on other events to avoid race conditions
         }
       )
-      .subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                  } else if (status === 'TIMED_OUT' || status === 'CLOSED') {
-                  }
-      });
+      .subscribe();
 
     return () => {
-            supabase.removeChannel(channel);
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
+      throttledRefresh.cancel();
     };
-  }, [room?.id, roomId, refreshMembers, user?.id]);
+  }, [room?.id, roomId, loadRoom, refreshMembers, user?.id]);
 
   // Initial load effect
   useEffect(() => {

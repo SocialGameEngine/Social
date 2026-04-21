@@ -107,12 +107,12 @@ export function PollModal({ interaction, membershipId, isOpen, onClose, onJoinRo
               >
                 {/* Vote bar background */}
                 <div
-                  className={`absolute left-0 top-0 h-full transition-all duration-500 ${
+                  className={`progress-width-var absolute left-0 top-0 h-full transition-all duration-500 ${
                     isSelected
                       ? 'bg-cyan-500/30'
                       : 'bg-slate-600'
                   }`}
-                  style={{ width: `${barWidth}%` }}
+                  style={{ '--progress-width': `${barWidth}%` } as React.CSSProperties}
                 />
 
                 {/* Content */}
