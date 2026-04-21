@@ -79,10 +79,11 @@ export function useHostRoomRecovery({
       return;
     }
 
-    // Not a venue account - skip recovery
+    // Not a venue account - skip recovery but mark as complete
     if (!user || user.is_anonymous || !isVenueAccount) {
       setStatus('idle');
-      setRoomExistenceState('unknown');
+      setRoomExistenceState('no_room_confirmed');
+      recoveryAttemptedRef.current = true;
       return;
     }
 
