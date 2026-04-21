@@ -50,6 +50,7 @@ interface HostModalsContainerProps {
     description?: string;
     mode?: SocialeMode;
     totalRounds?: number;
+    voiceProfile?: string;
   }) => Promise<void>;
 
   // Session modals

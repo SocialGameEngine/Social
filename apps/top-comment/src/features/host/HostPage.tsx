@@ -480,6 +480,10 @@ export function HostPage() {
                 socialeId: current.id,
                 title: updates.title, description: updates.description,
                 mode: updates.mode, totalRounds: updates.totalRounds,
+                settings: { 
+                  ...(current.settings || {}), 
+                  voiceProfile: updates.voiceProfile 
+                },
               });
             },
             showCreateModal,

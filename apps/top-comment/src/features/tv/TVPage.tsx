@@ -2,15 +2,13 @@ import { useParams, Link } from "react-router-dom";
 import { useMemo } from "react";
 import { Timer, Card } from "@social/ui";
 import { BackgroundAnimation } from "../../components/BackgroundAnimation";
-import { TTSControls } from "../../components/TTSControls";
-import { VoiceProfileSelector } from "../presenter/components/VoiceProfileSelector";
 import { useTheme } from "../../shared/providers/ThemeProvider";
 import { useReactions } from "../../hooks/useReactions";
 import { PresenterReactionBar } from "../presenter/components/PresenterReactionBar";
 import { ReactionOverlay } from "../room/components/ReactionOverlay";
 import QRCodeBlock from "../../components/QRCodeBlock";
 import { useTVPresenter } from "./hooks/useTVPresenter";
-import { useTVPresenterTTS } from "./hooks/useTVPresenterTTS";
+import { useTVAutoTTS } from "./hooks/useTVAutoTTS";
 import { useRoom } from "../../hooks/useRoom";
 import {
   LobbyPhase,
@@ -44,11 +42,8 @@ export function TVPage() {
     membershipId: undefined,
   });
 
-  const { phaseAnnouncementText, promptAnnouncementText } = useTVPresenterTTS(
-    sociale ?? null,
-    currentRound ?? null,
-    currentRoundResponses
-  );
+  // Auto TTS - fires on phase and round changes
+  useTVAutoTTS(sociale ?? null, currentRound ?? null);
 
   const isLoading = roomLoading || socialeLoading;
 
@@ -146,11 +141,6 @@ export function TVPage() {
               <p className={`mt-2 text-sm ${!isDark ? 'text-slate-600' : 'text-cyan-300'}`}>
                 Round {(sociale.currentRoundIndex ?? 0) + 1} of {sociale.totalRounds ?? "?"}
               </p>
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <TTSControls text={phaseAnnouncementText} label="Announce phase" showMethod={true} />
-                <TTSControls text={promptAnnouncementText} label="Read prompt" />
-              </div>
-              <VoiceProfileSelector />
             </Card>
 
             <div className="flex items-center gap-6">

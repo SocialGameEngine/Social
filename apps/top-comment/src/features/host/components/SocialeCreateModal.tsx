@@ -17,6 +17,7 @@ import {
   generateAlternatingRounds 
 } from '../../../features/sociale/presets';
 import type { PromptLibraryId } from '../../../shared/promptLibraries';
+import { ControlledVoiceProfileSelector } from '../../presenter/components/ControlledVoiceProfileSelector';
 
 interface SocialeCreateModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ interface SocialeCreateModalProps {
     description?: string;
     mode?: SocialeMode;
     totalRounds?: number;
+    voiceProfile?: string;
   }) => Promise<void>;
   roomId: string;
   /**
@@ -39,6 +41,9 @@ interface SocialeCreateModalProps {
     description?: string | null;
     mode?: SocialeMode;
     totalRounds?: number;
+    settings?: {
+      voiceProfile?: string;
+    };
   } | null;
 }
 
@@ -56,6 +61,7 @@ export function SocialeCreateModal({
   const [mode, setMode] = useState<CreateSocialeRequest['mode']>('alternating');
   const [totalRounds, setTotalRounds] = useState(5);
   const [selectedLibraries, setSelectedLibraries] = useState<PromptLibraryId[]>([]);
+  const [voiceProfile, setVoiceProfile] = useState<string>('');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<Array<{
@@ -663,12 +669,16 @@ export function SocialeCreateModal({
       setDescription(existingSociale?.description ?? '');
       if (existingSociale?.mode) setMode(existingSociale.mode);
       if (typeof existingSociale?.totalRounds === 'number') setTotalRounds(existingSociale.totalRounds);
+      if (existingSociale?.settings && (existingSociale.settings as any)?.voiceProfile) {
+        setVoiceProfile((existingSociale.settings as any).voiceProfile);
+      }
     } else {
       // Reset to create defaults when opening in create mode.
       setTitle('');
       setDescription('');
       setMode('alternating');
       setTotalRounds(5);
+      setVoiceProfile('');
     }
   }, [
     isOpen,
@@ -677,6 +687,7 @@ export function SocialeCreateModal({
     existingSociale?.description,
     existingSociale?.mode,
     existingSociale?.totalRounds,
+    existingSociale?.settings?.voiceProfile,
   ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -692,6 +703,7 @@ export function SocialeCreateModal({
           description: description || undefined,
           mode,
           totalRounds,
+          voiceProfile: voiceProfile || undefined,
         });
         onClose();
         return;
@@ -852,6 +864,11 @@ export function SocialeCreateModal({
               hint="Shown to players in the lobby"
               error={error ? 'Failed to save Sociale' : undefined}
               isDark={isDark}
+            />
+
+            <ControlledVoiceProfileSelector
+              value={voiceProfile}
+              onChange={setVoiceProfile}
             />
 
             <>
