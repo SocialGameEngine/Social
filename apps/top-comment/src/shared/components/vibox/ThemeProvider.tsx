@@ -58,7 +58,7 @@ export const VIBoxThemeProvider = ({
 
   return (
     <VIBoxThemeContext.Provider value={value}>
-      <div ref={viboxContainerRef} className="vibox-theme-container" style={{ position: 'relative' }}>
+      <div ref={viboxContainerRef} className="vibox-theme-container theme-provider-root">
         {children}
       </div>
     </VIBoxThemeContext.Provider>

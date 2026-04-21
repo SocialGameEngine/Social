@@ -10,7 +10,7 @@
 // Each hook that needs realtime invalidation calls useSocialeChannel() which
 // ref-counts the underlying Supabase channel via the SubscriptionPool.
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { subscriptionPool } from '../../../shared/services/SubscriptionPool';
 import type { PgChangesFilter } from '../../../shared/services/SubscriptionPool';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
@@ -28,6 +28,12 @@ export function useSocialeChannel(
   socialeId: string | undefined,
   onPayload: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void,
 ) {
+  // Keep a ref to the latest onPayload so the subscription is never torn down
+  // just because the callback reference changed (e.g. due to parent re-renders).
+  // The channel is only recreated when socialeId itself changes.
+  const onPayloadRef = useRef(onPayload);
+  onPayloadRef.current = onPayload;
+
   useEffect(() => {
     if (!socialeId) return;
 
@@ -40,8 +46,11 @@ export function useSocialeChannel(
       { event: '*', schema: 'public', table: 'socialites', filter: `sociale_id=eq.${socialeId}` },
     ];
 
-    const unsub = subscriptionPool.subscribe(channelName, filters, onPayload);
+    const stableCallback = (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) =>
+      onPayloadRef.current(payload);
+
+    const unsub = subscriptionPool.subscribe(channelName, filters, stableCallback);
 
     return unsub;
-  }, [socialeId, onPayload]);
+  }, [socialeId]); // onPayload intentionally excluded — the ref keeps it current
 }

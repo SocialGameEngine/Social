@@ -41,7 +41,7 @@ export function BadgeCollectionModal({ isOpen, onClose, myBadges }: BadgeCollect
         </div>
 
         {/* Badge Grid */}
-        <div className="overflow-y-auto p-5 space-y-5" style={{ maxHeight: 'calc(80vh - 80px)' }}>
+        <div className="overflow-y-auto p-5 space-y-5 max-h-modal-scroll">
           {CATEGORIES.map((cat) => {
             const badges = BADGE_DEFINITIONS.filter((b) => b.category === cat);
             return (

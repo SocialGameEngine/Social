@@ -2,8 +2,7 @@ import { motion, useMotionValue, useTransform, useAnimation, type PanInfo } from
 import { useEffect, useState, useRef, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
-import type FocusTrapType from 'focus-trap-react';
-const FocusTrap = require('focus-trap-react') as typeof FocusTrapType;
+import { FocusTrap } from 'focus-trap-react';
 
 interface BottomSheetProps {
   isOpen: boolean;

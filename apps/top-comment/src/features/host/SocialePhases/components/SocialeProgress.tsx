@@ -76,12 +76,12 @@ export function SocialeRoundProgress({
       )}>
         <div
           className={clsx(
-            'h-full rounded-full transition-all duration-300',
+            'progress-width-var h-full rounded-full transition-all duration-300',
             isDark 
               ? 'bg-gradient-to-r from-cyan-400 to-cyan-500 shadow-lg shadow-cyan-400/50'
               : 'bg-brand-primary'
           )}
-          style={{ width: `${progress}%` }}
+          style={{ '--progress-width': `${progress}%` } as React.CSSProperties}
         />
       </div>
     </div>

@@ -303,10 +303,10 @@ export function HostActionBar({
         <div className="px-1 py-2">
           <div className="relative w-full h-2 bg-slate-700 rounded-full overflow-hidden">
             <div 
-              className={`h-full transition-all duration-1000 ease-linear ${
+              className={`progress-width-var h-full transition-all duration-1000 ease-linear ${
                 timer <= 10 ? 'bg-red-500' : timer <= (sessionPhaseDuration * 0.33) ? 'bg-yellow-500' : 'bg-green-500'
               }`}
-              style={{ width: `${(timer / sessionPhaseDuration) * 100}%` }}
+              style={{ '--progress-width': `${(timer / sessionPhaseDuration) * 100}%` } as React.CSSProperties}
             />
           </div>
         </div>

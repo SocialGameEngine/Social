@@ -335,7 +335,7 @@ export function SelfieModal({
             </div>
           ) : cameraStream ? (
             <div className="relative h-full flex flex-col bg-black">
-              <div className="relative w-full" style={{ aspectRatio: '4/5' }}>
+              <div className="relative w-full aspect-4-5">
                 <video
                   ref={videoRef}
                   autoPlay

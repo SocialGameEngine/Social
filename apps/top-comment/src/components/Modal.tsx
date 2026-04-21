@@ -1,8 +1,7 @@
 import { useEffect } from "react";
 import type { PropsWithChildren, ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type FocusTrap from 'focus-trap-react';
-const FocusTrapComponent = require('focus-trap-react') as typeof FocusTrap;
+import { FocusTrap } from 'focus-trap-react';
 import { Button } from "./Button";
 import { useTheme } from "../shared/providers/ThemeProvider";
 
@@ -36,7 +35,7 @@ export function Modal({
   if (!open) return null;
 
   return createPortal(
-    <FocusTrapComponent>
+    <FocusTrap>
       <div className={`fixed inset-0 z-50 flex items-center justify-center px-4 py-6 ${!isDark ? 'bg-slate-950/50' : 'bg-slate-950/70'}`}>
         <div className={`w-full max-w-lg rounded-3xl p-6 shadow-2xl ${!isDark ? 'bg-white' : 'bg-slate-800'}`}>
           <div className="flex items-start justify-between gap-4">
@@ -56,7 +55,7 @@ export function Modal({
           {footer ? <div className="mt-6 flex justify-end">{footer}</div> : null}
         </div>
       </div>
-    </FocusTrapComponent>,
+    </FocusTrap>,
     document.body,
   );
 }

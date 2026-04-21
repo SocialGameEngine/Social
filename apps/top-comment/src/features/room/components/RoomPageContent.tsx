@@ -615,7 +615,7 @@ export function RoomPageContent() {
           targetName={challengeTarget?.name || ''}
         />
         {hasMembership && (
-          <div className="fixed left-4 z-30" style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
+          <div className="safe-bottom-5rem-left-4">
             <SubmitQuestionButton onClick={() => setShowSubmitQuestion(true)} />
           </div>
         )}
@@ -742,7 +742,7 @@ export function RoomPageContent() {
       />
 
       {hasMembership && (
-        <div className="fixed left-4 z-30" style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="safe-bottom-5rem-left-4">
           <SubmitQuestionButton 
             onClick={() => setShowSubmitQuestion(true)} 
             isMember={hasMembership}

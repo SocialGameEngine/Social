@@ -20,8 +20,8 @@ export function PresenterReactionBar({ reactionCounts }: PresenterReactionBarPro
           <div key={emoji} className="flex flex-col items-center gap-1">
             {count > 0 && (
               <div
-                className="w-8 rounded-t-md bg-gradient-to-t from-pink-500 to-cyan-400 transition-all duration-500"
-                style={{ height: `${height}px` }}
+                className="w-8 rounded-t-md bg-gradient-to-t from-pink-500 to-cyan-400 transition-all duration-500 height-var"
+                style={{ '--height-px': `${height}px` } as React.CSSProperties}
               />
             )}
             <span className="text-2xl">{emoji}</span>

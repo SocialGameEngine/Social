@@ -1,8 +1,7 @@
 import { useState, useCallback } from "react";
 import { Button } from "@social/ui";
 import { generatePlayerName } from "../utils/nameGenerator";
-import type FocusTrapType from 'focus-trap-react';
-const FocusTrap = require('focus-trap-react') as typeof FocusTrapType;
+import { FocusTrap } from 'focus-trap-react';
 
 interface JoinRoomModalProps {
   isOpen: boolean;

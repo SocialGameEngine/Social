@@ -38,8 +38,8 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         onClick={(e) => onSeek(e.clientX, e.currentTarget)}
       >
         <div 
-          className={`h-full rounded-full transition-all relative [--tw-bg-opacity:1] bg-[var(--color-button-primary)]`}
-          style={{ width: `${progressPercentage}%` }}
+          className={`progress-width-var h-full rounded-full transition-all relative [--tw-bg-opacity:1] bg-[var(--color-button-primary)]`}
+          style={{ '--progress-width': `${progressPercentage}%` } as React.CSSProperties}
         >
           <div className={`absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full shadow-lg [--tw-bg-opacity:1] bg-[var(--color-button-primary)]`} />
         </div>

@@ -1774,8 +1774,8 @@ export function VIBoxJukeboxInner({
               >
                 {((currentTrack || currentTrackInfo) && (
                   <div 
-                    className="h-full [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)] absolute top-0 left-0 transition-all"
-                    style={{ width: `${(currentTime / (audioRef.current?.duration || currentTrackInfo?.track_duration || 1)) * 100}%` }}
+                    className="progress-width-var h-full [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)] absolute top-0 left-0 transition-all"
+                    style={{ '--progress-width': `${(currentTime / (audioRef.current?.duration || currentTrackInfo?.track_duration || 1)) * 100}%` } as React.CSSProperties}
                   />
                 ))}
               </div>
@@ -1980,8 +1980,8 @@ export function VIBoxJukeboxInner({
                       onTouchStart={mode === "host" ? handleProgressTouchStart : undefined}
                     >
                       <div 
-                        className={`h-full rounded-full transition-all relative [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)]`}
-                        style={{ width: `${(currentTime / (mode === "host" ? (audioRef.current?.duration || currentTrackInfo?.track_duration || currentTrack?.duration || 1) : (currentTrackInfo?.track_duration || 1))) * 100}%` }}
+                        className={`progress-width-var h-full rounded-full transition-all relative [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)]`}
+                        style={{ '--progress-width': `${(currentTime / (mode === "host" ? (audioRef.current?.duration || currentTrackInfo?.track_duration || currentTrack?.duration || 1) : (currentTrackInfo?.track_duration || 1))) * 100}%` } as React.CSSProperties}
                       >
                         <div className={`absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full shadow-lg [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)]`} />
                       </div>
@@ -2004,8 +2004,8 @@ export function VIBoxJukeboxInner({
                         onTouchStart={handleVolumeTouchStart}
                       >
                         <div 
-                          className="h-full rounded-full transition-all [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)]"
-                          style={{ width: `${volume * 100}%` }}
+                          className="progress-width-var h-full rounded-full transition-all [--tw-bg-opacity:1] bg-[var(--color-vibox-button-primary)]"
+                          style={{ '--progress-width': `${volume * 100}%` } as React.CSSProperties}
                         />
                       </div>
                       <span className="text-xs [--tw-text-opacity:0.8] text-[var(--color-text-secondary)] w-10 text-right">

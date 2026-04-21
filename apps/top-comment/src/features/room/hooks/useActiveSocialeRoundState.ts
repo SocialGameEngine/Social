@@ -30,7 +30,15 @@ export function useActiveSocialeRoundState(socialeId: string | undefined, social
           void queryClient.invalidateQueries({ queryKey: ['sociale-round-state-active', socialeId] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          // Catch-up fetch: the subscription setup window can be 200ms–2s.
+          // Any event that fired during that window was silently dropped.
+          // Invalidating here ensures we always read current DB state once
+          // the channel is confirmed live.
+          void queryClient.invalidateQueries({ queryKey: ['sociale-round-state-active', socialeId] });
+        }
+      });
 
     return () => {
       channel.unsubscribe();

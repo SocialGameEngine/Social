@@ -2162,3 +2162,101 @@ dialog[open] {
 .offline-banner-retry:hover {
   background: rgba(217, 119, 6, 0.5);
 }
+
+/* ============================================================
+   Style Consolidation Utilities - added 2026-04-20
+   ============================================================ */
+@layer utilities {
+
+  /* --- Progress bars --- */
+  /* Usage: set style={{ '--progress-width': `${n}%` } as React.CSSProperties} on the element */
+  .progress-width-var {
+    width: var(--progress-width, 0%);
+  }
+
+  /* --- Panel widths --- */
+  /* Usage: set style={{ '--panel-width': `${value}px` } as React.CSSProperties} on the element */
+  .panel-width-var {
+    width: var(--panel-width, auto);
+  }
+
+  /* --- Height values --- */
+  /* Usage: set style={{ '--height-px': `${value}px` } as React.CSSProperties} on the element */
+  .height-var {
+    height: var(--height-px, auto);
+  }
+
+  /* --- Safe area positioning --- */
+  /* Replaces: className="fixed left-4 z-30" style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }} */
+  .safe-bottom-5rem-left-4 {
+    position: fixed;
+    left: 1rem;
+    z-index: 30;
+    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* --- Aspect ratios --- */
+  .aspect-4-5 {
+    aspect-ratio: 4 / 5;
+  }
+
+  /* --- Max height constraints --- */
+  .max-h-\[300px\] {
+    /* NOTE: Tailwind already generates this as max-h-[300px] - use that instead. */
+    /* This entry is here as a reminder; do NOT add a duplicate. */
+  }
+
+  .max-h-modal-scroll {
+    max-height: calc(80vh - 80px);
+  }
+
+  /* --- Card tilt transforms (static decorative angles) --- */
+  .card-tilt-neg1 {
+    transform: rotate(-1deg) scale(0.95);
+  }
+
+  .card-tilt-pos2 {
+    transform: rotate(2deg) scale(0.9);
+  }
+
+  /* --- Drop-shadow filters --- */
+  /* Light mode: cyan icon glow */
+  .drop-shadow-cyan-glow {
+    filter: drop-shadow(0 0 2px #06b6d4) drop-shadow(0 0 4px rgba(6, 182, 212, 0.1));
+  }
+
+  /* Dark mode: lighter cyan icon glow */
+  .drop-shadow-cyan-light-glow {
+    filter: drop-shadow(0 0 2px #67e8f9) drop-shadow(0 0 4px rgba(103, 232, 249, 0.1));
+  }
+
+  /* Magenta/brand glow for brand name heading */
+  .drop-shadow-magenta-glow {
+    filter: drop-shadow(0 0 2px #ff00ff) drop-shadow(0 0 4px rgba(255, 0, 255, 0.1));
+    color: #ff00ff;
+  }
+
+  /* --- Scrollbar --- */
+  .scrollbar-thin-custom {
+    scrollbar-width: thin;
+  }
+
+  /* --- Embed reset --- */
+  .embed-reset {
+    background: transparent;
+    border-radius: 8px;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+    min-width: 200px;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* --- ThemeProvider relative wrapper --- */
+  .theme-provider-root {
+    position: relative;
+  }
+
+}

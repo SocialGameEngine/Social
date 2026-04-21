@@ -151,10 +151,10 @@ export function HostDesktopShell({
       <div className="flex-1 flex overflow-hidden">
         {/* Left panel - Controls */}
         <aside
-          className={`flex-shrink-0 bg-slate-800/50 border-r border-slate-700 transition-all duration-200 ${
+          className={`panel-width-var flex-shrink-0 bg-slate-800/50 border-r border-slate-700 transition-all duration-200 ${
             leftCollapsed ? 'w-0 overflow-hidden' : ''
           }`}
-          style={{ width: leftCollapsed ? 0 : leftWidth }}
+          style={{ '--panel-width': `${leftCollapsed ? 0 : leftWidth}px` } as React.CSSProperties}
         >
           <div className="h-full overflow-y-auto p-4">
             {controlsPanel}
@@ -235,10 +235,10 @@ export function HostDesktopShell({
         {/* Right panel - Participants */}
         {participantsPanel && (
           <aside
-            className={`flex-shrink-0 bg-slate-800/50 border-l border-slate-700 transition-all duration-200 ${
+            className={`panel-width-var flex-shrink-0 bg-slate-800/50 border-l border-slate-700 transition-all duration-200 ${
               rightCollapsed ? 'w-0 overflow-hidden' : ''
             }`}
-            style={{ width: rightCollapsed ? 0 : rightWidth }}
+            style={{ '--panel-width': `${rightCollapsed ? 0 : rightWidth}px` } as React.CSSProperties}
           >
             <div className="h-full overflow-y-auto p-4">
               {participantsPanel}

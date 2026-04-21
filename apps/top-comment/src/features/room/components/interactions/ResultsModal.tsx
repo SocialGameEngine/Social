@@ -133,10 +133,10 @@ export function ResultsModal({
                 <div className="mt-3">
                   <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
                     <div
-                      className={`h-full transition-all duration-500 ${
+                      className={`progress-width-var h-full transition-all duration-500 ${
                         index === 0 ? "bg-yellow-500" : "bg-slate-500"
                       }`}
-                      style={{ width: `${result.percentage}%` }}
+                      style={{ '--progress-width': `${result.percentage}%` } as React.CSSProperties}
                     />
                   </div>
                 </div>

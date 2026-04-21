@@ -37,23 +37,11 @@ export function InstagramEmbed({ url, className }: InstagramEmbedProps) {
   return (
     <div className={`instagram-embed ${className || ''} w-full max-w-full box-border`}>
       <blockquote
-        className="instagram-media"
+        className="instagram-media embed-reset"
         data-instgrm-permalink={url}
         data-instgrm-version="14"
         data-instgrm-captioned
         data-instgrm-width="100%"
-        style={{
-          background: 'transparent',
-          borderRadius: '8px',
-          boxShadow: 'none',
-          display: 'block',
-          padding: '0',
-          margin: '0',
-          minWidth: '200px',
-          maxWidth: '100%',
-          width: '100%',
-          boxSizing: 'border-box',
-        }}
       />
     </div>
   );

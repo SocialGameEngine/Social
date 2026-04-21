@@ -3,11 +3,12 @@
 // =============================================================================
 // Hook for fetching and managing Sociale data.
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../supabase/client';
 import type { Sociale, CreateSocialeRequest, UpdateSocialeRequest } from '../../../domain/types/sociale.types';
 import { mapSociale, createSociale, updateSociale } from '../socialeService';
+import { subscriptionPool } from '../../../shared/services/SubscriptionPool';
 
 /**
  * Hook for fetching a single Sociale
@@ -15,25 +16,46 @@ import { mapSociale, createSociale, updateSociale } from '../socialeService';
 export function useSociale(socialeId?: string) {
   const queryClient = useQueryClient();
 
+  // Keep a stable ref to queryClient so the effect only re-runs when socialeId changes.
+  const queryClientRef = useRef(queryClient);
+  queryClientRef.current = queryClient;
+
   useEffect(() => {
     if (!socialeId) return;
 
-    const channel = supabase
-      .channel(`sociale:${socialeId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'sociales', filter: `id=eq.${socialeId}` },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ['sociale', socialeId] });
+    // Use SubscriptionPool so that multiple callers (RoomPageContent,
+    // RoomMainEventPanel, SocialeRoomPhaseController) all share ONE channel
+    // instead of creating three competing channels with the same name.
+    const unsub = subscriptionPool.subscribe(
+      `sociale:${socialeId}`,
+      [{ event: '*', schema: 'public', table: 'sociales', filter: `id=eq.${socialeId}` }],
+      () => {
+        void queryClientRef.current.invalidateQueries({ queryKey: ['sociale', socialeId] });
+      },
+    );
+
+    // Catch-up fetch once the channel is confirmed SUBSCRIBED so we never
+    // miss a status change (e.g. lobby → active) that fired during setup.
+    // SubscriptionPool doesn't expose the SUBSCRIBED callback, so we do a
+    // one-shot direct subscribe just for the status signal then clean it up.
+    const catchUpChannel = supabase
+      .channel(`sociale-catchup:${socialeId}`)
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          void queryClientRef.current.invalidateQueries({ queryKey: ['sociale', socialeId] });
+          // Immediately tear down — its only job was the SUBSCRIBED signal.
+          void catchUpChannel.unsubscribe();
+          void supabase.removeChannel(catchUpChannel);
         }
-      )
-      .subscribe();
+      });
 
     return () => {
-      channel.unsubscribe();
-      void supabase.removeChannel(channel);
+      unsub();
+      // catchUpChannel cleans itself up on SUBSCRIBED; guard in case it never fired.
+      void catchUpChannel.unsubscribe();
+      void supabase.removeChannel(catchUpChannel);
     };
-  }, [socialeId, queryClient]);
+  }, [socialeId]);
 
   return useQuery({
     queryKey: ['sociale', socialeId],
