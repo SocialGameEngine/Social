@@ -55,6 +55,16 @@ export function useHostRoomRecovery({
   const [error, setError] = useState<Error | null>(null);
   const [roomExistenceState, setRoomExistenceState] = useState<RoomExistenceState>('unknown');
   const recoveryAttemptedRef = useRef(false);
+  const lastUserIdRef = useRef<string | null | undefined>(undefined);
+
+  // Reset recovery state when a new authenticated user appears (e.g. sign-out then sign-in).
+  useEffect(() => {
+    const newUserId = user?.id ?? null;
+    if (lastUserIdRef.current !== undefined && lastUserIdRef.current !== newUserId) {
+      recoveryAttemptedRef.current = false;
+    }
+    lastUserIdRef.current = newUserId;
+  }, [user?.id]);
 
   useEffect(() => {
     let cancelled = false;
