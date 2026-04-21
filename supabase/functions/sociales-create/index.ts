@@ -91,6 +91,90 @@ serve(async (req) => {
 
     if (createError) throw createError
 
+    // Handle ambient mode
+    if (mode === 'ambient') {
+      // Ambient sociales don't create sociale_rounds.
+      // Set total_rounds to the current size of ambient_rounds.
+      const { count, error: countError } = await supabaseClient
+        .from('ambient_rounds')
+        .select('id', { count: 'exact', head: true })
+
+      if (countError) throw countError
+
+      const ambientTotal = count ?? 0
+
+      if (ambientTotal === 0) {
+        // Roll back and reject - ambient mode requires a populated library
+        await supabaseClient.from('sociales').delete().eq('id', sociale.id)
+        return new Response(
+          JSON.stringify({ error: 'ambient_rounds library is empty - populate it before creating an ambient sociale' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      await supabaseClient
+        .from('sociales')
+        .update({ total_rounds: ambientTotal })
+        .eq('id', sociale.id)
+
+      // Fetch the first ambient round to store in runtime_state
+      const { data: firstRound } = await supabaseClient
+        .from('ambient_rounds')
+        .select('*')
+        .eq('order_index', 0)
+        .single()
+
+      if (firstRound) {
+        await supabaseClient
+          .from('sociales')
+          .update({
+            runtime_state: {
+              ambientRound: {
+                id: firstRound.id,
+                type: firstRound.type,
+                title: firstRound.title,
+                content: firstRound.content,
+                settings: firstRound.settings,
+              }
+            }
+          })
+          .eq('id', sociale.id)
+      }
+
+      // Set room pointer and return
+      const { error: updateRoomError } = await supabaseClient
+        .from('rooms')
+        .update({ current_sociale_id: sociale.id })
+        .eq('id', roomId)
+
+      if (updateRoomError) {
+        await supabaseClient.from('sociales').delete().eq('id', sociale.id)
+        throw new Error(`Failed to set room pointer: ${updateRoomError.message}`)
+      }
+
+      return new Response(
+        JSON.stringify({
+          sociale: {
+            id: sociale.id,
+            roomId: sociale.room_id,
+            createdBy: sociale.created_by,
+            title: sociale.title,
+            description: sociale.description,
+            mode: sociale.mode,
+            status: sociale.status,
+            currentRoundIndex: null,
+            totalRounds: ambientTotal,
+            settings: sociale.settings || {},
+            scoreboard: sociale.scoreboard || {},
+            createdAt: sociale.created_at,
+            updatedAt: sociale.updated_at,
+          },
+          rounds: [],
+        } satisfies CreateSocialeResponse),
+        { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Create rounds if provided
     if (rounds && rounds.length > 0) {
       // Create snapshots for all trivia rounds BEFORE inserting

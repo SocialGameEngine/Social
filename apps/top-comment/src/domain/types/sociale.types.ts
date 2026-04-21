@@ -27,7 +27,8 @@ export type SocialeMode =
   | 'topics_only'   // All topic rounds
   | 'trivia_only'   // All trivia rounds
   | 'alternating'   // Alternating topic/trivia
-  | 'custom';       // Fully custom round sequence
+  | 'custom'        // Fully custom round sequence
+  | 'ambient';      // Continuous autonomous rounds
 
 /**
  * Round types - extensible union
@@ -573,6 +574,13 @@ export interface StartSocialeRequest {
 }
 
 /**
+ * Start Sociale response
+ */
+export interface StartSocialeResponse {
+  sociale: Sociale;
+}
+
+/**
  * Advance phase request
  */
 export interface AdvanceSocialePhaseRequest {
@@ -642,6 +650,36 @@ export interface JoinSocialeRequest {
  */
 export interface JoinSocialeResponse {
   socialite: Socialite;
+  sociale: Sociale;
+}
+
+/**
+ * End Sociale request
+ */
+export interface EndSocialeRequest {
+  socialeId: string;
+}
+
+/**
+ * End Sociale response
+ */
+export interface EndSocialeResponse {
+  sociale: Sociale;
+}
+
+/**
+ * Submit response response
+ */
+export interface SubmitSocialeResponseResponse {
+  response: SocialeResponse;
+  sociale: Sociale;
+}
+
+/**
+ * Submit vote response
+ */
+export interface SubmitSocialeVoteResponse {
+  vote: SocialeVote;
   sociale: Sociale;
 }
 

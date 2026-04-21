@@ -93,6 +93,88 @@ serve(async (req) => {
       )
     }
 
+    // Handle ambient mode
+    if (sociale.mode === 'ambient') {
+      // Ambient mode doesn't need prompt libraries validation
+      
+      // Fetch the first ambient round to get timing settings
+      const { data: firstAmbientRound, error: ambientRoundError } = await supabaseClient
+        .from('ambient_rounds')
+        .select('*')
+        .eq('order_index', 0)
+        .single()
+
+      if (ambientRoundError || !firstAmbientRound) {
+        return new Response(
+          JSON.stringify({ error: 'No ambient rounds found - populate ambient_rounds table first' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Start the ambient sociale
+      const nowIso = new Date().toISOString()
+      const ambientSettings = firstAmbientRound.settings as any
+      const phaseDurationSeconds = ambientSettings?.answerSeconds ?? 90
+      const phaseEndsAt = new Date(Date.now() + phaseDurationSeconds * 1000).toISOString()
+
+      const { data: updatedSociale, error: startError } = await supabaseClient
+        .from('sociales')
+        .update({
+          status: 'active',
+          current_round_index: 0,
+          current_round_id: null, // No sociale_rounds row for ambient
+          current_phase: 'answer',
+          phase_started_at: nowIso,
+          phase_ends_at: phaseEndsAt,
+          started_at: new Date().toISOString(),
+          updated_at: nowIso,
+          runtime_state: {
+            ...(sociale.runtime_state || {}),
+            ambientRound: {
+              id: firstAmbientRound.id,
+              type: firstAmbientRound.type,
+              title: firstAmbientRound.title,
+              content: firstAmbientRound.content,
+              settings: firstAmbientRound.settings,
+            }
+          }
+        })
+        .eq('id', socialeId)
+        .select()
+        .single()
+
+      if (startError) throw startError
+
+      // Return the updated Sociale
+      const response: StartSocialeResponse = {
+        sociale: {
+          id: updatedSociale.id,
+          roomId: updatedSociale.room_id,
+          createdBy: updatedSociale.created_by,
+          title: updatedSociale.title,
+          description: updatedSociale.description,
+          mode: updatedSociale.mode,
+          status: updatedSociale.status,
+          currentRoundIndex: updatedSociale.current_round_index,
+          phaseEndsAt: updatedSociale.phase_ends_at,
+          totalRounds: updatedSociale.total_rounds,
+          settings: updatedSociale.settings || {},
+          scoreboard: updatedSociale.scoreboard || {},
+          runtimeState: updatedSociale.runtime_state,
+          createdAt: updatedSociale.created_at,
+          updatedAt: updatedSociale.updated_at,
+          startedAt: updatedSociale.started_at,
+          endedAt: updatedSociale.ended_at,
+          legacySessionId: updatedSociale.legacy_session_id,
+        },
+      }
+
+      return new Response(
+        JSON.stringify(response),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Validate prompt libraries are selected (from Sessions validation)
     const isMashupMode = sociale.mode === 'alternating' || sociale.mode === 'topics_only' || sociale.mode === 'trivia_only';
     if (isMashupMode) {

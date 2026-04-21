@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useMemo } from "react";
+import { useMemo, useEffect, useRef, useCallback } from "react";
 import { Timer, Card } from "@social/ui";
 import { BackgroundAnimation } from "../../components/BackgroundAnimation";
 import { useTheme } from "../../shared/providers/ThemeProvider";
@@ -10,6 +10,7 @@ import QRCodeBlock from "../../components/QRCodeBlock";
 import { useTVPresenter } from "./hooks/useTVPresenter";
 import { useTVAutoTTS } from "./hooks/useTVAutoTTS";
 import { useRoom } from "../../hooks/useRoom";
+import { supabase } from "../../supabase/client";
 import {
   LobbyPhase,
   AnswerPhase,
@@ -44,6 +45,43 @@ export function TVPage() {
 
   // Auto TTS - fires on phase and round changes
   useTVAutoTTS(sociale ?? null, currentRound ?? null);
+
+  // Ambient mode auto-advance
+  const isAdvancing = useRef(false);
+
+  const advancePhase = useCallback(async () => {
+    if (!sociale?.id || isAdvancing.current) return;
+    if (sociale?.mode !== 'ambient') return; // only TVPage drives ambient advance
+
+    isAdvancing.current = true;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      await supabase.functions.invoke('sociales-advance', {
+        body: { socialeId: sociale.id },
+        headers: session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : {},
+      });
+    } catch (err) {
+      console.error('Ambient auto-advance failed:', err);
+    } finally {
+      isAdvancing.current = false;
+    }
+  }, [sociale?.id, sociale?.mode]);
+
+  // Fire when phaseEndsAt expires
+  useEffect(() => {
+    if (!sociale?.phaseEndsAt || sociale.mode !== 'ambient') return;
+
+    const msRemaining = new Date(sociale.phaseEndsAt).getTime() - Date.now();
+    if (msRemaining <= 0) {
+      void advancePhase();
+      return;
+    }
+
+    const timer = window.setTimeout(() => void advancePhase(), msRemaining + 500); // +500ms buffer
+    return () => window.clearTimeout(timer);
+  }, [sociale?.phaseEndsAt, sociale?.mode, advancePhase]);
 
   const isLoading = roomLoading || socialeLoading;
 
