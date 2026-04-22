@@ -325,13 +325,12 @@ export function HostPage() {
     />
   );
 
-  const presenterButton = storedRoomId ? (
+  const tvButton = storedRoomId ? (
     <Button
       variant="ghost"
-      onClick={() => session && window.open(`/presenter/${session.id}`, "_blank", "noopener")}
-      disabled={!session}
+      onClick={() => window.open(`/tv/${roomJoinCode}`, "_blank", "noopener")}
     >
-      Presenter View
+      TV View
     </Button>
   ) : null;
 
@@ -413,7 +412,7 @@ export function HostPage() {
           storedRoomCode={storedRoomCode}
           canCreateSession={canCreateSession}
           venueAccountLoading={venueAccountLoading}
-          presenterButton={presenterButton}
+          presenterButton={tvButton}
           onNavigateAnalytics={() => navigate(`/analytics/${storedRoomCode}`)}
           onOpenRoomSettings={() => {
             setShowEditModal(false);
