@@ -270,7 +270,7 @@ export function JoinPage() {
     try {
       await supabase
         .from('room_memberships')
-        .update({ client_key: null })
+        .update({})
         .eq('id', resumableMembership.id);
     } catch {
       /* best-effort */

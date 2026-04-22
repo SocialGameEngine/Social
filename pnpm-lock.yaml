@@ -312,6 +312,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.90.2
         version: 5.90.12(react@18.3.1)
+      canvas-confetti:
+        specifier: ^1.9.4
+        version: 1.9.4
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -1632,6 +1635,9 @@ packages:
 
   caniuse-lite@1.0.30001761:
     resolution: {integrity: sha512-JF9ptu1vP2coz98+5051jZ4PwQgd2ni8A+gYSN7EA7dPKIMf0pDlSUxhdmVOaV3/fYK5uWBkgSXJaRLr4+3A6g==}
+
+  canvas-confetti@1.9.4:
+    resolution: {integrity: sha512-yxQbJkAVrFXWNbTUjPqjF7G+g6pDotOUHGbkZq2NELZUMDpiJ85rIEazVb8GTaAptNW2miJAXbs1BtioA251Pw==}
 
   chai@4.5.0:
     resolution: {integrity: sha512-RITGBfijLkBddZvnn8jdqoTypxvqbOLYQkGGxXzeFjVHvudaPw0HNFD9x928/eUwYWd2dPCugVqspGALTZZQKw==}
@@ -4144,6 +4150,8 @@ snapshots:
   camelcase-css@2.0.1: {}
 
   caniuse-lite@1.0.30001761: {}
+
+  canvas-confetti@1.9.4: {}
 
   chai@4.5.0:
     dependencies:

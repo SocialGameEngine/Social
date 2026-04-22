@@ -64,7 +64,9 @@ export function SocialeAnswerPhase({
   const isDark = propIsDark ?? themeIsDark;
 
   // P1-5 — read live typing/submitted state broadcast by the room clients.
-  const { signals: hostSignals } = useHostSignals(sociale.roomId ?? null);
+  // Also send submitted:clear when the host advances/skips so green dots don't
+  // persist stale into the next answer phase.
+  const { signals: hostSignals, send: sendHostSignal } = useHostSignals(sociale.roomId ?? null);
 
   // Calculate response status
   const activePlayers = socialites.filter(s => s.isActive && !s.isBanned);
@@ -356,23 +358,23 @@ export function SocialeAnswerPhase({
           
           <div className="flex justify-center gap-3">
             <Button
-              onClick={onSkipPhase}
+              onClick={() => { sendHostSignal('submitted:clear'); onSkipPhase?.(); }}
               variant="secondary"
               size="lg"
             >
               Skip Phase
             </Button>
-            
+
             <Button
-              onClick={onSkipRound}
+              onClick={() => { sendHostSignal('submitted:clear'); onSkipRound?.(); }}
               variant="secondary"
               size="lg"
             >
               Skip Round
             </Button>
-            
+
             <Button
-              onClick={onAdvancePhase}
+              onClick={() => { sendHostSignal('submitted:clear'); onAdvancePhase(); }}
               variant="primary"
               size="lg"
               disabled={responseCount === 0}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 
 interface LeaderboardRow {
   id: string;
@@ -68,52 +68,68 @@ export function TVLeaderboardMoment({
           >
             {title}
           </motion.h2>
-          <div className="w-full max-w-3xl space-y-2">
-            {sorted.map((row, i) => {
-              const delta = row.deltaFromLastRound ?? 0;
-              return (
-                <motion.div
-                  key={row.id}
-                  layoutId={`lb-row-${row.id}`}
-                  initial={{ opacity: 0, x: -40 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.35, delay: i * 0.05 }}
-                  className="flex items-center gap-5 rounded-2xl px-5 py-4 text-white"
-                  style={{
-                    background:
-                      i === 0
-                        ? "linear-gradient(90deg, rgba(251,191,36,0.35), rgba(251,191,36,0.1))"
-                        : i === 1
-                          ? "linear-gradient(90deg, rgba(226,232,240,0.28), rgba(226,232,240,0.08))"
-                          : i === 2
-                            ? "linear-gradient(90deg, rgba(217,119,6,0.28), rgba(217,119,6,0.08))"
-                            : "rgba(15,23,42,0.6)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                  }}
-                >
-                  <span className="w-10 text-2xl md:text-3xl font-black tabular-nums text-white/80">
-                    {i + 1}
-                  </span>
-                  <span className="flex-1 text-2xl md:text-3xl font-bold truncate">
-                    {row.name}
-                  </span>
-                  {delta > 0 && (
-                    <motion.span
-                      initial={{ scale: 0, rotate: -12 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ delay: i * 0.05 + 0.4, type: "spring", stiffness: 320, damping: 22 }}
-                      className="rounded-full bg-emerald-400 px-3 py-1 text-sm md:text-base font-black text-emerald-950"
+          <LayoutGroup id="lb">
+            <AnimatePresence mode="popLayout">
+              <div className="w-full max-w-3xl space-y-2">
+                {sorted.map((row, i) => {
+                  const delta = row.deltaFromLastRound ?? 0;
+                  return (
+                    <motion.div
+                      key={row.id}
+                      layout
+                      layoutId={`lb-row-${row.id}`}
+                      initial={{ opacity: 0, x: -40 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 40 }}
+                      transition={{ duration: 0.35, delay: i * 0.05, layout: { type: "spring", stiffness: 280, damping: 26 } }}
+                      className="flex items-center gap-5 rounded-2xl px-5 py-4 text-white"
+                      style={{
+                        background:
+                          i === 0
+                            ? "linear-gradient(90deg, rgba(251,191,36,0.35), rgba(251,191,36,0.1))"
+                            : i === 1
+                              ? "linear-gradient(90deg, rgba(226,232,240,0.28), rgba(226,232,240,0.08))"
+                              : i === 2
+                                ? "linear-gradient(90deg, rgba(217,119,6,0.28), rgba(217,119,6,0.08))"
+                                : "rgba(15,23,42,0.6)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                      }}
                     >
-                      +{delta}
-                    </motion.span>
-                  )}
-                  <span className="text-3xl md:text-4xl font-black tabular-nums text-cyan-200">
-                    {row.score}
-                  </span>
-                </motion.div>
-              );
-            })}
-          </div>
+                      <span className="w-10 text-2xl md:text-3xl font-black tabular-nums text-white/80">
+                        {i + 1}
+                      </span>
+                      <span className="flex-1 text-2xl md:text-3xl font-bold truncate">
+                        {row.name}
+                      </span>
+                      {delta > 0 && (
+                        <motion.span
+                          initial={{ scale: 0, rotate: -12 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ delay: i * 0.05 + 0.4, type: "spring", stiffness: 320, damping: 22 }}
+                          className="rounded-full bg-emerald-400 px-3 py-1 text-sm md:text-base font-black text-emerald-950"
+                        >
+                          ↑{delta}
+                        </motion.span>
+                      )}
+                      {delta < 0 && (
+                        <motion.span
+                          initial={{ scale: 0, rotate: 12 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ delay: i * 0.05 + 0.4, type: "spring", stiffness: 320, damping: 22 }}
+                          className="rounded-full bg-orange-400 px-3 py-1 text-sm md:text-base font-black text-orange-950"
+                        >
+                          ↓{Math.abs(delta)}
+                        </motion.span>
+                      )}
+                      <span className="text-3xl md:text-4xl font-black tabular-nums text-cyan-200">
+                        {row.score}
+                      </span>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </AnimatePresence>
+          </LayoutGroup>
         </motion.div>
       )}
     </AnimatePresence>

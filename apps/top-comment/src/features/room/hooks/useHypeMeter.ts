@@ -29,6 +29,13 @@ export interface HypeSnapshot {
   progress: number;
   /** Timestamp of last tap, for TV pulse animation. */
   lastTapAt: number | null;
+  /**
+   * Highest level ever reached since the hook was mounted (or since the
+   * caller last reset it). Does NOT drop back when the meter drains — used
+   * by TVPage to decide whether to fire the hype-bonus edge function at the
+   * end of a topic round.
+   */
+  peakLevel: number;
 }
 
 const DEFAULT_SNAPSHOT: HypeSnapshot = {
@@ -36,6 +43,7 @@ const DEFAULT_SNAPSHOT: HypeSnapshot = {
   level: 0,
   progress: 0,
   lastTapAt: null,
+  peakLevel: 0,
 };
 
 interface UseHypeMeterOptions {
@@ -57,6 +65,7 @@ export function useHypeMeter({
   const [snapshot, setSnapshot] = useState<HypeSnapshot>(DEFAULT_SNAPSHOT);
   const tapsRef = useRef<number[]>([]);
   const lastLevelRef = useRef<number>(0);
+  const peakLevelRef = useRef<number>(0);
   const lastSendRef = useRef<number>(0);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -80,7 +89,11 @@ export function useHypeMeter({
       ? tapsRef.current[tapsRef.current.length - 1]
       : null;
 
-    setSnapshot({ tapsInWindow, level, progress, lastTapAt });
+    // peakLevel only ever goes up — survives meter drains so TVPage can
+    // read it after the round ends to decide the bonus tier.
+    if (level > peakLevelRef.current) peakLevelRef.current = level;
+
+    setSnapshot({ tapsInWindow, level, progress, lastTapAt, peakLevel: peakLevelRef.current });
 
     if (level > lastLevelRef.current) {
       lastLevelRef.current = level;

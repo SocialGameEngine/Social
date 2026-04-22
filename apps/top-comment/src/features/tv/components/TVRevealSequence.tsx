@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import confetti from "canvas-confetti";
+import { Confetti } from "./Confetti";
 import { TVAnswerTile } from "./TVAnswerTile";
 
 export interface TVRevealSequenceTile {
@@ -47,16 +47,6 @@ export function TVRevealSequence({ tiles, stepMs = 800 }: TVRevealSequenceProps)
         window.setTimeout(() => {
           setRevealedIds((prev) => new Set(prev).add(correct.id));
           setCorrectRevealed(true);
-          try {
-            void confetti({
-              particleCount: 80,
-              spread: 70,
-              origin: { y: 0.65 },
-              colors: ["#22c55e", "#06b6d4", "#eab308"],
-            });
-          } catch {
-            /* optional dependency */
-          }
         }, wrong.length * stepMs + 500)
       );
     }
@@ -93,6 +83,11 @@ export function TVRevealSequence({ tiles, stepMs = 800 }: TVRevealSequenceProps)
           />
         )}
       </AnimatePresence>
+      <Confetti
+        active={correctRevealed}
+        count={80}
+        palette={["#22c55e", "#06b6d4", "#eab308", "#f472b6", "#c084fc"]}
+      />
     </div>
   );
 }

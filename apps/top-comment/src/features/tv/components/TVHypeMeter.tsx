@@ -1,19 +1,22 @@
 import { useHypeMeter } from "../../room/hooks/useHypeMeter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { Confetti } from "./Confetti";
 
 interface TVHypeMeterProps {
   /** Room id. Hype is scoped per room. */
   roomId: string | null | undefined;
   /** Whether the meter is currently accepting taps (gate to post-reveal). */
   active: boolean;
+  /** Called when the hype meter crosses a new level threshold. */
+  onLevelUp?: (level: number) => void;
 }
 
 /**
  * P1-2: collective hype meter display for the TV. Fills as phones tap,
- * bursts a celebration swell when hitting a level threshold.
+ * bursts a celebration swell + confetti + sound when hitting a level threshold.
  */
-export function TVHypeMeter({ roomId, active }: TVHypeMeterProps) {
+export function TVHypeMeter({ roomId, active, onLevelUp }: TVHypeMeterProps) {
   const [swell, setSwell] = useState<number | null>(null);
   const { snapshot } = useHypeMeter({
     roomId,
@@ -21,6 +24,7 @@ export function TVHypeMeter({ roomId, active }: TVHypeMeterProps) {
     onLevelUp: (level) => {
       setSwell(level);
       window.setTimeout(() => setSwell(null), 2400);
+      onLevelUp?.(level);
     },
   });
 
@@ -83,6 +87,9 @@ export function TVHypeMeter({ roomId, active }: TVHypeMeterProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* P1-2: confetti burst on Lv2+ level-up. */}
+      <Confetti active={swell !== null && swell >= 2} count={60} />
     </div>
   );
 }

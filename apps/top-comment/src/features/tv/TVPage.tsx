@@ -64,7 +64,17 @@ export function TVPage() {
 
   // P1-10: host-forced leaderboard moment. We key the `triggerKey` off the
   // broadcast's nonce so repeat presses refire the animation.
-  const { signals: hostSignals } = useHostSignals(room?.id ?? null);
+  const { signals: hostSignals, send: sendHostSignal } = useHostSignals(room?.id ?? null);
+
+  // P1-1: track previous scoreboard ranks so we can show ↑/↓ deltas on the
+  // leaderboard moment. Keyed by socialiteId → rank (1-based).
+  const prevRanksRef = useRef<Map<string, number>>(new Map());
+
+  // P1-2 (topic-round score coupling): track the peak hype level reached
+  // during the current round so we can award a bonus when the round ends.
+  const peakHypeLevelRef = useRef<number>(0);
+  const prevRoundIdRef = useRef<string | null>(null);
+  const prevRoundTypeRef = useRef<string | null>(null);
 
   // Ambient mode auto-advance
   const isAdvancing = useRef(false);
@@ -132,6 +142,82 @@ export function TVPage() {
     ? `host-${hostSignals.leaderboardShowAt}`
     : null;
   const leaderboardMomentKey = hostForcedKey ?? scheduledKey;
+
+  // P1-1: After each leaderboard moment, snapshot the current ranks so the
+  // NEXT moment can compute ↑/↓ deltas. The 300 ms delay lets the current
+  // render (which reads the ref for deltas) commit before we overwrite it.
+  useEffect(() => {
+    if (!leaderboardMomentKey) return;
+    const tid = window.setTimeout(() => {
+      const map = new Map<string, number>();
+      scoreboard.forEach((s: any, i: number) => map.set(s.socialiteId, i + 1));
+      prevRanksRef.current = map;
+    }, 300);
+    return () => window.clearTimeout(tid);
+  }, [leaderboardMomentKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // P1-1: rows with rank deltas for the leaderboard moment.
+  const leaderboardRows = useMemo(
+    () =>
+      scoreboard.map((s: any, i: number) => {
+        const currentRank = i + 1;
+        const prevRank = prevRanksRef.current.get(s.socialiteId);
+        return {
+          id: s.socialiteId,
+          name: s.displayName,
+          score: s.score ?? 0,
+          // positive = moved up (e.g. was 4th, now 2nd → delta +2)
+          deltaFromLastRound: prevRank !== undefined ? prevRank - currentRank : 0,
+        };
+      }),
+    // Re-derive when the moment fires so deltas are fresh from the pre-update ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scoreboard, leaderboardMomentKey],
+  );
+
+  // P1-2: stable callback for hype level-up — plays a sound cue AND updates
+  // the per-round peak so the bonus edge function gets the right tier.
+  const handleHypeLevelUp = useCallback(
+    (level: number) => {
+      if (level > peakHypeLevelRef.current) peakHypeLevelRef.current = level;
+      const cue = level >= 3 ? "applause" : level >= 2 ? "cheer" : "ding";
+      sendHostSignal("sound:play", { id: cue });
+    },
+    [sendHostSignal],
+  );
+
+  // P1-2 (topic-round score coupling): fire hype bonus when the round
+  // advances away from a topic round that had hype activity (peakLevel >= 1).
+  useEffect(() => {
+    const prevId = prevRoundIdRef.current;
+    const prevType = prevRoundTypeRef.current;
+    const peak = peakHypeLevelRef.current;
+    const newId = currentRound?.id ?? null;
+
+    if (prevId && prevId !== newId && prevType === 'topic' && peak >= 1 && sociale?.id) {
+      void (async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          await supabase.functions.invoke('sociales-hype-bonus', {
+            body: { socialeId: sociale!.id, roundId: prevId, peakHypeLevel: peak },
+            headers: session?.access_token
+              ? { Authorization: `Bearer ${session.access_token}` }
+              : {},
+          });
+        } catch (err) {
+          // Non-critical — bonus scoring failure should never interrupt gameplay.
+          console.warn('[hype-bonus] failed, non-critical:', err);
+        }
+      })();
+    }
+
+    // Always update refs so next transition has fresh context.
+    prevRoundIdRef.current = newId;
+    prevRoundTypeRef.current = currentRound?.type ?? null;
+    // Reset peak for the incoming round.
+    peakHypeLevelRef.current = 0;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentRound?.id]);
 
   if (isLoading) {
     return (
@@ -324,11 +410,7 @@ export function TVPage() {
       {/* P1-10: full-screen leaderboard moment between rounds */}
       <TVLeaderboardMoment
         triggerKey={leaderboardMomentKey}
-        rows={scoreboard.map((s: any) => ({
-          id: s.socialiteId,
-          name: s.displayName,
-          score: s.score ?? 0,
-        }))}
+        rows={leaderboardRows}
       />
 
       <motion.main
@@ -364,6 +446,7 @@ export function TVPage() {
           <TVHypeMeter
             roomId={room?.id ?? null}
             active={currentPhase === "results" || currentPhase === "reveal"}
+            onLevelUp={handleHypeLevelUp}
           />
 
           <PresenterReactionBar reactionCounts={reactionCounts} />
