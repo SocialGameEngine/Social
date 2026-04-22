@@ -1,10 +1,18 @@
-import type { SessionDisplayState } from '../PhaseController';
+import { motion } from 'framer-motion';
+import type { SessionDisplayState } from '../../utils/sessionPhase';
 import { getSocialeDisplayCopy } from '../../utils/socialeDisplayCopy';
 import { PlayerStack } from './PlayerStack';
+import {
+  primaryButtonStateClass,
+  type PrimaryButtonState,
+} from '../../hooks/usePrimaryButtonState';
 
 function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ');
 }
+
+/** Shared layoutId so the button morphs (not cuts) as it moves between phases. */
+export const PRIMARY_ACTION_LAYOUT_ID = 'room-primary-action';
 
 export interface SocialeGameParticipant {
   displayName: string;
@@ -30,6 +38,11 @@ interface SocialeGameButtonProps {
   /** Non-interactive card (e.g. waiting for next round) */
   interactionDisabled?: boolean;
   phase?: string;
+  /** P1-32: applies the 5-state button class. Pass alongside `layoutId`
+   *  so the button morphs smoothly across phase transitions. */
+  primaryState?: PrimaryButtonState;
+  /** Framer layoutId override. Defaults to PRIMARY_ACTION_LAYOUT_ID. */
+  layoutId?: string;
   onClick: () => void;
 }
 
@@ -38,11 +51,11 @@ function mergeSocialeGameCopy(
   override?: SocialeGameCopyOverride | null
 ): ReturnType<typeof getSocialeDisplayCopy> {
   if (!override) return base;
-  const next = { ...base } as Record<string, unknown>;
+  const next = { ...base };
   for (const [k, v] of Object.entries(override)) {
-    if (v !== undefined) next[k] = v;
+    if (v !== undefined) (next as Record<string, unknown>)[k] = v;
   }
-  return next as ReturnType<typeof getSocialeDisplayCopy>;
+  return next;
 }
 
 export function SocialeGameButton({
@@ -55,6 +68,8 @@ export function SocialeGameButton({
   copyOverride = null,
   interactionDisabled = false,
   phase,
+  primaryState,
+  layoutId = PRIMARY_ACTION_LAYOUT_ID,
   onClick,
 }: SocialeGameButtonProps) {
   const joined = participants.length;
@@ -80,7 +95,12 @@ export function SocialeGameButton({
 
   return (
     <div className="pt-2">
-      <div className="relative rounded-[28px] p-3 overflow-visible">
+      <motion.div
+        layout
+        layoutId={primaryState ? layoutId : undefined}
+        transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+        className="relative rounded-[28px] p-3 overflow-visible"
+      >
         <button
           type="button"
           className={cn(
@@ -91,7 +111,8 @@ export function SocialeGameButton({
             displayState === 'joined' && 'chaos-session-button--joined',
             !isMainEventMode && 'chaos-session-button--quiet',
             (isJoining || joinSuccess) && 'chaos-session-feedback-pop',
-            interactionDisabled && 'opacity-95 pointer-events-none cursor-default'
+            interactionDisabled && 'opacity-95 pointer-events-none cursor-default',
+            primaryState && primaryButtonStateClass(primaryState)
           )}
           data-phase={phase}
           disabled={interactionDisabled}
@@ -173,7 +194,7 @@ export function SocialeGameButton({
             )}
           </div>
         </button>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -3,12 +3,16 @@
 // =============================================================================
 // Reveal phase for Sociale games - show the answer or most voted response
 
+import { useState } from 'react';
 import { clsx } from 'clsx';
 import { Button } from '@social/ui';
 import { 
   SocialeTimer, 
   SocialiteCard
 } from './components';
+import { useHostSignals } from '../../room/hooks/useHostSignals';
+import { supabase } from '../../../supabase/client';
+import { VariantRegrader } from '../components/VariantRegrader';
 import type { Socialite, SocialeResponse, SocialeVote } from '../../../domain/types/sociale.types';
 import type { TriviaInteractionSettings } from '../../../domain/types/interaction.types';
 
@@ -17,6 +21,7 @@ type MCOption = NonNullable<TriviaInteractionSettings['snapshot']['multipleChoic
 interface SocialeRevealPhaseProps {
   sociale: {
     id: string;
+    roomId?: string;
     currentRoundId?: string;
     phaseEndsAt?: string | null;
     currentPhase?: string;
@@ -285,9 +290,37 @@ export function SocialeRevealPhase({
         </div>
       )}
 
+      {/* P1-25 — regrade panel for written-answer trivia rounds. */}
+      {isCurrentPlayerHost && currentRound && (
+        <div className="max-w-2xl mx-auto">
+          <VariantRegrader
+            socialeId={sociale.id}
+            round={currentRound}
+            responses={responses}
+            socialites={socialites}
+          />
+        </div>
+      )}
+
+      {/* P1-19 — predictive lock-in panel. Only shown for rounds tagged
+          round_mode='predictive' (falls back to a settings flag for early
+          prototyping before the column propagates through types). */}
+      {isCurrentPlayerHost && currentRound && (
+        ((currentRound as any).round_mode === 'predictive' ||
+          currentRound.settings?.roundMode === 'predictive') ? (
+          <div className="max-w-2xl mx-auto">
+            <PredictiveLockIn
+              socialeId={sociale.id}
+              round={currentRound}
+              responses={responses}
+            />
+          </div>
+        ) : null
+      )}
+
       {/* Host Controls */}
       {isCurrentPlayerHost && (
-        <div className="flex justify-center space-x-4">
+        <div className="flex flex-wrap justify-center gap-3">
           <Button
             onClick={onAdvancePhase}
             variant="primary"
@@ -296,6 +329,7 @@ export function SocialeRevealPhase({
           >
             Continue to Results
           </Button>
+          <LeaderboardShowButton roomId={sociale.roomId ?? null} isDark={isDark} />
           {onSkipPhase && (
             <Button
               onClick={onSkipPhase}
@@ -331,5 +365,122 @@ export function SocialeRevealPhase({
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * P1-10 host control: fires a LEADERBOARD_SHOW broadcast so the TV forces the
+ * theatrical leaderboard moment mid-round. Scoped to this phase because that's
+ * where the host decides "do I show the board after this question".
+ */
+interface PredictiveLockInProps {
+  socialeId: string;
+  round: { id: string; settings: Record<string, any> };
+  responses: SocialeResponse[];
+}
+
+/**
+ * P1-19 — small host panel that lets the host type (or pick) the locked-in
+ * answer for a predictive round, then invokes `sociales-score-predictive` to
+ * rescore every submitted guess and update the leaderboard.
+ */
+function PredictiveLockIn({ socialeId, round, responses }: PredictiveLockInProps) {
+  const saved = round.settings?.predictive?.answer ?? '';
+  const [answer, setAnswer] = useState<string>(saved);
+  const [variants, setVariants] = useState<string>(
+    Array.isArray(round.settings?.predictive?.variants)
+      ? round.settings.predictive.variants.join(', ')
+      : ''
+  );
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+
+  const submit = async () => {
+    if (!answer.trim()) return;
+    setBusy(true);
+    setStatus('Scoring…');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers = session?.access_token
+        ? { Authorization: `Bearer ${session.access_token}` }
+        : undefined;
+      const { data, error } = await supabase.functions.invoke(
+        'sociales-score-predictive',
+        {
+          headers,
+          body: {
+            socialeId,
+            roundId: round.id,
+            predictiveAnswer: answer.trim(),
+            variants: variants
+              .split(',')
+              .map((v) => v.trim())
+              .filter(Boolean),
+          },
+        }
+      );
+      if (error) throw error;
+      const rescored = (data as any)?.rescored ?? 0;
+      setStatus(`Scored ${rescored} guess${rescored === 1 ? '' : 'es'}`);
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : 'Score failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-amber-500/50 bg-amber-500/10 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="font-black uppercase tracking-wider text-amber-200">
+          Predictive answer lock-in
+        </div>
+        {status && <div className="text-xs text-amber-100">{status}</div>}
+      </div>
+      <div className="text-xs text-amber-100/80">
+        Set the real answer. We&apos;ll rescore all {responses.length} guess
+        {responses.length === 1 ? '' : 'es'} using it plus the variants you list.
+      </div>
+      <input
+        type="text"
+        value={answer}
+        onChange={(e) => setAnswer(e.target.value)}
+        placeholder="e.g. The Mandalorian"
+        className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm text-white outline-none"
+      />
+      <input
+        type="text"
+        value={variants}
+        onChange={(e) => setVariants(e.target.value)}
+        placeholder="Optional variants (comma-separated)"
+        className="w-full rounded-md bg-slate-900 px-3 py-2 text-xs text-slate-200 outline-none"
+      />
+      <div className="flex justify-end">
+        <Button
+          onClick={submit}
+          variant="primary"
+          size="sm"
+          isLoading={busy}
+          disabled={busy || !answer.trim()}
+        >
+          Lock & rescore
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function LeaderboardShowButton({ roomId, isDark }: { roomId: string | null; isDark: boolean }) {
+  const { send } = useHostSignals(roomId);
+  if (!roomId) return null;
+  return (
+    <Button
+      onClick={() => send('leaderboard:show')}
+      variant="secondary"
+      size="lg"
+      isDark={isDark}
+    >
+      Show Leaderboard on TV
+    </Button>
   );
 }

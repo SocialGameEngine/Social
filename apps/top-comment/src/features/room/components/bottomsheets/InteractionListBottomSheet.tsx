@@ -18,6 +18,10 @@ interface InteractionListBottomSheetProps<T> {
   getItemId: (item: T) => string;
   /** If true, detail view opens in fullscreen modal instead of inline */
   useFullscreenDetail?: boolean;
+  /** Wave R6: phase-tint accent for the sheet chrome. */
+  accent?: 'neutral' | 'lobby' | 'answer' | 'vote' | 'results' | 'ended';
+  /** Wave R6: small uppercase eyebrow above the title. */
+  eyebrow?: string | null;
 }
 
 export function InteractionListBottomSheet<T>({
@@ -32,6 +36,8 @@ export function InteractionListBottomSheet<T>({
   renderDetailView,
   getItemId,
   useFullscreenDetail = true, // Default to fullscreen modal for better UX
+  accent = 'neutral',
+  eyebrow,
 }: InteractionListBottomSheetProps<T>) {
   const [selectedItem, setSelectedItem] = useState<T | null>(null);
   // Track if sheet should stay minimized while modal is open
@@ -60,11 +66,14 @@ export function InteractionListBottomSheet<T>({
   if (useFullscreenDetail) {
     return (
       <>
-        <BottomSheet 
-          isOpen={isOpen && !isDetailModalOpen} 
-          onClose={handleClose} 
-          title={title} 
+        <BottomSheet
+          isOpen={isOpen && !isDetailModalOpen}
+          onClose={handleClose}
+          title={title}
           showCloseButton={true}
+          accent={accent}
+          count={items.length}
+          eyebrow={eyebrow ?? null}
         >
           <motion.div
             initial={{ opacity: 0 }}
@@ -106,7 +115,16 @@ export function InteractionListBottomSheet<T>({
 
   // Legacy inline detail view (kept for backwards compatibility)
   return (
-    <BottomSheet isOpen={isOpen} onClose={handleClose} title={title} showCloseButton={!selectedItem} disableDrag={!!selectedItem}>
+    <BottomSheet
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={title}
+      showCloseButton={!selectedItem}
+      disableDrag={!!selectedItem}
+      accent={accent}
+      count={items.length}
+      eyebrow={eyebrow ?? null}
+    >
       <AnimatePresence mode="wait">
         {!selectedItem ? (
           <motion.div

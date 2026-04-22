@@ -17,6 +17,7 @@ import { SocialeVotePhaseRoom } from '../phases/SocialeVotePhaseRoom';
 import { SocialeRevealPhaseRoom } from '../phases/SocialeRevealPhaseRoom';
 import { SocialeResultsPhaseRoom } from '../phases/SocialeResultsPhaseRoom';
 import { SocialeEndedPhaseRoom } from '../phases/SocialeEndedPhaseRoom';
+import { SocialeBreakPhaseRoom } from '../phases/SocialeBreakPhaseRoom';
 import { SocialeMidGameJoinCard } from '../phases/SocialeMidGameJoinCard';
 import type { RoomMembership } from '../../../shared/types';
 import type { GamePhase } from '../types';
@@ -187,11 +188,14 @@ export function SocialeRoomPhaseController({
           onOpenLeaderboard={onOpenLeaderboard}
         />
       );
+    case 'break':
+      return <SocialeBreakPhaseRoom sociale={sociale} phaseEndsAt={phaseEndsAt} />;
     case 'ended':
       return (
         <SocialeEndedPhaseRoom
           sociale={sociale}
           participants={participants}
+          memberships={memberships}
           onOpenLeaderboard={onOpenLeaderboard}
           onOpenSelfie={onOpenSelfie}
         />

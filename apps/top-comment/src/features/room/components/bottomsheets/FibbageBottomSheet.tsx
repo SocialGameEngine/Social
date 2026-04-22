@@ -20,20 +20,17 @@ export function FibbageBottomSheet({
       isOpen={isOpen}
       onClose={onClose}
       title="Fibbage"
+      accent="answer"
+      eyebrow="Write a lie they'll fall for"
       emptyIcon="🎭"
       emptyTitle="No fibbage games currently posted"
       emptyDescription="Check back later for headline fibbage games from the host"
       items={fibbageGames}
       getItemId={(game) => game.id}
       renderListItem={(game, onSelect) => (
-        <button
-          onClick={onSelect}
-          className="w-full chaos-interaction-card px-4 py-4 text-left"
-        >
-          <div className="font-bold text-lg mb-1">{game.question}</div>
-          {game.description && (
-            <div className="text-sm opacity-80">{game.description}</div>
-          )}
+        <button onClick={onSelect} className="chaos-room-sheet-item">
+          <div className="title">{game.question}</div>
+          {game.description && <div className="subtitle">{game.description}</div>}
         </button>
       )}
       renderDetailView={(game, onBack) => (

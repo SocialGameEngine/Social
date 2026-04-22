@@ -767,6 +767,637 @@ a {
     padding: 0 1rem;
 }
 
+/* ============================================================ */
+/* Chaos — TV attract variants (tuned for 1080p+ distance view)  */
+/*                                                               */
+/* Refined palette: deep purple backdrop + 3 accents only.       */
+/*   --tv-pink:  #ec4899  (base) / #f472b6 (light)               */
+/*   --tv-cyan:  #06b6d4  (base) / #22d3ee (light)               */
+/*   --tv-amber: #f59e0b  (base) / #fbbf24 (light)               */
+/* ============================================================ */
+
+:root {
+    --tv-pink:        #ec4899;
+    --tv-pink-light:  #f472b6;
+    --tv-pink-dark:   #db2777;
+    --tv-cyan:        #06b6d4;
+    --tv-cyan-light:  #22d3ee;
+    --tv-cyan-dark:   #0891b2;
+    --tv-amber:       #f59e0b;
+    --tv-amber-light: #fbbf24;
+    --tv-amber-dark:  #d97706;
+    --tv-ink:         #0a0118;
+}
+
+@keyframes chaos-float {
+  0%, 100% { transform: translateY(0) rotate(var(--chaos-float-rot, 0deg)); }
+  50%      { transform: translateY(-12px) rotate(var(--chaos-float-rot, 0deg)); }
+}
+
+/* Parameterised neon glow throb — set --throb-rgb to swap the accent. */
+@keyframes chaos-neon-throb {
+  0%, 100% {
+    text-shadow:
+      0 0 18px rgba(var(--throb-rgb, 244, 114, 182), 0.55),
+      0 0 42px rgba(var(--throb-rgb, 244, 114, 182), 0.28);
+  }
+  50% {
+    text-shadow:
+      0 0 28px rgba(var(--throb-rgb, 244, 114, 182), 0.85),
+      0 0 64px rgba(var(--throb-rgb, 244, 114, 182), 0.45);
+  }
+}
+
+@keyframes chaos-scan-stripe {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
+/* Generic TV-scale chaos sticker card. Pair with a colour variant. */
+.chaos-tv-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    border-radius: 32px;
+    border: 5px solid rgba(0, 0, 0, 0.95);
+    box-shadow: 0 22px 0 #000, 0 0 48px rgba(236, 72, 153, 0.25);
+    padding: clamp(20px, 2.4vw, 44px) clamp(24px, 3vw, 56px);
+    color: #0a0118;
+    background: linear-gradient(135deg, var(--tv-pink-light) 0%, var(--tv-pink-dark) 100%);
+    overflow: hidden;
+}
+
+.chaos-tv-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 45%);
+    pointer-events: none;
+}
+
+/* Primary accent — reserved for "hero" moments (room code, champion score). */
+.chaos-tv-card--gold {
+    background: linear-gradient(135deg, var(--tv-amber-light) 0%, var(--tv-amber-dark) 100%);
+    box-shadow: 0 22px 0 #000, 0 0 56px rgba(245, 158, 11, 0.45);
+}
+
+.chaos-tv-card--cyan {
+    background: linear-gradient(135deg, var(--tv-cyan-light) 0%, var(--tv-cyan-dark) 100%);
+    color: #fff;
+    box-shadow: 0 22px 0 #000, 0 0 56px rgba(6, 182, 212, 0.4);
+}
+
+.chaos-tv-card--pink {
+    background: linear-gradient(135deg, var(--tv-pink-light) 0%, var(--tv-pink-dark) 100%);
+    color: #fff;
+    box-shadow: 0 22px 0 #000, 0 0 56px rgba(236, 72, 153, 0.4);
+}
+
+.chaos-tv-card--dark {
+    background: linear-gradient(135deg, rgba(15, 15, 28, 0.95), rgba(40, 10, 60, 0.9));
+    color: #fff;
+    border-color: rgba(244, 114, 182, 0.5);
+    box-shadow: 0 22px 0 #000, 0 0 48px rgba(236, 72, 153, 0.3);
+}
+
+.chaos-tv-card--dark::before {
+    background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%);
+}
+
+.chaos-tv-rot-left  { transform: rotate(-2.4deg); }
+.chaos-tv-rot-right { transform: rotate( 2.4deg); }
+.chaos-tv-rot-tilt  { transform: rotate(-1deg); }
+.chaos-tv-float     { animation: chaos-float 6s ease-in-out infinite; }
+
+/* Big neon title (room name / card heads). Default glow is pink; apply
+   a colour modifier to re-tint both the text and the throb. */
+.chaos-tv-title {
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    line-height: 0.92;
+    color: #fff;
+    --throb-rgb: 244, 114, 182; /* pink-400 */
+    text-shadow:
+      0 0 18px rgba(var(--throb-rgb), 0.55),
+      0 0 42px rgba(var(--throb-rgb), 0.28);
+    animation: chaos-neon-throb 3.6s ease-in-out infinite;
+}
+
+.chaos-tv-title--pink {
+    color: #fbcfe8;
+    --throb-rgb: 244, 114, 182;
+}
+
+.chaos-tv-title--cyan {
+    color: #a5f3fc;
+    --throb-rgb: 34, 211, 238;
+}
+
+.chaos-tv-title--amber {
+    color: #fde68a;
+    --throb-rgb: 251, 191, 36;
+}
+
+/* Cleaner large heading style (closer to pre-chaos TV look). */
+.chaos-tv-title--soft {
+    animation: none;
+    text-transform: none;
+    letter-spacing: -0.02em;
+    line-height: 1.06;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+}
+
+/* Subtle neon variant for standalone hero text that should read cleaner. */
+.chaos-tv-title--subtle {
+    animation: none;
+    text-shadow:
+      0 0 8px rgba(var(--throb-rgb), 0.25),
+      0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* Room code display — amber hero glow, single accent. */
+.chaos-tv-code {
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    color: #1a0a2e;
+    text-shadow:
+      0 2px 0 rgba(255, 255, 255, 0.45),
+      0 6px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* Chaos sticker tag — small rotated neon label above big heads. */
+.chaos-tv-eyebrow {
+    display: inline-block;
+    align-self: center;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.24em;
+    font-size: clamp(13px, 1.15vw, 22px);
+    padding: 10px 22px;
+    color: #fff;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.22), transparent 45%),
+      linear-gradient(135deg, var(--tv-pink-light) 0%, var(--tv-pink-dark) 100%);
+    border: 3px solid #000;
+    border-radius: 10px 4px 12px 6px;
+    box-shadow: 0 8px 0 #000, 0 0 22px rgba(236, 72, 153, 0.35);
+    transform: rotate(-2.5deg);
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.45);
+    white-space: nowrap;
+}
+
+.chaos-tv-eyebrow--pink {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.22), transparent 45%),
+      linear-gradient(135deg, var(--tv-pink-light) 0%, var(--tv-pink-dark) 100%);
+    box-shadow: 0 8px 0 #000, 0 0 22px rgba(236, 72, 153, 0.4);
+}
+
+.chaos-tv-eyebrow--cyan {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.24), transparent 45%),
+      linear-gradient(135deg, var(--tv-cyan-light) 0%, var(--tv-cyan-dark) 100%);
+    box-shadow: 0 8px 0 #000, 0 0 22px rgba(6, 182, 212, 0.4);
+}
+
+.chaos-tv-eyebrow--gold {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.32), transparent 45%),
+      linear-gradient(135deg, var(--tv-amber-light) 0%, var(--tv-amber-dark) 100%);
+    color: var(--tv-ink);
+    box-shadow: 0 8px 0 #000, 0 0 24px rgba(245, 158, 11, 0.45);
+    text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.chaos-tv-eyebrow--dark {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.08), transparent 45%),
+      linear-gradient(135deg, rgba(15, 15, 28, 0.96), rgba(40, 10, 60, 0.94));
+    color: #fff;
+    border-color: rgba(244, 114, 182, 0.6);
+    box-shadow: 0 8px 0 #000, 0 0 22px rgba(236, 72, 153, 0.3);
+}
+
+.chaos-tv-eyebrow--flip     { transform: rotate(2.5deg); }
+.chaos-tv-eyebrow--straight { transform: rotate(0); }
+
+/* Numbered step bubble. Default pink; swap with a tint modifier. */
+.chaos-tv-bignum {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(60px, 4.5vw, 96px);
+    height: clamp(60px, 4.5vw, 96px);
+    border-radius: 9999px;
+    font-weight: 900;
+    font-size: clamp(28px, 2.6vw, 48px);
+    background: var(--tv-pink-dark);
+    color: #fff;
+    border: 4px solid #000;
+    box-shadow: 0 8px 0 #000, 0 0 20px rgba(219, 39, 119, 0.32);
+    flex-shrink: 0;
+}
+
+.chaos-tv-bignum--cyan {
+    background: var(--tv-cyan-light);
+    color: var(--tv-ink);
+    box-shadow: 0 8px 0 #000, 0 0 24px rgba(6, 182, 212, 0.5);
+}
+
+.chaos-tv-bignum--gold {
+    background: var(--tv-amber-light);
+    color: var(--tv-ink);
+    box-shadow: 0 8px 0 #000, 0 0 24px rgba(245, 158, 11, 0.5);
+}
+
+/* Leaderboard row sticker. Neutral dark base; podium uses the 3 accents. */
+.chaos-tv-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: clamp(10px, 1.2vw, 18px) clamp(16px, 2vw, 28px);
+    border-radius: 22px;
+    border: 3px solid rgba(0, 0, 0, 0.9);
+    background: linear-gradient(135deg, rgba(15, 15, 28, 0.92), rgba(40, 10, 60, 0.85));
+    color: #fff;
+    box-shadow: 0 10px 0 #000, inset 0 0 0 2px rgba(244, 114, 182, 0.22);
+}
+
+.chaos-tv-row--first {
+    background: linear-gradient(135deg, var(--tv-amber-light) 0%, var(--tv-amber-dark) 100%);
+    color: var(--tv-ink);
+    box-shadow: 0 10px 0 #000, 0 0 28px rgba(245, 158, 11, 0.45);
+}
+
+.chaos-tv-row--second {
+    background: linear-gradient(135deg, var(--tv-cyan-light) 0%, var(--tv-cyan-dark) 100%);
+    color: #fff;
+    box-shadow: 0 10px 0 #000, 0 0 22px rgba(6, 182, 212, 0.35);
+}
+
+.chaos-tv-row--third {
+    background: linear-gradient(135deg, var(--tv-pink-light) 0%, var(--tv-pink-dark) 100%);
+    color: #fff;
+    box-shadow: 0 10px 0 #000, 0 0 22px rgba(236, 72, 153, 0.35);
+}
+
+/* QR wrapper — a sticker-panel for the QR block */
+.chaos-tv-qr {
+    position: relative;
+    padding: clamp(14px, 1.5vw, 22px);
+    background: #fff;
+    border: 5px solid #000;
+    border-radius: 28px;
+    box-shadow: 0 14px 0 #000, 0 0 32px rgba(6, 182, 212, 0.3);
+    transform: rotate(-2deg);
+}
+
+/* Live joined badge — single-colour cyan sticker with a pink dot. */
+.chaos-tv-joined {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 12px 22px;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-size: clamp(14px, 1.1vw, 20px);
+    background: linear-gradient(135deg, var(--tv-cyan-light) 0%, var(--tv-cyan-dark) 100%);
+    border: 3px solid #000;
+    border-radius: 9999px;
+    box-shadow: 0 8px 0 #000, 0 0 22px rgba(6, 182, 212, 0.45);
+    color: var(--tv-ink);
+    transform: rotate(2deg);
+}
+
+.chaos-tv-joined-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+    background: var(--tv-pink);
+    border: 2px solid #000;
+    animation: chaos-pulse 1.2s infinite alternate;
+}
+
+/* Scanning sheen that sweeps across a card every few seconds */
+.chaos-tv-sheen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 30%;
+    height: 100%;
+    background: linear-gradient(
+      120deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.18) 45%,
+      rgba(255, 255, 255, 0.32) 50%,
+      rgba(255, 255, 255, 0.18) 55%,
+      transparent 100%
+    );
+    transform: translateX(-120%);
+    animation: chaos-scan-stripe 5s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* -------------------------------------------------------------------------
+   Post-attract (in-game) chaos helpers
+   Used by TVPage header + phase components while a sociale is running.
+   ------------------------------------------------------------------------- */
+
+/* Header strip container — sticker band at the top of TVPage. */
+.chaos-tv-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: clamp(12px, 1.8vw, 28px);
+    padding: clamp(14px, 1.4vw, 22px) clamp(18px, 2vw, 32px);
+    border-radius: 28px;
+    border: 4px solid rgba(0, 0, 0, 0.92);
+    background: linear-gradient(135deg, rgba(15, 15, 28, 0.96), rgba(40, 10, 60, 0.92));
+    box-shadow: 0 14px 0 #000, 0 0 36px rgba(236, 72, 153, 0.25);
+    color: #fff;
+    position: relative;
+}
+
+/* Room code mini sticker for the header (amber accent). */
+.chaos-tv-header-code {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 20px;
+    border-radius: 18px;
+    border: 3px solid #000;
+    background: linear-gradient(135deg, var(--tv-amber-light) 0%, var(--tv-amber-dark) 100%);
+    color: var(--tv-ink);
+    box-shadow: 0 8px 0 #000, 0 0 22px rgba(245, 158, 11, 0.4);
+    transform: rotate(-1.5deg);
+    line-height: 1;
+}
+
+.chaos-tv-header-code-value {
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    font-size: clamp(22px, 2.4vw, 38px);
+    text-shadow: 0 2px 0 rgba(255, 255, 255, 0.35);
+}
+
+.chaos-tv-header-code-label {
+    font-weight: 800;
+    font-size: clamp(9px, 0.9vw, 12px);
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    opacity: 0.75;
+}
+
+/* Compact QR (corner variant) — tighter padding than the attract QR. */
+.chaos-tv-qr--compact {
+    padding: clamp(8px, 0.9vw, 14px);
+    transform: rotate(-1.5deg);
+}
+
+/* Chaos wrapper for the inline Timer component. Positioned as a top-right
+   sticker so the countdown matches the rest of /tv. */
+.chaos-tv-timer-wrap {
+    position: fixed;
+    top: clamp(16px, 1.6vw, 28px);
+    right: clamp(16px, 1.6vw, 28px);
+    z-index: 50;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 10px 20px;
+    border-radius: 18px;
+    border: 3px solid #000;
+    background: linear-gradient(135deg, var(--tv-pink-light) 0%, var(--tv-pink-dark) 100%);
+    color: #fff;
+    box-shadow: 0 8px 0 #000, 0 0 22px rgba(236, 72, 153, 0.4);
+    transform: rotate(2deg);
+    min-width: 5.5rem;
+    pointer-events: none;
+}
+
+/* Timer inside the chaos wrapper: force centered layout regardless of the
+   component's default right-aligned inline styling. */
+.chaos-tv-timer-wrap > div {
+    align-items: center !important;
+    text-align: center !important;
+    gap: 0.1rem !important;
+    opacity: 1 !important;
+}
+
+.chaos-tv-timer-wrap > div > span {
+    text-align: center !important;
+    color: #fff !important;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.chaos-tv-timer-wrap > div > span:first-child {
+    font-size: clamp(9px, 0.8vw, 12px);
+    letter-spacing: 0.28em;
+    opacity: 0.85;
+}
+
+.chaos-tv-timer-wrap > div > span:last-child {
+    font-size: clamp(22px, 2.2vw, 34px) !important;
+    line-height: 1 !important;
+}
+
+/* Chaos player chip (lobby roster, mini leaderboard entries). */
+.chaos-tv-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 10px 16px;
+    border-radius: 18px;
+    border: 3px solid rgba(0, 0, 0, 0.92);
+    background: linear-gradient(135deg, rgba(15, 15, 28, 0.96), rgba(40, 10, 60, 0.9));
+    color: #fff;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    box-shadow: 0 7px 0 #000, 0 0 18px rgba(236, 72, 153, 0.24);
+    min-width: 0;
+}
+
+.chaos-tv-chip--pink {
+    background: linear-gradient(135deg, var(--tv-pink-light) 0%, var(--tv-pink-dark) 100%);
+    color: #fff;
+    box-shadow: 0 7px 0 #000, 0 0 22px rgba(236, 72, 153, 0.4);
+}
+
+.chaos-tv-chip--cyan {
+    background: linear-gradient(135deg, var(--tv-cyan-light) 0%, var(--tv-cyan-dark) 100%);
+    color: var(--tv-ink);
+    box-shadow: 0 7px 0 #000, 0 0 22px rgba(6, 182, 212, 0.4);
+}
+
+.chaos-tv-chip--gold {
+    background: linear-gradient(135deg, var(--tv-amber-light) 0%, var(--tv-amber-dark) 100%);
+    color: var(--tv-ink);
+    box-shadow: 0 7px 0 #000, 0 0 22px rgba(245, 158, 11, 0.45);
+}
+
+.chaos-tv-chip-mascot {
+    width: clamp(30px, 2.2vw, 44px);
+    height: clamp(30px, 2.2vw, 44px);
+    border-radius: 9999px;
+    background: #0f0f1c;
+    border: 2px solid #000;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.chaos-tv-chip-name {
+    font-size: clamp(14px, 1.2vw, 22px);
+    font-weight: 900;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 14ch;
+}
+
+/* Hero prompt card — big dark sticker that frames the current question. */
+.chaos-tv-prompt {
+    position: relative;
+    padding: clamp(22px, 2.4vw, 48px) clamp(28px, 3vw, 56px);
+    border-radius: 34px;
+    border: 5px solid rgba(0, 0, 0, 0.96);
+    background: linear-gradient(135deg, rgba(10, 10, 20, 0.96), rgba(40, 10, 60, 0.92));
+    box-shadow: 0 22px 0 #000, 0 0 56px rgba(236, 72, 153, 0.35);
+    color: #fff;
+    text-align: center;
+    overflow: hidden;
+    transform: rotate(-0.8deg);
+}
+
+.chaos-tv-prompt::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%);
+    pointer-events: none;
+}
+
+/* Multiple-choice option tile. Use alongside chaos-tv-card--pink / --cyan. */
+.chaos-tv-choice {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-align: left;
+    cursor: default;
+}
+
+.chaos-tv-choice-letter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(44px, 3vw, 68px);
+    height: clamp(44px, 3vw, 68px);
+    border-radius: 14px;
+    border: 3px solid #000;
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    font-weight: 900;
+    font-size: clamp(22px, 2vw, 36px);
+    flex-shrink: 0;
+    box-shadow: 0 6px 0 #000;
+}
+
+.chaos-tv-choice-text {
+    font-size: clamp(20px, 1.8vw, 34px);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.15;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Small sticker counter (vote tallies, "answered" counts). */
+.chaos-tv-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 8px 16px;
+    border-radius: 9999px;
+    border: 3px solid #000;
+    background: linear-gradient(135deg, var(--tv-pink-light) 0%, var(--tv-pink-dark) 100%);
+    color: #fff;
+    font-weight: 900;
+    font-size: clamp(13px, 1vw, 18px);
+    letter-spacing: 0.08em;
+    box-shadow: 0 6px 0 #000, 0 0 18px rgba(236, 72, 153, 0.35);
+}
+
+.chaos-tv-count--cyan {
+    background: linear-gradient(135deg, var(--tv-cyan-light) 0%, var(--tv-cyan-dark) 100%);
+    color: var(--tv-ink);
+    box-shadow: 0 6px 0 #000, 0 0 18px rgba(6, 182, 212, 0.4);
+}
+
+.chaos-tv-count--gold {
+    background: linear-gradient(135deg, var(--tv-amber-light) 0%, var(--tv-amber-dark) 100%);
+    color: var(--tv-ink);
+    box-shadow: 0 6px 0 #000, 0 0 18px rgba(245, 158, 11, 0.45);
+}
+
+/* Section eyebrow (sticker label) that sits tight against the header. */
+.chaos-tv-section-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 8px 16px;
+    border-radius: 10px 4px 12px 6px;
+    border: 3px solid #000;
+    background: linear-gradient(180deg, rgba(255,255,255,0.2), transparent 45%),
+                linear-gradient(135deg, var(--tv-cyan-light), var(--tv-cyan-dark));
+    color: var(--tv-ink);
+    font-weight: 900;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    font-size: clamp(11px, 0.95vw, 16px);
+    box-shadow: 0 6px 0 #000, 0 0 18px rgba(6, 182, 212, 0.35);
+    transform: rotate(-2deg);
+}
+
+/* Tiny live dot (reuses pulse keyframes from chaos-tv-joined-dot). */
+.chaos-tv-live-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+    background: var(--tv-pink);
+    border: 2px solid #000;
+    animation: chaos-pulse 1.2s infinite alternate;
+}
+
+/* -------------------------------------------------------------------------
+   End post-attract helpers
+   ------------------------------------------------------------------------- */
+
+/* TV background: deep purple gradient with a soft centre bloom. */
+.chaos-tv-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(138, 43, 226, 0.22), transparent 65%),
+      linear-gradient(135deg, #1a0a2e 0%, #2a0f4a 50%, #1a0a2e 100%);
+    background-size: 140% 140%;
+    animation: gradientDrift 24s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes gradientDrift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
 /* Section Button Styles - Chaos Arcade Style */
 .section-button {
   position: relative;
@@ -2259,4 +2890,461 @@ dialog[open] {
     position: relative;
   }
 
+  /* --- Timer warning border pulse (P1-7) ---
+     Apply to full-bleed page shells (e.g. RoomPageContent) while
+     `useTimerWarning().isWarning` is true. Combines with an urgent variant
+     for the final 5s. */
+  @keyframes p1-timer-warning-pulse {
+    0%, 100% {
+      box-shadow: inset 0 0 0 0px rgba(255, 59, 59, 0);
+    }
+    50% {
+      box-shadow: inset 0 0 48px 6px rgba(255, 59, 59, 0.55);
+    }
+  }
+  @keyframes p1-timer-warning-pulse-urgent {
+    0%, 100% {
+      box-shadow: inset 0 0 0 2px rgba(255, 59, 59, 0.6);
+    }
+    50% {
+      box-shadow: inset 0 0 64px 10px rgba(255, 59, 59, 0.85);
+    }
+  }
+  .p1-timer-warning {
+    animation: p1-timer-warning-pulse 1s ease-in-out infinite;
+    position: relative;
+  }
+  .p1-timer-warning-urgent {
+    animation: p1-timer-warning-pulse-urgent 0.45s ease-in-out infinite;
+  }
+
+  /* TV tint applied to the live phase wrapper while `isWarning`. Subtle red
+     wash over the background so it reads at 10ft without burning the scene. */
+  .p1-tv-urgent-tint::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 25;
+    background: radial-gradient(circle at 50% 100%, rgba(255, 59, 59, 0.18), transparent 65%);
+    animation: p1-timer-warning-pulse 1.2s ease-in-out infinite;
+  }
+
+  /* --- Answer tile correctness glyph + color tokens (P1-21) ---
+     Used by Room/TV tiles to double-encode meaning (color + shape) for
+     colorblind accessibility and dim-pub legibility. */
+  :root {
+    --p1-color-correct: #22c55e;
+    --p1-color-correct-bg: rgba(34, 197, 94, 0.14);
+    --p1-color-correct-border: rgba(34, 197, 94, 0.55);
+    --p1-color-wrong: #ef4444;
+    --p1-color-wrong-bg: rgba(239, 68, 68, 0.12);
+    --p1-color-wrong-border: rgba(239, 68, 68, 0.5);
+    --p1-color-close: #eab308;
+    --p1-color-close-bg: rgba(234, 179, 8, 0.14);
+    --p1-color-close-border: rgba(234, 179, 8, 0.5);
+  }
+
+  .p1-tile-correct {
+    border-color: var(--p1-color-correct-border) !important;
+    background: var(--p1-color-correct-bg) !important;
+    color: var(--p1-color-correct) !important;
+  }
+  .p1-tile-wrong {
+    border-color: var(--p1-color-wrong-border) !important;
+    background: var(--p1-color-wrong-bg) !important;
+    color: var(--p1-color-wrong) !important;
+  }
+  .p1-tile-close {
+    border-color: var(--p1-color-close-border) !important;
+    background: var(--p1-color-close-bg) !important;
+    color: var(--p1-color-close) !important;
+  }
+
+  /* --- Primary action button 5-state tokens (P1-32) ---
+     Extends the existing `.chaos-session-button` treatments. The state
+     class controls hue/sat/lightness + motion. Framer `layoutId` is set
+     directly on the wrapping <motion.div> in PrimaryActionButton.tsx. */
+  @keyframes p1-pab-breathe {
+    0%, 100% { transform: scale(1); opacity: 0.9; }
+    50% { transform: scale(1.012); opacity: 1; }
+  }
+  @keyframes p1-pab-pulse-act {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+  }
+  @keyframes p1-pab-drift {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(1px); }
+  }
+  @keyframes p1-pab-shimmer {
+    0% { background-position: -120% 0; }
+    100% { background-position: 220% 0; }
+  }
+
+  .p1-pab-idle {
+    filter: saturate(0.5) brightness(0.85);
+    opacity: 0.6;
+  }
+  .p1-pab-coming-soon {
+    animation: p1-pab-breathe 2.4s ease-in-out infinite;
+  }
+  .p1-pab-coming-soon::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(110deg, transparent 40%, rgba(255,255,255,0.25) 50%, transparent 60%);
+    background-size: 220% 100%;
+    animation: p1-pab-shimmer 3s linear infinite;
+    mix-blend-mode: overlay;
+  }
+  .p1-pab-act-now {
+    animation: p1-pab-pulse-act 0.9s ease-in-out infinite;
+    filter: saturate(1.25) brightness(1.05);
+  }
+  .p1-pab-wait {
+    filter: saturate(0.6) brightness(0.85);
+    opacity: 0.7;
+    animation: p1-pab-drift 3s ease-in-out infinite;
+  }
+  .p1-pab-pending {
+    animation: p1-pab-breathe 1.8s ease-in-out infinite;
+    filter: hue-rotate(30deg) saturate(0.9);
+  }
+
 }
+
+/* ============================================================ */
+/* Chaos — Room sibling system (mobile-tuned translation of TV)  */
+/*                                                               */
+/* Sibling language: same palette + type scale as chaos-tv-*,    */
+/* but tighter shadows, shorter animations, no large rotations,  */
+/* safe to run in a dim pub on 30% battery.                      */
+/* ============================================================ */
+
+:root {
+  --chaos-room-ink:             #0a0118;
+  --chaos-room-surface:         rgba(10, 1, 24, 0.92);
+  --chaos-room-surface-alt:     rgba(20, 18, 42, 0.88);
+  --chaos-room-border:          rgba(255, 255, 255, 0.08);
+
+  /* Phase accent tokens — each resolves to a rgb triple and a base color. */
+  --chaos-room-phase-lobby:     #22d3ee;
+  --chaos-room-phase-lobby-rgb: 34, 211, 238;
+  --chaos-room-phase-answer:    #f472b6;
+  --chaos-room-phase-answer-rgb: 244, 114, 182;
+  --chaos-room-phase-vote:      #c084fc;
+  --chaos-room-phase-vote-rgb:  192, 132, 252;
+  --chaos-room-phase-reveal:    #fbbf24;
+  --chaos-room-phase-reveal-rgb: 251, 191, 36;
+  --chaos-room-phase-results:   #34d399;
+  --chaos-room-phase-results-rgb: 52, 211, 153;
+  --chaos-room-phase-ended:     #818cf8;
+  --chaos-room-phase-ended-rgb: 129, 140, 248;
+
+  /* Motion tokens — keep everything short so we don't burn mobile GPUs. */
+  --chaos-room-motion-short:    180ms;
+  --chaos-room-motion-medium:   320ms;
+  --chaos-room-motion-celebrate: 650ms;
+  --chaos-room-ease:            cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Modal shell — shared chrome for Answer/Vote/Leaderboard/Selfie. */
+.chaos-room-shell {
+  position: relative;
+  background: linear-gradient(180deg, var(--chaos-room-surface-alt) 0%, var(--chaos-room-surface) 100%);
+  border: 1px solid var(--chaos-room-border);
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(var(--chaos-room-accent-rgb, 244, 114, 182), 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  color: #fff;
+  overflow: hidden;
+}
+
+.chaos-room-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(var(--chaos-room-accent-rgb, 244, 114, 182), 0.18), transparent 55%),
+    radial-gradient(circle at 90% 100%, rgba(var(--chaos-room-accent-rgb, 244, 114, 182), 0.12), transparent 60%);
+}
+
+.chaos-room-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Phase tint — apply the active phase's accent token to any shell. */
+.chaos-room-shell[data-phase="lobby"]   { --chaos-room-accent: var(--chaos-room-phase-lobby);   --chaos-room-accent-rgb: var(--chaos-room-phase-lobby-rgb); }
+.chaos-room-shell[data-phase="answer"]  { --chaos-room-accent: var(--chaos-room-phase-answer);  --chaos-room-accent-rgb: var(--chaos-room-phase-answer-rgb); }
+.chaos-room-shell[data-phase="vote"]    { --chaos-room-accent: var(--chaos-room-phase-vote);    --chaos-room-accent-rgb: var(--chaos-room-phase-vote-rgb); }
+.chaos-room-shell[data-phase="reveal"]  { --chaos-room-accent: var(--chaos-room-phase-reveal);  --chaos-room-accent-rgb: var(--chaos-room-phase-reveal-rgb); }
+.chaos-room-shell[data-phase="results"] { --chaos-room-accent: var(--chaos-room-phase-results); --chaos-room-accent-rgb: var(--chaos-room-phase-results-rgb); }
+.chaos-room-shell[data-phase="ended"]   { --chaos-room-accent: var(--chaos-room-phase-ended);   --chaos-room-accent-rgb: var(--chaos-room-phase-ended-rgb); }
+
+/* Panel variant — subtler, used for in-room phase preview cards. */
+.chaos-room-panel {
+  position: relative;
+  background: linear-gradient(180deg, rgba(20, 18, 42, 0.72) 0%, rgba(10, 1, 24, 0.82) 100%);
+  border: 1px solid rgba(var(--chaos-room-accent-rgb, 244, 114, 182), 0.25);
+  border-radius: 24px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+  color: #fff;
+  overflow: hidden;
+}
+
+.chaos-room-panel[data-phase="lobby"]   { --chaos-room-accent: var(--chaos-room-phase-lobby);   --chaos-room-accent-rgb: var(--chaos-room-phase-lobby-rgb); }
+.chaos-room-panel[data-phase="answer"]  { --chaos-room-accent: var(--chaos-room-phase-answer);  --chaos-room-accent-rgb: var(--chaos-room-phase-answer-rgb); }
+.chaos-room-panel[data-phase="vote"]    { --chaos-room-accent: var(--chaos-room-phase-vote);    --chaos-room-accent-rgb: var(--chaos-room-phase-vote-rgb); }
+.chaos-room-panel[data-phase="reveal"]  { --chaos-room-accent: var(--chaos-room-phase-reveal);  --chaos-room-accent-rgb: var(--chaos-room-phase-reveal-rgb); }
+.chaos-room-panel[data-phase="results"] { --chaos-room-accent: var(--chaos-room-phase-results); --chaos-room-accent-rgb: var(--chaos-room-phase-results-rgb); }
+.chaos-room-panel[data-phase="ended"]   { --chaos-room-accent: var(--chaos-room-phase-ended);   --chaos-room-accent-rgb: var(--chaos-room-phase-ended-rgb); }
+
+/* Eyebrow — small all-caps phase/round label. */
+.chaos-room-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  background: rgba(var(--chaos-room-accent-rgb, 244, 114, 182), 0.12);
+  color: rgb(var(--chaos-room-accent-rgb, 244, 114, 182));
+  border: 1px solid rgba(var(--chaos-room-accent-rgb, 244, 114, 182), 0.35);
+}
+
+/* Prompt card — beefier version of chaos-prompt-card but flat on mobile. */
+.chaos-room-prompt-card {
+  background: linear-gradient(135deg, rgb(var(--chaos-room-accent-rgb, 244, 114, 182)) 0%, rgba(var(--chaos-room-accent-rgb, 244, 114, 182), 0.65) 100%);
+  border-radius: 24px;
+  border: 2px solid rgba(0, 0, 0, 0.85);
+  box-shadow:
+    0 10px 0 rgba(0, 0, 0, 0.85),
+    0 18px 32px rgba(0, 0, 0, 0.45);
+  color: #0a0118;
+  padding: 1rem 1.25rem;
+  transform: rotate(-0.6deg);
+}
+
+/* Primary CTA skin — tuned for big thumb targets. */
+.chaos-room-cta {
+  position: relative;
+  min-height: 56px;
+  border-radius: 9999px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #0a0118;
+  background: linear-gradient(135deg, rgb(var(--chaos-room-accent-rgb, 244, 114, 182)) 0%, #ffffff 220%);
+  border: 2px solid rgba(0, 0, 0, 0.85);
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.85), 0 0 24px rgba(var(--chaos-room-accent-rgb, 244, 114, 182), 0.45);
+  transition:
+    transform var(--chaos-room-motion-short) var(--chaos-room-ease),
+    box-shadow var(--chaos-room-motion-short) var(--chaos-room-ease),
+    filter var(--chaos-room-motion-short) var(--chaos-room-ease);
+  overflow: hidden;
+}
+
+.chaos-room-cta:active {
+  transform: translateY(3px);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.85), 0 0 20px rgba(var(--chaos-room-accent-rgb, 244, 114, 182), 0.45);
+}
+
+.chaos-room-cta:disabled {
+  filter: saturate(0.35) brightness(0.75);
+  cursor: not-allowed;
+}
+
+/* Timer warning states scoped to the shell so the border flushes red. */
+.chaos-room-shell.is-timer-warning {
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.55),
+    0 0 0 2px rgba(255, 59, 59, 0.55),
+    inset 0 0 48px 6px rgba(255, 59, 59, 0.28);
+  animation: p1-timer-warning-pulse 1s ease-in-out infinite;
+}
+
+.chaos-room-shell.is-timer-urgent {
+  animation: p1-timer-warning-pulse-urgent 0.45s ease-in-out infinite;
+}
+
+/* Row of response cards in the vote modal — rotate micro-tilt on mobile. */
+.chaos-room-response-card {
+  transform: rotate(-0.6deg);
+  transition: transform var(--chaos-room-motion-short) var(--chaos-room-ease);
+}
+
+.chaos-room-response-card:nth-child(even) {
+  transform: rotate(0.6deg);
+}
+
+.chaos-room-response-card:active {
+  transform: rotate(0deg) scale(0.98);
+}
+
+/* Bottom sheet handle bar — shared between BottomSheetShell variants. */
+.chaos-room-sheet-handle {
+  width: 48px;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0.5rem auto 0.75rem;
+}
+
+/* Connection status dot — green/amber/red with pulse. */
+@keyframes chaos-room-conn-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; }
+  50% { box-shadow: 0 0 0 6px rgba(0, 0, 0, 0); }
+}
+
+.chaos-room-conn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  display: inline-block;
+}
+
+.chaos-room-conn-dot[data-status="ok"] {
+  background: #22c55e;
+  color: #22c55e;
+  animation: chaos-room-conn-pulse 2.2s ease-in-out infinite;
+}
+
+.chaos-room-conn-dot[data-status="warn"] {
+  background: #f59e0b;
+  color: #f59e0b;
+  animation: chaos-room-conn-pulse 1.2s ease-in-out infinite;
+}
+
+.chaos-room-conn-dot[data-status="down"] {
+  background: #ef4444;
+  color: #ef4444;
+  animation: chaos-room-conn-pulse 0.6s ease-in-out infinite;
+}
+
+/* -------------------------------------------------------------------------
+   Wave R6 — BottomSheet shared chrome
+   ------------------------------------------------------------------------- */
+
+.chaos-room-sheet-header {
+  position: relative;
+}
+
+.chaos-room-sheet-accent-stripe {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--chaos-room-sheet-accent, rgba(148, 163, 184, 0.6)),
+    transparent
+  );
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.chaos-room-sheet-header[data-accent="neutral"] { --chaos-room-sheet-accent: rgba(148, 163, 184, 0.6); }
+.chaos-room-sheet-header[data-accent="lobby"]   { --chaos-room-sheet-accent: var(--chaos-room-phase-lobby); }
+.chaos-room-sheet-header[data-accent="answer"]  { --chaos-room-sheet-accent: var(--chaos-room-phase-answer); }
+.chaos-room-sheet-header[data-accent="vote"]    { --chaos-room-sheet-accent: var(--chaos-room-phase-vote); }
+.chaos-room-sheet-header[data-accent="results"] { --chaos-room-sheet-accent: var(--chaos-room-phase-results); }
+.chaos-room-sheet-header[data-accent="ended"]   { --chaos-room-sheet-accent: var(--chaos-room-phase-ended); }
+
+.chaos-room-sheet-count {
+  background: color-mix(in srgb, var(--chaos-room-sheet-accent, #94a3b8) 22%, transparent);
+  color: var(--chaos-room-sheet-accent, #e2e8f0);
+  border: 1px solid color-mix(in srgb, var(--chaos-room-sheet-accent, #94a3b8) 45%, transparent);
+  min-width: 20px;
+}
+
+.chaos-room-sheet-header .chaos-room-sheet-eyebrow {
+  color: color-mix(in srgb, var(--chaos-room-sheet-accent, #94a3b8) 85%, white 15%);
+}
+
+/* Unified list item used inside bottom sheets (Polls/Topics/Prompts/Fibbage/Trivia). */
+.chaos-room-sheet-item {
+  width: 100%;
+  display: block;
+  padding: 1rem 1.125rem;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+  transition:
+    transform var(--chaos-room-motion-short, 180ms) ease,
+    border-color var(--chaos-room-motion-short, 180ms) ease,
+    background-color var(--chaos-room-motion-short, 180ms) ease;
+}
+.chaos-room-sheet-item:hover {
+  border-color: rgba(34, 211, 238, 0.45);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.95));
+}
+.chaos-room-sheet-item:active {
+  transform: scale(0.985);
+}
+.chaos-room-sheet-item .title {
+  font-weight: 800;
+  font-size: 1rem;
+  color: rgb(241, 245, 249);
+  line-height: 1.25;
+}
+.chaos-room-sheet-item .subtitle {
+  margin-top: 0.2rem;
+  font-size: 0.82rem;
+  color: rgba(203, 213, 225, 0.75);
+}
+.chaos-room-sheet-item .meta {
+  margin-top: 0.45rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+/* InteractionsGrid tactile + phase-tint. */
+.chaos-room-interaction-btn {
+  position: relative;
+  border-radius: 14px;
+  transition:
+    transform var(--chaos-room-motion-short, 180ms) ease,
+    box-shadow var(--chaos-room-motion-short, 180ms) ease,
+    border-color var(--chaos-room-motion-short, 180ms) ease;
+}
+.chaos-room-interaction-btn:hover {
+  transform: translateY(-1px);
+}
+.chaos-room-interaction-btn:active {
+  transform: scale(0.97);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18) inset;
+}
+.chaos-room-interaction-btn[data-tint="answer"]  { border-color: color-mix(in srgb, var(--chaos-room-phase-answer) 55%, transparent); }
+.chaos-room-interaction-btn[data-tint="vote"]    { border-color: color-mix(in srgb, var(--chaos-room-phase-vote) 55%, transparent); }
+.chaos-room-interaction-btn[data-tint="results"] { border-color: color-mix(in srgb, var(--chaos-room-phase-results) 55%, transparent); }
+.chaos-room-interaction-btn[data-tint="social"]  { border-color: color-mix(in srgb, var(--chaos-room-phase-lobby) 55%, transparent); }
+
+/* Reduced motion — gate everything. */
+@media (prefers-reduced-motion: reduce) {
+  .chaos-room-shell.is-timer-warning,
+  .chaos-room-shell.is-timer-urgent,
+  .chaos-room-conn-dot {
+    animation: none !important;
+  }
+  .chaos-room-cta,
+  .chaos-room-sheet-item,
+  .chaos-room-interaction-btn {
+    transition: none;
+  }
+}
+

@@ -15,7 +15,13 @@ export function LeaderboardBottomSheet({
   currentSessionId,
 }: LeaderboardBottomSheetProps) {
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="Leaderboard">
+    <BottomSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Leaderboard"
+      accent="results"
+      eyebrow="Room standings"
+    >
       <div className="flex min-h-0 flex-1 flex-col">
         <LeaderboardHistoryPanel roomId={roomId} currentSessionId={currentSessionId} />
       </div>

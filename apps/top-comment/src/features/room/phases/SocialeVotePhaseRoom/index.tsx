@@ -1,9 +1,9 @@
-import { SocialeGameButton } from '../../components/layout/SocialeGameButton';
-import { SessionTimer } from '@social/ui';
+import { useMemo } from 'react';
 import { usePhaseTimer } from '../../../../shared/hooks';
-import { getIsMainEventModeFromSociale } from '../../components/PhaseController';
 import { buildSocialeTimerSessionShim } from '../../utils/socialeTimerShim';
 import { useRoomPageContext } from '../../context/RoomPageContext';
+import { useRoundVotes, useSocialites } from '../../../../features/sociale/hooks';
+import { PhasePreviewCard } from '../../components/shell/PhasePreviewCard';
 import type { Sociale } from '../../../../domain/types/sociale.types';
 import type { SocialeGameParticipant } from '../../components/layout/SocialeGameButton';
 
@@ -19,22 +19,38 @@ interface SocialeVotePhaseRoomProps {
   currentRound?: any;
 }
 
+function truncatePrompt(text: string | null | undefined, limit = 90): string | null {
+  if (!text) return null;
+  const trimmed = text.trim();
+  if (trimmed.length <= limit) return trimmed;
+  return `${trimmed.slice(0, limit - 1).trimEnd()}…`;
+}
+
 export function SocialeVotePhaseRoom({
   sociale,
   hasSubmitted,
   onOpenModal,
-  participants,
   phaseEndsAt,
-  pausedRemainingSeconds,
   isPaused = sociale.status === 'paused',
   roundSettings,
   currentRound,
 }: SocialeVotePhaseRoomProps) {
   const { dispatch } = useRoomPageContext();
-  const isMainEventMode = getIsMainEventModeFromSociale(sociale);
   const timerShim = buildSocialeTimerSessionShim(sociale, 'vote');
   const { totalSeconds } = usePhaseTimer({ session: timerShim });
-  const pausedSecondsValue = isPaused && pausedRemainingSeconds != null ? pausedRemainingSeconds : undefined;
+
+  const { data: socialites = [] } = useSocialites(sociale.id);
+  const { data: roundVotes = [] } = useRoundVotes(
+    sociale.id,
+    sociale.currentRoundId ?? undefined,
+  );
+
+  const activeSocialiteCount = useMemo(
+    () => socialites.filter((s) => s.isActive).length,
+    [socialites],
+  );
+  const votedCount = roundVotes.length;
+  const promptPreview = truncatePrompt(currentRound?.content);
 
   const handleOpenModal = () => {
     if (sociale.currentRoundId && sociale.currentRoundIndex !== undefined) {
@@ -57,23 +73,21 @@ export function SocialeVotePhaseRoom({
   };
 
   return (
-    <div className="w-full mb-8">
-      <SocialeGameButton
-        displayState={hasSubmitted ? 'voted' : 'vote'}
-        participants={participants}
-        isMainEventMode={isMainEventMode}
+    <div className="w-full mb-6 px-4">
+      <PhasePreviewCard
         phase="vote"
-        onClick={handleOpenModal}
-      />
-      <SessionTimer
-        endTime={phaseEndsAt ?? undefined}
+        title="Voting"
+        ctaLabel={hasSubmitted ? 'Update your vote' : 'Cast your vote'}
+        promptPreview={promptPreview}
+        roundIndex={(sociale.currentRoundIndex ?? 0) + 1}
+        totalRounds={sociale.totalRounds}
+        endsAt={phaseEndsAt}
         totalSeconds={totalSeconds}
         paused={isPaused}
-        pausedSeconds={pausedSecondsValue}
-        variant="brand"
-        isDark={false}
-        position="inline"
-        showCriticalBar={true}
+        submittedCount={votedCount}
+        totalCount={activeSocialiteCount}
+        hasSubmitted={hasSubmitted}
+        onClick={handleOpenModal}
       />
     </div>
   );

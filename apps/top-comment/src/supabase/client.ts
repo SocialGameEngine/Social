@@ -52,7 +52,11 @@ export async function signInAnonymouslyUser() {
   const { data, error } = await supabase.auth.signInAnonymously();
   if (error) {
     console.error('Failed to sign in anonymously:', error);
-    return null;
+    // Re-throw so callers (AuthProvider, SignedOutPrompt, etc.) can react.
+    // Previously this swallowed the error and returned null, which made
+    // "Continue as guest" silently no-op when the Supabase project has
+    // anonymous sign-ins disabled.
+    throw error;
   }
   return data.user;
 }

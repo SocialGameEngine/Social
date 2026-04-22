@@ -51,6 +51,8 @@ export interface RoomMembership {
   isMuted?: boolean;
   mutedAt?: string;
   muteExpiresAt?: string;
+  /** P1-13: consecutive weekly visit streak (updated in `sociales-end`). */
+  currentStreak?: number;
 }
 
 // Domain events for room operations

@@ -26,6 +26,7 @@ export function deriveSocialeRoomGamePhase(
     if (p === 'vote') return 'vote';
     if (p === 'reveal') return 'reveal';
     if (p === 'results' || p === 'discussion') return 'results';
+    if (p === 'break') return 'break';
     return 'answer';
   }
 

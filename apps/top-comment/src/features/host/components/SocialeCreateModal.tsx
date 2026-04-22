@@ -17,6 +17,7 @@ import {
   generateAlternatingRounds 
 } from '../../../features/sociale/presets';
 import type { PromptLibraryId } from '../../../shared/promptLibraries';
+import { ControlledVoiceProfileSelector } from '../../presenter/components/ControlledVoiceProfileSelector';
 
 interface SocialeCreateModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ interface SocialeCreateModalProps {
     description?: string;
     mode?: SocialeMode;
     totalRounds?: number;
+    voiceProfile?: string;
   }) => Promise<void>;
   roomId: string;
   /**
@@ -39,6 +41,9 @@ interface SocialeCreateModalProps {
     description?: string | null;
     mode?: SocialeMode;
     totalRounds?: number;
+    settings?: {
+      voiceProfile?: string;
+    };
   } | null;
 }
 
@@ -56,6 +61,7 @@ export function SocialeCreateModal({
   const [mode, setMode] = useState<CreateSocialeRequest['mode']>('alternating');
   const [totalRounds, setTotalRounds] = useState(5);
   const [selectedLibraries, setSelectedLibraries] = useState<PromptLibraryId[]>([]);
+  const [voiceProfile, setVoiceProfile] = useState<string>('');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<Array<{
@@ -631,7 +637,7 @@ export function SocialeCreateModal({
   const libraryValidationError = getLibraryValidationError();
   const hasInvalidRounds = previewData.some(round => !round.isValid);
   const invalidRoundCount = previewData.filter(round => !round.isValid).length;
-  const canSubmit = mode === 'custom' 
+  const canSubmit = mode === 'custom' || mode === 'ambient'
     ? true 
     : (selectedLibraries.length >= 1 && !libraryValidationError && !hasInvalidRounds);
 
@@ -663,12 +669,16 @@ export function SocialeCreateModal({
       setDescription(existingSociale?.description ?? '');
       if (existingSociale?.mode) setMode(existingSociale.mode);
       if (typeof existingSociale?.totalRounds === 'number') setTotalRounds(existingSociale.totalRounds);
+      if (existingSociale?.settings && (existingSociale.settings as any)?.voiceProfile) {
+        setVoiceProfile((existingSociale.settings as any).voiceProfile);
+      }
     } else {
       // Reset to create defaults when opening in create mode.
       setTitle('');
       setDescription('');
       setMode('alternating');
       setTotalRounds(5);
+      setVoiceProfile('');
     }
   }, [
     isOpen,
@@ -677,6 +687,7 @@ export function SocialeCreateModal({
     existingSociale?.description,
     existingSociale?.mode,
     existingSociale?.totalRounds,
+    existingSociale?.settings?.voiceProfile,
   ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -692,6 +703,7 @@ export function SocialeCreateModal({
           description: description || undefined,
           mode,
           totalRounds,
+          voiceProfile: voiceProfile || undefined,
         });
         onClose();
         return;
@@ -709,12 +721,14 @@ export function SocialeCreateModal({
 
       // Generate rounds using preset functions
       let rounds: NonNullable<CreateSocialeRequest['rounds']> = [];
-      if (mode === 'topics_only') {
-        rounds = generateTopicsOnlyRounds(totalRounds, selectedLibraries);
-      } else if (mode === 'trivia_only') {
-        rounds = await generateTriviaOnlyRounds(totalRounds, selectedLibraries, availableLibraries);
-      } else if (mode === 'alternating') {
-        rounds = await generateAlternatingRounds(totalRounds, selectedLibraries, libraries);
+      if (mode !== 'ambient') {
+        if (mode === 'topics_only') {
+          rounds = generateTopicsOnlyRounds(totalRounds, selectedLibraries);
+        } else if (mode === 'trivia_only') {
+          rounds = await generateTriviaOnlyRounds(totalRounds, selectedLibraries, availableLibraries);
+        } else if (mode === 'alternating') {
+          rounds = await generateAlternatingRounds(totalRounds, selectedLibraries, libraries);
+        }
       }
 
       // Use the exact preview content that was shown to the user
@@ -764,10 +778,10 @@ export function SocialeCreateModal({
         title: title || undefined,
         description: description || undefined,
         mode,
-        totalRounds,
-        selectedLibraries: mode === 'custom' ? undefined : selectedLibraries,
-        rounds: mode === 'custom' ? undefined : populatedRounds,
-        previewQuestions: previewQuestions.length > 0 ? previewQuestions : undefined,
+        totalRounds: mode === 'ambient' ? 0 : totalRounds,  // edge fn sets the real count
+        selectedLibraries: (mode === 'custom' || mode === 'ambient') ? undefined : selectedLibraries,
+        rounds: (mode === 'custom' || mode === 'ambient') ? undefined : populatedRounds,
+        previewQuestions: (mode !== 'ambient' && previewQuestions.length > 0) ? previewQuestions : undefined,
       };
 
       await onCreateSociale(request);
@@ -852,6 +866,11 @@ export function SocialeCreateModal({
               hint="Shown to players in the lobby"
               error={error ? 'Failed to save Sociale' : undefined}
               isDark={isDark}
+            />
+
+            <ControlledVoiceProfileSelector
+              value={voiceProfile}
+              onChange={setVoiceProfile}
             />
 
             <>
@@ -940,11 +959,31 @@ export function SocialeCreateModal({
                         Configure your own rounds
                       </div>
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setMode('ambient')}
+                      className={`
+                        p-4 rounded-xl border-2 text-left transition-all col-span-2
+                        ${mode === 'ambient'
+                          ? (!isDark
+                              ? "border-brand-primary bg-amber-100 text-brand-primary shadow-sm"
+                              : "border-cyan-300 bg-slate-800/70 text-cyan-100 shadow-cyan-500/20")
+                          : !isDark ? "border-slate-300 bg-white hover:border-slate-400" : "border-slate-600 bg-slate-800 hover:border-slate-500"
+                        }
+                      `}
+                    >
+                      <div className={`font-semibold mb-1 ${!isDark ? 'text-slate-900' : 'text-cyan-100'}`}>
+                        Ambient
+                      </div>
+                      <div className={`text-xs ${!isDark ? 'text-slate-600' : 'text-cyan-300'}`}>
+                        Continuous autonomous trivia — no host required
+                      </div>
+                    </button>
                   </div>
                 </div>
 
                 {/* Prompt Library Selection */}
-                {mode !== 'custom' && (
+                {mode !== 'custom' && mode !== 'ambient' && (
                   <div className="space-y-2">
                     <label className={`text-sm font-semibold ${!isDark ? 'text-slate-700' : 'text-cyan-100'}`}>
                       Select Prompt Libraries
@@ -1034,7 +1073,18 @@ export function SocialeCreateModal({
                   </div>
                 )}
 
-                <div className="space-y-2">
+                {mode === 'ambient' && (
+                  <div className={`rounded-lg border p-3 text-sm ${!isDark ? 'bg-cyan-50 border-cyan-200 text-cyan-800' : 'bg-cyan-900/30 border-cyan-400/50 text-cyan-200'}`}>
+                    <p className="font-semibold">Ambient mode</p>
+                    <p className="mt-1 text-xs">
+                      The TV will run continuously using the shared ambient rounds library.
+                      No library selection needed — rounds cycle automatically and loop endlessly.
+                    </p>
+                  </div>
+                )}
+
+                {mode !== 'ambient' && (
+                  <div className="space-y-2">
                   <label className={`text-sm font-semibold ${!isDark ? 'text-slate-700' : 'text-cyan-100'}`}>
                     Number of Rounds
                   </label>
@@ -1062,6 +1112,7 @@ export function SocialeCreateModal({
                     Each player will answer {totalRounds} prompt{totalRounds !== 1 ? 's' : ''} per round
                   </p>
                 </div>
+                )}
               </>
 
             <p className={`text-xs ${!isDark ? 'text-slate-600' : 'text-slate-400'}`}>
@@ -1070,7 +1121,7 @@ export function SocialeCreateModal({
             </p>
 
             {/* Preview Section */}
-            {mode !== 'custom' && selectedLibraries.length > 0 && (
+            {mode !== 'custom' && mode !== 'ambient' && selectedLibraries.length > 0 && (
               <div className="space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div className="flex items-center gap-2">

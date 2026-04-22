@@ -2,6 +2,7 @@ import { supabase } from "../supabase/client";
 import { censorText } from "../shared/utils/profanityFilter";
 import { createRateLimiter } from "../shared/utils/rateLimiter";
 import { RATE_LIMITS } from "../shared/constants/rateLimits";
+import { getClientKey } from "../utils/clientKey";
 
 const joinLimiter = createRateLimiter(RATE_LIMITS.join.maxActions, RATE_LIMITS.join.windowMs);
 
@@ -42,6 +43,7 @@ function mapRoomMembership(data: Record<string, any>): RoomMembership | null {
     bannedAt: data.banned_at ?? undefined,
     bannedBy: data.banned_by ?? undefined,
     status: (data.status as RoomMembership['status']) || 'active',
+    currentStreak: typeof data.current_streak === 'number' ? data.current_streak : undefined,
   };
 }
 
@@ -126,7 +128,9 @@ export async function joinRoom(request: JoinRoomRequest): Promise<JoinRoomRespon
   const profanityLevel = room.settings.profanityFilter ?? 'moderate';
   const filteredPlayerName = censorText(request.playerName, profanityLevel);
 
-  const membershipData = {
+  // P1-3 — capture the device fingerprint so a returning player can auto-resume
+  // even if their browser wiped localStorage.
+  const membershipData: Record<string, unknown> = {
     room_id: room.id,
     user_id: userData.user.id, // Always valid - no null allowed
     player_name: filteredPlayerName,
@@ -134,6 +138,7 @@ export async function joinRoom(request: JoinRoomRequest): Promise<JoinRoomRespon
     is_host: false,
     is_banned: false,
     status: 'active', // Default status
+    client_key: getClientKey(),
   };
 
   // Set status based on room settings
@@ -142,7 +147,8 @@ export async function joinRoom(request: JoinRoomRequest): Promise<JoinRoomRespon
 
   const { data: membership, error: membershipError } = await supabase
     .from('room_memberships')
-    .insert(membershipData)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .insert(membershipData as any)
     .select()
     .single();
 

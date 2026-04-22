@@ -8,7 +8,7 @@ import type { RoomMembership } from '../../../../shared/types';
 import type { Sociale } from '../../../../domain/types/sociale.types';
 import type { GamePhase } from '../../types';
 import { SocialeGameButton, type SocialeGameParticipant } from '../../components/layout/SocialeGameButton';
-import { getIsMainEventModeFromSociale } from '../../components/PhaseController';
+import { getIsMainEventModeFromSociale } from '../../utils/sessionPhase';
 import { buildSocialeTimerSessionShim } from '../../utils/socialeTimerShim';
 import { usePhaseTimer } from '../../../../shared/hooks';
 import { useJoinSociale } from '../../../../features/sociale';

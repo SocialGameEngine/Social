@@ -4,13 +4,21 @@
 // Common types used across Session and Sociale game modes.
 
 /**
- * Game phase enum - used by both Session and Sociale
+ * Game phase enum - used by both Session and Sociale.
+ *
+ * Extended in the P1 backlog wave:
+ * - `reveal`   — staggered reveal theater (P1-1). TV leads the room by 200–400ms.
+ * - `break`    — first-class drinks-break intermission (P1-8).
+ * - `intermission` — reserved for future between-round breathing room.
  */
 export type GamePhase = 
   | 'lobby'
   | 'answer'
   | 'vote'
+  | 'reveal'
   | 'results'
+  | 'break'
+  | 'intermission'
   | 'ended';
 
 /**

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import BulkImport from "./BulkImport";
+import AIPromptGenerator from "./AIPromptGenerator";
 import {
   createPrompt,
   createPromptsBulk,
@@ -11,7 +12,9 @@ import {
   updatePrompt,
 } from "../services/database";
 import type { Prompt, PromptLibrary } from "../types/prompts";
-import { getErrorMessage } from "../utils/get-error-message";
+import { getErrorMessage } from '../utils/get-error-message';
+import { queryKeys } from '../lib/queryKeys';
+import { showToast } from './Toast';
 
 interface PromptListProps {
   library: PromptLibrary & { promptCount: number };
@@ -26,7 +29,7 @@ function PromptList({ library, onLibraryUpdated }: PromptListProps) {
   const [showImport, setShowImport] = useState(false);
 
   const promptsQuery = useQuery({
-    queryKey: ["prompts", library.id],
+    queryKey: queryKeys.prompts(library.id),
     queryFn: () => getPrompts(library.id),
   });
 
@@ -51,7 +54,7 @@ function PromptList({ library, onLibraryUpdated }: PromptListProps) {
     },
     onSuccess: async () => {
       setNewPromptText("");
-      await queryClient.invalidateQueries({ queryKey: ["prompts", library.id] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.prompts(library.id) });
       await onLibraryUpdated();
     },
   });
@@ -62,7 +65,7 @@ function PromptList({ library, onLibraryUpdated }: PromptListProps) {
     },
     onSuccess: async () => {
       setEditingPromptId(null);
-      await queryClient.invalidateQueries({ queryKey: ["prompts", library.id] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.prompts(library.id) });
     },
   });
 
@@ -71,7 +74,7 @@ function PromptList({ library, onLibraryUpdated }: PromptListProps) {
       await deletePrompt(id);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["prompts", library.id] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.prompts(library.id) });
       await onLibraryUpdated();
     },
   });
@@ -84,7 +87,7 @@ function PromptList({ library, onLibraryUpdated }: PromptListProps) {
       );
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["prompts", library.id] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.prompts(library.id) });
     },
   });
 
@@ -93,7 +96,7 @@ function PromptList({ library, onLibraryUpdated }: PromptListProps) {
       await createPromptsBulk(library.id, texts, prompts.length);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["prompts", library.id] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.prompts(library.id) });
       await onLibraryUpdated();
     },
   });
@@ -106,7 +109,7 @@ function PromptList({ library, onLibraryUpdated }: PromptListProps) {
     try {
       await createPromptMutation.mutateAsync(trimmed);
     } catch (error) {
-      alert(getErrorMessage(error, "Failed to add prompt"));
+      showToast(getErrorMessage(error, "Failed to add prompt"), 'error');
     }
   };
 
@@ -117,12 +120,12 @@ function PromptList({ library, onLibraryUpdated }: PromptListProps) {
     try {
       const trimmed = text.trim();
       if (!trimmed) {
-        alert("Prompt text cannot be empty.");
+        showToast("Prompt text cannot be empty.", 'info');
         return;
       }
       await updatePromptMutation.mutateAsync({ id, text: trimmed });
     } catch (error) {
-      alert(getErrorMessage(error, "Failed to update prompt"));
+      showToast(getErrorMessage(error, "Failed to update prompt"), 'error');
     }
   };
 
@@ -133,7 +136,7 @@ function PromptList({ library, onLibraryUpdated }: PromptListProps) {
     try {
       await deletePromptMutation.mutateAsync(id);
     } catch (error) {
-      alert(getErrorMessage(error, "Failed to delete prompt"));
+      showToast(getErrorMessage(error, "Failed to delete prompt"), 'error');
     }
   };
 
@@ -152,7 +155,7 @@ function PromptList({ library, onLibraryUpdated }: PromptListProps) {
     try {
       await reorderMutation.mutateAsync(next);
     } catch (error) {
-      alert(getErrorMessage(error, "Failed to reorder prompts"));
+      showToast(getErrorMessage(error, "Failed to reorder prompts"), 'error');
     }
   };
 
@@ -161,7 +164,7 @@ function PromptList({ library, onLibraryUpdated }: PromptListProps) {
       await bulkImportMutation.mutateAsync(texts);
       setShowImport(false);
     } catch (error) {
-      alert(getErrorMessage(error, "Failed to import prompts"));
+      showToast(getErrorMessage(error, "Failed to import prompts"), 'error');
     }
   };
 
@@ -212,14 +215,52 @@ function PromptList({ library, onLibraryUpdated }: PromptListProps) {
           >
             Export Library
           </button>
-          <button
-            type="button"
-            onClick={() => setShowImport((prev) => !prev)}
-            className="btn btn-secondary btn-sm"
-          >
-            {showImport ? "Hide Import" : "Show Import"}
-          </button>
+          </div>
+      </div>
+
+      {/* AI Prompt Generator */}
+      <AIPromptGenerator type="prompts" />
+
+      {/* Bulk Import Dropdown */}
+      <div className="ai-prompt-generator" style={{ 
+        background: '#f0f9ff', 
+        border: '1px solid #0ea5e9', 
+        borderRadius: '8px', 
+        marginBottom: '16px',
+        fontSize: '14px',
+        overflow: 'hidden'
+      }}>
+        <div 
+          style={{ 
+            padding: '12px 16px', 
+            cursor: 'pointer',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: 'rgba(14, 165, 233, 0.1)',
+            borderBottom: showImport ? '1px solid #0ea5e9' : 'none'
+          }}
+          onClick={() => setShowImport(!showImport)}
+        >
+          <h4 style={{ margin: 0, color: '#0369a1', fontSize: '14px' }}>
+            Bulk Import
+          </h4>
+          <span style={{ 
+            fontSize: '12px', 
+            color: '#0ea5e9',
+            transition: 'transform 0.2s',
+            transform: showImport ? 'rotate(180deg)' : 'rotate(0deg)',
+            display: 'inline-block'
+          }}>
+            &#9662;
+          </span>
         </div>
+
+        {showImport && (
+          <div style={{ padding: '16px' }}>
+            <BulkImport onImport={handleBulkImport} />
+          </div>
+        )}
       </div>
 
       <div className="prompt-toolbar">
@@ -246,8 +287,6 @@ function PromptList({ library, onLibraryUpdated }: PromptListProps) {
           </button>
         </div>
       </div>
-
-      {showImport && <BulkImport onImport={handleBulkImport} />}
 
       <div className="prompts">
         {filteredPrompts.map((prompt) => {

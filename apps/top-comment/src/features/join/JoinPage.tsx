@@ -7,8 +7,17 @@ import { roomService } from "../../services/roomService";
 import { roomMembershipService } from "../../services/roomMembershipService";
 import { useAuth } from "../../shared/providers/AuthContext";
 import { PlayerAuthModal } from "../auth/PlayerAuthModal";
+import { PlayerRecoveryModal } from "../auth/PlayerRecoveryModal";
 import { VenueAuthModal } from "../auth/VenueAuthModal";
 import { logger } from "../../shared/utils/logger";
+import { supabase } from "../../supabase/client";
+import {
+  clearMembership,
+  getMostRecentMembership,
+  getStoredMembershipId,
+  storeMembership,
+} from "../../utils/membershipStorage";
+import { getClientKey } from "../../utils/clientKey";
 
 interface JoinFormState {
   code: string;
@@ -28,6 +37,8 @@ export function JoinPage() {
   
   // Read ?code= from invite link URL
   const codeFromUrl = searchParams.get("code")?.toUpperCase().trim() || "";
+  const inviteMembershipId = searchParams.get("membership")?.trim() || "";
+  const isMateInvite = searchParams.get("inv") === "1";
 
   // SIMPLIFIED: Only manage form state, no complex team state
   const [joinForm, setJoinForm] = useState<JoinFormState>({
@@ -37,6 +48,14 @@ export function JoinPage() {
 
   const [joinErrors, setJoinErrors] = useState<Record<string, string>>({});
   const [isJoining, setIsJoining] = useState(false);
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [resumableMembership, setResumableMembership] = useState<{
+    id: string;
+    playerName: string;
+    roomId: string;
+    roomCode: string;
+  } | null>(null);
+  const [checkingStoredMembership, setCheckingStoredMembership] = useState(false);
 
   // SIMPLIFIED: Direct join handler without team state management
   const handleJoin = useCallback(async (values: JoinFormState) => {
@@ -86,7 +105,9 @@ export function JoinPage() {
         throw new Error("Failed to join room");
       }
 
-      
+      // Persist the membership so this device auto-resumes on next visit.
+      storeMembership(normalizedCode, membershipResponse.membership.id);
+
       // Navigate to room directly - no state management needed
       navigate(`/room/${normalizedCode}`);
       
@@ -135,6 +156,127 @@ export function JoinPage() {
       console.error('Sign out failed:', error);
     }
   };
+
+  // Same-device resume check (P1-18): if the URL has a `?code=`, use it;
+  // otherwise fall back to the most-recently used membership on this device.
+  // Verify the row still exists server-side before offering resume.
+  useEffect(() => {
+    let cancelled = false;
+    const urlCode = codeFromUrl.trim().toUpperCase();
+    let code = urlCode;
+    let storedId = code ? getStoredMembershipId(code) : null;
+    if (!storedId) {
+      const recent = getMostRecentMembership();
+      if (recent) {
+        code = recent.roomCode;
+        storedId = recent.membershipId;
+      }
+    }
+
+    (async () => {
+      setCheckingStoredMembership(true);
+      try {
+        // Resolve the target room: either the code the user landed on, or the
+        // most recent one we remember locally.
+        let roomRow: { id: string; code: string } | null = null;
+        if (code) {
+          const { data } = await supabase
+            .from('rooms')
+            .select('id, code')
+            .eq('code', code)
+            .maybeSingle();
+          roomRow = data ?? null;
+        }
+
+        // Fast path: we have both code + stored membership id from localStorage.
+        if (roomRow && storedId) {
+          const { data, error } = await supabase
+            .from('room_memberships')
+            .select('id, player_name, is_banned, room_id')
+            .eq('id', storedId)
+            .eq('room_id', roomRow.id)
+            .maybeSingle();
+
+          if (!error && data && !data.is_banned) {
+            if (!cancelled) {
+              setResumableMembership({
+                id: data.id,
+                playerName: data.player_name ?? '',
+                roomId: data.room_id,
+                roomCode: roomRow.code,
+              });
+            }
+            return;
+          }
+          if (code) clearMembership(code);
+        }
+
+        // P1-3/P1-18 fallback: no valid localStorage hit — try to find a
+        // membership tied to this device's client_key. Works across browser
+        // storage wipes as long as the server still has the row.
+        const clientKey = getClientKey();
+        if (clientKey && clientKey !== 'server-client') {
+          let q = supabase
+            .from('room_memberships')
+            .select('id, player_name, is_banned, room_id, rooms!inner(code)')
+            .eq('client_key', clientKey)
+            .eq('is_banned', false)
+            .order('last_active_at', { ascending: false, nullsFirst: false })
+            .limit(1);
+          if (roomRow) q = q.eq('room_id', roomRow.id);
+
+          const { data } = await q.maybeSingle();
+          if (data) {
+            const fallbackCode =
+              roomRow?.code ?? (data as any)?.rooms?.code ?? code ?? '';
+            if (fallbackCode) {
+              if (!cancelled) {
+                setResumableMembership({
+                  id: data.id,
+                  playerName: data.player_name ?? '',
+                  roomId: data.room_id,
+                  roomCode: fallbackCode,
+                });
+              }
+              return;
+            }
+          }
+        }
+
+        if (!cancelled) setResumableMembership(null);
+      } catch {
+        if (!cancelled) setResumableMembership(null);
+      } finally {
+        if (!cancelled) setCheckingStoredMembership(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [codeFromUrl]);
+
+  const handleResume = useCallback(() => {
+    if (!resumableMembership) return;
+    storeMembership(resumableMembership.roomCode, resumableMembership.id);
+    navigate(`/room/${resumableMembership.roomCode}`);
+  }, [resumableMembership, navigate]);
+
+  const handleClearResume = useCallback(async () => {
+    if (!resumableMembership) return;
+    clearMembership(resumableMembership.roomCode);
+    // P1-18 "not me" fallback — also sever the client_key link on the server
+    // so the fallback lookup doesn't keep re-offering the same resume card.
+    try {
+      await supabase
+        .from('room_memberships')
+        .update({})
+        .eq('id', resumableMembership.id);
+    } catch {
+      /* best-effort */
+    }
+    setResumableMembership(null);
+  }, [resumableMembership]);
 
   // Close account menu when clicking outside
   useEffect(() => {
@@ -343,13 +485,63 @@ export function JoinPage() {
       <div className={mainClassName}>
         <div className={contentWrapperClassName}>
           <div className="p-4"></div>
-          <JoinForm
-            joinForm={joinForm}
-            joinErrors={joinErrors}
-            isJoining={isJoining}
-            handleJoin={handleSubmit}
-            setJoinForm={setJoinForm}
-          />
+
+          {resumableMembership && (
+            <div className="rounded-2xl border border-cyan-400/50 bg-slate-900/70 p-4 text-center shadow-lg shadow-cyan-500/20">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-300">
+                Welcome back
+              </p>
+              <p className="mt-2 text-xl font-black text-pink-400">
+                {resumableMembership.playerName || 'Previous player'}
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                Room {resumableMembership.roomCode}
+              </p>
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
+                <button
+                  onClick={handleResume}
+                  disabled={checkingStoredMembership}
+                  className="rounded-full bg-pink-500 px-5 py-2 text-sm font-bold text-white hover:bg-pink-400 disabled:opacity-60"
+                >
+                  Resume as {resumableMembership.playerName || 'me'}
+                </button>
+                <button
+                  onClick={handleClearResume}
+                  className="rounded-full border border-slate-600 px-5 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+                >
+                  Start fresh
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!resumableMembership && isMateInvite && inviteMembershipId && (
+            <p className="rounded-xl border border-pink-500/40 bg-pink-500/10 px-3 py-2 text-center text-xs text-pink-100">
+              You&apos;re joining via a mate invite — you&apos;ll land in the same room. Pick your
+              handset name below.
+            </p>
+          )}
+
+          {!resumableMembership && (
+            <>
+              <JoinForm
+                joinForm={joinForm}
+                joinErrors={joinErrors}
+                isJoining={isJoining}
+                handleJoin={handleSubmit}
+                setJoinForm={setJoinForm}
+              />
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowRecoveryModal(true)}
+                  className="text-sm text-cyan-300 underline-offset-4 hover:text-cyan-200 hover:underline"
+                >
+                  Returning player? Recover your progress
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
       
@@ -372,6 +564,14 @@ export function JoinPage() {
           onClose={() => setShowVenueAuthModal(false)}
         />
       )}
+      <PlayerRecoveryModal
+        open={showRecoveryModal}
+        onClose={() => setShowRecoveryModal(false)}
+        roomCode={codeFromUrl || undefined}
+        onRecovered={() => {
+          if (codeFromUrl) navigate(`/room/${codeFromUrl}`);
+        }}
+      />
     </>
   );
 }

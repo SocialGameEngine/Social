@@ -17,11 +17,15 @@ import { useHostRoomRecovery } from "./hooks/useHostRoomRecovery";
 import { useHostKeyboardShortcuts } from "../../hooks/useHostKeyboardShortcuts";
 import { useAudienceSubmissions } from "../../hooks/useAudienceSubmissions";
 import { HostSkeleton } from "../../shared/components/skeletons/HostSkeleton";
+import { SignedOutPrompt } from "../../shared/components/SignedOutPrompt";
 import { HostPanel } from "./components/HostPanel";
 import { HostAccountMenu } from "./components/HostAccountMenu";
 import { HostControlButtons } from "./components/HostControlButtons";
 import { HostMainContent } from "./components/HostMainContent";
 import { HostCommandPaletteSection } from "./components/HostCommandPaletteSection";
+import { HostSignalsToolbar } from "./components/HostSignalsToolbar";
+import { HostModerationQueue } from "./components/HostModerationQueue";
+import { HostTTSTester } from "./components/HostTTSTester";
 import { useCommandPalette } from "./components/shell";
 import { useSessionMachine } from "./state";
 import { useVenueAccountResolver } from './useVenueAccountResolver';
@@ -30,7 +34,7 @@ import { useCreateSociale, useSociale, useSocialesByRoom, useUpdateSociale } fro
 import { HostGameProvider } from './context/HostGameContext';
 
 export function HostPage() {
-  const { user, loading: authLoading, isAnonymous, signOut, sessionExpired, clearSessionExpired, signInAnonymously } = useAuth();
+  const { user, loading: authLoading, isAnonymous, signOut, sessionExpired } = useAuth();
   const { venueAccount, loading: venueAccountLoading, refresh: refreshVenueAccount } = useVenueAccountResolver();
   const isVenueAccount = Boolean(venueAccount?.isActive);
   const { toast } = useToast();
@@ -321,13 +325,12 @@ export function HostPage() {
     />
   );
 
-  const presenterButton = storedRoomId ? (
+  const tvButton = storedRoomId ? (
     <Button
       variant="ghost"
-      onClick={() => session && window.open(`/presenter/${session.id}`, "_blank", "noopener")}
-      disabled={!session}
+      onClick={() => window.open(`/tv/${roomJoinCode}`, "_blank", "noopener")}
     >
-      Presenter View
+      TV View
     </Button>
   ) : null;
 
@@ -363,25 +366,12 @@ export function HostPage() {
 
   if (sessionExpired) {
     return (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm">
-        <div className="w-full max-w-sm bg-slate-800 rounded-2xl p-6 text-center border border-cyan-400/30 shadow-2xl">
-          <h2 className="text-xl font-bold text-white mb-2">Session Expired</h2>
-          <p className="text-slate-400 text-sm mb-6">Your session has expired. Please sign back in to continue.</p>
-          <button
-            onClick={async () => {
-              try {
-                await signInAnonymously();
-                clearSessionExpired();
-              } catch {
-                window.location.reload();
-              }
-            }}
-            className="w-full px-4 py-3 bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-400 hover:to-fuchsia-400 text-white font-semibold rounded-lg transition-all"
-          >
-            Continue as Guest
-          </button>
-        </div>
-      </div>
+      <SignedOutPrompt
+        description="Your host session has expired. Sign back into your venue account to keep control, or continue as a guest."
+        onResolved={() => {
+          refreshVenueAccount();
+        }}
+      />
     );
   }
 
@@ -422,7 +412,7 @@ export function HostPage() {
           storedRoomCode={storedRoomCode}
           canCreateSession={canCreateSession}
           venueAccountLoading={venueAccountLoading}
-          presenterButton={presenterButton}
+          presenterButton={tvButton}
           onNavigateAnalytics={() => navigate(`/analytics/${storedRoomCode}`)}
           onOpenRoomSettings={() => {
             setShowEditModal(false);
@@ -480,6 +470,10 @@ export function HostPage() {
                 socialeId: current.id,
                 title: updates.title, description: updates.description,
                 mode: updates.mode, totalRounds: updates.totalRounds,
+                settings: { 
+                  ...(current.settings || {}), 
+                  voiceProfile: updates.voiceProfile 
+                },
               });
             },
             showCreateModal,
@@ -519,6 +513,15 @@ export function HostPage() {
         />
         </HostPanel>
       </HostGameProvider>
+
+      {/* Wave 4: broadcast-driven host toolbar (P1-4/P1-6/P1-17/P1-8) */}
+      <HostSignalsToolbar
+        roomId={storedRoomId ?? null}
+        socialeId={primarySocialeId ?? null}
+      />
+
+      <HostModerationQueue socialeId={primarySocialeId ?? null} />
+      <HostTTSTester />
 
       <HostCommandPaletteSection
         session={session}

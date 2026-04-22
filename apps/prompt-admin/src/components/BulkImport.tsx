@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState } from 'react';
+import { showToast } from './Toast';
 
 import { getErrorMessage } from "../utils/get-error-message";
 
@@ -59,13 +60,13 @@ function BulkImport({ onImport }: BulkImportProps) {
     try {
       const prompts = parseInput(value);
       if (prompts.length === 0) {
-        alert("No prompts found to import.");
+showToast("No prompts found to import.", 'info');
         return;
       }
       await onImport(prompts);
       setValue("");
     } catch (error) {
-      alert(getErrorMessage(error, "Failed to import prompts"));
+      showToast(getErrorMessage(error, "Failed to import prompts"), 'error');
     } finally {
       setImporting(false);
     }

@@ -36,7 +36,7 @@ export function SocialeTimer({
       paused={isPaused}
       pausedSeconds={pausedSeconds}
       position={position}
-      showCriticalBar={true}
+      showCriticalBar={false}
     />
   );
 }

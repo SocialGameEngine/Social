@@ -57,6 +57,7 @@ export function InteractionsGrid({
           label="Polls"
           count={pollsCount}
           variant="interaction"
+          tint="vote"
           onClick={onOpenPolls}
           participantCount={pollsParticipants}
         />
@@ -69,6 +70,7 @@ export function InteractionsGrid({
           label="Topics"
           count={topicsCount}
           variant="interaction"
+          tint="social"
           onClick={onOpenTopics}
           participantCount={topicsParticipants}
         />
@@ -81,6 +83,7 @@ export function InteractionsGrid({
           label="Prompts"
           count={promptsCount}
           variant="interaction"
+          tint="answer"
           onClick={onOpenPrompts}
           participantCount={promptsParticipants}
         />
@@ -93,6 +96,7 @@ export function InteractionsGrid({
           label="Fibbage"
           count={fibbageCount}
           variant="interaction"
+          tint="answer"
           onClick={onOpenFibbage}
           participantCount={fibbageParticipants}
         />
@@ -106,6 +110,7 @@ export function InteractionsGrid({
           label="Trivia"
           count={triviaCount}
           variant="interaction"
+          tint="answer"
           onClick={onOpenTrivia}
           participantCount={triviaParticipants}
         />

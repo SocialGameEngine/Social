@@ -14,6 +14,13 @@ interface SocialiteCardProps {
   showScore?: boolean;
   size?: 'sm' | 'md' | 'lg';
   isDark?: boolean;
+  /**
+   * P1-5 — live submission indicator.
+   *   'idle'      → grey dot (hasn't started)
+   *   'typing'    → yellow dot (in-progress)
+   *   'submitted' → green dot (answer submitted)
+   */
+  typingState?: 'idle' | 'typing' | 'submitted';
 }
 
 export function SocialiteCard({
@@ -22,7 +29,8 @@ export function SocialiteCard({
   isHighlighted = false,
   showScore = true,
   size = 'md',
-  isDark: propIsDark
+  isDark: propIsDark,
+  typingState,
 }: SocialiteCardProps) {
   const { isDark: themeIsDark } = useTheme();
   const isDark = propIsDark ?? themeIsDark;
@@ -93,6 +101,32 @@ export function SocialiteCard({
         )}>
           {socialite.score}
         </div>
+      )}
+
+      {/* P1-5: typing/submission dot */}
+      {typingState && (
+        <span
+          aria-label={
+            typingState === 'submitted'
+              ? 'Submitted'
+              : typingState === 'typing'
+                ? 'Typing'
+                : 'Waiting'
+          }
+          title={
+            typingState === 'submitted'
+              ? 'Submitted'
+              : typingState === 'typing'
+                ? 'Typing'
+                : 'Waiting'
+          }
+          className={clsx(
+            'inline-block w-2.5 h-2.5 rounded-full',
+            typingState === 'submitted' && 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]',
+            typingState === 'typing' && 'bg-amber-400 animate-pulse shadow-[0_0_6px_rgba(251,191,36,0.8)]',
+            typingState === 'idle' && (isDark ? 'bg-slate-600' : 'bg-slate-300'),
+          )}
+        />
       )}
 
       {/* Status indicators */}

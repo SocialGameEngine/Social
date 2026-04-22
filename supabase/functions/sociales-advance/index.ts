@@ -6,7 +6,13 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import type { Database } from '../../types/database.ts'
-import type { AdvanceSocialeRequest, AdvanceSocialeResponse } from '../../apps/top-comment/src/domain/types/sociale.types.ts'
+import type { AdvanceSocialePhaseRequest } from '../../apps/top-comment/src/domain/types/sociale.types.ts'
+
+interface AdvanceSocialeResponse {
+  sociale: any
+  advanced: boolean
+  nextPhase: string
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,7 +50,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const body: AdvanceSocialeRequest = await req.json()
+    const body: AdvanceSocialePhaseRequest = await req.json()
     const { socialeId, targetPhase } = body
 
     console.log('🔥 sociales-advance called with:', { socialeId, targetPhase })
@@ -268,11 +274,11 @@ serve(async (req) => {
           // Never overwrite content that was set during preview/create
           if ((nextRound.type === 'topic' || nextRound.type === 'prompt') && (!nextRound.content || !nextRound.title)) {
             const roundSettings = nextRound.settings as any
-            const promptLibraryId = roundSettings?.promptLibraryId || sociale.selected_libraries?.[0]
+            const promptLibraryId = roundSettings?.promptLibraryId || null
             
             if (promptLibraryId) {
               const runtimeState = sociale.runtime_state || {}
-              const promptDecks = runtimeState.promptDecks || {}
+              const promptDecks = (runtimeState as any)?.promptDecks || {}
               const deck = promptDecks[promptLibraryId]
 
               if (deck && deck.prompts && deck.prompts.length > 0) {
@@ -306,7 +312,7 @@ serve(async (req) => {
 
                 // Update the deck cursor in runtime state
                 const updatedRuntimeState = {
-                  ...runtimeState,
+                  ...(runtimeState as Record<string, any>),
                   promptDecks: {
                     ...promptDecks,
                     [promptLibraryId]: { ...deck, cursor }
@@ -675,8 +681,9 @@ serve(async (req) => {
     )
   } catch (error) {
     console.error('Error advancing Sociale:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

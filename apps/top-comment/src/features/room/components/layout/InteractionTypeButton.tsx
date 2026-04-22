@@ -9,6 +9,8 @@ interface InteractionTypeButtonProps {
   onClick: () => void;
   isLive?: boolean;
   participantCount?: number;
+  /** Wave R6: optional phase-tint accent used for the hover/focus border. */
+  tint?: 'answer' | 'vote' | 'results' | 'social';
   'aria-expanded'?: boolean;
 }
 
@@ -20,6 +22,7 @@ export function InteractionTypeButton({
   onClick,
   isLive,
   participantCount,
+  tint,
   'aria-expanded': ariaExpanded,
 }: InteractionTypeButtonProps) {
   const variantClass = `section-button--${variant}`;
@@ -57,7 +60,8 @@ export function InteractionTypeButton({
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp} // Reset if mouse leaves
-      className={`section-button ${variantClass} relative ${animateClass}`}
+      className={`section-button ${variantClass} chaos-room-interaction-btn relative ${animateClass}`}
+      data-tint={tint ?? undefined}
       aria-expanded={ariaExpanded}
     >
       {/* Live indicator */}

@@ -22,20 +22,17 @@ export function PollsBottomSheet({
       isOpen={isOpen}
       onClose={onClose}
       title="Polls"
+      accent="vote"
+      eyebrow="Tap to vote"
       emptyIcon="📊"
       emptyTitle="No polls currently posted"
       emptyDescription="Check back later for new polls from the host"
       items={polls}
       getItemId={(poll) => poll.id}
       renderListItem={(poll, onSelect) => (
-        <button
-          onClick={onSelect}
-          className="w-full chaos-interaction-card px-4 py-4 text-left"
-        >
-          <div className="font-bold text-lg mb-1">{poll.question}</div>
-          {poll.description && (
-            <div className="text-sm opacity-80">{poll.description}</div>
-          )}
+        <button onClick={onSelect} className="chaos-room-sheet-item">
+          <div className="title">{poll.question}</div>
+          {poll.description && <div className="subtitle">{poll.description}</div>}
         </button>
       )}
       renderDetailView={(poll, onBack) => (

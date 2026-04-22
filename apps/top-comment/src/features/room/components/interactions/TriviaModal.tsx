@@ -4,6 +4,7 @@ import { interactionService } from '../../../../services/interactionService';
 import { Button } from '../../../../components/Button';
 import { FullscreenModal } from '../../../../shared/components/FullscreenModal';
 import { logger } from '../../../../shared/utils/logger';
+import { CorrectnessGlyph } from './CorrectnessGlyph';
 import type { Interaction } from '../../../../domain/types/interaction.types';
 import type { TriviaSubmission, TriviaReveal, TriviaInteractionSettings } from '../../../../domain/types/interaction.types';
 
@@ -284,16 +285,15 @@ export function TriviaModal({ interaction, isOpen, onClose, membershipId, onJoin
           {/* Show immediate grading result */}
           {gradingResult && (
             <div className={`border rounded-lg p-4 ${
-              gradingResult.isCorrect
-                ? 'bg-green-500/10 border-green-500/30'
-                : 'bg-red-500/10 border-red-500/30'
+              gradingResult.isCorrect ? 'p1-tile-correct' : 'p1-tile-wrong'
             }`}>
-              <div className="text-sm text-slate-400 mb-1">Your Answer:</div>
+              <div className="text-sm opacity-80 mb-1">Your Answer:</div>
               <div className="text-lg font-bold">
                 {getUserAnswer()}
               </div>
-              <div className="mt-2 flex items-center gap-2">
-                {gradingResult.isCorrect ? '✅ Correct!' : '❌ Incorrect'}
+              <div className="mt-2 flex items-center gap-2 font-semibold">
+                <CorrectnessGlyph state={gradingResult.isCorrect ? 'correct' : 'wrong'} size={20} />
+                <span>{gradingResult.isCorrect ? 'Correct!' : 'Incorrect'}</span>
               </div>
               
               {/* Points awarded */}

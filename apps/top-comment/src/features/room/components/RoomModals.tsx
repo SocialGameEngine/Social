@@ -1,14 +1,13 @@
-import { lazy, Suspense } from 'react';
-import { useRoundResponses } from '../../../features/sociale/hooks/useSocialeResponses';
+import { lazy, Suspense, useMemo } from 'react';
+import { useRoundResponses, useMyResponses } from '../../../features/sociale/hooks/useSocialeResponses';
 import { useSocialites } from '../../../features/sociale/hooks/useSocialites';
+import { useSocialeRounds } from '../../../features/sociale/hooks/useSocialeRounds';
+import type { RoundResult } from '../utils/shareCard';
 import type { Session } from '../../../shared/types';
 import type { RoomMembership } from '../../../shared/types';
 
-const LeaderboardModal = lazy(() => import('./LeaderboardModal.tsx'));
 const SocialeLeaderboardModal = lazy(() => import('./SocialeLeaderboardModal.tsx'));
 const SelfieModal = lazy(() => import('./SelfieModal.tsx'));
-const AnswerModal = lazy(() => import('./AnswerModal.tsx'));
-const SessionVoteModal = lazy(() => import('./VoteModal.tsx'));
 const SocialeAnswerModal = lazy(() => import('./SocialeAnswerModal.tsx'));
 const SocialeVoteModal = lazy(() => import('./SocialeVoteModal.tsx'));
 
@@ -20,6 +19,8 @@ export interface SocialeModalContext {
   roundType?: string;
   roundSettings?: any; // Add round settings for MC/written answer
   phaseEndsAt?: string | null;
+  phaseStartedAt?: string | null;
+  voteSeconds?: number;
   paused: boolean;
 }
 
@@ -29,8 +30,11 @@ export interface RoomModalsProps {
     activeModal: string | null;
     socialeModalContext?: SocialeModalContext; // Add Sociale modal context
   };
+  /**
+   * Kept purely for metadata (venueName). Wave R7 removed the session-mode
+   * modal fallbacks so this is no longer used to render UI.
+   */
   session: Session | null;
-  sessionId: string | null;
   memberships: RoomMembership[] | null;
   userId: string | undefined;
   currentSocialeId?: string;
@@ -38,12 +42,15 @@ export interface RoomModalsProps {
   closeModal: () => void;
   markSubmitted: (type: 'answer' | 'vote') => void;
   handleLeaveRoom: () => void;
+  /** P1-17: host-broadcasted toggle for "Lock it in" confirmation step. */
+  requireLockIn?: boolean;
+  /** P1-5: forwarded to SocialeAnswerModal for typing broadcasts. */
+  roomId?: string | null;
 }
 
 export function RoomModals({
   state,
   session,
-  sessionId,
   memberships,
   userId,
   currentSocialeId,
@@ -51,6 +58,8 @@ export function RoomModals({
   closeModal,
   markSubmitted,
   handleLeaveRoom,
+  requireLockIn = false,
+  roomId = null,
 }: RoomModalsProps) {
   const { data: socialites = [] } = useSocialites(currentSocialeId);
   const currentSocialiteId = socialites.find(s => s.userId === userId)?.id;
@@ -60,45 +69,58 @@ export function RoomModals({
     state.activeModal === 'vote' ? state.socialeModalContext?.roundId : undefined
   );
 
+  // Leaderboard share-card grid — per-round outcome for the local user.
+  const leaderboardOpen = state.endedModals.includes('leaderboard');
+  const { data: myResponses = [] } = useMyResponses(
+    leaderboardOpen ? currentSocialeId : undefined,
+    leaderboardOpen ? currentSocialiteId : undefined,
+  );
+  const { data: allRounds = [] } = useSocialeRounds(
+    leaderboardOpen ? currentSocialeId : undefined,
+  );
+
+  const myRoundResults: RoundResult[] = useMemo(() => {
+    if (!leaderboardOpen) return [];
+    const sorted = [...allRounds].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+    return sorted.map((round) => {
+      const response = myResponses.find((r) => r.roundId === round.id);
+      if (!response) return { status: 'wrong' as const };
+      if (response.isCorrect === true) return { status: 'correct' as const };
+      if (typeof response.scoreAwarded === 'number' && response.scoreAwarded > 0) {
+        return { status: 'close' as const };
+      }
+      return { status: 'wrong' as const };
+    });
+  }, [leaderboardOpen, allRounds, myResponses]);
+
   return (
     <Suspense fallback={
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
         <div className="h-12 w-12 border-4 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
       </div>
     }>
-      {state.endedModals.includes('leaderboard') && (
-        currentSocialeId && socialites.length > 0 ? (
-          <SocialeLeaderboardModal
-            isOpen={true}
-            onClose={() => closeEndedModal('leaderboard')}
-            finalLeaderboard={[...socialites]
-              .filter(s => s.isActive && !s.isBanned)
-              .sort((a, b) => b.score - a.score)
-              .map((s, i) => ({
-                id: s.id,
-                teamName: s.displayName || 'Player',
-                score: s.score,
-                rank: i + 1,
-                mascotId: s.mascotId,
-              }))}
-            currentSocialiteId={currentSocialiteId}
-            onLeave={handleLeaveRoom}
-          />
-        ) : (
-          <LeaderboardModal
-            isOpen={true}
-            onClose={() => closeEndedModal('leaderboard')}
-            finalLeaderboard={memberships?.map((m, i) => ({
-              id: m.id,
-              teamName: m.playerName || 'Unknown',
-              score: 0,
+      {state.endedModals.includes('leaderboard') && currentSocialeId && socialites.length > 0 && (
+        <SocialeLeaderboardModal
+          isOpen={true}
+          onClose={() => closeEndedModal('leaderboard')}
+          membershipStreakWeeks={
+            memberships?.find((m) => m.userId === userId)?.currentStreak ?? null
+          }
+          finalLeaderboard={[...socialites]
+            .filter(s => s.isActive && !s.isBanned)
+            .sort((a, b) => b.score - a.score)
+            .map((s, i) => ({
+              id: s.id,
+              teamName: s.displayName || 'Player',
+              score: s.score,
               rank: i + 1,
-              mascotId: m.mascotId,
-            })) || []}
-            currentMembershipId={memberships?.find(m => m.userId === userId)?.id}
-            onLeave={handleLeaveRoom}
-          />
-        )
+              mascotId: s.mascotId,
+            }))}
+          currentSocialiteId={currentSocialiteId}
+          onLeave={handleLeaveRoom}
+          myRoundResults={myRoundResults}
+          venueName={session?.venueName}
+        />
       )}
       {state.endedModals.includes('selfie') && (
         <SelfieModal
@@ -128,23 +150,10 @@ export function RoomModals({
             closeModal();
           }}
           endsAt={state.socialeModalContext.phaseEndsAt}
+          startedAt={state.socialeModalContext.phaseStartedAt}
           paused={state.socialeModalContext.paused}
-        />
-      )}
-
-      {state.activeModal === 'answer' && !state.socialeModalContext && session && sessionId && (
-        <AnswerModal
-          isOpen={true}
-          onClose={() => closeModal()}
-          sessionId={sessionId}
-          roundIndex={session.roundIndex || 0}
-          prompt={session.rounds?.[session.roundIndex || 0]?.groups?.[0]?.prompt || ''}
-          onSubmit={() => {
-            markSubmitted('answer');
-            closeModal();
-          }}
-          endsAt={session.endsAt}
-          paused={session.paused}
+          requireLockIn={requireLockIn}
+          roomId={roomId}
         />
       )}
 
@@ -161,26 +170,12 @@ export function RoomModals({
           }}
           prompt={state.socialeModalContext.prompt}
           endsAt={state.socialeModalContext.phaseEndsAt}
+          startedAt={state.socialeModalContext.phaseStartedAt}
+          voteSeconds={state.socialeModalContext.voteSeconds}
           paused={state.socialeModalContext.paused}
         />
       )}
 
-      {state.activeModal === 'vote' && !state.socialeModalContext && session && sessionId && (
-        <SessionVoteModal
-          isOpen={true}
-          onClose={() => closeModal()}
-          sessionId={sessionId}
-          roundIndex={session.roundIndex || 0}
-          answers={[]}
-          onSubmit={() => {
-            markSubmitted('vote');
-            closeModal();
-          }}
-          prompt={session.rounds?.[session.roundIndex || 0]?.groups?.[0]?.prompt || ''}
-          endsAt={session.endsAt}
-          paused={session.paused}
-        />
-      )}
     </Suspense>
   );
 }

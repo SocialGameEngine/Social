@@ -1,5 +1,4 @@
-import type { Socialite } from '../../../../domain/types/sociale.types';
-import { getSessionDisplayCopy } from '../../utils/sessionDisplayCopy';
+import { getSocialeDisplayCopy } from '../../utils/socialeDisplayCopy';
 import { PlayerStack } from './PlayerStack';
 
 function cn(...classes: (string | undefined | null | false)[]): string {
@@ -29,7 +28,7 @@ export function SocialeButton({
   const socialites = sociale?.socialites || [];
   
   // Get display copy based on sociale state
-  const displayCopy = getSessionDisplayCopy(displayState, {
+  const displayCopy = getSocialeDisplayCopy(displayState, {
     joinedCount: socialites.length,
     totalSlots: socialites.length, // Use socialites as total
     hasJoined: displayState === "joined"

@@ -2,6 +2,7 @@ import { motion, useMotionValue, useTransform, useAnimation, type PanInfo } from
 import { useEffect, useState, useRef, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import { triggerHaptic } from '../utils/sessionUtils';
 import { FocusTrap } from 'focus-trap-react';
 
 interface BottomSheetProps {
@@ -15,6 +16,12 @@ interface BottomSheetProps {
   enableHalfSnap?: boolean;
   /** Initial snap point: 'full' or 'half' (default: 'full') */
   initialSnap?: 'full' | 'half';
+  /** Wave R6: phase-tint accent that colors the top strip + eyebrow dot. */
+  accent?: 'neutral' | 'lobby' | 'answer' | 'vote' | 'results' | 'ended';
+  /** Wave R6: optional count pill shown next to the title (e.g. number of items). */
+  count?: number | null;
+  /** Wave R6: optional small uppercase eyebrow line above the title. */
+  eyebrow?: string | null;
 }
 
 // Snap points configuration
@@ -36,6 +43,9 @@ export function BottomSheet({
   disableDrag = false,
   enableHalfSnap = false,
   initialSnap = 'full',
+  accent = 'neutral',
+  count,
+  eyebrow,
 }: BottomSheetProps) {
   const y = useMotionValue(0);
   const controls = useAnimation();
@@ -107,7 +117,10 @@ export function BottomSheet({
   const handleExit = useCallback(() => {
     if (isClosing.current) return;
     isClosing.current = true;
-    
+
+    // Wave R6: tiny dismissal haptic so the sheet feels physical on mobile.
+    triggerHaptic('light');
+
     if (!hasUsedAnyExit.current) {
       hasUsedAnyExit.current = true;
       setShowHint(false);
@@ -267,22 +280,43 @@ export function BottomSheet({
         <FocusTrap focusTrapOptions={{ initialFocus: false, escapeDeactivates: false, allowOutsideClick: true }}>
           <div className="flex flex-col h-full">
             {/* Drag handle area - larger touch target */}
-            <div 
+            <div
               ref={dragHandleRef}
-              className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 touch-none cursor-grab active:cursor-grabbing"
+              className="chaos-room-sheet-header sticky top-0 z-10 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 touch-none cursor-grab active:cursor-grabbing"
+              data-accent={accent}
               style={{ touchAction: 'none' }}
             >
+              {/* Accent stripe */}
+              <div className="chaos-room-sheet-accent-stripe" aria-hidden="true" />
               {/* Centered grab handle indicator */}
               <div className="flex justify-center pt-3 pb-1">
                 <div className="w-10 h-1 bg-slate-500 rounded-full" />
               </div>
-              
+
               <div className="flex items-center justify-between px-4 py-2">
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  {eyebrow && (
+                    <span className="chaos-room-sheet-eyebrow text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
+                      {eyebrow}
+                    </span>
+                  )}
                   {title && (
-                    <h2 id="bottom-sheet-title" className="text-lg font-semibold text-white">
-                      {title}
-                    </h2>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <h2
+                        id="bottom-sheet-title"
+                        className="text-lg font-black tracking-tight text-white truncate"
+                      >
+                        {title}
+                      </h2>
+                      {typeof count === 'number' && count > 0 && (
+                        <span
+                          className="chaos-room-sheet-count inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-black"
+                          aria-label={`${count} items`}
+                        >
+                          {count}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
                 {showCloseButton && (

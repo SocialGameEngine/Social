@@ -44,6 +44,13 @@ export const PHASE_CONFIG: PhaseConfigMap = {
     submittedText: 'Finished',
     color: 'primary',
   },
+  break: {
+    title: 'Break',
+    description: 'Short break between rounds',
+    buttonText: 'Stand By',
+    submittedText: 'Standing By',
+    color: 'primary',
+  },
 };
 
 export function getPhaseConfig(phase: GamePhase): PhaseConfig {

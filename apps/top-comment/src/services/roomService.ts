@@ -59,6 +59,7 @@ function mapRoomMembership(data: any): RoomMembership | null {
     bannedAt: data.banned_at,
     bannedBy: data.banned_by,
     status: data.status || 'active',
+    currentStreak: typeof data.current_streak === 'number' ? data.current_streak : undefined,
   };
 }
 

@@ -21,6 +21,8 @@ interface SocialeModalsProps {
   closeModal: () => void;
   markSubmitted: (type: 'answer' | 'vote') => void;
   handleLeaveSociale: () => void;
+  /** P1-17: propagates host toggle to the answer modal so taps require a Lock-It-In confirmation. */
+  requireLockIn?: boolean;
 }
 
 export function SocialeModals({
@@ -35,6 +37,7 @@ export function SocialeModals({
   closeModal,
   markSubmitted,
   handleLeaveSociale,
+  requireLockIn = false,
 }: SocialeModalsProps) {
   return (
     <Suspense fallback={null}>
@@ -86,7 +89,9 @@ export function SocialeModals({
             closeModal();
           }}
           endsAt={sociale.phaseEndsAt}
+          startedAt={sociale.phaseStartedAt}
           paused={sociale.status === 'paused'}
+          requireLockIn={requireLockIn}
         />
       )}
 
@@ -103,6 +108,8 @@ export function SocialeModals({
           }}
           prompt={currentRound.content}
           endsAt={sociale.phaseEndsAt}
+          startedAt={sociale.phaseStartedAt}
+          voteSeconds={sociale.settings?.votingSeconds}
           paused={sociale.status === 'paused'}
         />
       )}

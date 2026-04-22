@@ -1,9 +1,9 @@
-import { SocialeGameButton } from '../../components/layout/SocialeGameButton';
-import { SessionTimer } from '@social/ui';
+import { useMemo } from 'react';
 import { usePhaseTimer } from '../../../../shared/hooks';
-import { getIsMainEventModeFromSociale } from '../../components/PhaseController';
 import { buildSocialeTimerSessionShim } from '../../utils/socialeTimerShim';
 import { useRoomPageContext } from '../../context/RoomPageContext';
+import { useRoundResponses, useSocialites } from '../../../../features/sociale/hooks';
+import { PhasePreviewCard } from '../../components/shell/PhasePreviewCard';
 import type { Sociale } from '../../../../domain/types/sociale.types';
 import type { SocialeGameParticipant } from '../../components/layout/SocialeGameButton';
 
@@ -15,26 +15,42 @@ interface SocialeAnswerPhaseRoomProps {
   phaseEndsAt?: string | null;
   pausedRemainingSeconds?: number | null;
   isPaused?: boolean;
-  roundSettings?: any; // Add round settings
-  currentRound?: any; // Add current round data
+  roundSettings?: any;
+  currentRound?: any;
+}
+
+function truncatePrompt(text: string | null | undefined, limit = 90): string | null {
+  if (!text) return null;
+  const trimmed = text.trim();
+  if (trimmed.length <= limit) return trimmed;
+  return `${trimmed.slice(0, limit - 1).trimEnd()}…`;
 }
 
 export function SocialeAnswerPhaseRoom({
   sociale,
   hasSubmitted,
   onOpenModal,
-  participants,
   phaseEndsAt,
-  pausedRemainingSeconds,
   isPaused = sociale.status === 'paused',
   roundSettings,
   currentRound,
 }: SocialeAnswerPhaseRoomProps) {
   const { dispatch } = useRoomPageContext();
-  const isMainEventMode = getIsMainEventModeFromSociale(sociale);
   const timerShim = buildSocialeTimerSessionShim(sociale, 'answer');
   const { totalSeconds } = usePhaseTimer({ session: timerShim });
-  const pausedSecondsValue = isPaused && pausedRemainingSeconds != null ? pausedRemainingSeconds : undefined;
+
+  const { data: socialites = [] } = useSocialites(sociale.id);
+  const { data: roundResponses = [] } = useRoundResponses(
+    sociale.id,
+    sociale.currentRoundId ?? undefined,
+  );
+
+  const activeSocialiteCount = useMemo(
+    () => socialites.filter((s) => s.isActive).length,
+    [socialites],
+  );
+  const submittedCount = roundResponses.length;
+  const promptPreview = truncatePrompt(currentRound?.content);
 
   const handleOpenModal = () => {
     if (sociale.currentRoundId && sociale.currentRoundIndex !== undefined) {
@@ -43,7 +59,7 @@ export function SocialeAnswerPhaseRoom({
         payload: {
           socialeId: sociale.id,
           roundId: sociale.currentRoundId,
-          prompt: currentRound?.content || 'Question', // Use round content, not snapshot
+          prompt: currentRound?.content || 'Question',
           roundIndex: sociale.currentRoundIndex || 0,
           roundType: roundSettings?.type,
           roundSettings,
@@ -52,29 +68,26 @@ export function SocialeAnswerPhaseRoom({
         },
       });
     } else {
-      // Fallback to old behavior if no round data
       onOpenModal?.('answer');
     }
   };
 
   return (
-    <div className="w-full mb-8">
-      <SocialeGameButton
-        displayState={hasSubmitted ? 'answered' : 'answer'}
-        participants={participants}
-        isMainEventMode={isMainEventMode}
+    <div className="w-full mb-6 px-4">
+      <PhasePreviewCard
         phase="answer"
-        onClick={handleOpenModal}
-      />
-      <SessionTimer
-        endTime={phaseEndsAt ?? undefined}
+        title="Answering"
+        ctaLabel={hasSubmitted ? 'Update your answer' : 'Answer now'}
+        promptPreview={promptPreview}
+        roundIndex={(sociale.currentRoundIndex ?? 0) + 1}
+        totalRounds={sociale.totalRounds}
+        endsAt={phaseEndsAt}
         totalSeconds={totalSeconds}
         paused={isPaused}
-        pausedSeconds={pausedSecondsValue}
-        variant="brand"
-        isDark={false}
-        position="inline"
-        showCriticalBar={true}
+        submittedCount={submittedCount}
+        totalCount={activeSocialiteCount}
+        hasSubmitted={hasSubmitted}
+        onClick={handleOpenModal}
       />
     </div>
   );
