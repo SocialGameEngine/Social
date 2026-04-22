@@ -322,3 +322,8 @@
   border-radius: 0.5rem;
   background: #fafafa;
 }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

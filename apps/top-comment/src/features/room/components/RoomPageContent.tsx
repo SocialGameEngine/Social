@@ -16,6 +16,7 @@ import { MobileLayout } from '../../../shared/components/MobileLayout';
 import { RoomModals } from './RoomModals';
 import { AuthModal } from '../../../shared/components/AuthModal';
 import { JoinRoomModal } from '../../../shared/components/JoinRoomModal';
+import { SignedOutPrompt } from '../../../shared/components/SignedOutPrompt';
 import { ReactionOverlay } from './ReactionOverlay';
 import { CommunityModal } from './CommunityModal';
 import { useReactions } from '../../../hooks/useReactions';
@@ -33,6 +34,12 @@ import { isCurrentUserModerator } from '../../../shared/utils/moderatorUtils';
 import { SessionSkeleton } from '../../../shared/components/skeletons/SessionSkeleton';
 import { roomMembershipService } from '../../../services/roomMembershipService';
 import { interactionService } from '../../../services/interactionService';
+import {
+  clearMembership,
+  getStoredMembershipId,
+  storeMembership,
+} from '../../../utils/membershipStorage';
+import { PlayerRecoveryModal } from '../../auth/PlayerRecoveryModal';
 import { getIsMainEventMode, getIsMainEventModeFromSociale } from './PhaseController';
 import { useSocialesByRoom, useSociale } from '../../../features/sociale';
 import { useActiveSocialeRoundState } from '../hooks/useActiveSocialeRoundState';
@@ -192,6 +199,12 @@ export function RoomPageContent() {
   const [showCommunityModal, setShowCommunityModal] = useState(false);
   const [challengeTarget, setChallengeTarget] = useState<{ id: string; name: string } | null>(null);
   const [showSubmitQuestion, setShowSubmitQuestion] = useState(false);
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [resumableMembership, setResumableMembership] = useState<{
+    id: string;
+    playerName: string;
+    roomCode: string;
+  } | null>(null);
 
   // Filter interactions by type
   const polls = useMemo(() => interactions.filter(i => i.type === 'poll'), [interactions]);
@@ -209,11 +222,16 @@ export function RoomPageContent() {
     if (!room?.code) return;
     
     try {
-      await roomMembershipService.joinRoom({
+      const response = await roomMembershipService.joinRoom({
         code: room.code,
         playerName: displayName,
       });
-      
+
+      // Persist for same-device auto-resume on the next visit.
+      if (response?.membership?.id) {
+        storeMembership(room.code, response.membership.id);
+      }
+
       // Invalidate queries to refresh UI state after joining room
       queryClient.invalidateQueries({ queryKey: ['room', room.id] });
       queryClient.invalidateQueries({ queryKey: ['memberships', room.id] });
@@ -221,11 +239,81 @@ export function RoomPageContent() {
       
       // Close the join modal after successful join
       setShowJoinModal(false);
+      setResumableMembership(null);
       
     } catch (error: any) {
       throw error;
     }
   }, [room?.code, room?.id, queryClient, setShowJoinModal]);
+
+  // Same-device resume: if no membership yet and we have a stored mapping for
+  // this room, verify the row still exists and offer to resume.
+  useEffect(() => {
+    let cancelled = false;
+
+    if (authLoading) return;
+    if (hasMembership) {
+      if (resumableMembership) setResumableMembership(null);
+      return;
+    }
+    if (!room?.id || !room?.code) return;
+
+    const storedId = getStoredMembershipId(room.code);
+    if (!storedId) {
+      if (resumableMembership) setResumableMembership(null);
+      return;
+    }
+
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('room_memberships')
+          .select('id, player_name, is_banned, room_id')
+          .eq('id', storedId)
+          .eq('room_id', room.id)
+          .maybeSingle();
+
+        if (cancelled) return;
+
+        if (error || !data || data.is_banned) {
+          clearMembership(room.code);
+          setResumableMembership(null);
+          return;
+        }
+
+        setResumableMembership({
+          id: data.id,
+          playerName: data.player_name ?? '',
+          roomCode: room.code,
+        });
+      } catch {
+        if (!cancelled) setResumableMembership(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, hasMembership, room?.id, room?.code, resumableMembership]);
+
+  const handleResumeMembership = useCallback(async () => {
+    if (!resumableMembership) return;
+    try {
+      await handleJoinRoom(
+        resumableMembership.playerName || 'Player'
+      );
+    } catch (error) {
+      logger.error('Failed to resume membership', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }, [resumableMembership, handleJoinRoom]);
+
+  const handleClearResume = useCallback(() => {
+    if (!resumableMembership) return;
+    clearMembership(resumableMembership.roomCode);
+    setResumableMembership(null);
+  }, [resumableMembership]);
 
   // Debounced version to prevent rapid calls
   const debouncedHandleJoinRoom = useMemo(() => {
@@ -331,51 +419,42 @@ export function RoomPageContent() {
   // Show session expiry modal
   if (sessionExpired) {
     return (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm">
-        <div className="w-full max-w-sm bg-slate-800 rounded-2xl p-6 text-center border border-cyan-400/30 shadow-2xl">
-          <h2 className="text-xl font-bold text-white mb-2">Session Expired</h2>
-          <p className="text-slate-400 text-sm mb-6">Your session has expired. Please sign back in to continue.</p>
-          <button
-            onClick={async () => {
-              try {
-                await signInAnonymously();
-                clearSessionExpired();
-              } catch {
-                window.location.reload();
-              }
-            }}
-            className="w-full px-4 py-3 bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-400 hover:to-fuchsia-400 text-white font-semibold rounded-lg transition-all"
-          >
-            Continue as Guest
-          </button>
-        </div>
-      </div>
+      <SignedOutPrompt
+        showMagicLink
+        roomCode={room?.code}
+        roomId={room?.id}
+        onResolved={() => {
+          if (room?.id) {
+            queryClient.invalidateQueries({ queryKey: ['room', room.id] });
+            queryClient.invalidateQueries({ queryKey: ['memberships', room.id] });
+            queryClient.invalidateQueries({ queryKey: ['room-memberships'] });
+          }
+        }}
+      />
     );
   }
 
-  // Show auth modal for non-authenticated users
+  // Signed-out visitors: the auto-anon effect above usually signs them in as
+  // a guest instantly (when anonymous sign-ins are enabled). If that fails
+  // (e.g. the Supabase project has anon disabled), render the full
+  // SignedOutPrompt so they still have Sign in / Recover with email link /
+  // Continue as guest choices instead of a dead-end.
   if (!user) {
     return (
-      <>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 to-slate-800 text-white">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold mb-4">Room "{room?.code}"</h1>
-            <p className="text-slate-300 mb-6">Please sign in to view this room.</p>
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-400 hover:to-fuchsia-400 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl"
-            >
-              Sign In / Sign Up
-            </button>
-          </div>
-        </div>
-        {showAuthModal && (
-          <AuthModal
-            onClose={() => setShowAuthModal(false)}
-            onSuccess={handleAuthSuccess}
-          />
-        )}
-      </>
+      <SignedOutPrompt
+        title={room?.code ? `Join room "${room.code}"` : 'Join this room'}
+        description="Sign in to keep your scores and mascot, recover a previous identity by email, or jump in as a guest."
+        showMagicLink
+        roomCode={room?.code}
+        roomId={room?.id}
+        onResolved={() => {
+          if (room?.id) {
+            queryClient.invalidateQueries({ queryKey: ['room', room.id] });
+            queryClient.invalidateQueries({ queryKey: ['memberships', room.id] });
+            queryClient.invalidateQueries({ queryKey: ['room-memberships'] });
+          }
+        }}
+      />
     );
   }
 
@@ -417,8 +496,54 @@ export function RoomPageContent() {
           onClose={() => setShowJoinModal(false)}
           roomCode={room?.code || ''}
           onJoin={debouncedHandleJoinRoom}
+          defaultName={resumableMembership?.playerName}
+          onRecoverIdentity={() => {
+            setShowJoinModal(false);
+            setShowRecoveryModal(true);
+          }}
         />
       )}
+      {resumableMembership && !hasMembership && !showJoinModal && (
+        <div className="fixed top-20 left-1/2 z-40 w-[min(92vw,28rem)] -translate-x-1/2 rounded-2xl border border-cyan-400/50 bg-slate-900/90 p-4 text-center shadow-2xl shadow-cyan-500/20 backdrop-blur">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-300">
+            Welcome back
+          </p>
+          <p className="mt-2 text-xl font-black text-pink-400">
+            {resumableMembership.playerName || 'Previous player'}
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
+            Room {resumableMembership.roomCode}
+          </p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <button
+              onClick={handleResumeMembership}
+              className="rounded-full bg-pink-500 px-5 py-2 text-sm font-bold text-white hover:bg-pink-400"
+            >
+              Resume as {resumableMembership.playerName || 'me'}
+            </button>
+            <button
+              onClick={handleClearResume}
+              className="rounded-full border border-slate-600 px-5 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+            >
+              Start fresh
+            </button>
+          </div>
+        </div>
+      )}
+      <PlayerRecoveryModal
+        open={showRecoveryModal}
+        roomCode={room?.code || ''}
+        roomId={room?.id}
+        onClose={() => setShowRecoveryModal(false)}
+        onRecovered={() => {
+          setShowRecoveryModal(false);
+          if (room?.id) {
+            queryClient.invalidateQueries({ queryKey: ['room', room.id] });
+            queryClient.invalidateQueries({ queryKey: ['memberships', room.id] });
+            queryClient.invalidateQueries({ queryKey: ['room-memberships'] });
+          }
+        }}
+      />
       {showCommunityModal && (
         <CommunityModal
           isOpen={showCommunityModal}

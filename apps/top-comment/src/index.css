@@ -767,6 +767,363 @@ a {
     padding: 0 1rem;
 }
 
+/* ============================================================ */
+/* Chaos — TV attract variants (tuned for 1080p+ distance view)  */
+/*                                                               */
+/* Refined palette: deep purple backdrop + 3 accents only.       */
+/*   --tv-pink:  #ec4899  (base) / #f472b6 (light)               */
+/*   --tv-cyan:  #06b6d4  (base) / #22d3ee (light)               */
+/*   --tv-amber: #f59e0b  (base) / #fbbf24 (light)               */
+/* ============================================================ */
+
+:root {
+    --tv-pink:        #ec4899;
+    --tv-pink-light:  #f472b6;
+    --tv-pink-dark:   #db2777;
+    --tv-cyan:        #06b6d4;
+    --tv-cyan-light:  #22d3ee;
+    --tv-cyan-dark:   #0891b2;
+    --tv-amber:       #f59e0b;
+    --tv-amber-light: #fbbf24;
+    --tv-amber-dark:  #d97706;
+    --tv-ink:         #0a0118;
+}
+
+@keyframes chaos-float {
+  0%, 100% { transform: translateY(0) rotate(var(--chaos-float-rot, 0deg)); }
+  50%      { transform: translateY(-12px) rotate(var(--chaos-float-rot, 0deg)); }
+}
+
+/* Parameterised neon glow throb — set --throb-rgb to swap the accent. */
+@keyframes chaos-neon-throb {
+  0%, 100% {
+    text-shadow:
+      0 0 18px rgba(var(--throb-rgb, 244, 114, 182), 0.55),
+      0 0 42px rgba(var(--throb-rgb, 244, 114, 182), 0.28);
+  }
+  50% {
+    text-shadow:
+      0 0 28px rgba(var(--throb-rgb, 244, 114, 182), 0.85),
+      0 0 64px rgba(var(--throb-rgb, 244, 114, 182), 0.45);
+  }
+}
+
+@keyframes chaos-scan-stripe {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
+/* Generic TV-scale chaos sticker card. Pair with a colour variant. */
+.chaos-tv-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    border-radius: 32px;
+    border: 5px solid rgba(0, 0, 0, 0.95);
+    box-shadow: 0 22px 0 #000, 0 0 48px rgba(236, 72, 153, 0.25);
+    padding: clamp(20px, 2.4vw, 44px) clamp(24px, 3vw, 56px);
+    color: #0a0118;
+    background: linear-gradient(135deg, var(--tv-pink-light) 0%, var(--tv-pink-dark) 100%);
+    overflow: hidden;
+}
+
+.chaos-tv-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 45%);
+    pointer-events: none;
+}
+
+/* Primary accent — reserved for "hero" moments (room code, champion score). */
+.chaos-tv-card--gold {
+    background: linear-gradient(135deg, var(--tv-amber-light) 0%, var(--tv-amber-dark) 100%);
+    box-shadow: 0 22px 0 #000, 0 0 56px rgba(245, 158, 11, 0.45);
+}
+
+.chaos-tv-card--cyan {
+    background: linear-gradient(135deg, var(--tv-cyan-light) 0%, var(--tv-cyan-dark) 100%);
+    color: #fff;
+    box-shadow: 0 22px 0 #000, 0 0 56px rgba(6, 182, 212, 0.4);
+}
+
+.chaos-tv-card--pink {
+    background: linear-gradient(135deg, var(--tv-pink-light) 0%, var(--tv-pink-dark) 100%);
+    color: #fff;
+    box-shadow: 0 22px 0 #000, 0 0 56px rgba(236, 72, 153, 0.4);
+}
+
+.chaos-tv-card--dark {
+    background: linear-gradient(135deg, rgba(15, 15, 28, 0.95), rgba(40, 10, 60, 0.9));
+    color: #fff;
+    border-color: rgba(244, 114, 182, 0.5);
+    box-shadow: 0 22px 0 #000, 0 0 48px rgba(236, 72, 153, 0.3);
+}
+
+.chaos-tv-card--dark::before {
+    background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%);
+}
+
+.chaos-tv-rot-left  { transform: rotate(-2.4deg); }
+.chaos-tv-rot-right { transform: rotate( 2.4deg); }
+.chaos-tv-rot-tilt  { transform: rotate(-1deg); }
+.chaos-tv-float     { animation: chaos-float 6s ease-in-out infinite; }
+
+/* Big neon title (room name / card heads). Default glow is pink; apply
+   a colour modifier to re-tint both the text and the throb. */
+.chaos-tv-title {
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    line-height: 0.92;
+    color: #fff;
+    --throb-rgb: 244, 114, 182; /* pink-400 */
+    text-shadow:
+      0 0 18px rgba(var(--throb-rgb), 0.55),
+      0 0 42px rgba(var(--throb-rgb), 0.28);
+    animation: chaos-neon-throb 3.6s ease-in-out infinite;
+}
+
+.chaos-tv-title--pink {
+    color: #fbcfe8;
+    --throb-rgb: 244, 114, 182;
+}
+
+.chaos-tv-title--cyan {
+    color: #a5f3fc;
+    --throb-rgb: 34, 211, 238;
+}
+
+.chaos-tv-title--amber {
+    color: #fde68a;
+    --throb-rgb: 251, 191, 36;
+}
+
+/* Cleaner large heading style (closer to pre-chaos TV look). */
+.chaos-tv-title--soft {
+    animation: none;
+    text-transform: none;
+    letter-spacing: -0.02em;
+    line-height: 1.06;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+}
+
+/* Subtle neon variant for standalone hero text that should read cleaner. */
+.chaos-tv-title--subtle {
+    animation: none;
+    text-shadow:
+      0 0 8px rgba(var(--throb-rgb), 0.25),
+      0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* Room code display — amber hero glow, single accent. */
+.chaos-tv-code {
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    color: #1a0a2e;
+    text-shadow:
+      0 2px 0 rgba(255, 255, 255, 0.45),
+      0 6px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* Chaos sticker tag — small rotated neon label above big heads. */
+.chaos-tv-eyebrow {
+    display: inline-block;
+    align-self: center;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.24em;
+    font-size: clamp(13px, 1.15vw, 22px);
+    padding: 10px 22px;
+    color: #fff;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.22), transparent 45%),
+      linear-gradient(135deg, var(--tv-pink-light) 0%, var(--tv-pink-dark) 100%);
+    border: 3px solid #000;
+    border-radius: 10px 4px 12px 6px;
+    box-shadow: 0 8px 0 #000, 0 0 22px rgba(236, 72, 153, 0.35);
+    transform: rotate(-2.5deg);
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.45);
+    white-space: nowrap;
+}
+
+.chaos-tv-eyebrow--pink {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.22), transparent 45%),
+      linear-gradient(135deg, var(--tv-pink-light) 0%, var(--tv-pink-dark) 100%);
+    box-shadow: 0 8px 0 #000, 0 0 22px rgba(236, 72, 153, 0.4);
+}
+
+.chaos-tv-eyebrow--cyan {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.24), transparent 45%),
+      linear-gradient(135deg, var(--tv-cyan-light) 0%, var(--tv-cyan-dark) 100%);
+    box-shadow: 0 8px 0 #000, 0 0 22px rgba(6, 182, 212, 0.4);
+}
+
+.chaos-tv-eyebrow--gold {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.32), transparent 45%),
+      linear-gradient(135deg, var(--tv-amber-light) 0%, var(--tv-amber-dark) 100%);
+    color: var(--tv-ink);
+    box-shadow: 0 8px 0 #000, 0 0 24px rgba(245, 158, 11, 0.45);
+    text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.chaos-tv-eyebrow--dark {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.08), transparent 45%),
+      linear-gradient(135deg, rgba(15, 15, 28, 0.96), rgba(40, 10, 60, 0.94));
+    color: #fff;
+    border-color: rgba(244, 114, 182, 0.6);
+    box-shadow: 0 8px 0 #000, 0 0 22px rgba(236, 72, 153, 0.3);
+}
+
+.chaos-tv-eyebrow--flip     { transform: rotate(2.5deg); }
+.chaos-tv-eyebrow--straight { transform: rotate(0); }
+
+/* Numbered step bubble. Default pink; swap with a tint modifier. */
+.chaos-tv-bignum {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(60px, 4.5vw, 96px);
+    height: clamp(60px, 4.5vw, 96px);
+    border-radius: 9999px;
+    font-weight: 900;
+    font-size: clamp(28px, 2.6vw, 48px);
+    background: var(--tv-pink-dark);
+    color: #fff;
+    border: 4px solid #000;
+    box-shadow: 0 8px 0 #000, 0 0 20px rgba(219, 39, 119, 0.32);
+    flex-shrink: 0;
+}
+
+.chaos-tv-bignum--cyan {
+    background: var(--tv-cyan-light);
+    color: var(--tv-ink);
+    box-shadow: 0 8px 0 #000, 0 0 24px rgba(6, 182, 212, 0.5);
+}
+
+.chaos-tv-bignum--gold {
+    background: var(--tv-amber-light);
+    color: var(--tv-ink);
+    box-shadow: 0 8px 0 #000, 0 0 24px rgba(245, 158, 11, 0.5);
+}
+
+/* Leaderboard row sticker. Neutral dark base; podium uses the 3 accents. */
+.chaos-tv-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: clamp(10px, 1.2vw, 18px) clamp(16px, 2vw, 28px);
+    border-radius: 22px;
+    border: 3px solid rgba(0, 0, 0, 0.9);
+    background: linear-gradient(135deg, rgba(15, 15, 28, 0.92), rgba(40, 10, 60, 0.85));
+    color: #fff;
+    box-shadow: 0 10px 0 #000, inset 0 0 0 2px rgba(244, 114, 182, 0.22);
+}
+
+.chaos-tv-row--first {
+    background: linear-gradient(135deg, var(--tv-amber-light) 0%, var(--tv-amber-dark) 100%);
+    color: var(--tv-ink);
+    box-shadow: 0 10px 0 #000, 0 0 28px rgba(245, 158, 11, 0.45);
+}
+
+.chaos-tv-row--second {
+    background: linear-gradient(135deg, var(--tv-cyan-light) 0%, var(--tv-cyan-dark) 100%);
+    color: #fff;
+    box-shadow: 0 10px 0 #000, 0 0 22px rgba(6, 182, 212, 0.35);
+}
+
+.chaos-tv-row--third {
+    background: linear-gradient(135deg, var(--tv-pink-light) 0%, var(--tv-pink-dark) 100%);
+    color: #fff;
+    box-shadow: 0 10px 0 #000, 0 0 22px rgba(236, 72, 153, 0.35);
+}
+
+/* QR wrapper — a sticker-panel for the QR block */
+.chaos-tv-qr {
+    position: relative;
+    padding: clamp(14px, 1.5vw, 22px);
+    background: #fff;
+    border: 5px solid #000;
+    border-radius: 28px;
+    box-shadow: 0 14px 0 #000, 0 0 32px rgba(6, 182, 212, 0.3);
+    transform: rotate(-2deg);
+}
+
+/* Live joined badge — single-colour cyan sticker with a pink dot. */
+.chaos-tv-joined {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 12px 22px;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-size: clamp(14px, 1.1vw, 20px);
+    background: linear-gradient(135deg, var(--tv-cyan-light) 0%, var(--tv-cyan-dark) 100%);
+    border: 3px solid #000;
+    border-radius: 9999px;
+    box-shadow: 0 8px 0 #000, 0 0 22px rgba(6, 182, 212, 0.45);
+    color: var(--tv-ink);
+    transform: rotate(2deg);
+}
+
+.chaos-tv-joined-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+    background: var(--tv-pink);
+    border: 2px solid #000;
+    animation: chaos-pulse 1.2s infinite alternate;
+}
+
+/* Scanning sheen that sweeps across a card every few seconds */
+.chaos-tv-sheen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 30%;
+    height: 100%;
+    background: linear-gradient(
+      120deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.18) 45%,
+      rgba(255, 255, 255, 0.32) 50%,
+      rgba(255, 255, 255, 0.18) 55%,
+      transparent 100%
+    );
+    transform: translateX(-120%);
+    animation: chaos-scan-stripe 5s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* TV background: deep purple gradient with a soft centre bloom. */
+.chaos-tv-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(138, 43, 226, 0.22), transparent 65%),
+      linear-gradient(135deg, #1a0a2e 0%, #2a0f4a 50%, #1a0a2e 100%);
+    background-size: 140% 140%;
+    animation: gradientDrift 24s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes gradientDrift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
 /* Section Button Styles - Chaos Arcade Style */
 .section-button {
   position: relative;

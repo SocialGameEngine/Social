@@ -20,6 +20,7 @@ export {
   GroupCard,
   RoundSummaryCard,
 } from './components/phases';
+export type { LeaderboardTeam, RoundSummary } from './components/phases';
 
 // Toast utilities
 export { toast, ToastProvider, useToast } from './shared/providers/ToastContext';

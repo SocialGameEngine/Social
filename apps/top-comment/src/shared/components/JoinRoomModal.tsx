@@ -8,10 +8,23 @@ interface JoinRoomModalProps {
   onClose: () => void;
   roomCode: string;
   onJoin: (displayName: string) => Promise<void>;
+  /** Optional prefilled display name (e.g. from a stored prior membership). */
+  defaultName?: string;
+  /** Opens the magic-link recovery flow for returning players. */
+  onRecoverIdentity?: () => void;
 }
 
-export function JoinRoomModal({ isOpen, onClose, roomCode, onJoin }: JoinRoomModalProps) {
-  const [displayName, setDisplayName] = useState(generatePlayerName());
+export function JoinRoomModal({
+  isOpen,
+  onClose,
+  roomCode,
+  onJoin,
+  defaultName,
+  onRecoverIdentity,
+}: JoinRoomModalProps) {
+  const [displayName, setDisplayName] = useState(
+    defaultName && defaultName.trim().length >= 2 ? defaultName : generatePlayerName()
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -113,6 +126,18 @@ export function JoinRoomModal({ isOpen, onClose, roomCode, onJoin }: JoinRoomMod
               {loading ? "Joining..." : "Join Room"}
             </Button>
           </form>
+
+          {onRecoverIdentity && (
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={onRecoverIdentity}
+                className="text-sm text-cyan-300 underline-offset-4 hover:text-cyan-200 hover:underline"
+              >
+                Returning player? Recover your progress
+              </button>
+            </div>
+          )}
 
           <div className="mt-4 pt-4 border-t border-slate-700">
             <button

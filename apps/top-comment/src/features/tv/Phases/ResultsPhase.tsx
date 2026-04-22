@@ -2,21 +2,27 @@ import type { Sociale, SocialeRound, SocialeResponse } from '../../../domain/typ
 import type { SocialeScoreboardEntry } from '../../../domain/types/sociale.types';
 import { Card, Leaderboard } from '@social/ui';
 import { useTheme } from '../../../shared/providers/ThemeProvider';
+import { DualLeaderboard } from '../components/DualLeaderboard';
+import { useRoomAllTimeLeaderboard } from '../hooks/useRoomAllTimeLeaderboard';
 
 interface ResultsPhaseProps {
   sociale: Sociale;
   currentRound: SocialeRound | null;
   responses: SocialeResponse[];
   scoreboard: SocialeScoreboardEntry[];
+  roomId?: string;
   isDark?: boolean;
 }
 
-export function ResultsPhase({ scoreboard, isDark = false }: ResultsPhaseProps) {
+export function ResultsPhase({ sociale, scoreboard, roomId, isDark = false }: ResultsPhaseProps) {
   const { isDark: themeDark } = useTheme();
   const dark = isDark ?? themeDark;
 
-  // Map SocialeScoreboardEntry to LeaderboardTeam format
-  const mappedScoreboard = scoreboard.map(entry => ({
+  const isAmbient = sociale.mode === 'ambient';
+
+  const allTimeQuery = useRoomAllTimeLeaderboard(isAmbient ? roomId : undefined);
+
+  const mappedScoreboard = scoreboard.map((entry) => ({
     id: entry.socialiteId,
     rank: entry.rank,
     teamName: entry.displayName,
@@ -30,12 +36,20 @@ export function ResultsPhase({ scoreboard, isDark = false }: ResultsPhaseProps) 
         Leaderboard
       </p>
       <div className="mt-4">
-        <Leaderboard
-          leaderboard={mappedScoreboard}
-          variant="presenter"
-          className="grid gap-3 text-lg font-semibold lg:grid-cols-2"
-          isDark={dark}
-        />
+        {isAmbient ? (
+          <DualLeaderboard
+            tonightEntries={mappedScoreboard}
+            allTimeEntries={allTimeQuery.data ?? []}
+            isDark={dark}
+          />
+        ) : (
+          <Leaderboard
+            leaderboard={mappedScoreboard}
+            variant="presenter"
+            className="grid gap-3 text-lg font-semibold lg:grid-cols-2"
+            isDark={dark}
+          />
+        )}
       </div>
     </Card>
   );

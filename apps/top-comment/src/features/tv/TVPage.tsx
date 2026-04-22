@@ -1,5 +1,6 @@
 import { useParams, Link } from "react-router-dom";
-import { useMemo, useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
+import { motion } from "framer-motion";
 import { Timer, Card } from "@social/ui";
 import { BackgroundAnimation } from "../../components/BackgroundAnimation";
 import { useTheme } from "../../shared/providers/ThemeProvider";
@@ -11,6 +12,7 @@ import { useTVPresenter } from "./hooks/useTVPresenter";
 import { useTVAutoTTS } from "./hooks/useTVAutoTTS";
 import { useRoom } from "../../hooks/useRoom";
 import { supabase } from "../../supabase/client";
+import { TVAttractScreen } from "./TVAttractScreen";
 import {
   LobbyPhase,
   AnswerPhase,
@@ -105,15 +107,17 @@ export function TVPage() {
     );
   }
 
-  if (!sociale) {
+  if (!sociale || sociale.status === 'ended') {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center text-center px-6">
-        <h1 className="text-4xl font-black text-pink-400">No active game in this room</h1>
-        <p className="mt-2 text-lg text-white/70">Room code: {roomCode}</p>
-        <Link to="/" className="mt-6 rounded-full bg-slate-700 px-6 py-3 text-sm font-semibold text-cyan-100">
-          Back to home
-        </Link>
-      </main>
+      <>
+        <BackgroundAnimation show={true} />
+        <TVAttractScreen
+          roomCode={room.code}
+          roomId={room.id}
+          roomName={room.name}
+          isDark={isDark}
+        />
+      </>
     );
   }
 
@@ -154,6 +158,7 @@ export function TVPage() {
             currentRound={currentRound}
             responses={currentRoundResponses}
             scoreboard={scoreboard}
+            roomId={room.id}
             isDark={isDark}
           />
         );
@@ -167,7 +172,12 @@ export function TVPage() {
   return (
     <>
       <BackgroundAnimation show={true} />
-      <main className={`relative min-h-screen px-6 py-10 ${!isDark ? 'text-slate-900' : 'text-white'}`}>
+      <motion.main
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.5 }}
+        className={`relative min-h-screen px-6 py-10 ${!isDark ? 'text-slate-900' : 'text-white'}`}
+      >
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
 
           {/* Header */}
@@ -213,7 +223,7 @@ export function TVPage() {
           <PresenterReactionBar reactionCounts={reactionCounts} />
         </div>
         <ReactionOverlay reactions={reactions} bursts={bursts} />
-      </main>
+      </motion.main>
     </>
   );
 }

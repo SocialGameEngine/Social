@@ -4,6 +4,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import LibraryForm, { type LibraryFormData } from "./components/LibraryForm";
 import LibraryList from "./components/LibraryList";
 import PromptList from "./components/PromptList";
+import AmbientRoundList from "./components/AmbientRoundList";
+import AIPromptGenerator from "./components/AIPromptGenerator";
+import TriviaLibraryForm from "./components/TriviaLibraryForm";
+import TriviaLibraryList from "./components/TriviaLibraryList";
+import TriviaQuestionList from "./components/TriviaQuestionList";
+import { Toast, showToast } from "./components/Toast";
+import { queryKeys } from "./lib/queryKeys";
 import {
   createLibrary,
   deleteLibrary,
@@ -13,10 +20,19 @@ import {
   replaceLibraryPrompts,
   upsertLibrary,
 } from "./services/database";
+import {
+  createTriviaPack,
+  deleteTriviaPack,
+  getTriviaPacks,
+  getTriviaPackWithCounts,
+  updateTriviaPack,
+} from "./services/triviaDatabase";
 import type { LibraryWithCounts, PromptLibrary } from "./types/prompts";
+import type { TriviaQuestionPackWithCounts, TriviaQuestionPack } from "./types/trivia";
 import { getErrorMessage } from "./utils/get-error-message";
 
-type FormMode = "create" | "edit" | null;
+type FormMode = "create" | "edit" | "trivia" | null;
+type AppTab = 'libraries' | 'trivia' | 'ambient';
 
 const emptyLibrary: PromptLibrary = {
   id: "",
@@ -29,16 +45,22 @@ const emptyLibrary: PromptLibrary = {
 
 function App() {
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<AppTab>('libraries');
   const [selectedLibraryId, setSelectedLibraryId] = useState<string | null>(
+    null,
+  );
+  const [selectedTriviaLibraryId, setSelectedTriviaLibraryId] = useState<string | null>(
     null,
   );
   const [formMode, setFormMode] = useState<FormMode>(null);
   const [editingLibrary, setEditingLibrary] =
     useState<PromptLibrary>(emptyLibrary);
+  const [editingTriviaLibrary, setEditingTriviaLibrary] =
+    useState<TriviaQuestionPack | null>(null);
   const [importing, setImporting] = useState(false);
 
   const librariesQuery = useQuery({
-    queryKey: ["libraries"],
+    queryKey: queryKeys.libraries(),
     queryFn: async (): Promise<LibraryWithCounts[]> => {
       const libraries = await getLibraries();
       const withCounts = await Promise.all(
@@ -59,6 +81,20 @@ function App() {
     [libraries, selectedLibraryId],
   );
 
+  const triviaLibrariesQuery = useQuery({
+    queryKey: queryKeys.triviaLibraries(),
+    queryFn: async (): Promise<TriviaQuestionPackWithCounts[]> => {
+      const packs = await getTriviaPacks();
+      return Promise.all(packs.map(pack => getTriviaPackWithCounts(pack.id).then(p => p!)));
+    },
+  });
+
+  const triviaLibraries = triviaLibrariesQuery.data ?? [];
+  const selectedTriviaLibrary = useMemo(
+    () => triviaLibraries.find((library) => library.id === selectedTriviaLibraryId) ?? null,
+    [triviaLibraries, selectedTriviaLibraryId],
+  );
+
   const createLibraryMutation = useMutation({
     mutationFn: async (data: LibraryFormData): Promise<void> => {
       const sortOrder = libraries.length;
@@ -73,7 +109,7 @@ function App() {
     },
     onSuccess: async () => {
       setFormMode(null);
-      await queryClient.invalidateQueries({ queryKey: ["libraries"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.libraries() });
     },
   });
 
@@ -90,7 +126,7 @@ function App() {
     },
     onSuccess: async () => {
       setFormMode(null);
-      await queryClient.invalidateQueries({ queryKey: ["libraries"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.libraries() });
     },
   });
 
@@ -100,7 +136,7 @@ function App() {
     },
     onSuccess: async () => {
       setSelectedLibraryId(null);
-      await queryClient.invalidateQueries({ queryKey: ["libraries"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.libraries() });
     },
   });
 
@@ -108,7 +144,7 @@ function App() {
     try {
       await createLibraryMutation.mutateAsync(data);
     } catch (error) {
-      alert(getErrorMessage(error, "Failed to create library"));
+      showToast(getErrorMessage(error, "Failed to create library"), 'error');
     }
   };
 
@@ -116,7 +152,7 @@ function App() {
     try {
       await updateLibraryMutation.mutateAsync(data);
     } catch (error) {
-      alert(getErrorMessage(error, "Failed to update library"));
+      showToast(getErrorMessage(error, "Failed to update library"), 'error');
     }
   };
 
@@ -132,7 +168,25 @@ function App() {
     try {
       await deleteLibraryMutation.mutateAsync(id);
     } catch (error) {
-      alert(getErrorMessage(error, "Failed to delete library"));
+      showToast(getErrorMessage(error, "Failed to delete library"), 'error');
+    }
+  };
+
+  const handleDeleteTriviaLibrary = async (id: string): Promise<void> => {
+    if (
+      !confirm(
+        "Delete this trivia library and all of its questions? This cannot be undone.",
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await deleteTriviaPack(id);
+      setSelectedTriviaLibraryId(null);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.triviaLibraries() });
+    } catch (error) {
+      showToast(getErrorMessage(error, "Failed to delete trivia library"), 'error');
     }
   };
 
@@ -146,8 +200,41 @@ function App() {
     setFormMode("edit");
   };
 
+  
   const handleCancelForm = (): void => {
     setFormMode(null);
+    setEditingLibrary(emptyLibrary);
+    setEditingTriviaLibrary(null);
+  };
+
+  const handleCreateTriviaLibrary = async (data: { name: string; description: string }): Promise<void> => {
+    try {
+      await createTriviaPack({
+        name: data.name.trim(),
+        description: data.description.trim(),
+        status: 'draft',
+      });
+      setFormMode(null);
+      setEditingTriviaLibrary(null);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.triviaLibraries() });
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Failed to create trivia library'), 'error');
+    }
+  };
+
+  const handleUpdateTriviaLibrary = async (data: { name: string; description: string }): Promise<void> => {
+    try {
+      if (!editingTriviaLibrary) return;
+      await updateTriviaPack(editingTriviaLibrary.id, {
+        name: data.name.trim(),
+        description: data.description.trim(),
+      });
+      setFormMode(null);
+      setEditingTriviaLibrary(null);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.triviaLibraries() });
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Failed to update trivia library'), 'error');
+    }
   };
 
   const handleExportLibraries = async (): Promise<void> => {
@@ -181,7 +268,7 @@ function App() {
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      alert(getErrorMessage(error, "Failed to export libraries"));
+      showToast(getErrorMessage(error, "Failed to export libraries"), 'error');
     }
   };
 
@@ -246,10 +333,10 @@ function App() {
         }
       }
 
-      await queryClient.invalidateQueries({ queryKey: ["libraries"] });
-      alert("Libraries imported successfully.");
+      await queryClient.invalidateQueries({ queryKey: queryKeys.libraries() });
+      showToast("Libraries imported successfully.", 'success');
     } catch (error) {
-      alert(getErrorMessage(error, "Failed to import libraries"));
+      showToast(getErrorMessage(error, "Failed to import libraries"), 'error');
     } finally {
       setImporting(false);
     }
@@ -262,73 +349,171 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Prompt Library Admin</h1>
-        <div className="header-actions">
-          <button onClick={handleStartCreate} className="btn btn-primary">
-            + New Library
+        <h1>Prompt Admin</h1>
+        <nav style={{ display: 'flex', gap: 8 }}>
+          <button
+            className={`btn ${activeTab === 'libraries' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('libraries')}
+          >
+            Prompt Libraries
           </button>
-          <button onClick={handleExportLibraries} className="btn btn-secondary">
-            Export Libraries
+          <button
+            className={`btn ${activeTab === 'trivia' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('trivia')}
+          >
+            Trivia Libraries
           </button>
-          <label className="btn btn-secondary">
-            {importing ? "Importing..." : "Import Libraries"}
-            <input
-              type="file"
-              accept="application/json"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) {
-                  void handleImportLibraries(file);
-                }
-                event.currentTarget.value = "";
-              }}
-              disabled={importing}
-              hidden
-            />
-          </label>
-        </div>
+          <button
+            className={`btn ${activeTab === 'ambient' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('ambient')}
+          >
+            Ambient Rounds
+          </button>
+        </nav>
+        {/* Only show library actions on the libraries tab */}
+        {activeTab === 'libraries' && (
+          <div className="header-actions">
+            <button onClick={handleStartCreate} className="btn btn-primary">
+              + New Library
+            </button>
+            <button onClick={handleExportLibraries} className="btn btn-secondary">
+              Export Libraries
+            </button>
+            <label className="btn btn-secondary">
+              {importing ? "Importing..." : "Import Libraries"}
+              <input
+                type="file"
+                accept="application/json"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    void handleImportLibraries(file);
+                  }
+                  event.currentTarget.value = "";
+                }}
+                disabled={importing}
+                hidden
+              />
+            </label>
+          </div>
+        )}
       </header>
 
       <div className="app-content">
-        <div className="sidebar">
-          <LibraryList
-            libraries={libraries}
-            selectedLibraryId={selectedLibraryId}
-            onSelect={setSelectedLibraryId}
-            onDelete={handleDeleteLibrary}
-            onEdit={handleStartEdit}
-          />
-        </div>
-
-        <div className="main-content">
-          {formMode && (
-            <LibraryForm
-              mode={formMode}
-              initialData={editingLibrary}
-              onSubmit={
-                formMode === "create" ? handleCreateLibrary : handleUpdateLibrary
-              }
-              onCancel={handleCancelForm}
-            />
-          )}
-
-          {!formMode && selectedLibrary && (
-            <PromptList
-              library={selectedLibrary}
-              onLibraryUpdated={async () => {
-                await queryClient.invalidateQueries({ queryKey: ["libraries"] });
-              }}
-            />
-          )}
-
-          {!formMode && !selectedLibrary && (
-            <div className="empty-state">
-              <h2>Select a library to manage</h2>
-              <p>Choose a library from the sidebar to view and edit prompts.</p>
+        {activeTab === 'ambient' ? (
+          <div className="main-content" style={{ padding: 24 }}>
+            <AmbientRoundList />
+          </div>
+        ) : activeTab === 'trivia' ? (
+          <>
+            <div className="sidebar">
+              <TriviaLibraryList
+                libraries={triviaLibraries}
+                selectedLibraryId={selectedTriviaLibraryId}
+                onSelect={setSelectedTriviaLibraryId}
+                onCreate={handleCreateTriviaLibrary}
+                onUpdate={handleUpdateTriviaLibrary}
+                onDelete={handleDeleteTriviaLibrary}
+              />
             </div>
-          )}
-        </div>
+
+            <div className="main-content">
+              {formMode === 'trivia' && (
+                <TriviaLibraryForm
+                  mode={editingTriviaLibrary?.id ? 'edit' : 'create'}
+                  initialData={editingTriviaLibrary ? {
+                    id: editingTriviaLibrary.id,
+                    name: editingTriviaLibrary.name,
+                    description: editingTriviaLibrary.description ?? ''
+                  } : undefined}
+                  onSubmit={
+                    editingTriviaLibrary?.id ? handleUpdateTriviaLibrary : handleCreateTriviaLibrary
+                  }
+                  onCancel={handleCancelForm}
+                />
+              )}
+
+              {!formMode && selectedTriviaLibrary && (
+                <TriviaQuestionList
+                  library={selectedTriviaLibrary}
+                  onLibraryUpdated={async () => {
+                    await queryClient.invalidateQueries({ queryKey: queryKeys.triviaLibraries() });
+                  }}
+                />
+              )}
+
+              {!formMode && !selectedTriviaLibrary && (
+                <div className="main-content" style={{ padding: 24 }}>
+                  <div className="empty-state" style={{ marginBottom: 24 }}>
+                    <h2>Select a trivia library to manage</h2>
+                    <p>Choose a library from the sidebar to view and edit trivia questions.</p>
+                  </div>
+                  
+                  <div style={{ marginBottom: 24 }}>
+                    <h3>Or generate trivia questions for a new library:</h3>
+                    <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
+                      Use the AI generator below to create trivia questions, then create a new library and import them.
+                    </p>
+                    <AIPromptGenerator type="trivia" />
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="sidebar">
+              <LibraryList
+                libraries={libraries}
+                selectedLibraryId={selectedLibraryId}
+                onSelect={setSelectedLibraryId}
+                onDelete={handleDeleteLibrary}
+                onEdit={handleStartEdit}
+              />
+            </div>
+
+            <div className="main-content">
+              {formMode === "create" || formMode === "edit" ? (
+                <LibraryForm
+                  mode={formMode}
+                  initialData={editingLibrary}
+                  onSubmit={
+                    formMode === "create" ? handleCreateLibrary : handleUpdateLibrary
+                  }
+                  onCancel={handleCancelForm}
+                />
+              ) : null}
+
+              {!formMode && selectedLibrary && (
+                <PromptList
+                  library={selectedLibrary}
+                  onLibraryUpdated={async () => {
+                    await queryClient.invalidateQueries({ queryKey: queryKeys.libraries() });
+                  }}
+                />
+              )}
+
+              {!formMode && !selectedLibrary && (
+                <div className="main-content" style={{ padding: 24 }}>
+                  <div className="empty-state" style={{ marginBottom: 24 }}>
+                    <h2>Select a library to manage</h2>
+                    <p>Choose a library from the sidebar to view and edit prompts.</p>
+                  </div>
+                  
+                  <div style={{ marginBottom: 24 }}>
+                    <h3>Or generate prompts for a new library:</h3>
+                    <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
+                      Use the AI generator below to create prompts, then create a new library and import them.
+                    </p>
+                    <AIPromptGenerator type="prompts" />
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
+      <Toast />
     </div>
   );
 }

@@ -192,6 +192,7 @@ export function SocialeRoomPhaseController({
         <SocialeEndedPhaseRoom
           sociale={sociale}
           participants={participants}
+          memberships={memberships}
           onOpenLeaderboard={onOpenLeaderboard}
           onOpenSelfie={onOpenSelfie}
         />
