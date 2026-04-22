@@ -82,109 +82,6 @@ importers:
         specifier: ^7.1.7
         version: 7.3.0(@types/node@22.19.3)(jiti@1.21.7)
 
-  apps/event-platform:
-    dependencies:
-      '@social/db':
-        specifier: workspace:*
-        version: link:../../packages/db
-      '@social/game-engine':
-        specifier: workspace:*
-        version: link:../../packages/game-engine
-      '@social/game-topcomment':
-        specifier: workspace:*
-        version: link:../../packages/games/topcomment
-      '@social/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
-      '@supabase/supabase-js':
-        specifier: ^2.47.10
-        version: 2.89.0
-      '@tanstack/react-query':
-        specifier: ^5.90.2
-        version: 5.90.12(react@18.3.1)
-      clsx:
-        specifier: ^2.1.1
-        version: 2.1.1
-      date-fns:
-        specifier: ^4.1.0
-        version: 4.1.0
-      react:
-        specifier: ^18.3.1
-        version: 18.3.1
-      react-dom:
-        specifier: ^18.3.1
-        version: 18.3.1(react@18.3.1)
-      react-qr-code:
-        specifier: ^2.0.18
-        version: 2.0.18(react@18.3.1)
-      react-router-dom:
-        specifier: ^7.9.4
-        version: 7.11.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-spinners:
-        specifier: ^0.17.0
-        version: 0.17.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      zod:
-        specifier: ^3.24.1
-        version: 3.25.76
-    devDependencies:
-      '@eslint/js':
-        specifier: ^9.36.0
-        version: 9.39.2
-      '@playwright/test':
-        specifier: ^1.56.1
-        version: 1.57.0
-      '@tanstack/react-query-devtools':
-        specifier: ^5.90.2
-        version: 5.91.1(@tanstack/react-query@5.90.12(react@18.3.1))(react@18.3.1)
-      '@types/node':
-        specifier: ^22.10.2
-        version: 22.19.3
-      '@types/react':
-        specifier: ^18.3.18
-        version: 18.3.27
-      '@types/react-dom':
-        specifier: ^18.3.5
-        version: 18.3.7(@types/react@18.3.27)
-      '@vitejs/plugin-react':
-        specifier: ^5.0.4
-        version: 5.1.2(vite@7.3.0(@types/node@22.19.3)(jiti@1.21.7))
-      autoprefixer:
-        specifier: ^10.4.21
-        version: 10.4.23(postcss@8.5.6)
-      eslint:
-        specifier: ^9.36.0
-        version: 9.39.2(jiti@1.21.7)
-      eslint-plugin-react-hooks:
-        specifier: ^5.2.0
-        version: 5.2.0(eslint@9.39.2(jiti@1.21.7))
-      eslint-plugin-react-refresh:
-        specifier: ^0.4.22
-        version: 0.4.26(eslint@9.39.2(jiti@1.21.7))
-      globals:
-        specifier: ^16.4.0
-        version: 16.5.0
-      jsdom:
-        specifier: ^27.0.0
-        version: 27.3.0
-      postcss:
-        specifier: ^8.5.6
-        version: 8.5.6
-      tailwindcss:
-        specifier: ^3.4.17
-        version: 3.4.19
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
-      typescript-eslint:
-        specifier: ^8.45.0
-        version: 8.50.0(eslint@9.39.2(jiti@1.21.7))(typescript@5.9.3)
-      vite:
-        specifier: ^7.1.7
-        version: 7.3.0(@types/node@22.19.3)(jiti@1.21.7)
-      vitest:
-        specifier: ^1.6.0
-        version: 1.6.1(@edge-runtime/vm@3.2.0)(@types/node@22.19.3)(jsdom@27.3.0)
-
   apps/prompt-admin:
     dependencies:
       '@supabase/supabase-js':
@@ -219,76 +116,6 @@ importers:
         specifier: ^7.1.7
         version: 7.3.0(@types/node@22.19.3)(jiti@1.21.7)
 
-  apps/pubFeed:
-    dependencies:
-      '@social/db':
-        specifier: workspace:*
-        version: link:../../packages/db
-      '@social/game-topcomment':
-        specifier: workspace:*
-        version: link:../../packages/games/topcomment
-      '@social/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
-      '@social/utils':
-        specifier: workspace:*
-        version: link:../../packages/utils
-      '@supabase/supabase-js':
-        specifier: ^2.47.10
-        version: 2.89.0
-      '@tanstack/react-query':
-        specifier: ^5.90.2
-        version: 5.90.12(react@18.3.1)
-      clsx:
-        specifier: ^2.1.1
-        version: 2.1.1
-      date-fns:
-        specifier: ^4.1.0
-        version: 4.1.0
-      react:
-        specifier: ^18.3.1
-        version: 18.3.1
-      react-dom:
-        specifier: ^18.3.1
-        version: 18.3.1(react@18.3.1)
-      react-router-dom:
-        specifier: ^7.9.4
-        version: 7.11.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      zod:
-        specifier: ^3.24.1
-        version: 3.25.76
-    devDependencies:
-      '@types/node':
-        specifier: ^22.10.2
-        version: 22.19.3
-      '@types/react':
-        specifier: ^18.3.18
-        version: 18.3.27
-      '@types/react-dom':
-        specifier: ^18.3.5
-        version: 18.3.7(@types/react@18.3.27)
-      '@vitejs/plugin-react':
-        specifier: ^5.0.4
-        version: 5.1.2(vite@7.3.0(@types/node@22.19.3)(jiti@1.21.7))
-      autoprefixer:
-        specifier: ^10.4.21
-        version: 10.4.23(postcss@8.5.6)
-      eslint:
-        specifier: ^9.36.0
-        version: 9.39.2(jiti@1.21.7)
-      postcss:
-        specifier: ^8.5.6
-        version: 8.5.6
-      tailwindcss:
-        specifier: ^3.4.17
-        version: 3.4.19
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
-      vite:
-        specifier: ^7.1.7
-        version: 7.3.0(@types/node@22.19.3)(jiti@1.21.7)
-
   apps/top-comment:
     dependencies:
       '@google-cloud/text-to-speech':
@@ -312,9 +139,6 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.90.2
         version: 5.90.12(react@18.3.1)
-      canvas-confetti:
-        specifier: ^1.9.4
-        version: 1.9.4
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -355,9 +179,6 @@ importers:
       '@tanstack/react-query-devtools':
         specifier: ^5.90.2
         version: 5.91.1(@tanstack/react-query@5.90.12(react@18.3.1))(react@18.3.1)
-      '@types/canvas-confetti':
-        specifier: ^1.9.0
-        version: 1.9.0
       '@types/node':
         specifier: ^22.10.2
         version: 22.19.3
@@ -1354,9 +1175,6 @@ packages:
   '@types/babel__traverse@7.28.0':
     resolution: {integrity: sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q==}
 
-  '@types/canvas-confetti@1.9.0':
-    resolution: {integrity: sha512-aBGj/dULrimR1XDZLtG9JwxX1b4HPRF6CX9Yfwh3NvstZEm1ZL7RBnel4keCPSqs1ANRu1u2Aoz9R+VmtjYuTg==}
-
   '@types/d3-array@3.2.2':
     resolution: {integrity: sha512-hOLWVbm7uRza0BYXpIIW5pxfrKe0W+D5lrFiAEYR+pb6w3N2SwSMaJbXdUfSEv+dT4MfHBLtn5js0LAWaO6otw==}
 
@@ -1635,9 +1453,6 @@ packages:
 
   caniuse-lite@1.0.30001761:
     resolution: {integrity: sha512-JF9ptu1vP2coz98+5051jZ4PwQgd2ni8A+gYSN7EA7dPKIMf0pDlSUxhdmVOaV3/fYK5uWBkgSXJaRLr4+3A6g==}
-
-  canvas-confetti@1.9.4:
-    resolution: {integrity: sha512-yxQbJkAVrFXWNbTUjPqjF7G+g6pDotOUHGbkZq2NELZUMDpiJ85rIEazVb8GTaAptNW2miJAXbs1BtioA251Pw==}
 
   chai@4.5.0:
     resolution: {integrity: sha512-RITGBfijLkBddZvnn8jdqoTypxvqbOLYQkGGxXzeFjVHvudaPw0HNFD9x928/eUwYWd2dPCugVqspGALTZZQKw==}
@@ -3835,8 +3650,6 @@ snapshots:
     dependencies:
       '@babel/types': 7.28.5
 
-  '@types/canvas-confetti@1.9.0': {}
-
   '@types/d3-array@3.2.2': {}
 
   '@types/d3-color@3.1.3': {}
@@ -4150,8 +3963,6 @@ snapshots:
   camelcase-css@2.0.1: {}
 
   caniuse-lite@1.0.30001761: {}
-
-  canvas-confetti@1.9.4: {}
 
   chai@4.5.0:
     dependencies:
