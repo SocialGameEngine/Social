@@ -300,9 +300,14 @@ export function SelfieModal({
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
-      <div className="relative w-full h-full sm:h-auto sm:max-w-md sm:mx-4 sm:rounded-2xl rounded-none mx-0 bg-slate-900 shadow-2xl overflow-hidden border-0 sm:border border-slate-700">
-        <div className="p-0 sm:p-6 space-y-0 sm:space-y-4 h-full">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={handleClose} />
+      <div
+        className="chaos-room-shell relative w-full h-full sm:h-auto sm:max-w-md sm:mx-4 sm:rounded-[28px] rounded-none mx-0 overflow-hidden"
+        data-phase="reveal"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="p-0 sm:p-0 space-y-0 h-full">
           {/* Hidden canvas for capturing final image */}
           <canvas ref={captureCanvasRef} className="hidden" />
 

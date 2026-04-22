@@ -23,6 +23,8 @@ export interface SocialeModalContext {
   roundType?: string;
   roundSettings?: any; // Add round settings for MC/written answer
   phaseEndsAt?: string | null;
+  phaseStartedAt?: string | null;
+  voteSeconds?: number;
   paused: boolean;
 }
 

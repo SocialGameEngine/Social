@@ -32,7 +32,14 @@ export function ChatLobbyBottomSheet({
   const [activeTab, setActiveTab] = useState<'chat' | 'lobby'>('chat');
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="Chat & Lobby">
+    <BottomSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Chat & Lobby"
+      accent="lobby"
+      eyebrow="Talk with your table"
+      count={memberships?.length ?? null}
+    >
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex shrink-0 border-b border-slate-700/50">
           <button

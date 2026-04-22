@@ -16,3 +16,5 @@ export { usePhaseTimer } from "./usePhaseTimer";
 export { useGameStateIntegration } from "./useGameStateIntegration";
 export { useActiveGroupData } from "./useActiveGroupData";
 export { useTTS } from "./useTTS";
+export { useTimerWarning } from "./useTimerWarning";
+export type { UseTimerWarningOptions, UseTimerWarningResult } from "./useTimerWarning";

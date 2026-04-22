@@ -22,20 +22,17 @@ export function TopicsBottomSheet({
       isOpen={isOpen}
       onClose={onClose}
       title="Topics"
+      accent="lobby"
+      eyebrow="Discuss with the table"
       emptyIcon="💬"
       emptyTitle="No topics currently posted"
       emptyDescription="Check back later for discussion topics from the host"
       items={topics}
       getItemId={(topic) => topic.id}
       renderListItem={(topic, onSelect) => (
-        <button
-          onClick={onSelect}
-          className="w-full chaos-interaction-card px-4 py-4 text-left"
-        >
-          <div className="font-bold text-lg mb-1">{topic.question}</div>
-          {topic.description && (
-            <div className="text-sm opacity-80">{topic.description}</div>
-          )}
+        <button onClick={onSelect} className="chaos-room-sheet-item">
+          <div className="title">{topic.question}</div>
+          {topic.description && <div className="subtitle">{topic.description}</div>}
         </button>
       )}
       renderDetailView={(topic, onBack) => (

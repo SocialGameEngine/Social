@@ -79,8 +79,9 @@ export function TVAttractScreen({
 
   return (
     <main className="relative min-h-screen overflow-hidden text-white">
-      {/* Deep purple backdrop with a soft drifting bloom. */}
-      <div className="chaos-tv-bg" aria-hidden />
+      {/* Background is provided by the parent TVPage (<BackgroundAnimation />)
+          so /tv shares the same gradient + beer bubble field regardless of
+          whether a sociale is running. */}
 
       {/* Active card */}
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-8 py-12 md:px-16 md:py-20">

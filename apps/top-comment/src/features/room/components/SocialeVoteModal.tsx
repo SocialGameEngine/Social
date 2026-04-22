@@ -1,8 +1,17 @@
-import { useState, useCallback, useEffect } from 'react';
-import { Button } from '../../../components/Button';
-import { Timer } from '../../../components/Timer';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../shared/providers/AuthContext';
-import { useSubmitVote, useCurrentSocialite, useMyVotes } from '../../../features/sociale/hooks';
+import {
+  useSubmitVote,
+  useCurrentSocialite,
+  useMyVotes,
+  useRoundVotes,
+  useSocialites,
+} from '../../../features/sociale/hooks';
+import { triggerHaptic } from '../../../shared/utils/sessionUtils';
+import { usePhaseTimer } from '../../../shared/hooks';
+import { PhaseShell } from './shell/PhaseShell';
+import { SubmissionPool } from '../../tv/components/SubmissionPool';
 import type { SocialeResponse } from '../../../domain/types/sociale.types';
 
 interface SocialeVoteModalProps {
@@ -14,30 +23,29 @@ interface SocialeVoteModalProps {
   onSubmit: () => void;
   prompt?: string;
   endsAt?: string | null;
+  startedAt?: string | null;
+  voteSeconds?: number;
   paused?: boolean;
+  roundIndex?: number;
+  totalRounds?: number;
+  /** P1-17: require a two-step "Lock it in" confirmation before the vote is submitted. */
+  requireLockIn?: boolean;
 }
 
-// Client-side storage key for submitted votes
-const getStoredVoteKey = (socialeId: string, roundId: string, socialiteId: string) => 
+const getStoredVoteKey = (socialeId: string, roundId: string, socialiteId: string) =>
   `sociale-vote-${socialeId}-${roundId}-${socialiteId}`;
 
-// Store vote client-side to avoid DB calls
-const storeVoteClientSide = (socialeId: string, roundId: string, socialiteId: string, responseId: string) => {
-  const key = getStoredVoteKey(socialeId, roundId, socialiteId);
-  localStorage.setItem(key, responseId);
-};
+function storeVoteClientSide(socialeId: string, roundId: string, socialiteId: string, responseId: string) {
+  localStorage.setItem(getStoredVoteKey(socialeId, roundId, socialiteId), responseId);
+}
 
-// Get stored vote client-side
-const getStoredVoteClientSide = (socialeId: string, roundId: string, socialiteId: string): string | null => {
-  const key = getStoredVoteKey(socialeId, roundId, socialiteId);
-  return localStorage.getItem(key);
-};
+function getStoredVoteClientSide(socialeId: string, roundId: string, socialiteId: string): string | null {
+  return localStorage.getItem(getStoredVoteKey(socialeId, roundId, socialiteId));
+}
 
-// Clear stored vote for a round
-const clearStoredVoteClientSide = (socialeId: string, roundId: string, socialiteId: string) => {
-  const key = getStoredVoteKey(socialeId, roundId, socialiteId);
-  localStorage.removeItem(key);
-};
+function clearStoredVoteClientSide(socialeId: string, roundId: string, socialiteId: string) {
+  localStorage.removeItem(getStoredVoteKey(socialeId, roundId, socialiteId));
+}
 
 export function SocialeVoteModal({
   isOpen,
@@ -48,43 +56,67 @@ export function SocialeVoteModal({
   onSubmit,
   prompt,
   endsAt,
+  startedAt,
+  voteSeconds,
   paused,
+  roundIndex,
+  totalRounds,
+  requireLockIn = false,
 }: SocialeVoteModalProps) {
   const { user } = useAuth();
   const [selectedResponseId, setSelectedResponseId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Use Sociale vote submission hook
+  const [lockInConfirmPending, setLockInConfirmPending] = useState(false);
+
   const submitVoteMutation = useSubmitVote();
-  
-  // Get current user's socialite
   const { data: currentSocialite } = useCurrentSocialite(socialeId, user?.id);
-  
-  // Get user's existing votes (fallback if client storage is empty)
   const { data: myVotes = [] } = useMyVotes(socialeId, currentSocialite?.id);
-  
-  // Populate vote from client-side storage or existing vote when modal opens
+  const { data: roundVotes = [] } = useRoundVotes(socialeId, roundId);
+  const { data: socialites = [] } = useSocialites(socialeId);
+
+  const { totalSeconds } = usePhaseTimer({
+    session: useMemo(
+      () => ({
+        status: 'vote',
+        phaseStartedAt: startedAt ?? null,
+        phaseEndsAt: endsAt ?? null,
+        settings: { voteSecs: voteSeconds ?? 30 },
+      }),
+      [startedAt, endsAt, voteSeconds],
+    ),
+  });
+
   useEffect(() => {
     if (!isOpen || !currentSocialite) return;
-    
-    // First try client-side storage (fastest)
+
     const storedVote = getStoredVoteClientSide(socialeId, roundId, currentSocialite.id);
     if (storedVote) {
       setSelectedResponseId(storedVote);
       return;
     }
-    
-    // Fallback to existing vote from database
-    const existingVote = myVotes.find(v => v.roundId === roundId);
+
+    const existingVote = myVotes.find((v) => v.roundId === roundId);
     if (existingVote) {
       setSelectedResponseId(existingVote.targetResponseId);
-      // Store it client-side for future use
       storeVoteClientSide(socialeId, roundId, currentSocialite.id, existingVote.targetResponseId);
     } else {
       setSelectedResponseId(null);
     }
   }, [isOpen, socialeId, roundId, currentSocialite, myVotes]);
+
+  useEffect(() => {
+    if (!currentSocialite) return;
+    const keys = Object.keys(localStorage);
+    keys.forEach((key) => {
+      if (key.startsWith(`sociale-vote-${socialeId}-`) && key.includes(currentSocialite.id)) {
+        const [, , , storedRoundId] = key.split('-');
+        if (storedRoundId && storedRoundId !== roundId) {
+          clearStoredVoteClientSide(socialeId, storedRoundId, currentSocialite.id);
+        }
+      }
+    });
+  }, [socialeId, roundId, currentSocialite]);
 
   const handleSubmit = useCallback(async () => {
     if (!selectedResponseId || !user || !currentSocialite) return;
@@ -99,206 +131,262 @@ export function SocialeVoteModal({
         socialiteId: currentSocialite.id,
         targetResponseId: selectedResponseId,
       });
-      
-      // Store vote client-side for instant retrieval
+
       storeVoteClientSide(socialeId, roundId, currentSocialite.id, selectedResponseId);
-      
+      triggerHaptic('success');
       onSubmit();
-      setSelectedResponseId(null);
     } catch (err) {
+      triggerHaptic('error');
       setError(err instanceof Error ? err.message : 'Failed to submit vote');
     } finally {
       setIsSubmitting(false);
     }
   }, [selectedResponseId, user, currentSocialite, socialeId, roundId, onSubmit, submitVoteMutation]);
 
-  // Clear client-side storage when round changes (cleanup)
-  useEffect(() => {
-    if (!currentSocialite) return;
-    
-    // Clear old round votes when we detect a new round
-    const clearOldRoundVotes = () => {
-      const keys = Object.keys(localStorage);
-      keys.forEach(key => {
-        if (key.startsWith(`sociale-vote-${socialeId}-`) && key.includes(currentSocialite.id)) {
-          const [_, ...parts] = key.split('-');
-          const storedRoundId = parts[2];
-          if (storedRoundId !== roundId) {
-            clearStoredVoteClientSide(socialeId, storedRoundId, currentSocialite.id);
-          }
-        }
-      });
-    };
-    
-    clearOldRoundVotes();
-  }, [socialeId, roundId, currentSocialite]);
+  // Submission pool — anyone who has cast a vote for this round.
+  const submissionEntries = useMemo(() => {
+    const votedSocialiteIds = new Set(roundVotes.map((v) => v.socialiteId));
+    return socialites
+      .filter((s) => s.isActive)
+      .map((s) => ({
+        id: s.id,
+        displayName: s.displayName || 'Player',
+        mascotId: s.mascotId,
+        hasSubmitted: votedSocialiteIds.has(s.id),
+      }));
+  }, [socialites, roundVotes]);
 
-  
-  if (!isOpen) return null;
+  // Filter out the current user's own response so they can't self-vote.
+  const selectableResponses = useMemo(() => {
+    return responses.filter((r) => r.socialiteId !== currentSocialite?.id);
+  }, [responses, currentSocialite?.id]);
+
+  const canAdvance = !!selectedResponseId;
+
+  const handlePrimaryClick = useCallback(() => {
+    if (requireLockIn && canAdvance && !lockInConfirmPending) {
+      setLockInConfirmPending(true);
+      triggerHaptic('medium');
+      return;
+    }
+    void handleSubmit();
+  }, [requireLockIn, canAdvance, lockInConfirmPending, handleSubmit]);
+
+  const existingVote = myVotes.find((v) => v.roundId === roundId);
+  const hasExistingVote = !!existingVote;
+
+  const primaryLabel = isSubmitting
+    ? 'Submitting…'
+    : hasExistingVote
+    ? 'Update vote'
+    : requireLockIn && !lockInConfirmPending
+    ? 'Lock it in?'
+    : 'Cast vote';
 
   return (
-    <div className="fixed inset-0 z-[100] flex sm:items-center sm:justify-center sm:p-4">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        onClick={!isSubmitting ? onClose : undefined}
-      />
-      
-      {/* Modal Content */}
-      <div className="relative w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-lg overflow-y-auto shadow-2xl bg-slate-900">
-        {/* Header with Timer */}
-        <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-slate-700/50 bg-slate-900">
-          <span className="text-cyan-400 font-black text-lg">
-            {paused ? (
-              'Paused'
-            ) : endsAt ? (
-              <Timer endTime={endsAt} size="sm" />
-            ) : (
-              '--'
-            )}
-          </span>
-          <button
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="text-slate-400 hover:text-slate-200 transition-colors"
-            aria-label="Close"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        
-        {/* Content - Like AnswerPhase */}
-        <div className="space-y-3 p-3 sm:space-y-4 sm:p-5">
-          {/* Vote Header */}
-          <p className="text-center text-2xl font-black tracking-tight sm:text-3xl text-cyan-400 neon-glow-cyan">
-            Vote!
-          </p>
-          
-          {/* Prompt Card - chaos-prompt-card like AnswerModal */}
-          <div className="chaos-prompt-card px-3 py-3 text-center sm:px-4 sm:py-4 shadow-xl border-2 border-black/80">
-            {prompt ? (
-              <p className="text-xl font-black tracking-tight drop-shadow-lg sm:text-2xl text-black">
-                {prompt}
-              </p>
-            ) : (
-              <p className="text-sm text-black/60">No prompt available</p>
-            )}
-          </div>
-          
-          {/* Responses List - Invisible container */}
-          <div className="px-5 py-5 sm:px-8 sm:py-6">
-            <div className="space-y-3 max-h-[40vh] overflow-y-auto py-2">
-              {responses.length ? (
-                responses.map((response) => {
-                  const isSelected = selectedResponseId === response.id;
-                  // Get display name from socialite info if available, otherwise use fallback
-                  const displayName = (response as any).socialiteDisplayName || 'Anonymous';
-
-                  return (
-                    <button
-                      key={response.id}
-                      type="button"
-                      onClick={() => !isSubmitting && setSelectedResponseId(isSelected ? null : response.id)}
-                      disabled={isSubmitting}
-                      className={`flex gap-3 w-[calc(100%-1rem)] mx-auto text-left p-3 shadow-[0_16px_0_#000] border-2 border-black/80 transition-all duration-200 rounded-[28px] text-black rotate-[2deg] ${
-                        isSelected
-                          ? 'bg-gradient-to-br from-cyan-400 to-purple-500 ring-2 ring-cyan-400'
-                          : 'bg-gradient-to-br from-cyan-400 to-fuchsia-500 hover:scale-[1.02]'
-                      }`}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-black tracking-tight text-black leading-relaxed">
-                          {typeof response.value === 'string' ? response.value : 'Response'}
-                        </p>
-                        <p className="text-xs text-black/60 mt-1">by {displayName}</p>
-                      </div>
-                      {/* Heart vote control on right (non-button to avoid nesting) */}
-                      <div className="flex-shrink-0 flex items-center">
-                        <div
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!isSubmitting) {
-                              setSelectedResponseId(isSelected ? null : response.id);
-                            }
-                          }}
-                          aria-label={isSelected ? "Remove vote" : "Vote for this response"}
-                          role="button"
-                          tabIndex={0}
-                          className={`text-2xl transition-all duration-200 ${
-                            isSelected
-                              ? 'transform scale-110 text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]'
-                              : 'text-black hover:text-gray-700'
-                          }`}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (!isSubmitting) {
-                                setSelectedResponseId(isSelected ? null : response.id);
-                              }
-                            }
-                          }}
-                        >
-                          {isSelected ? (
-                            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-1.91l-.01-.01L23 10z"/>
-                            </svg>
-                          ) : (
-                            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-1.91l-.01-.01L23 10z"/>
-                            </svg>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })
-              ) : (
-                <p className="text-center text-slate-400 py-4">No responses yet...</p>
-              )}
-            </div>
-          </div>
-
-          {/* Error */}
-          {error && (
-            <p className="text-center text-sm text-rose-400">{error}</p>
+    <PhaseShell
+      isOpen={isOpen}
+      onClose={onClose}
+      phase="vote"
+      title="Voting"
+      roundIndex={roundIndex != null ? roundIndex + 1 : undefined}
+      totalRounds={totalRounds}
+      endsAt={endsAt ?? null}
+      totalSeconds={totalSeconds}
+      paused={paused}
+      dismissDisabled={isSubmitting}
+      footer={
+        submissionEntries.length > 0 ? (
+          <SubmissionPool entries={submissionEntries} action="voted" />
+        ) : undefined
+      }
+    >
+      <div className="space-y-4">
+        <motion.div
+          initial={{ y: 10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+          className="chaos-room-prompt-card"
+        >
+          {prompt ? (
+            <p
+              className="text-center text-[clamp(1.1rem,4.5vw,1.5rem)] font-black leading-tight tracking-tight"
+              style={{ textShadow: '0 2px 0 rgba(255,255,255,0.15)' }}
+            >
+              {prompt}
+            </p>
+          ) : (
+            <p className="text-center text-sm text-black/60">No prompt available</p>
           )}
+        </motion.div>
 
-          {/* Submit Button - chaos-cta-button */}
-          <Button
-            onClick={handleSubmit}
-            disabled={!selectedResponseId || isSubmitting}
-            isLoading={isSubmitting}
-            fullWidth
-            size="sm"
-            className="chaos-cta-button font-black text-xs sm:text-sm"
-          >
-            {isSubmitting ? (
-              <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-2 h-3 w-3 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Submitting...
-              </span>
-            ) : (
-              selectedResponseId ? 'Update vote' : 'Submit vote'
-            )}
-          </Button>
+        {selectableResponses.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-8 text-center">
+            <div className="flex gap-2">
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  animate={{ opacity: [0.2, 0.6, 0.2] }}
+                  transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.2 }}
+                  className="h-3 w-3 rounded-full bg-white/40"
+                />
+              ))}
+            </div>
+            <p className="text-sm text-white/60">
+              Waiting for your mates…
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3 max-h-[46vh] overflow-y-auto pr-1">
+            <AnimatePresence initial={false}>
+              {selectableResponses.map((response) => {
+                const isSelected = selectedResponseId === response.id;
+                const displayName = (response as any).socialiteDisplayName || 'Anonymous';
+                const responseText =
+                  typeof response.value === 'string' ? response.value : 'Response';
 
-          {/* Cancel Link */}
-          <button
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="w-full text-center text-xs sm:text-sm font-medium transition-colors text-cyan-200 hover:text-cyan-300"
-          >
-            Cancel
-          </button>
-        </div>
+                return (
+                  <motion.button
+                    key={response.id}
+                    layout
+                    layoutId={`vote-response-${response.id}`}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.85 }}
+                    transition={{ type: 'spring', stiffness: 360, damping: 26 }}
+                    whileTap={{ scale: 0.97 }}
+                    type="button"
+                    onClick={() => {
+                      if (isSubmitting || lockInConfirmPending) return;
+                      setSelectedResponseId(isSelected ? null : response.id);
+                      triggerHaptic('light');
+                    }}
+                    disabled={isSubmitting || lockInConfirmPending}
+                    className="chaos-room-response-card relative w-full text-left flex items-start gap-3 p-4 rounded-2xl transition"
+                    style={{
+                      background: isSelected
+                        ? 'linear-gradient(135deg, rgba(192, 132, 252, 0.32), rgba(34, 211, 238, 0.22))'
+                        : 'linear-gradient(135deg, rgba(192, 132, 252, 0.15), rgba(34, 211, 238, 0.08))',
+                      border: `2px solid ${
+                        isSelected
+                          ? 'rgba(192, 132, 252, 0.85)'
+                          : 'rgba(192, 132, 252, 0.28)'
+                      }`,
+                      boxShadow: isSelected
+                        ? '0 0 0 3px rgba(192, 132, 252, 0.35), 0 10px 20px rgba(0,0,0,0.4)'
+                        : '0 6px 16px rgba(0,0,0,0.3)',
+                    }}
+                    aria-pressed={isSelected}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="text-base font-black leading-snug text-white break-words"
+                        style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
+                      >
+                        {responseText}
+                      </p>
+                      <p className="text-xs text-white/60 mt-1 font-semibold uppercase tracking-wider">
+                        by {displayName}
+                      </p>
+                    </div>
+                    <motion.div
+                      animate={{
+                        scale: isSelected ? 1.15 : 1,
+                        rotate: isSelected ? [0, -12, 12, 0] : 0,
+                      }}
+                      transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}
+                      className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full"
+                      style={{
+                        background: isSelected ? '#34d399' : 'rgba(255,255,255,0.08)',
+                        color: isSelected ? '#0a0118' : 'rgba(255,255,255,0.6)',
+                      }}
+                    >
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill={isSelected ? 'currentColor' : 'none'}
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                      </svg>
+                    </motion.div>
+                    {isSelected && (
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: [0, 0.6, 0] }}
+                        transition={{ duration: 0.55 }}
+                        className="pointer-events-none absolute inset-0 rounded-2xl"
+                        style={{
+                          boxShadow: '0 0 0 0 rgba(192, 132, 252, 0.5)',
+                          background: 'radial-gradient(circle at 90% 50%, rgba(52, 211, 153, 0.35), transparent 60%)',
+                        }}
+                      />
+                    )}
+                  </motion.button>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        )}
+
+        <AnimatePresence mode="wait">
+          {requireLockIn && lockInConfirmPending ? (
+            <motion.div
+              key="lockin"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              transition={{ duration: 0.18 }}
+              className="flex gap-2"
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setLockInConfirmPending(false);
+                  triggerHaptic('light');
+                }}
+                disabled={isSubmitting}
+                className="flex-1 min-h-[56px] rounded-full border border-white/15 bg-white/5 text-white font-black uppercase tracking-wider text-sm"
+              >
+                Change
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSubmit()}
+                disabled={isSubmitting}
+                className="chaos-room-cta flex-[2] px-4"
+                style={{
+                  ['--chaos-room-accent-rgb' as any]: '251, 191, 36',
+                }}
+              >
+                {isSubmitting ? 'Locking…' : 'Lock it in ✓'}
+              </button>
+            </motion.div>
+          ) : (
+            <motion.button
+              key="primary"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              type="button"
+              onClick={handlePrimaryClick}
+              disabled={isSubmitting || !canAdvance}
+              className="chaos-room-cta w-full px-4"
+            >
+              {primaryLabel}
+            </motion.button>
+          )}
+        </AnimatePresence>
+
+        {error && (
+          <p className="text-center text-sm text-rose-400" role="alert">
+            {error}
+          </p>
+        )}
       </div>
-    </div>
+    </PhaseShell>
   );
 }
 

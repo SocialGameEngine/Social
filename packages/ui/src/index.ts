@@ -25,3 +25,7 @@ export type { LeaderboardTeam, RoundSummary } from './components/phases';
 // Toast utilities
 export { toast, ToastProvider, useToast } from './shared/providers/ToastContext';
 export type { Toast } from './shared/providers/ToastContext';
+
+// Shared hooks
+export { useCountdown } from './shared/hooks/useCountdown';
+export type { CountdownState } from './shared/hooks/useCountdown';

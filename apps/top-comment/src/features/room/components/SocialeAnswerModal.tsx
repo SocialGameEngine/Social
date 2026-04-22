@@ -1,9 +1,21 @@
-import { useState, useCallback, useEffect } from 'react';
-import { Button } from '../../../components/Button';
-import { Timer } from '../../../components/Timer';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../shared/providers/AuthContext';
 import { validateAnswer } from '../utils/validation';
-import { useSubmitResponse, useCurrentSocialite, useMyResponses } from '../../../features/sociale/hooks';
+import {
+  useSubmitResponse,
+  useCurrentSocialite,
+  useMyResponses,
+  useSocialites,
+  useRoundResponses,
+} from '../../../features/sociale/hooks';
+import { enqueuePendingAnswer } from '../utils/pendingAnswerQueue';
+import { triggerHaptic } from '../../../shared/utils/sessionUtils';
+import { usePhaseTimer } from '../../../shared/hooks';
+import { PhaseShell } from './shell/PhaseShell';
+import { RoomAnswerTile } from './answer/RoomAnswerTile';
+import { SubmissionPool } from '../../tv/components/SubmissionPool';
+import { ComboPopup } from '../../tv/components/ComboPopup';
 
 interface SocialeAnswerModalProps {
   isOpen: boolean;
@@ -13,35 +25,44 @@ interface SocialeAnswerModalProps {
   roundIndex: number;
   roundType?: string;
   prompt: string;
-  roundSettings?: any; // Add round settings for format/snapshot
+  roundSettings?: any;
   onSubmit: () => void;
   endsAt?: string | null;
+  startedAt?: string | null;
   paused?: boolean;
+  /** P1-17: when true, submit requires an explicit "Lock it in" confirmation step. */
+  requireLockIn?: boolean;
+  /** Total rounds in the sociale (for the "Round 3 of 5" eyebrow). */
+  totalRounds?: number;
+  /** Optional player streak — shown as a ComboPopup when they hit a streak. */
+  comboCount?: number | null;
+  /** Increments when the streak extends; bump it to replay the burst. */
+  comboTriggerKey?: string | number | null;
 }
 
 const CHAR_LIMIT = 120;
 
-// Client-side storage key for submitted answers
-const getStoredAnswerKey = (socialeId: string, roundId: string, socialiteId: string) => 
+const getStoredAnswerKey = (socialeId: string, roundId: string, socialiteId: string) =>
   `sociale-answer-${socialeId}-${roundId}-${socialiteId}`;
 
-// Store answer client-side to avoid DB calls
-const storeAnswerClientSide = (socialeId: string, roundId: string, socialiteId: string, answer: string) => {
-  const key = getStoredAnswerKey(socialeId, roundId, socialiteId);
-  localStorage.setItem(key, answer);
-};
+function storeAnswerClientSide(socialeId: string, roundId: string, socialiteId: string, answer: string) {
+  localStorage.setItem(getStoredAnswerKey(socialeId, roundId, socialiteId), answer);
+}
 
-// Get stored answer client-side
-const getStoredAnswerClientSide = (socialeId: string, roundId: string, socialiteId: string): string | null => {
-  const key = getStoredAnswerKey(socialeId, roundId, socialiteId);
-  return localStorage.getItem(key);
-};
+function getStoredAnswerClientSide(socialeId: string, roundId: string, socialiteId: string): string | null {
+  return localStorage.getItem(getStoredAnswerKey(socialeId, roundId, socialiteId));
+}
 
-// Clear stored answer for a round
-const clearStoredAnswerClientSide = (socialeId: string, roundId: string, socialiteId: string) => {
-  const key = getStoredAnswerKey(socialeId, roundId, socialiteId);
-  localStorage.removeItem(key);
-};
+function clearStoredAnswerClientSide(socialeId: string, roundId: string, socialiteId: string) {
+  localStorage.removeItem(getStoredAnswerKey(socialeId, roundId, socialiteId));
+}
+
+const SAFETY_ANSWERS = [
+  'Pass — half points please',
+  "The one everyone forgets",
+  "I'll take the half",
+  'Mystery answer',
+];
 
 export function SocialeAnswerModal({
   isOpen,
@@ -54,67 +75,69 @@ export function SocialeAnswerModal({
   roundSettings,
   onSubmit,
   endsAt,
+  startedAt,
   paused,
+  requireLockIn = false,
+  totalRounds,
+  comboCount,
+  comboTriggerKey,
 }: SocialeAnswerModalProps) {
   const { user } = useAuth();
   const [answer, setAnswer] = useState('');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Determine if this is a multiple choice question
+  const [lockInConfirmPending, setLockInConfirmPending] = useState(false);
+
   const isMultipleChoice = roundSettings?.format === 'multiple_choice';
   const snapshot = roundSettings?.snapshot;
   const mcOptions = isMultipleChoice && snapshot?.multipleChoice ? snapshot.multipleChoice.options : [];
-  
-  // Use Sociale response submission hook
+
   const submitResponseMutation = useSubmitResponse();
-  
-  // Get current user's socialite
+
   const { data: currentSocialite } = useCurrentSocialite(socialeId, user?.id);
-  
-  // Get user's existing responses (fallback if client storage is empty)
   const { data: myResponses = [] } = useMyResponses(socialeId, currentSocialite?.id);
-  
-  // Check if user has already submitted an answer for this round
-  const hasExistingResponse = myResponses.some(r => r.roundId === roundId);
-  
-  // Debug logging
-  console.log('🔥 SocialeAnswerModal roundSettings:', roundSettings);
-  console.log('🔥 isMultipleChoice:', isMultipleChoice);
-  console.log('🔥 snapshot:', snapshot);
-  console.log('🔥 mcOptions length:', mcOptions.length);
-  console.log('🔥 hasExistingResponse:', hasExistingResponse);
-  
-  // Populate answer from client-side storage or existing response when modal opens
+  const { data: socialites = [] } = useSocialites(socialeId);
+  const { data: roundResponses = [] } = useRoundResponses(socialeId, roundId);
+
+  const hasExistingResponse = myResponses.some((r) => r.roundId === roundId);
+
+  // Phase duration driven by server-authoritative timestamps when available,
+  // falling back to round settings so the CountdownRing always scales correctly.
+  const { totalSeconds } = usePhaseTimer({
+    session: useMemo(
+      () => ({
+        status: 'answer',
+        phaseStartedAt: startedAt ?? null,
+        phaseEndsAt: endsAt ?? null,
+        settings: {
+          answerSecs: roundSettings?.answerSecs ?? roundSettings?.duration ?? 90,
+        },
+      }),
+      [startedAt, endsAt, roundSettings?.answerSecs, roundSettings?.duration],
+    ),
+  });
+
+  // Rehydrate from localStorage / existing response when modal opens.
   useEffect(() => {
     if (!isOpen || !currentSocialite) return;
-    
-    // First try client-side storage (fastest)
+
     const storedAnswer = getStoredAnswerClientSide(socialeId, roundId, currentSocialite.id);
     if (storedAnswer) {
-      if (isMultipleChoice) {
-        setSelectedOption(storedAnswer);
-      } else {
-        setAnswer(storedAnswer);
-      }
+      if (isMultipleChoice) setSelectedOption(storedAnswer);
+      else setAnswer(storedAnswer);
       return;
     }
-    
-    // Fallback to existing response from database
-    const existingResponse = myResponses.find(r => r.roundId === roundId);
+
+    const existingResponse = myResponses.find((r) => r.roundId === roundId);
     if (existingResponse) {
-      const answerValue = typeof existingResponse.value === 'string' 
-        ? existingResponse.value 
-        : String(existingResponse.value);
-      
-      if (isMultipleChoice) {
-        setSelectedOption(answerValue);
-      } else {
-        setAnswer(answerValue);
-      }
-      
-      // Store it client-side for future use
+      const answerValue =
+        typeof existingResponse.value === 'string'
+          ? existingResponse.value
+          : String(existingResponse.value);
+
+      if (isMultipleChoice) setSelectedOption(answerValue);
+      else setAnswer(answerValue);
       storeAnswerClientSide(socialeId, roundId, currentSocialite.id, answerValue);
     } else {
       setAnswer('');
@@ -122,10 +145,23 @@ export function SocialeAnswerModal({
     }
   }, [isOpen, socialeId, roundId, currentSocialite, myResponses, isMultipleChoice]);
 
+  // Clean up old-round answers in localStorage.
+  useEffect(() => {
+    if (!currentSocialite) return;
+    const keys = Object.keys(localStorage);
+    keys.forEach((key) => {
+      if (key.startsWith(`sociale-answer-${socialeId}-`) && key.includes(currentSocialite.id)) {
+        const [, , , storedRoundId] = key.split('-');
+        if (storedRoundId && storedRoundId !== roundId) {
+          clearStoredAnswerClientSide(socialeId, storedRoundId, currentSocialite.id);
+        }
+      }
+    });
+  }, [socialeId, roundId, currentSocialite]);
+
   const handleSubmit = useCallback(async () => {
     if (!user || !currentSocialite) return;
 
-    // Validate based on question type
     if (isMultipleChoice) {
       if (!selectedOption) {
         setError('Please select an option');
@@ -142,196 +178,291 @@ export function SocialeAnswerModal({
     setIsSubmitting(true);
     setError(null);
 
+    const answerType: 'multiple_choice' | 'text' = isMultipleChoice ? 'multiple_choice' : 'text';
+    const answerValueRaw = isMultipleChoice ? selectedOption || '' : answer.trim();
+
     try {
       await submitResponseMutation.mutateAsync({
         socialeId,
         roundId,
         socialiteId: currentSocialite.id,
-        type: isMultipleChoice ? 'multiple_choice' : 'text',
-        value: isMultipleChoice ? selectedOption : answer.trim(),
+        type: answerType,
+        value: answerValueRaw,
       });
-      
-      // Store answer client-side for instant retrieval
-      const answerValue = isMultipleChoice ? (selectedOption || '') : answer.trim();
-      storeAnswerClientSide(socialeId, roundId, currentSocialite.id, answerValue);
-      
+
+      storeAnswerClientSide(socialeId, roundId, currentSocialite.id, answerValueRaw);
+      triggerHaptic('success');
       onSubmit();
       setAnswer('');
       setSelectedOption(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit answer');
+      enqueuePendingAnswer({
+        socialeId,
+        roundId,
+        socialiteId: currentSocialite.id,
+        type: answerType,
+        value: answerValueRaw,
+      });
+      storeAnswerClientSide(socialeId, roundId, currentSocialite.id, answerValueRaw);
+      triggerHaptic('error');
+      onSubmit();
+      setError(
+        err instanceof Error
+          ? `${err.message} — answer saved and will retry automatically.`
+          : 'Failed to submit answer — answer saved and will retry automatically.',
+      );
     } finally {
       setIsSubmitting(false);
     }
-  }, [answer, selectedOption, user, currentSocialite, socialeId, roundId, onSubmit, submitResponseMutation, isMultipleChoice, roundType]);
-
-  // Clear client-side storage when round changes (cleanup)
-  useEffect(() => {
-    if (!currentSocialite) return;
-    
-    // Clear old round answers when we detect a new round
-    const clearOldRoundAnswers = () => {
-      const keys = Object.keys(localStorage);
-      keys.forEach(key => {
-        if (key.startsWith(`sociale-answer-${socialeId}-`) && key.includes(currentSocialite.id)) {
-          const [_, ...parts] = key.split('-');
-          const storedRoundId = parts[2];
-          if (storedRoundId !== roundId) {
-            clearStoredAnswerClientSide(socialeId, storedRoundId, currentSocialite.id);
-          }
-        }
-      });
-    };
-    
-    clearOldRoundAnswers();
-  }, [socialeId, roundId, currentSocialite]);
-
-  if (!isOpen) return null;
+  }, [
+    answer,
+    selectedOption,
+    user,
+    currentSocialite,
+    socialeId,
+    roundId,
+    onSubmit,
+    submitResponseMutation,
+    isMultipleChoice,
+    roundType,
+  ]);
 
   const characterCount = !isMultipleChoice ? Math.min(answer.length, CHAR_LIMIT) : 0;
   const limitReached = !isMultipleChoice && characterCount >= CHAR_LIMIT;
 
+  // SubmissionPool entries — mark as submitted anyone who has responded to this round.
+  const submissionEntries = useMemo(() => {
+    const respondedSocialiteIds = new Set(roundResponses.map((r) => r.socialiteId));
+    return socialites
+      .filter((s) => s.isActive)
+      .map((s) => ({
+        id: s.id,
+        displayName: s.displayName || 'Player',
+        mascotId: s.mascotId,
+        hasSubmitted: respondedSocialiteIds.has(s.id),
+      }));
+  }, [socialites, roundResponses]);
+
+  const canAdvance =
+    (isMultipleChoice && !!selectedOption) ||
+    (!isMultipleChoice && answer.trim().length > 0);
+
+  const handlePrimaryClick = useCallback(() => {
+    if (requireLockIn && canAdvance && !lockInConfirmPending) {
+      setLockInConfirmPending(true);
+      triggerHaptic('medium');
+      return;
+    }
+    void handleSubmit();
+  }, [requireLockIn, canAdvance, lockInConfirmPending, handleSubmit]);
+
+  const primaryLabel = isSubmitting
+    ? 'Submitting…'
+    : hasExistingResponse
+    ? 'Update answer'
+    : requireLockIn && !lockInConfirmPending
+    ? 'Lock it in?'
+    : isMultipleChoice
+    ? 'Submit'
+    : 'Submit answer';
+
   return (
-    <div className="fixed inset-0 z-[100] flex sm:items-center sm:justify-center sm:p-4">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        onClick={!isSubmitting ? onClose : undefined}
-      />
-      
-      {/* Modal Content */}
-      <div className="relative w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-lg overflow-y-auto shadow-2xl bg-slate-900">
-        {/* Header with Timer */}
-        <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-slate-700/50 bg-slate-900">
-          <span className="text-cyan-400 font-black text-lg">
-            {paused ? (
-              'Paused'
-            ) : endsAt ? (
-              <Timer endTime={endsAt} size="sm" />
-            ) : (
-              '--'
-            )}
-          </span>
-          <button
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="text-slate-400 hover:text-slate-200 transition-colors"
-            aria-label="Close"
+    <>
+      <PhaseShell
+        isOpen={isOpen}
+        onClose={onClose}
+        phase="answer"
+        title="Answering"
+        roundIndex={roundIndex + 1}
+        totalRounds={totalRounds}
+        endsAt={endsAt ?? null}
+        totalSeconds={totalSeconds}
+        paused={paused}
+        dismissDisabled={isSubmitting}
+        footer={
+          submissionEntries.length > 0 ? (
+            <SubmissionPool entries={submissionEntries} action="answered" />
+          ) : undefined
+        }
+      >
+        <div className="space-y-4">
+          <motion.div
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+            className="chaos-room-prompt-card"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        
-        {/* Content - Exactly like AnswerPhase */}
-        <div className="space-y-3 p-3 sm:space-y-4 sm:p-5">
-          <p className="text-center text-xs font-semibold uppercase tracking-wide sm:text-sm text-cyan-200">
-            Round {roundIndex + 1}
-          </p>
-          
-          {/* Prompt Card - chaos-prompt-card */}
-          <div className="chaos-prompt-card px-3 py-3 text-center sm:px-4 sm:py-4 shadow-xl border-2 border-black/80">
             {prompt ? (
-              <p className="text-2xl font-black tracking-tight drop-shadow-lg sm:text-3xl text-black">
+              <p
+                className="text-center text-[clamp(1.25rem,5vw,1.75rem)] font-black leading-tight tracking-tight"
+                style={{ textShadow: '0 2px 0 rgba(255,255,255,0.15)' }}
+              >
                 {prompt}
               </p>
             ) : (
-              <div className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5 text-cyan-400" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <div className="flex items-center justify-center gap-2 py-2">
+                <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
                 </svg>
-                <span className="text-sm text-cyan-300">Loading...</span>
+                <span className="text-sm">Loading…</span>
               </div>
             )}
-          </div>
-          
-          {/* Answer Input - MC or Text */}
+          </motion.div>
+
           {isMultipleChoice && mcOptions && mcOptions.length > 0 ? (
-            // Multiple Choice Options
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {mcOptions.map((option: any) => (
-                  <button
-                    key={option.id}
-                    onClick={() => setSelectedOption(option.id)}
-                    disabled={isSubmitting}
-                    className={`p-4 rounded-xl border-2 transition-all font-medium text-sm sm:text-base ${
-                      selectedOption === option.id
-                        ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400 shadow-lg shadow-cyan-400/25'
-                        : 'border-slate-600 bg-slate-800/50 text-white hover:border-cyan-400/50 hover:bg-slate-800'
-                    } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                  >
-                    {option.text}
-                  </button>
-                ))}
-              </div>
+            <div className="grid grid-cols-1 gap-3">
+              {mcOptions.map((option: any, idx: number) => (
+                <RoomAnswerTile
+                  key={option.id}
+                  optionIndex={idx}
+                  label={option.text}
+                  isSelected={selectedOption === option.id}
+                  disabled={isSubmitting || lockInConfirmPending}
+                  onClick={() => {
+                    setSelectedOption(option.id);
+                    setLockInConfirmPending(false);
+                    triggerHaptic('light');
+                  }}
+                  layoutId={`room-answer-${roundId}-${option.id}`}
+                />
+              ))}
             </div>
           ) : (
-            // Written Answer Text Input
-            <div className="chaos-answer-pill rounded-3xl px-3 py-3 sm:px-5 sm:py-4 border border-black/70">
-              <textarea
-                className="min-h-[90px] w-full bg-transparent text-sm leading-relaxed placeholder:text-slate-400 focus:outline-none sm:min-h-[140px] sm:text-base text-white"
-                placeholder="Type your best response"
-                value={answer.slice(0, CHAR_LIMIT)}
-                maxLength={CHAR_LIMIT}
-                onChange={(e) => setAnswer(e.target.value.slice(0, CHAR_LIMIT))}
-                disabled={isSubmitting}
-                aria-label="Your answer"
-              />
+            <div className="space-y-2">
+              <div
+                className="rounded-3xl px-4 py-3 border"
+                style={{
+                  background: 'rgba(10, 1, 24, 0.65)',
+                  borderColor: 'rgba(var(--chaos-room-phase-answer-rgb), 0.35)',
+                  boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)',
+                }}
+              >
+                <textarea
+                  className="min-h-[120px] w-full bg-transparent text-base leading-relaxed placeholder:text-white/40 focus:outline-none text-white resize-none"
+                  placeholder="Type your best response"
+                  value={answer.slice(0, CHAR_LIMIT)}
+                  maxLength={CHAR_LIMIT}
+                  onChange={(e) => {
+                    setAnswer(e.target.value.slice(0, CHAR_LIMIT));
+                    if (lockInConfirmPending) setLockInConfirmPending(false);
+                  }}
+                  disabled={isSubmitting}
+                  aria-label="Your answer"
+                />
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+                    Keep it short
+                  </span>
+                  <span
+                    className={`text-xs font-bold ${
+                      limitReached ? 'text-rose-400' : 'text-white/60'
+                    }`}
+                    aria-live="polite"
+                  >
+                    {characterCount}/{CHAR_LIMIT}
+                  </span>
+                </div>
+              </div>
+
+              {!isSubmitting && !hasExistingResponse && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const pick = SAFETY_ANSWERS[Math.floor(Math.random() * SAFETY_ANSWERS.length)];
+                    setAnswer(pick);
+                    triggerHaptic('light');
+                  }}
+                  className="w-full rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-black uppercase tracking-wider text-amber-200 hover:bg-amber-400/20 transition"
+                  title="Inserts a safety answer worth half points"
+                >
+                  Lie for me · half points
+                </button>
+              )}
             </div>
           )}
 
-          {/* Character Count - Only show for written answers */}
-          {!isMultipleChoice && (
-            <div className="flex items-center justify-end text-[11px] sm:text-xs">
-              <span className={limitReached ? 'text-rose-400 font-bold text-sm sm:text-base' : 'text-brand-primary'}>
-                {characterCount}/{CHAR_LIMIT}
-              </span>
-            </div>
-          )}
-
-          {/* Submit Button - chaos-cta-button */}
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting || (!isMultipleChoice && !answer.trim()) || (isMultipleChoice && !selectedOption)}
-            isLoading={isSubmitting}
-            fullWidth
-            size="sm"
-            className="chaos-cta-button font-black text-xs sm:text-sm"
-          >
-            {isSubmitting ? (
-              <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-2 h-3 w-3 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4}></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Submitting...
-              </span>
+          <AnimatePresence mode="wait">
+            {requireLockIn && lockInConfirmPending ? (
+              <motion.div
+                key="lockin"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                transition={{ duration: 0.18 }}
+                className="flex gap-2"
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLockInConfirmPending(false);
+                    triggerHaptic('light');
+                  }}
+                  disabled={isSubmitting}
+                  className="flex-1 min-h-[56px] rounded-full border border-white/15 bg-white/5 text-white font-black uppercase tracking-wider text-sm"
+                >
+                  Change
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSubmit()}
+                  disabled={isSubmitting}
+                  className="chaos-room-cta flex-[2] px-4"
+                  style={{
+                    ['--chaos-room-accent-rgb' as any]: '251, 191, 36',
+                  }}
+                >
+                  {isSubmitting ? 'Locking…' : 'Lock it in ✓'}
+                </button>
+              </motion.div>
             ) : (
-              hasExistingResponse ? 'Update answer' : (
-                isMultipleChoice ? 'Select an option' : 'Submit answer'
-              )
+              <motion.button
+                key="primary"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                type="button"
+                onClick={handlePrimaryClick}
+                disabled={isSubmitting || !canAdvance}
+                className="chaos-room-cta w-full px-4"
+              >
+                {isSubmitting ? (
+                  <span className="inline-flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    {primaryLabel}
+                  </span>
+                ) : (
+                  primaryLabel
+                )}
+              </motion.button>
             )}
-          </Button>
+          </AnimatePresence>
 
-          {/* Cancel Link */}
-          <button
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="w-full text-center text-xs sm:text-sm font-medium transition-colors text-cyan-200 hover:text-cyan-300"
-          >
-            Cancel
-          </button>
-
-          {/* Error */}
           {error && (
-            <p className="text-center text-sm text-rose-400">{error}</p>
+            <p className="text-center text-sm text-rose-400" role="alert">
+              {error}
+            </p>
           )}
         </div>
-      </div>
-    </div>
+      </PhaseShell>
+
+      <ComboPopup
+        playerName={currentSocialite?.displayName ?? null}
+        comboCount={comboCount ?? null}
+        triggerKey={comboTriggerKey ?? null}
+      />
+    </>
   );
 }
 

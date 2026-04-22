@@ -2,7 +2,21 @@ import { useEffect, useRef } from 'react';
 import { useTTS } from '../../../shared/hooks/useTTS';
 import type { Sociale, SocialeRound } from '../../../domain/types/sociale.types';
 import type { VoiceProfile } from '../../../shared/services/voiceProfiles';
+import {
+  getPhaseAnnouncement,
+  getRoundIntroAnnouncement,
+} from '../utils/tvAnnouncements';
 
+/**
+ * P1-16: TTS announcer hook.
+ *
+ * Beat structure per round:
+ *   1. Round intro (fired on new round id) — ≈2s after phase change so the
+ *      phase line doesn't trample it.
+ *   2. Phase announcement (answer/vote/results/ended) at each phase boundary.
+ *   3. Prompt read-out (existing behaviour, delayed 3.5s after intro so the
+ *      host can breathe).
+ */
 export function useTVAutoTTS(
   sociale: Sociale | null,
   currentRound: SocialeRound | null,
@@ -13,38 +27,56 @@ export function useTVAutoTTS(
   const prevPhaseRef = useRef<string | null>(null);
   const prevRoundIdRef = useRef<string | null>(null);
 
-  // Auto-announce on phase change
   useEffect(() => {
     if (!sociale?.currentPhase) return;
     if (sociale.currentPhase === prevPhaseRef.current) return;
     prevPhaseRef.current = sociale.currentPhase;
 
-    const text = getPhaseText(sociale.currentPhase, currentRound?.type);
-    if (text) void play(text);
-  }, [sociale?.currentPhase, currentRound?.type, play]);
+    const totalRounds = sociale.totalRounds ?? null;
+    const roundIndex = sociale.currentRoundIndex ?? null;
+    const isFinalRound =
+      totalRounds != null && roundIndex != null && roundIndex === totalRounds - 1;
 
-  // Auto-read prompt on round change (2s delay so phase announcement clears first)
+    const text = getPhaseAnnouncement({
+      phase: sociale.currentPhase,
+      roundType: currentRound?.type ?? undefined,
+      roundIndex,
+      totalRounds,
+      isFinalRound,
+    });
+    if (text) void play(text);
+  }, [sociale?.currentPhase, sociale?.currentRoundIndex, sociale?.totalRounds, currentRound?.type, play]);
+
+  // Round intro announcement + prompt read on new round id
   useEffect(() => {
     if (!currentRound?.id) return;
     if (currentRound.id === prevRoundIdRef.current) return;
     prevRoundIdRef.current = currentRound.id;
 
-    const text = getPromptText(currentRound);
-    if (!text) return;
-    const timer = window.setTimeout(() => void play(text), 2000);
-    return () => window.clearTimeout(timer);
-  }, [currentRound?.id, play]);
-}
+    const totalRounds = sociale?.totalRounds ?? 0;
+    const roundIndex = sociale?.currentRoundIndex ?? 0;
+    const isFinalRound = totalRounds > 0 && roundIndex === totalRounds - 1;
 
-function getPhaseText(phase: string, roundType?: string): string {
-  switch (phase) {
-    case 'lobby':   return 'Waiting for players to join.';
-    case 'answer':  return roundType === 'trivia' ? 'Answer the trivia question now.' : 'Submit your response.';
-    case 'vote':    return 'Vote for your favourite answer.';
-    case 'results': return 'Here are the results.';
-    case 'ended':   return 'The game is over. Thanks for playing!';
-    default:        return '';
-  }
+    const intro = getRoundIntroAnnouncement({
+      roundIndex,
+      totalRounds,
+      title: currentRound.title ?? null,
+      roundType: currentRound.type ?? undefined,
+      isFinalRound,
+    });
+    const prompt = getPromptText(currentRound);
+
+    const timers: number[] = [];
+    if (intro) {
+      timers.push(window.setTimeout(() => void play(intro), 1800));
+    }
+    if (prompt) {
+      timers.push(window.setTimeout(() => void play(prompt), 3500));
+    }
+    return () => {
+      timers.forEach((t) => window.clearTimeout(t));
+    };
+  }, [currentRound?.id, sociale?.totalRounds, sociale?.currentRoundIndex, play]);
 }
 
 function getPromptText(round: SocialeRound): string {

@@ -1,10 +1,12 @@
-import { useState, useRef, useCallback } from 'react';
-import { Leaderboard } from '@social/ui';
-import { Button } from '../../../components/Button';
+import { useMemo } from 'react';
+import { PhaseShell } from './shell/PhaseShell';
+import { PodiumLeaderboard, type PodiumEntry } from './leaderboard/PodiumLeaderboard';
+import { ShareCardButton } from './ShareCardButton';
+import type { RoundResult } from '../utils/shareCard';
 
 export interface SocialeLeaderboardTeam {
   id: string;
-  teamName: string; // Changed from displayName to teamName to match LeaderboardTeam
+  teamName: string;
   score: number;
   rank: number;
   mascotId?: number;
@@ -16,6 +18,10 @@ interface SocialeLeaderboardModalProps {
   finalLeaderboard: SocialeLeaderboardTeam[];
   currentSocialiteId?: string;
   onLeave: () => void;
+  /** Optional per-round outcome list for the local user (fills the emoji grid). */
+  myRoundResults?: RoundResult[];
+  /** Optional venue name for the share card header. */
+  venueName?: string | null;
 }
 
 export function SocialeLeaderboardModal({
@@ -24,179 +30,80 @@ export function SocialeLeaderboardModal({
   finalLeaderboard,
   currentSocialiteId,
   onLeave,
+  myRoundResults,
+  venueName,
 }: SocialeLeaderboardModalProps) {
-  const [selfieImage, setSelfieImage] = useState<string | null>(null);
-  const [isTakingSelfie, setIsTakingSelfie] = useState(false);
-  const scoreboardRef = useRef<HTMLDivElement>(null);
+  const podiumEntries: PodiumEntry[] = useMemo(
+    () =>
+      finalLeaderboard.map((t) => ({
+        id: t.id,
+        displayName: t.teamName,
+        score: t.score,
+        rank: t.rank,
+        mascotId: t.mascotId,
+      })),
+    [finalLeaderboard],
+  );
 
-  const scrollToMyRank = useCallback(() => {
-    if (scoreboardRef.current) {
-      // Find the element for current socialite and scroll to it
-      const myRankElement = scoreboardRef.current.querySelector('[data-is-current="true"]');
-      if (myRankElement) {
-        myRankElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }
-  }, []);
-
-  const startSelfie = useCallback(() => {
-    setIsTakingSelfie(true);
-    // TODO: Implement camera capture logic
-    // This would integrate with the camera API similar to EndedPhase
-    setTimeout(() => {
-      setIsTakingSelfie(false);
-      // Placeholder: set actual image from camera
-      setSelfieImage('/placeholder-selfie.png');
-    }, 1000);
-  }, []);
-
-  const shareSelfie = useCallback(() => {
-    if (!selfieImage) return;
-    // TODO: Implement share functionality
-    console.log('Sharing selfie:', selfieImage);
-  }, [selfieImage]);
-
-  const downloadSelfie = useCallback(() => {
-    if (!selfieImage) return;
-    const link = document.createElement('a');
-    link.href = selfieImage;
-    link.download = 'sociale-selfie.png';
-    link.click();
-  }, [selfieImage]);
-
-  if (!isOpen) return null;
-
-  const currentSocialite = finalLeaderboard.find(s => s.id === currentSocialiteId);
+  const me = currentSocialiteId
+    ? finalLeaderboard.find((t) => t.id === currentSocialiteId)
+    : null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex sm:items-center sm:justify-center sm:p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        onClick={(e) => {
-          // Only close if the backdrop itself is clicked, not its children
-          if (e.target === e.currentTarget) {
-            onClose();
-          }
-        }}
-      />
-
-      {/* Modal Content */}
-      <div 
-        className="relative w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-lg overflow-y-auto shadow-2xl bg-slate-900"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-slate-700/50 bg-slate-900">
-          <span className="text-pink-400 font-black text-lg">
-            Sociale Complete!
-          </span>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 transition-colors"
-            aria-label="Close"
+    <PhaseShell
+      isOpen={isOpen}
+      onClose={onClose}
+      phase="ended"
+      title="Leaderboard"
+    >
+      <div className="space-y-5">
+        <div className="text-center">
+          <h2
+            className="text-2xl font-black text-white"
+            style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+            Final Scoreboard
+          </h2>
+          <p className="text-sm text-white/70">Thanks for playing!</p>
         </div>
 
-        {/* Content */}
-        <div className="space-y-5 p-4">
-          {/* Title Section */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-pink-400">
-                Final Scoreboard
-              </h2>
-              <p className="text-sm text-cyan-300">Thanks for playing!</p>
-            </div>
-            {currentSocialite ? (
-              <Button
-                variant="secondary"
-                onClick={scrollToMyRank}
-                className="px-4 py-2 text-xs"
-              >
-                My rank
-              </Button>
-            ) : null}
-          </div>
+        <PodiumLeaderboard
+          entries={podiumEntries}
+          currentSocialiteId={currentSocialiteId}
+        />
 
-          {/* Selfie Section */}
-          {currentSocialite && (
-            <div className="space-y-3">
-              <div className="text-center">
-                <h3 className="text-lg font-semibold text-brand-primary">
-                  Celebrate Your Victory!
-                </h3>
-                <p className="text-sm text-slate-300">Take a selfie with your score</p>
-              </div>
-
-              {selfieImage ? (
-                <div className="space-y-3">
-                  <div className="flex justify-center">
-                    <img
-                      src={selfieImage}
-                      alt="Selfie with score"
-                      className="max-w-full h-auto max-h-[300px] rounded-2xl shadow-lg"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={shareSelfie}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      📤 Share Selfie
-                    </Button>
-                    <Button
-                      onClick={downloadSelfie}
-                      variant="secondary"
-                      className="flex-1"
-                    >
-                      💾 Download
-                    </Button>
-                  </div>
-                  <Button
-                    onClick={() => setSelfieImage(null)}
-                    variant="ghost"
-                    fullWidth
-                  >
-                    Take Another Selfie
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  onClick={startSelfie}
-                  disabled={isTakingSelfie}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
-                >
-                  {isTakingSelfie ? "Starting Camera..." : "📸 Take Selfie"}
-                </Button>
-              )}
-            </div>
-          )}
-
-          {/* Leaderboard */}
+        {me && (
           <div
-            ref={scoreboardRef}
-            className="elevated-card max-h-modal-scroll overflow-y-auto p-4"
+            className="rounded-2xl p-4 space-y-2"
+            style={{
+              background: 'linear-gradient(135deg, rgba(34, 211, 238, 0.14), rgba(192, 132, 252, 0.14))',
+              border: '1px solid rgba(34, 211, 238, 0.3)',
+            }}
           >
-            <Leaderboard
-              leaderboard={finalLeaderboard}
-              highlightTeamId={currentSocialiteId}
-              className="grid gap-3 text-lg font-semibold lg:grid-cols-2"
-              isDark={true}
+            <p className="text-center text-xs font-black uppercase tracking-widest text-cyan-200">
+              Share your recap
+            </p>
+            <ShareCardButton
+              venueName={venueName}
+              teamName={me.teamName}
+              rank={me.rank}
+              totalPlayers={finalLeaderboard.length}
+              score={me.score}
+              roundResults={myRoundResults ?? []}
+              joinUrl={typeof window !== 'undefined' ? window.location.href : undefined}
             />
           </div>
+        )}
 
-          {/* Leave Button */}
-          <Button variant="ghost" onClick={onLeave} fullWidth>
-            Leave Sociale
-          </Button>
-        </div>
+        <button
+          type="button"
+          onClick={onLeave}
+          className="w-full text-center text-xs font-bold uppercase tracking-widest text-white/50 hover:text-white/80 transition py-2"
+        >
+          Leave Sociale
+        </button>
       </div>
-    </div>
+    </PhaseShell>
   );
 }
 

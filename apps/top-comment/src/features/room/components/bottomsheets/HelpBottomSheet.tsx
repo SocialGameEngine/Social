@@ -121,7 +121,13 @@ export function HelpBottomSheet({ isOpen, onClose, initialPhase }: HelpBottomShe
   };
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="How To Play">
+    <BottomSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title="How To Play"
+      accent="neutral"
+      eyebrow="Quick guide"
+    >
       <div className="flex min-h-0 flex-1 flex-col">
         <div ref={contentRef} className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
           <div className="space-y-3 pt-2">

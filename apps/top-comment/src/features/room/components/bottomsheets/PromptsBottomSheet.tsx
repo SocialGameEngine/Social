@@ -20,20 +20,17 @@ export function PromptsBottomSheet({
       isOpen={isOpen}
       onClose={onClose}
       title="Prompts"
+      accent="answer"
+      eyebrow="Short, sharp responses"
       emptyIcon="💡"
       emptyTitle="No prompts currently posted"
       emptyDescription="Check back later for prompts from the host"
       items={prompts}
       getItemId={(prompt) => prompt.id}
       renderListItem={(prompt, onSelect) => (
-        <button
-          onClick={onSelect}
-          className="w-full chaos-interaction-card px-4 py-4 text-left"
-        >
-          <div className="font-bold text-lg mb-1">{prompt.question}</div>
-          {prompt.description && (
-            <div className="text-sm opacity-80">{prompt.description}</div>
-          )}
+        <button onClick={onSelect} className="chaos-room-sheet-item">
+          <div className="title">{prompt.question}</div>
+          {prompt.description && <div className="subtitle">{prompt.description}</div>}
         </button>
       )}
       renderDetailView={(prompt, onBack) => (

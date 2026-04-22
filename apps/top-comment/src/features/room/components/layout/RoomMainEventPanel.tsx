@@ -1,14 +1,10 @@
-import { SessionPanel } from './SessionPanel';
 import { SocialePanel } from './SocialePanel';
 import { useSociale, useSocialesByRoom } from '../../../../features/sociale';
-import type { Session } from '../../../../shared/types';
 import type { RoomMembership } from '../../../../shared/types';
 
 interface RoomMainEventPanelProps {
   roomId: string | undefined;
   userId: string | undefined;
-  session: Session | null;
-  sessionId: string | null;
   memberships: RoomMembership[] | null;
   onOpenLeaderboard: () => void;
   onOpenSelfie: () => void;
@@ -23,14 +19,13 @@ interface RoomMainEventPanelProps {
 }
 
 /**
- * Picks the room's latest Sociale (same ordering as host SocialesPanel) when it should be
- * the main in-room experience; otherwise shows the legacy Session panel.
+ * Picks the room's latest Sociale as the main in-room experience. Wave R7 removed
+ * the legacy session-mode fallback; when there is no active Sociale we render a
+ * friendly empty state.
  */
 export function RoomMainEventPanel({
   roomId,
   userId,
-  session,
-  sessionId,
   memberships,
   onOpenLeaderboard,
   onOpenSelfie,
@@ -88,14 +83,16 @@ export function RoomMainEventPanel({
   }
 
   return (
-    <SessionPanel
-      session={session}
-      sessionId={sessionId}
-      memberships={memberships}
-      onOpenLeaderboard={onOpenLeaderboard}
-      onOpenSelfie={onOpenSelfie}
-      onOpenModal={onOpenModal}
-      isSticky={isSticky}
-    />
+    <div className="relative z-10 w-full max-w-2xl mx-auto px-4 pb-4 pt-0 sm:p-4">
+      <div className="min-h-[200px] flex flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-slate-900/40 text-center px-6">
+        <div className="text-3xl" aria-hidden="true">🎲</div>
+        <p className="text-sm font-black uppercase tracking-[0.18em] text-white/80">
+          No active game
+        </p>
+        <p className="text-xs text-white/60 max-w-sm">
+          The host hasn't started a round yet. Hang tight — things will kick off soon.
+        </p>
+      </div>
+    </div>
   );
 }

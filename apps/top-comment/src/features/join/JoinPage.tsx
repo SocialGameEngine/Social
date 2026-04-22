@@ -13,6 +13,7 @@ import { logger } from "../../shared/utils/logger";
 import { supabase } from "../../supabase/client";
 import {
   clearMembership,
+  getMostRecentMembership,
   getStoredMembershipId,
   storeMembership,
 } from "../../utils/membershipStorage";
@@ -153,17 +154,24 @@ export function JoinPage() {
     }
   };
 
-  // Same-device resume check: if the URL has a code and we have a stored
-  // membership for it, verify the row still exists and offer to resume.
+  // Same-device resume check (P1-18): if the URL has a `?code=`, use it;
+  // otherwise fall back to the most-recently used membership on this device.
+  // Verify the row still exists server-side before offering resume.
   useEffect(() => {
     let cancelled = false;
-    const code = codeFromUrl.trim().toUpperCase();
-    if (!code) {
-      setResumableMembership(null);
-      return;
-    }
-    const storedId = getStoredMembershipId(code);
+    const urlCode = codeFromUrl.trim().toUpperCase();
+    let code = urlCode;
+    let storedId = code ? getStoredMembershipId(code) : null;
     if (!storedId) {
+      const recent = getMostRecentMembership();
+      if (!recent) {
+        setResumableMembership(null);
+        return;
+      }
+      code = recent.roomCode;
+      storedId = recent.membershipId;
+    }
+    if (!code || !storedId) {
       setResumableMembership(null);
       return;
     }

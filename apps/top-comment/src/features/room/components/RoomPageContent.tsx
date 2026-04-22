@@ -18,6 +18,12 @@ import { AuthModal } from '../../../shared/components/AuthModal';
 import { JoinRoomModal } from '../../../shared/components/JoinRoomModal';
 import { SignedOutPrompt } from '../../../shared/components/SignedOutPrompt';
 import { ReactionOverlay } from './ReactionOverlay';
+import { RoomReconnectingBanner } from './RoomReconnectingBanner';
+import { LookUpOverlay } from './LookUpOverlay';
+import { AllEyesUpOverlay } from './AllEyesUpOverlay';
+import { HypeTapButton } from './HypeTapButton';
+import { useHostSignals } from '../hooks/useHostSignals';
+import { usePendingAnswerFlush } from '../hooks/usePendingAnswerFlush';
 import { CommunityModal } from './CommunityModal';
 import { useReactions } from '../../../hooks/useReactions';
 import { useBlocks } from '../../../hooks/useBlocks';
@@ -40,7 +46,7 @@ import {
   storeMembership,
 } from '../../../utils/membershipStorage';
 import { PlayerRecoveryModal } from '../../auth/PlayerRecoveryModal';
-import { getIsMainEventMode, getIsMainEventModeFromSociale } from './PhaseController';
+import { getIsMainEventMode, getIsMainEventModeFromSociale } from '../utils/sessionPhase';
 import { useSocialesByRoom, useSociale } from '../../../features/sociale';
 import { useActiveSocialeRoundState } from '../hooks/useActiveSocialeRoundState';
 import { supabase } from '../../../supabase/client';
@@ -64,6 +70,10 @@ export function RoomPageContent() {
   const { user, loading: authLoading, signInAnonymously, sessionExpired, clearSessionExpired } = useAuth();
   const { isMobile, isRailCollapsed, setIsRailCollapsed } = useResponsiveLayout();
   const queryClient = useQueryClient();
+  // P1-3: flushes queued offline answers on reconnect.
+  usePendingAnswerFlush();
+  // Wave 4: subscribe to host broadcast signals (P1-6, P1-17).
+  const { signals: hostSignals } = useHostSignals(room?.id ?? null);
   
   // Get interactions
   const { interactions } = useInteractions({ roomId: room?.id });
@@ -145,6 +155,8 @@ export function RoomPageContent() {
       roundIndex: socialeModalRoundRow?.order_index ?? primaryRoomSociale.currentRoundIndex ?? 0,
       roundType: socialeModalRoundRow?.type,
       phaseEndsAt: primaryRoomSociale.phaseEndsAt,
+      phaseStartedAt: primaryRoomSociale.phaseStartedAt,
+      voteSeconds: primaryRoomSociale.settings?.votingSeconds,
       paused: primaryRoomSociale.status === 'paused',
     };
   }, [
@@ -461,7 +473,6 @@ export function RoomPageContent() {
   const modalProps = {
     state,
     session,
-    sessionId,
     memberships,
     userId: user?.id,
     currentSocialeId: room?.currentSocialeId ?? undefined,
@@ -470,6 +481,8 @@ export function RoomPageContent() {
     markSubmitted,
     handleLeaveRoom,
     socialeModalContext,
+    // P1-17: propagate host-broadcasted "lock it in" toggle to the answer modal.
+    requireLockIn: hostSignals.lockInRequired,
   };
 
   const sharedGlobalOverlays = (
@@ -591,8 +604,6 @@ export function RoomPageContent() {
         <RoomMainEventPanel
           roomId={room?.id}
           userId={user?.id}
-          session={session}
-          sessionId={sessionId}
           memberships={memberships}
           onOpenLeaderboard={() => openEndedModal('leaderboard')}
           onOpenSelfie={() => openEndedModal('selfie')}
@@ -650,11 +661,36 @@ export function RoomPageContent() {
       <MobileLayout 
         className="bg-gradient-to-b from-slate-900 to-slate-800 text-white"
       >
+        <RoomReconnectingBanner />
+        {/* P1-27: phone collapses to "Look up!" while the TV is revealing. */}
+        <LookUpOverlay
+          visible={primaryRoomSociale?.currentPhase === 'results'}
+        />
+        {/* P1-6: host-triggered grey-out overlay to pull attention to the TV. */}
+        <AllEyesUpOverlay visible={hostSignals.attentionLocked} />
+        {/* P1-2: hype tap button — only during results phase. */}
+        <HypeTapButton
+          roomId={room?.id ?? null}
+          active={primaryRoomSociale?.currentPhase === 'results'}
+        />
         <BackgroundAnimation show={true} />
         <div className="flex-1 flex min-h-0">
           <div className="flex-1 flex flex-col min-h-0">
             <RoomHeader
               roomCode={room?.code}
+              currentPhase={primaryRoomSociale?.currentPhase as any}
+              currentRoundIndex={
+                primaryRoomSociale?.currentRoundIndex != null
+                  ? primaryRoomSociale.currentRoundIndex + 1
+                  : null
+              }
+              totalRounds={primaryRoomSociale?.totalRounds ?? null}
+              isFinalRound={
+                !!primaryRoomSociale?.totalRounds &&
+                primaryRoomSociale?.currentRoundIndex != null &&
+                primaryRoomSociale.currentRoundIndex + 1 === primaryRoomSociale.totalRounds
+              }
+              memberCount={memberships?.length ?? 0}
             />
             {mainContent}
           </div>
@@ -758,11 +794,31 @@ export function RoomPageContent() {
   // Desktop layout
   return (
     <div className="min-h-[90dvh] flex flex-col bg-gradient-to-b from-slate-900 to-slate-800 text-white sm:overflow-hidden">
+      <RoomReconnectingBanner />
+      <LookUpOverlay visible={primaryRoomSociale?.currentPhase === 'results'} />
+      <AllEyesUpOverlay visible={hostSignals.attentionLocked} />
+      <HypeTapButton
+        roomId={room?.id ?? null}
+        active={primaryRoomSociale?.currentPhase === 'results'}
+      />
       <BackgroundAnimation show={true} />
       <div className="flex-1 flex min-h-0 sm:overflow-hidden">
         <div className="flex-1 flex flex-col min-h-0 sm:overflow-hidden">
           <RoomHeader
             roomCode={room?.code}
+            currentPhase={primaryRoomSociale?.currentPhase as any}
+            currentRoundIndex={
+              primaryRoomSociale?.currentRoundIndex != null
+                ? primaryRoomSociale.currentRoundIndex + 1
+                : null
+            }
+            totalRounds={primaryRoomSociale?.totalRounds ?? null}
+            isFinalRound={
+              !!primaryRoomSociale?.totalRounds &&
+              primaryRoomSociale?.currentRoundIndex != null &&
+              primaryRoomSociale.currentRoundIndex + 1 === primaryRoomSociale.totalRounds
+            }
+            memberCount={memberships?.length ?? 0}
           />
           {mainContent}
         </div>
