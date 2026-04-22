@@ -44,6 +44,8 @@ export interface RoomModalsProps {
   handleLeaveRoom: () => void;
   /** P1-17: host-broadcasted toggle for "Lock it in" confirmation step. */
   requireLockIn?: boolean;
+  /** P1-5: forwarded to SocialeAnswerModal for typing broadcasts. */
+  roomId?: string | null;
 }
 
 export function RoomModals({
@@ -57,6 +59,7 @@ export function RoomModals({
   markSubmitted,
   handleLeaveRoom,
   requireLockIn = false,
+  roomId = null,
 }: RoomModalsProps) {
   const { data: socialites = [] } = useSocialites(currentSocialeId);
   const currentSocialiteId = socialites.find(s => s.userId === userId)?.id;
@@ -100,6 +103,9 @@ export function RoomModals({
         <SocialeLeaderboardModal
           isOpen={true}
           onClose={() => closeEndedModal('leaderboard')}
+          membershipStreakWeeks={
+            memberships?.find((m) => m.userId === userId)?.currentStreak ?? null
+          }
           finalLeaderboard={[...socialites]
             .filter(s => s.isActive && !s.isBanned)
             .sort((a, b) => b.score - a.score)
@@ -147,6 +153,7 @@ export function RoomModals({
           startedAt={state.socialeModalContext.phaseStartedAt}
           paused={state.socialeModalContext.paused}
           requireLockIn={requireLockIn}
+          roomId={roomId}
         />
       )}
 

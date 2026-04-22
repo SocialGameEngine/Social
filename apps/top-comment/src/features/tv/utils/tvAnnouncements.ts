@@ -87,6 +87,16 @@ const FINAL_ROUND_OPENER = [
   "This is it. Two-times points, finalé time.",
 ];
 
+const REVEAL_LINES = [
+  "Eyes on the board — here comes the truth.",
+  "Drum roll… revealing.",
+];
+
+const BREAK_LINES = [
+  "Quick break — grab a drink, we'll be back.",
+  "Intermission. Stretch, sip, and be ready.",
+];
+
 const pick = (lines: readonly string[], seed?: number): string => {
   const idx = seed != null ? Math.abs(seed) % lines.length : Math.floor(Math.random() * lines.length);
   return lines[idx];
@@ -108,6 +118,11 @@ export function getPhaseAnnouncement(ctx: PhaseAnnouncementContext): string {
       return pick(VOTE_LINES, seed);
     case "results":
       return pick(RESULTS_LINES, seed);
+    case "reveal":
+      return pick(REVEAL_LINES, seed);
+    case "break":
+    case "intermission":
+      return pick(BREAK_LINES, seed);
     case "ended":
       return pick(ENDED_LINES, seed);
     case "paused":
@@ -115,6 +130,68 @@ export function getPhaseAnnouncement(ctx: PhaseAnnouncementContext): string {
     default:
       return "";
   }
+}
+
+/** i18n placeholder — returns key as-is until P3-9. */
+export function t(id: string, fallback: string): string {
+  return fallback;
+}
+
+const TIMER_WARN_30 = [
+  "Thirty seconds on the clock.",
+  "Half a minute left — lock something in.",
+];
+const TIMER_WARN_10 = [
+  "Final ten seconds.",
+  "Ten seconds — last chance.",
+];
+const TIMER_UP = ["Time's up.", "Pencils down, phones up."];
+
+export function getTimerWarningAnnouncement(secondsLeft: number): string {
+  if (secondsLeft <= 0) return pick(TIMER_UP);
+  if (secondsLeft <= 10) return pick(TIMER_WARN_10);
+  if (secondsLeft <= 30) return pick(TIMER_WARN_30);
+  return "";
+}
+
+export interface ScoreDeltaContext {
+  playerName: string;
+  delta: number;
+  rank?: number | null;
+}
+
+export function getScoreDeltaAnnouncement(ctx: ScoreDeltaContext): string {
+  if (ctx.delta > 0) {
+    return `${ctx.playerName} climbs ${ctx.delta} points${ctx.rank ? ` — now sitting ${ctx.rank}` : ""}.`;
+  }
+  if (ctx.delta < 0) {
+    return `Tough break for ${ctx.playerName}.`;
+  }
+  return `${ctx.playerName} holds steady.`;
+}
+
+export interface VenueSponsorContext {
+  venueName?: string | null;
+  sponsorMessages?: string[];
+}
+
+export function getVenueSponsorAnnouncement(ctx: VenueSponsorContext): string {
+  const venue = ctx.venueName?.trim();
+  const sponsor = ctx.sponsorMessages?.find((s) => s?.trim());
+  if (venue && sponsor) {
+    return t("ann.venue_sponsor", `You're playing at ${venue}. ${sponsor}`);
+  }
+  if (venue) return t("ann.venue", `You're playing at ${venue}.`);
+  if (sponsor) return sponsor;
+  return "";
+}
+
+export function getRevealAnnouncement(seed?: number): string {
+  return pick(REVEAL_LINES, seed);
+}
+
+export function getBreakAnnouncement(seed?: number): string {
+  return pick(BREAK_LINES, seed);
 }
 
 export function getRoundIntroAnnouncement(ctx: RoundIntroContext): string {

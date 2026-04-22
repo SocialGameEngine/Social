@@ -176,6 +176,73 @@ serve(async (req) => {
         created_at: new Date().toISOString(),
       })
 
+    // P1-13: bump weekly visit streak for memberships that played this sociale.
+    const mondayKey = (): string => {
+      const d = new Date()
+      const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+      const day = x.getUTCDay() || 7
+      if (day !== 1) x.setUTCDate(x.getUTCDate() - (day - 1))
+      return x.toISOString().slice(0, 10)
+    }
+    const weeksBetween = (prev: string | null, cur: string): number => {
+      if (!prev) return 999
+      const a = new Date(prev + 'T12:00:00.000Z').getTime()
+      const b = new Date(cur + 'T12:00:00.000Z').getTime()
+      return Math.floor((b - a) / (7 * 24 * 3600 * 1000))
+    }
+
+    const thisWeek = mondayKey()
+    const { data: participantRows } = await supabaseClient
+      .from('socialites')
+      .select('membership_id')
+      .eq('sociale_id', socialeId)
+
+    const membershipIds = [
+      ...new Set(
+        (participantRows ?? [])
+          .map((r: { membership_id: string | null }) => r.membership_id)
+          .filter(Boolean) as string[],
+      ),
+    ]
+
+    for (const mid of membershipIds) {
+      const { data: row } = await supabaseClient
+        .from('room_memberships')
+        .select('last_visit_week, current_streak, streak_freeze_available')
+        .eq('id', mid)
+        .maybeSingle()
+
+      if (!row) continue
+
+      const last = row.last_visit_week as string | null
+      if (last === thisWeek) continue
+
+      const gap = weeksBetween(last, thisWeek)
+      let streak = (row.current_streak as number) ?? 0
+      let freeze = (row.streak_freeze_available as boolean) ?? true
+
+      if (!last) {
+        streak = 1
+      } else if (gap === 1) {
+        streak += 1
+      } else if (gap === 2 && freeze) {
+        streak += 1
+        freeze = false
+      } else {
+        streak = 1
+        if (gap > 2) freeze = false
+      }
+
+      await supabaseClient
+        .from('room_memberships')
+        .update({
+          last_visit_week: thisWeek,
+          current_streak: streak,
+          streak_freeze_available: freeze,
+        })
+        .eq('id', mid)
+    }
+
     // Return the updated Sociale
     const response: EndSocialeResponse = {
       sociale: {

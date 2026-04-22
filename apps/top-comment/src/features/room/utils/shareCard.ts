@@ -25,6 +25,8 @@ export interface ShareCardInput {
   roundResults: RoundResult[];
   /** Optional join URL for the venue. */
   joinUrl?: string;
+  /** P1-13: weekly visit streak weeks (from membership). */
+  streakWeeks?: number | null;
 }
 
 const medalFor = (rank: number): string => {
@@ -52,10 +54,14 @@ export function buildShareCardText(input: ShareCardInput): string {
     : "Quiz Night";
   const medal = medalFor(input.rank);
   const placeLine = `Team ${input.teamName} ${medal} ${ordinal(input.rank)} of ${input.totalPlayers} · ${input.score} pts`;
+  const streakLine =
+    input.streakWeeks != null && input.streakWeeks > 0
+      ? `Streak: ${input.streakWeeks} week${input.streakWeeks === 1 ? "" : "s"} 🔥`
+      : undefined;
   const grid = input.roundResults.map((r) => squareFor(r.status)).join("");
   const gridLine = grid || "⬜".repeat(5);
   const footer = input.joinUrl ? `Play: ${input.joinUrl}` : undefined;
-  return [header, placeLine, gridLine, footer].filter(Boolean).join("\n");
+  return [header, placeLine, streakLine, gridLine, footer].filter(Boolean).join("\n");
 }
 
 export async function shareCard(input: ShareCardInput): Promise<"native" | "clipboard" | "error"> {

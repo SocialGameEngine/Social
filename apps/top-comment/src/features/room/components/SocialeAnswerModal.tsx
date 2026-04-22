@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../shared/providers/AuthContext';
 import { validateAnswer } from '../utils/validation';
@@ -8,6 +8,7 @@ import {
   useMyResponses,
   useSocialites,
   useRoundResponses,
+  useSocialeRounds,
 } from '../../../features/sociale/hooks';
 import { enqueuePendingAnswer } from '../utils/pendingAnswerQueue';
 import { triggerHaptic } from '../../../shared/utils/sessionUtils';
@@ -16,6 +17,7 @@ import { PhaseShell } from './shell/PhaseShell';
 import { RoomAnswerTile } from './answer/RoomAnswerTile';
 import { SubmissionPool } from '../../tv/components/SubmissionPool';
 import { ComboPopup } from '../../tv/components/ComboPopup';
+import { useHostSignals } from '../hooks/useHostSignals';
 
 interface SocialeAnswerModalProps {
   isOpen: boolean;
@@ -38,6 +40,8 @@ interface SocialeAnswerModalProps {
   comboCount?: number | null;
   /** Increments when the streak extends; bump it to replay the burst. */
   comboTriggerKey?: string | number | null;
+  /** Room id — enables P1-5 typing broadcasts and submitted pings. */
+  roomId?: string | null;
 }
 
 const CHAR_LIMIT = 120;
@@ -81,6 +85,7 @@ export function SocialeAnswerModal({
   totalRounds,
   comboCount,
   comboTriggerKey,
+  roomId = null,
 }: SocialeAnswerModalProps) {
   const { user } = useAuth();
   const [answer, setAnswer] = useState('');
@@ -99,8 +104,68 @@ export function SocialeAnswerModal({
   const { data: myResponses = [] } = useMyResponses(socialeId, currentSocialite?.id);
   const { data: socialites = [] } = useSocialites(socialeId);
   const { data: roundResponses = [] } = useRoundResponses(socialeId, roundId);
+  const { data: allRounds = [] } = useSocialeRounds(socialeId);
 
   const hasExistingResponse = myResponses.some((r) => r.roundId === roundId);
+
+  /** P1-22: consecutive correct trivia rounds strictly before this one (MC only). */
+  const priorCorrectStreak = useMemo(() => {
+    if (roundType !== 'trivia' || !isMultipleChoice) return 0;
+    const ordered = [...allRounds].sort(
+      (a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0),
+    );
+    const currentOrder = ordered.find((r) => r.id === roundId)?.orderIndex;
+    if (currentOrder === undefined) return 0;
+    let streak = 0;
+    for (let i = ordered.length - 1; i >= 0; i--) {
+      const r = ordered[i];
+      if ((r.orderIndex ?? 0) >= currentOrder) continue;
+      if (r.type !== 'trivia') break;
+      const resp = myResponses.find((x) => x.roundId === r.id);
+      if (!resp || resp.isCorrect !== true) break;
+      streak += 1;
+    }
+    return streak;
+  }, [allRounds, myResponses, roundId, roundType, isMultipleChoice]);
+
+  const [localComboBurst, setLocalComboBurst] = useState<{
+    count: number;
+    key: number;
+  } | null>(null);
+
+  useEffect(() => {
+    setLocalComboBurst(null);
+  }, [roundId]);
+
+  // P1-5 — debounced typing broadcast so the host gets grey/yellow/green dots
+  // and the TV can flag stragglers without polling. We key on `membershipId`
+  // because that's what the host-side list renders; fall back to socialiteId.
+  const { send: sendHostSignal } = useHostSignals(roomId);
+  const typingSignalId =
+    currentSocialite?.membershipId ?? currentSocialite?.id ?? null;
+  const typingStateRef = useRef<'idle' | 'typing'>('idle');
+  const typingTimeoutRef = useRef<number | null>(null);
+  const pingTyping = useCallback(() => {
+    if (!typingSignalId || !roomId) return;
+    if (typingStateRef.current !== 'typing') {
+      typingStateRef.current = 'typing';
+      sendHostSignal('typing:start', { id: typingSignalId });
+    }
+    if (typingTimeoutRef.current) window.clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = window.setTimeout(() => {
+      typingStateRef.current = 'idle';
+      sendHostSignal('typing:stop', { id: typingSignalId });
+    }, 2000);
+  }, [typingSignalId, roomId, sendHostSignal]);
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) window.clearTimeout(typingTimeoutRef.current);
+      if (typingStateRef.current === 'typing' && typingSignalId && roomId) {
+        sendHostSignal('typing:stop', { id: typingSignalId });
+        typingStateRef.current = 'idle';
+      }
+    };
+  }, [typingSignalId, roomId, sendHostSignal]);
 
   // Phase duration driven by server-authoritative timestamps when available,
   // falling back to round settings so the CountdownRing always scales correctly.
@@ -190,8 +255,20 @@ export function SocialeAnswerModal({
         value: answerValueRaw,
       });
 
+      if (isMultipleChoice && snapshot && 'multipleChoice' in snapshot && snapshot.multipleChoice) {
+        const correctId = snapshot.multipleChoice.correctOptionId;
+        const gotIt = answerValueRaw === correctId;
+        const nextStreak = gotIt ? priorCorrectStreak + 1 : 0;
+        if (nextStreak >= 2) {
+          setLocalComboBurst({ count: nextStreak, key: Date.now() });
+        }
+      }
+
       storeAnswerClientSide(socialeId, roundId, currentSocialite.id, answerValueRaw);
       triggerHaptic('success');
+      if (typingSignalId && roomId) {
+        sendHostSignal('submitted:set', { id: typingSignalId });
+      }
       onSubmit();
       setAnswer('');
       setSelectedOption(null);
@@ -225,6 +302,11 @@ export function SocialeAnswerModal({
     submitResponseMutation,
     isMultipleChoice,
     roundType,
+    roomId,
+    sendHostSignal,
+    typingSignalId,
+    snapshot,
+    priorCorrectStreak,
   ]);
 
   const characterCount = !isMultipleChoice ? Math.min(answer.length, CHAR_LIMIT) : 0;
@@ -327,6 +409,7 @@ export function SocialeAnswerModal({
                     setSelectedOption(option.id);
                     setLockInConfirmPending(false);
                     triggerHaptic('light');
+                    pingTyping();
                   }}
                   layoutId={`room-answer-${roundId}-${option.id}`}
                 />
@@ -350,6 +433,7 @@ export function SocialeAnswerModal({
                   onChange={(e) => {
                     setAnswer(e.target.value.slice(0, CHAR_LIMIT));
                     if (lockInConfirmPending) setLockInConfirmPending(false);
+                    pingTyping();
                   }}
                   disabled={isSubmitting}
                   aria-label="Your answer"
@@ -459,8 +543,8 @@ export function SocialeAnswerModal({
 
       <ComboPopup
         playerName={currentSocialite?.displayName ?? null}
-        comboCount={comboCount ?? null}
-        triggerKey={comboTriggerKey ?? null}
+        comboCount={localComboBurst?.count ?? comboCount ?? null}
+        triggerKey={localComboBurst?.key ?? comboTriggerKey ?? null}
       />
     </>
   );

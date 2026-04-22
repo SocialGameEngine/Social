@@ -5,6 +5,12 @@ interface GrabMateButtonProps {
   roomCode: string | null | undefined;
   /** Optional tone accent for the copy in the share link. */
   occasion?: string;
+  /**
+   * P1-23 — inviter's membership id. When present, the deep-link embeds
+   * `&membership=<id>` so JoinViaInvite can auto-join the mate onto the same
+   * team/seat without retyping the player name.
+   */
+  membershipId?: string | null;
 }
 
 /**
@@ -17,14 +23,17 @@ interface GrabMateButtonProps {
  * The URL format (`/join?code=XXXXXX`) is already consumed by `JoinPage`.
  * We also stamp `&inv=1` so analytics downstream can attribute mate-joins.
  */
-export function GrabMateButton({ roomCode, occasion }: GrabMateButtonProps) {
+export function GrabMateButton({ roomCode, occasion, membershipId }: GrabMateButtonProps) {
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
 
   const handleClick = useCallback(async () => {
     if (!roomCode) return;
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const url = `${origin}/join?code=${encodeURIComponent(roomCode)}&inv=1`;
+    const membershipParam = membershipId
+      ? `&membership=${encodeURIComponent(membershipId)}`
+      : "";
+    const url = `${origin}/join?code=${encodeURIComponent(roomCode)}&inv=1${membershipParam}`;
     const message = `Grab your mate — we're playing Sociales${occasion ? ` ${occasion}` : ""}. Join room ${roomCode}: ${url}`;
 
     setBusy(true);

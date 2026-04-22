@@ -23,12 +23,19 @@ export function VotePhase({
   socialites,
   isDark: _isDark,
 }: VotePhaseProps) {
-  const voteCounts = responses.reduce<Record<string, number>>((acc, r) => {
+  // P1-24 — never surface scrubbed answers on the big screen. 'pending' is
+  // treated like 'approved' to avoid visual gaps during a paused moderation.
+  const visibleResponses = responses.filter((r) => {
+    const status = (r as any).moderationStatus ?? 'approved';
+    return status !== 'scrubbed';
+  });
+
+  const voteCounts = visibleResponses.reduce<Record<string, number>>((acc, r) => {
     acc[r.id] = votes.filter((v) => v.targetResponseId === r.id).length;
     return acc;
   }, {});
 
-  const sorted = [...responses].sort(
+  const sorted = [...visibleResponses].sort(
     (a, b) => (voteCounts[b.id] ?? 0) - (voteCounts[a.id] ?? 0)
   );
 

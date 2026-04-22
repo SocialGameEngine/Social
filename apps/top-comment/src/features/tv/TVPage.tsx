@@ -7,14 +7,16 @@ import { useTheme } from "../../shared/providers/ThemeProvider";
 import { useReactions } from "../../hooks/useReactions";
 import { PresenterReactionBar } from "../presenter/components/PresenterReactionBar";
 import { ReactionOverlay } from "../room/components/ReactionOverlay";
-import QRCodeBlock from "../../components/QRCodeBlock";
+import { TVCornerQR } from "./components/TVCornerQR";
 import { useTVPresenter } from "./hooks/useTVPresenter";
 import { useTVAutoTTS } from "./hooks/useTVAutoTTS";
 import { useTVSoundboard } from "./hooks/useTVSoundboard";
+import { useHostSignals } from "../room/hooks/useHostSignals";
 import { useRoom } from "../../hooks/useRoom";
 import { supabase } from "../../supabase/client";
 import { TVAttractScreen } from "./TVAttractScreen";
 import { TVRoundProgress } from "./components/TVRoundProgress";
+import { TVRoundAudio } from "./components/TVRoundAudio";
 import { TVRoundIntroSplash } from "./components/TVRoundIntroSplash";
 import { TVFinalRoundBadge } from "./components/TVFinalRoundBadge";
 import { TVLeaderboardMoment } from "./components/TVLeaderboardMoment";
@@ -24,8 +26,10 @@ import {
   LobbyPhase,
   AnswerPhase,
   VotePhase,
+  RevealPhase,
   ResultsPhase,
   EndedPhase,
+  BreakPhase,
 } from "./Phases";
 
 export function TVPage() {
@@ -57,6 +61,10 @@ export function TVPage() {
 
   // P1-4: TV plays soundboard cues the host fires from HostSignalsToolbar.
   useTVSoundboard(room?.id ?? null);
+
+  // P1-10: host-forced leaderboard moment. We key the `triggerKey` off the
+  // broadcast's nonce so repeat presses refire the animation.
+  const { signals: hostSignals } = useHostSignals(room?.id ?? null);
 
   // Ambient mode auto-advance
   const isAdvancing = useRef(false);
@@ -105,11 +113,25 @@ export function TVPage() {
     return (sociale.currentRoundIndex ?? 0) === (sociale.totalRounds ?? 0) - 1;
   }, [sociale?.totalRounds, sociale?.currentRoundIndex]);
 
-  // Leaderboard moment (P1-10): fire whenever we enter the results phase.
-  const leaderboardMomentKey =
-    currentPhase === 'results' && sociale?.currentRoundId
+  // Leaderboard moment (P1-10). Two triggers:
+  //   (a) the scheduled "every results phase" beat (existing behaviour)
+  //   (b) host-forced mid-game via the LEADERBOARD_SHOW broadcast
+  /** P1-10: `'off'` | `'scheduled'` | `'every_question'` (default scheduled). */
+  const leaderboardMode = (() => {
+    const v = (sociale?.settings as Record<string, unknown>)?.leaderboardEnabled;
+    if (v === false || v === "off") return "off" as const;
+    if (v === "every_question") return "every_question" as const;
+    return "scheduled" as const;
+  })();
+  const scheduledLeaderboardEnabled = leaderboardMode !== "off";
+  const scheduledKey =
+    scheduledLeaderboardEnabled && currentPhase === "results" && sociale?.currentRoundId
       ? `moment-${sociale.currentRoundId}`
       : null;
+  const hostForcedKey = hostSignals.leaderboardShowAt
+    ? `host-${hostSignals.leaderboardShowAt}`
+    : null;
+  const leaderboardMomentKey = hostForcedKey ?? scheduledKey;
 
   if (isLoading) {
     return (
@@ -175,6 +197,18 @@ export function TVPage() {
             isDark={isDark}
           />
         );
+      case 'reveal':
+        return (
+          <RevealPhase
+            currentRound={currentRound}
+            responses={currentRoundResponses}
+            votes={currentRoundVotes}
+            socialites={socialites}
+            isDark={isDark}
+          />
+        );
+      case 'break':
+        return <BreakPhase sociale={sociale} isDark={isDark} />;
       case 'results':
         return (
           <ResultsPhase
@@ -238,6 +272,20 @@ export function TVPage() {
           totalRounds={sociale.totalRounds ?? 0}
           title={currentRound.title ?? sociale.title ?? 'Next round'}
           kind={currentRound.type ?? undefined}
+          category={
+            (() => {
+              const raw = currentRound.content;
+              if (raw && typeof raw === "string" && raw.trim().startsWith("{")) {
+                try {
+                  const j = JSON.parse(raw) as { category?: string };
+                  if (j?.category) return j.category;
+                } catch {
+                  /* not JSON */
+                }
+              }
+              return currentRound.type ?? undefined;
+            })()
+          }
           isFinalRound={isFinalRound}
         />
       )}
@@ -252,6 +300,26 @@ export function TVPage() {
           mascotId: s.mascotId ?? null,
         }))}
       />
+
+      {/* P1-12: per-question audio clip. Reads from currentRound.settings.audio
+          so hosts can attach without a schema migration on the frontend types. */}
+      {currentRound && (() => {
+        const audio = (currentRound.settings as any)?.audio
+          ?? {
+            url: (currentRound as any)?.audio_url ?? null,
+            kind: (currentRound as any)?.audio_kind ?? 'mp3',
+            startSeconds: (currentRound as any)?.audio_start_seconds ?? 0,
+          };
+        return (
+          <TVRoundAudio
+            url={audio?.url ?? null}
+            kind={audio?.kind ?? 'mp3'}
+            startSeconds={audio?.startSeconds ?? 0}
+            phase={currentPhase}
+            roundKey={currentRound.id ?? null}
+          />
+        );
+      })()}
 
       {/* P1-10: full-screen leaderboard moment between rounds */}
       <TVLeaderboardMoment
@@ -293,7 +361,10 @@ export function TVPage() {
           {renderPhase()}
 
           {/* P1-2: collective hype meter — only during results/reveal phase. */}
-          <TVHypeMeter roomId={room?.id ?? null} active={currentPhase === 'results'} />
+          <TVHypeMeter
+            roomId={room?.id ?? null}
+            active={currentPhase === "results" || currentPhase === "reveal"}
+          />
 
           <PresenterReactionBar reactionCounts={reactionCounts} />
         </div>
@@ -341,24 +412,47 @@ export function TVPage() {
           </motion.div>
         )}
 
-        {/* Bottom-right: persistent QR (mirrors attract screen) */}
+        {/* P1-26: persistent top-right QR for the whole session. Shrinks during
+            active play so it doesn't dominate the screen during questions. */}
         {joinUrl && (
-          <motion.div
-            initial={{ opacity: 0, y: 40, rotate: 6 }}
-            animate={{ opacity: 1, y: 0, rotate: 0 }}
-            transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1], delay: 0.1 }}
-            className="fixed bottom-6 right-6 z-40 md:bottom-10 md:right-10"
-          >
-            <div
-              className="chaos-tv-qr chaos-tv-qr--compact chaos-tv-float"
-              style={{ ['--chaos-float-rot' as any]: '-2deg' }}
-            >
-              <QRCodeBlock value={joinUrl} caption={`Room ${room?.code ?? ''}`} isDark={false} />
-            </div>
-          </motion.div>
+          <TVCornerQR
+            joinUrl={joinUrl}
+            roomCode={room?.code ?? ''}
+            isActivePlay={currentPhase === 'answer' || currentPhase === 'vote'}
+          />
         )}
 
         <ReactionOverlay reactions={reactions} bursts={bursts} />
+
+        {/* P1-20 — permanent thin progress ribbon at the bottom of /tv so the
+            round cursor is always readable without needing the splash or the
+            segmented bar to be on screen. */}
+        {(sociale.totalRounds ?? 0) > 0 && (
+          <div className="fixed inset-x-0 bottom-0 z-30 h-[3px] bg-white/5">
+            <motion.div
+              className="h-full"
+              style={{
+                background:
+                  'linear-gradient(90deg, rgba(34,211,238,1) 0%, rgba(236,72,153,1) 100%)',
+                boxShadow: '0 0 10px rgba(34,211,238,0.7)',
+              }}
+              initial={{ width: 0 }}
+              animate={{
+                width: `${Math.min(
+                  100,
+                  Math.max(
+                    0,
+                    (((sociale.currentRoundIndex ?? 0) + 1) /
+                      (sociale.totalRounds ?? 1)) *
+                      100
+                  )
+                )}%`,
+              }}
+              transition={{ duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
+              aria-hidden
+            />
+          </div>
+        )}
       </motion.main>
     </>
   );

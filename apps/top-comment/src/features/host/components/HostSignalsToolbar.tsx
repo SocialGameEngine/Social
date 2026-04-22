@@ -1,10 +1,14 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import { useHostSignals } from "../../room/hooks/useHostSignals";
+import { useHostHotkeys } from "../hooks/useHostHotkeys";
+import { supabase } from "../../../supabase/client";
 
 interface HostSignalsToolbarProps {
   /** Room id the host is controlling. Null until a room is picked. */
   roomId: string | null | undefined;
+  /** Sociale id — required for P1-8 break controls. */
+  socialeId?: string | null;
 }
 
 interface SoundboardCue {
@@ -26,9 +30,31 @@ interface SoundboardCue {
  * The TV listens on the same channel and plays audio locally; phones listen
  * for attention + lock-in and render the matching UI.
  */
-export function HostSignalsToolbar({ roomId }: HostSignalsToolbarProps) {
+export function HostSignalsToolbar({ roomId, socialeId }: HostSignalsToolbarProps) {
   const { signals, send } = useHostSignals(roomId ?? null);
   const [expanded, setExpanded] = useState(false);
+  const [breakBusy, setBreakBusy] = useState<null | number | 'resume'>(null);
+
+  // P1-8 — call the dedicated edge function so both tables stay in sync.
+  const callBreak = useCallback(
+    async (minutes: 5 | 10 | 15 | null) => {
+      if (!socialeId) return;
+      setBreakBusy(minutes ?? 'resume');
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers = session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : undefined;
+        await supabase.functions.invoke('sociales-break', {
+          headers,
+          body: minutes === null ? { socialeId, resume: true } : { socialeId, minutes },
+        });
+      } finally {
+        setBreakBusy(null);
+      }
+    },
+    [socialeId]
+  );
 
   const soundboard: SoundboardCue[] = [
     { id: "drumroll", label: "Drumroll", hotkey: "1", emoji: "🥁" },
@@ -37,34 +63,28 @@ export function HostSignalsToolbar({ roomId }: HostSignalsToolbarProps) {
     { id: "fail", label: "Fail", hotkey: "4", emoji: "📯" },
     { id: "applause", label: "Applause", hotkey: "5", emoji: "👏" },
     { id: "lobby", label: "Lobby", hotkey: "6", emoji: "🎵" },
+    { id: "ding", label: "Ding", hotkey: "7", emoji: "🔔" },
+    { id: "buzz", label: "Buzz", hotkey: "8", emoji: "📢" },
+    { id: "confetti", label: "Confetti", hotkey: "Y", emoji: "🎊" },
   ];
 
-  useEffect(() => {
-    if (!roomId) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.altKey || e.metaKey || e.ctrlKey) return;
-      const target = e.target as HTMLElement | null;
-      if (target && ["INPUT", "TEXTAREA"].includes(target.tagName)) return;
-      if (target?.isContentEditable) return;
-
-      const cue = soundboard.find((c) => c.hotkey === e.key);
-      if (cue) {
-        send("sound:play", { id: cue.id });
-        e.preventDefault();
-        return;
-      }
-      if (e.key === "u" || e.key === "U") {
-        send(signals.attentionLocked ? "attention:release" : "attention:lock");
-        e.preventDefault();
-      }
-      if (e.key === "l" || e.key === "L") {
-        send("lockin:required", { enabled: !signals.lockInRequired });
-        e.preventDefault();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [roomId, send, signals.attentionLocked, signals.lockInRequired]);
+  useHostHotkeys({
+    onSound: roomId
+      ? (idx) => {
+          const cue = soundboard[idx];
+          if (cue) send("sound:play", { id: cue.id });
+        }
+      : undefined,
+    onAttentionToggle: roomId
+      ? () =>
+          send(
+            signals.attentionLocked ? "attention:release" : "attention:lock"
+          )
+      : undefined,
+    onLockInToggle: roomId
+      ? () => send("lockin:required", { enabled: !signals.lockInRequired })
+      : undefined,
+  });
 
   if (!roomId) return null;
 
@@ -122,10 +142,39 @@ export function HostSignalsToolbar({ roomId }: HostSignalsToolbarProps) {
             <kbd className="rounded bg-black/30 px-1.5 py-0.5 text-[10px]">L</kbd>
           </button>
 
+          {socialeId && (
+            <>
+              <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                Intermission · drinks break
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                {[5, 10, 15].map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => void callBreak(m as 5 | 10 | 15)}
+                    disabled={breakBusy !== null}
+                    className="rounded-lg bg-slate-800 px-2 py-2 text-xs font-bold text-slate-200 hover:bg-slate-700 disabled:opacity-40"
+                  >
+                    {breakBusy === m ? '…' : `${m} min`}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => void callBreak(null)}
+                  disabled={breakBusy !== null}
+                  className="rounded-lg bg-emerald-700 px-2 py-2 text-xs font-bold text-emerald-50 hover:bg-emerald-600 disabled:opacity-40"
+                >
+                  {breakBusy === 'resume' ? '…' : 'Resume'}
+                </button>
+              </div>
+            </>
+          )}
+
           <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-slate-500">
-            Soundboard · hotkeys 1–6
+            Soundboard · 1–9 + D C B F A L Y
           </p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {soundboard.map((cue) => (
               <button
                 key={cue.id}

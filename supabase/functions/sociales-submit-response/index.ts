@@ -119,14 +119,20 @@ serve(async (req) => {
     }
 
     // Get the round to access settings for trivia scoring
+    // P1-11: also pull point_multiplier so the final round can double scores.
     const { data: currentRound } = await supabaseClient
       .from('sociale_rounds')
-      .select('type, settings')
+      .select('type, settings, point_multiplier')
       .eq('id', roundId)
       .single()
 
     const roundType = currentRound?.type || 'prompt'
     const roundSettings = (currentRound?.settings || {}) as any
+    const pointMultiplier =
+      typeof currentRound?.point_multiplier === 'number' &&
+      currentRound.point_multiplier > 0
+        ? currentRound.point_multiplier
+        : 1
 
     // Calculate score based on response type
     let scoreAwarded = 0
@@ -160,6 +166,12 @@ serve(async (req) => {
       scoreAwarded = 5
     } else if (type === 'topic') {
       scoreAwarded = 3
+    }
+
+    // P1-11 — apply round multiplier last so both trivia and open-text rounds
+    // get the same double-points treatment on the final round.
+    if (scoreAwarded > 0 && pointMultiplier !== 1) {
+      scoreAwarded = Math.round(scoreAwarded * pointMultiplier)
     }
 
     // Fetch most recent existing response (if any).

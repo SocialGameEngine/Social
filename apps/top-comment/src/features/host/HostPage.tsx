@@ -24,6 +24,8 @@ import { HostControlButtons } from "./components/HostControlButtons";
 import { HostMainContent } from "./components/HostMainContent";
 import { HostCommandPaletteSection } from "./components/HostCommandPaletteSection";
 import { HostSignalsToolbar } from "./components/HostSignalsToolbar";
+import { HostModerationQueue } from "./components/HostModerationQueue";
+import { HostTTSTester } from "./components/HostTTSTester";
 import { useCommandPalette } from "./components/shell";
 import { useSessionMachine } from "./state";
 import { useVenueAccountResolver } from './useVenueAccountResolver';
@@ -513,8 +515,14 @@ export function HostPage() {
         </HostPanel>
       </HostGameProvider>
 
-      {/* Wave 4: broadcast-driven host toolbar (P1-4/P1-6/P1-17) */}
-      <HostSignalsToolbar roomId={storedRoomId ?? null} />
+      {/* Wave 4: broadcast-driven host toolbar (P1-4/P1-6/P1-17/P1-8) */}
+      <HostSignalsToolbar
+        roomId={storedRoomId ?? null}
+        socialeId={primarySocialeId ?? null}
+      />
+
+      <HostModerationQueue socialeId={primarySocialeId ?? null} />
+      <HostTTSTester />
 
       <HostCommandPaletteSection
         session={session}

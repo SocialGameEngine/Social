@@ -1,37 +1,28 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import confetti from "canvas-confetti";
 import { TVAnswerTile } from "./TVAnswerTile";
 
-export interface RevealSequenceOption {
-  /** Stable id for the option (typically index). */
+export interface TVRevealSequenceTile {
   id: string;
-  /** Label shown on the tile. */
   label: string;
-  /** Pct of the vote (0-100). */
-  votePct: number;
-  /** Whether this is THE correct option. */
+  optionIndex: number;
+  voteCount: number;
+  totalVotes: number;
   isCorrect: boolean;
 }
 
 interface TVRevealSequenceProps {
-  options: RevealSequenceOption[];
-  /**
-   * Milliseconds between each wrong-answer X flash. The correct answer is
-   * revealed last. Total sequence ≈ (N-1) * stepMs + finale.
-   */
+  tiles: TVRevealSequenceTile[];
+  /** Ms between revealing each wrong tile; correct tile is last (+ pause). */
   stepMs?: number;
 }
 
 /**
- * Staggered reveal (P1-1). Behaviour:
- *   1. All tiles start unrevealed (grey).
- *   2. Wrong tiles flip their "X overlay" one-by-one (stepMs apart).
- *   3. Correct tile reveals last with an extra 500 ms drumroll pause.
- *
- * This is the "suspense build" phase Pete's pillars call for — no simultaneous
- * "all tiles resolve" shortcut.
+ * P1-1 staggered reveal: wrong options earn an X one-by-one; correct lands
+ * last with a green wash + confetti accent. Vote bars stay visible throughout.
  */
-export function TVRevealSequence({ options, stepMs = 800 }: TVRevealSequenceProps) {
+export function TVRevealSequence({ tiles, stepMs = 800 }: TVRevealSequenceProps) {
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
   const [correctRevealed, setCorrectRevealed] = useState(false);
 
@@ -39,62 +30,65 @@ export function TVRevealSequence({ options, stepMs = 800 }: TVRevealSequenceProp
     setRevealedIds(new Set());
     setCorrectRevealed(false);
 
-    const wrongOptions = options.filter((o) => !o.isCorrect);
-    const correctOption = options.find((o) => o.isCorrect);
+    const wrong = tiles.filter((t) => !t.isCorrect);
+    const correct = tiles.find((t) => t.isCorrect);
     const timers: number[] = [];
 
-    wrongOptions.forEach((opt, idx) => {
-      const handle = window.setTimeout(() => {
-        setRevealedIds((prev) => {
-          const next = new Set(prev);
-          next.add(opt.id);
-          return next;
-        });
-      }, idx * stepMs);
-      timers.push(handle);
+    wrong.forEach((t, idx) => {
+      timers.push(
+        window.setTimeout(() => {
+          setRevealedIds((prev) => new Set(prev).add(t.id));
+        }, idx * stepMs)
+      );
     });
 
-    if (correctOption) {
-      const handle = window.setTimeout(() => {
-        setRevealedIds((prev) => {
-          const next = new Set(prev);
-          next.add(correctOption.id);
-          return next;
-        });
-        setCorrectRevealed(true);
-      }, wrongOptions.length * stepMs + 500);
-      timers.push(handle);
+    if (correct) {
+      timers.push(
+        window.setTimeout(() => {
+          setRevealedIds((prev) => new Set(prev).add(correct.id));
+          setCorrectRevealed(true);
+          try {
+            void confetti({
+              particleCount: 80,
+              spread: 70,
+              origin: { y: 0.65 },
+              colors: ["#22c55e", "#06b6d4", "#eab308"],
+            });
+          } catch {
+            /* optional dependency */
+          }
+        }, wrong.length * stepMs + 500)
+      );
     }
 
-    return () => {
-      timers.forEach((t) => window.clearTimeout(t));
-    };
-  }, [options, stepMs]);
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [tiles, stepMs]);
 
   return (
-    <div className="relative mx-auto grid w-full max-w-5xl gap-4 sm:grid-cols-2">
-      {options.map((opt, idx) => (
+    <div className="relative mx-auto grid w-full max-w-5xl grid-cols-1 gap-5 md:grid-cols-2">
+      {tiles.map((t) => (
         <TVAnswerTile
-          key={opt.id}
-          label={opt.label}
-          index={idx}
-          votePct={opt.votePct}
-          isCorrect={opt.isCorrect}
-          isRevealed={revealedIds.has(opt.id)}
+          key={t.id}
+          optionIndex={t.optionIndex}
+          label={t.label}
+          voteCount={t.voteCount}
+          totalVotes={t.totalVotes}
+          isRevealed={revealedIds.has(t.id)}
+          isCorrect={t.isCorrect}
+          layoutId={`tv-answer-tile-${t.id}`}
         />
       ))}
-      {/* Drumroll flash when the correct answer lands */}
       <AnimatePresence>
         {correctRevealed && (
           <motion.div
             className="pointer-events-none absolute inset-0 -z-10 rounded-3xl"
             initial={{ opacity: 0, scale: 0.7 }}
-            animate={{ opacity: [0, 0.5, 0], scale: [0.7, 1.15, 1.5] }}
+            animate={{ opacity: [0, 0.45, 0], scale: [0.7, 1.12, 1.45] }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1.2, ease: "easeOut" }}
+            transition={{ duration: 1.1, ease: "easeOut" }}
             style={{
               background:
-                "radial-gradient(circle, rgba(52,211,153,0.7), transparent 60%)",
+                "radial-gradient(circle, rgba(52,211,153,0.65), transparent 62%)",
             }}
           />
         )}

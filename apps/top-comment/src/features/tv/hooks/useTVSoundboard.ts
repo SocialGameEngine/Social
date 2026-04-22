@@ -20,6 +20,9 @@ const FREQUENCY_BY_ID: Record<string, number> = {
   fail: 180,
   applause: 520,
   lobby: 440,
+  ding: 880,
+  buzz: 300,
+  confetti: 740,
 };
 
 export function useTVSoundboard(roomId: string | null | undefined) {

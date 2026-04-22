@@ -16,6 +16,10 @@ interface RoomHeaderProps {
   isFinalRound?: boolean;
   /** Live count of players in the room. */
   memberCount?: number;
+  /** P1-23: inviter membership for Grab-a-mate deep link. */
+  grabMateMembershipId?: string | null;
+  /** P1-13: weekly visit streak (from `room_memberships.current_streak`). */
+  visitStreakWeeks?: number | null;
 }
 
 const PHASE_LABEL: Record<string, string> = {
@@ -34,6 +38,8 @@ export function RoomHeader({
   totalRounds,
   isFinalRound = false,
   memberCount,
+  grabMateMembershipId = null,
+  visitStreakWeeks = null,
 }: RoomHeaderProps) {
   const { user, isAnonymous, signOut } = useAuth();
   const [showAccountMenu, setShowAccountMenu] = useState(false);
@@ -169,7 +175,15 @@ export function RoomHeader({
           title={connLabel}
           aria-label={connLabel}
         />
-        <GrabMateButton roomCode={roomCode} />
+        {visitStreakWeeks != null && visitStreakWeeks > 0 && (
+          <span
+            className="hidden sm:inline-flex items-center gap-1 rounded-full bg-orange-500/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-orange-200 ring-1 ring-orange-400/40"
+            title="Weekly visit streak"
+          >
+            🔥 {visitStreakWeeks}wk
+          </span>
+        )}
+        <GrabMateButton roomCode={roomCode} membershipId={grabMateMembershipId} />
         <div ref={accountMenuRef} className="relative">
           <button
             type="button"

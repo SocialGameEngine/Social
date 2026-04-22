@@ -26,10 +26,14 @@ export interface HostSignalState {
   attentionLocked: boolean;
   /** Most recent soundboard cue (id + nonce so repeat plays refire). */
   lastSound: { id: string; nonce: number } | null;
+  /** Set of membership ids that have submitted for the current round. */
+  submittedMemberships: Set<string>;
   /** Set of membership ids currently "typing" (have focused a text input). */
   typingMemberships: Set<string>;
   /** Host has toggled the lock-it-in confirmation requirement. */
   lockInRequired: boolean;
+  /** Most recent host-forced leaderboard moment (nonce so repeat shows refire). */
+  leaderboardShowAt: number | null;
 }
 
 type HostSignalEvent =
@@ -38,13 +42,18 @@ type HostSignalEvent =
   | { event: "sound:play"; payload: { id: string } }
   | { event: "typing:start"; payload: { id: string } }
   | { event: "typing:stop"; payload: { id: string } }
-  | { event: "lockin:required"; payload: { enabled: boolean } };
+  | { event: "submitted:set"; payload: { id: string } }
+  | { event: "submitted:clear" }
+  | { event: "lockin:required"; payload: { enabled: boolean } }
+  | { event: "leaderboard:show" };
 
 const DEFAULT_STATE: HostSignalState = {
   attentionLocked: false,
   lastSound: null,
+  submittedMemberships: new Set<string>(),
   typingMemberships: new Set<string>(),
   lockInRequired: false,
+  leaderboardShowAt: null,
 };
 
 export function useHostSignals(roomId: string | null | undefined) {
@@ -91,6 +100,23 @@ export function useHostSignals(roomId: string | null | undefined) {
           ...s,
           lockInRequired: Boolean(payload?.enabled),
         }))
+      )
+      .on("broadcast", { event: "submitted:set" }, ({ payload }) =>
+        setState((s) => {
+          if (!payload?.id) return s;
+          const next = new Set(s.submittedMemberships);
+          next.add(String(payload.id));
+          // typing implies they stopped typing
+          const nextTyping = new Set(s.typingMemberships);
+          nextTyping.delete(String(payload.id));
+          return { ...s, submittedMemberships: next, typingMemberships: nextTyping };
+        })
+      )
+      .on("broadcast", { event: "submitted:clear" }, () =>
+        setState((s) => ({ ...s, submittedMemberships: new Set<string>() }))
+      )
+      .on("broadcast", { event: "leaderboard:show" }, () =>
+        setState((s) => ({ ...s, leaderboardShowAt: Date.now() }))
       )
       .subscribe();
 

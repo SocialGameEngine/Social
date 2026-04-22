@@ -14,6 +14,7 @@ import { SocialSection } from './layout/SocialSection';
 import { MiscSection } from './layout/MiscSection';
 import { MobileLayout } from '../../../shared/components/MobileLayout';
 import { RoomModals } from './RoomModals';
+import { WelcomeBackCard } from './WelcomeBackCard';
 import { AuthModal } from '../../../shared/components/AuthModal';
 import { JoinRoomModal } from '../../../shared/components/JoinRoomModal';
 import { SignedOutPrompt } from '../../../shared/components/SignedOutPrompt';
@@ -321,9 +322,17 @@ export function RoomPageContent() {
     }
   }, [resumableMembership, handleJoinRoom]);
 
-  const handleClearResume = useCallback(() => {
+  const handleClearResume = useCallback(async () => {
     if (!resumableMembership) return;
     clearMembership(resumableMembership.roomCode);
+    try {
+      await supabase
+        .from('room_memberships')
+        .update({ client_key: null })
+        .eq('id', resumableMembership.id);
+    } catch {
+      /* best-effort */
+    }
     setResumableMembership(null);
   }, [resumableMembership]);
 
@@ -483,6 +492,8 @@ export function RoomPageContent() {
     socialeModalContext,
     // P1-17: propagate host-broadcasted "lock it in" toggle to the answer modal.
     requireLockIn: hostSignals.lockInRequired,
+    // P1-5: answer modal needs the roomId to broadcast typing/submitted pings.
+    roomId: room?.id ?? null,
   };
 
   const sharedGlobalOverlays = (
@@ -517,31 +528,12 @@ export function RoomPageContent() {
         />
       )}
       {resumableMembership && !hasMembership && !showJoinModal && (
-        <div className="fixed top-20 left-1/2 z-40 w-[min(92vw,28rem)] -translate-x-1/2 rounded-2xl border border-cyan-400/50 bg-slate-900/90 p-4 text-center shadow-2xl shadow-cyan-500/20 backdrop-blur">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-300">
-            Welcome back
-          </p>
-          <p className="mt-2 text-xl font-black text-pink-400">
-            {resumableMembership.playerName || 'Previous player'}
-          </p>
-          <p className="mt-1 text-xs text-slate-400">
-            Room {resumableMembership.roomCode}
-          </p>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
-            <button
-              onClick={handleResumeMembership}
-              className="rounded-full bg-pink-500 px-5 py-2 text-sm font-bold text-white hover:bg-pink-400"
-            >
-              Resume as {resumableMembership.playerName || 'me'}
-            </button>
-            <button
-              onClick={handleClearResume}
-              className="rounded-full border border-slate-600 px-5 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
-            >
-              Start fresh
-            </button>
-          </div>
-        </div>
+        <WelcomeBackCard
+          playerName={resumableMembership.playerName}
+          roomCode={resumableMembership.roomCode}
+          onContinue={() => void handleResumeMembership()}
+          onNotMe={handleClearResume}
+        />
       )}
       <PlayerRecoveryModal
         open={showRecoveryModal}
@@ -664,14 +656,17 @@ export function RoomPageContent() {
         <RoomReconnectingBanner />
         {/* P1-27: phone collapses to "Look up!" while the TV is revealing. */}
         <LookUpOverlay
-          visible={primaryRoomSociale?.currentPhase === 'results'}
+          visible={primaryRoomSociale?.currentPhase === 'reveal'}
         />
         {/* P1-6: host-triggered grey-out overlay to pull attention to the TV. */}
         <AllEyesUpOverlay visible={hostSignals.attentionLocked} />
         {/* P1-2: hype tap button — only during results phase. */}
         <HypeTapButton
           roomId={room?.id ?? null}
-          active={primaryRoomSociale?.currentPhase === 'results'}
+          active={
+            primaryRoomSociale?.currentPhase === 'results' ||
+            primaryRoomSociale?.currentPhase === 'reveal'
+          }
         />
         <BackgroundAnimation show={true} />
         <div className="flex-1 flex min-h-0">
@@ -691,6 +686,8 @@ export function RoomPageContent() {
                 primaryRoomSociale.currentRoundIndex + 1 === primaryRoomSociale.totalRounds
               }
               memberCount={memberships?.length ?? 0}
+              grabMateMembershipId={myMembership?.id ?? null}
+              visitStreakWeeks={myMembership?.currentStreak ?? null}
             />
             {mainContent}
           </div>
@@ -795,11 +792,14 @@ export function RoomPageContent() {
   return (
     <div className="min-h-[90dvh] flex flex-col bg-gradient-to-b from-slate-900 to-slate-800 text-white sm:overflow-hidden">
       <RoomReconnectingBanner />
-      <LookUpOverlay visible={primaryRoomSociale?.currentPhase === 'results'} />
+      <LookUpOverlay visible={primaryRoomSociale?.currentPhase === 'reveal'} />
       <AllEyesUpOverlay visible={hostSignals.attentionLocked} />
       <HypeTapButton
         roomId={room?.id ?? null}
-        active={primaryRoomSociale?.currentPhase === 'results'}
+        active={
+          primaryRoomSociale?.currentPhase === 'results' ||
+          primaryRoomSociale?.currentPhase === 'reveal'
+        }
       />
       <BackgroundAnimation show={true} />
       <div className="flex-1 flex min-h-0 sm:overflow-hidden">
@@ -819,6 +819,8 @@ export function RoomPageContent() {
               primaryRoomSociale.currentRoundIndex + 1 === primaryRoomSociale.totalRounds
             }
             memberCount={memberships?.length ?? 0}
+            grabMateMembershipId={myMembership?.id ?? null}
+            visitStreakWeeks={myMembership?.currentStreak ?? null}
           />
           {mainContent}
         </div>

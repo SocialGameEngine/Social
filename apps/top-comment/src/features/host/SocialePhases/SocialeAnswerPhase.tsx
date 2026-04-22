@@ -12,6 +12,9 @@ import {
   SocialiteCard,
   ResponseCard
 } from './components';
+import { useHostSignals } from '../../room/hooks/useHostSignals';
+import { RoundAudioEditor } from '../components/RoundAudioEditor';
+import { ModerationQueue } from '../components/ModerationQueue';
 import type { Socialite, SocialeResponse } from '../../../domain/types/sociale.types';
 import type { TriviaInteractionSettings } from '../../../domain/types/interaction.types';
 
@@ -20,6 +23,7 @@ type MCOption = NonNullable<TriviaInteractionSettings['snapshot']['multipleChoic
 interface SocialeAnswerPhaseProps {
   sociale: {
     id: string;
+    roomId?: string;
     currentRoundId?: string;
     phaseEndsAt?: string | null;
     currentPhase?: string;
@@ -58,6 +62,9 @@ export function SocialeAnswerPhase({
 }: SocialeAnswerPhaseProps) {
   const { isDark: themeIsDark } = useTheme();
   const isDark = propIsDark ?? themeIsDark;
+
+  // P1-5 — read live typing/submitted state broadcast by the room clients.
+  const { signals: hostSignals } = useHostSignals(sociale.roomId ?? null);
 
   // Calculate response status
   const activePlayers = socialites.filter(s => s.isActive && !s.isBanned);
@@ -257,7 +264,15 @@ export function SocialeAnswerPhase({
             .map((socialite) => {
               const hasResponded = respondedPlayers.has(socialite.id);
               const response = responses.find(r => r.socialiteId === socialite.id);
-              
+              const ephemeralId = socialite.membershipId ?? socialite.id;
+              const typingState: 'idle' | 'typing' | 'submitted' = hasResponded
+                ? 'submitted'
+                : hostSignals.submittedMemberships.has(ephemeralId)
+                  ? 'submitted'
+                  : hostSignals.typingMemberships.has(ephemeralId)
+                    ? 'typing'
+                    : 'idle';
+
               return (
                 <div key={socialite.id} className="space-y-2">
                   <SocialiteCard
@@ -267,6 +282,7 @@ export function SocialeAnswerPhase({
                     showScore={false}
                     size="md"
                     isDark={isDark}
+                    typingState={typingState}
                   />
                   
                   {response && (
@@ -296,6 +312,29 @@ export function SocialeAnswerPhase({
             })}
         </div>
       </div>
+
+      {/* P1-12 — quick audio attach for the current round (host-only). */}
+      {isCurrentPlayerHost && currentRound && (
+        <div className="max-w-2xl mx-auto">
+          <RoundAudioEditor
+            roundId={currentRound.id}
+            settings={currentRound.settings}
+            compact
+          />
+        </div>
+      )}
+
+      {/* P1-24 — moderation queue for open-text submissions. */}
+      {isCurrentPlayerHost && (
+        <div className="max-w-2xl mx-auto">
+          <ModerationQueue
+            responses={responses}
+            socialites={socialites}
+            roundType={currentRound?.type}
+            hideWhenEmpty
+          />
+        </div>
+      )}
 
       {/* Host Controls */}
       {isCurrentPlayerHost && (

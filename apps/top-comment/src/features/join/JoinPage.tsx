@@ -17,6 +17,7 @@ import {
   getStoredMembershipId,
   storeMembership,
 } from "../../utils/membershipStorage";
+import { getClientKey } from "../../utils/clientKey";
 
 interface JoinFormState {
   code: string;
@@ -36,6 +37,8 @@ export function JoinPage() {
   
   // Read ?code= from invite link URL
   const codeFromUrl = searchParams.get("code")?.toUpperCase().trim() || "";
+  const inviteMembershipId = searchParams.get("membership")?.trim() || "";
+  const isMateInvite = searchParams.get("inv") === "1";
 
   // SIMPLIFIED: Only manage form state, no complex team state
   const [joinForm, setJoinForm] = useState<JoinFormState>({
@@ -164,54 +167,83 @@ export function JoinPage() {
     let storedId = code ? getStoredMembershipId(code) : null;
     if (!storedId) {
       const recent = getMostRecentMembership();
-      if (!recent) {
-        setResumableMembership(null);
-        return;
+      if (recent) {
+        code = recent.roomCode;
+        storedId = recent.membershipId;
       }
-      code = recent.roomCode;
-      storedId = recent.membershipId;
-    }
-    if (!code || !storedId) {
-      setResumableMembership(null);
-      return;
     }
 
     (async () => {
       setCheckingStoredMembership(true);
       try {
-        const { data: roomRow } = await supabase
-          .from('rooms')
-          .select('id, code')
-          .eq('code', code)
-          .maybeSingle();
-
-        if (!roomRow) {
-          clearMembership(code);
-          if (!cancelled) setResumableMembership(null);
-          return;
+        // Resolve the target room: either the code the user landed on, or the
+        // most recent one we remember locally.
+        let roomRow: { id: string; code: string } | null = null;
+        if (code) {
+          const { data } = await supabase
+            .from('rooms')
+            .select('id, code')
+            .eq('code', code)
+            .maybeSingle();
+          roomRow = data ?? null;
         }
 
-        const { data, error } = await supabase
-          .from('room_memberships')
-          .select('id, player_name, is_banned, room_id')
-          .eq('id', storedId)
-          .eq('room_id', roomRow.id)
-          .maybeSingle();
+        // Fast path: we have both code + stored membership id from localStorage.
+        if (roomRow && storedId) {
+          const { data, error } = await supabase
+            .from('room_memberships')
+            .select('id, player_name, is_banned, room_id')
+            .eq('id', storedId)
+            .eq('room_id', roomRow.id)
+            .maybeSingle();
 
-        if (error || !data || data.is_banned) {
-          clearMembership(code);
-          if (!cancelled) setResumableMembership(null);
-          return;
+          if (!error && data && !data.is_banned) {
+            if (!cancelled) {
+              setResumableMembership({
+                id: data.id,
+                playerName: data.player_name ?? '',
+                roomId: data.room_id,
+                roomCode: roomRow.code,
+              });
+            }
+            return;
+          }
+          if (code) clearMembership(code);
         }
 
-        if (!cancelled) {
-          setResumableMembership({
-            id: data.id,
-            playerName: data.player_name ?? '',
-            roomId: data.room_id,
-            roomCode: code,
-          });
+        // P1-3/P1-18 fallback: no valid localStorage hit — try to find a
+        // membership tied to this device's client_key. Works across browser
+        // storage wipes as long as the server still has the row.
+        const clientKey = getClientKey();
+        if (clientKey && clientKey !== 'server-client') {
+          let q = supabase
+            .from('room_memberships')
+            .select('id, player_name, is_banned, room_id, rooms!inner(code)')
+            .eq('client_key', clientKey)
+            .eq('is_banned', false)
+            .order('last_active_at', { ascending: false, nullsFirst: false })
+            .limit(1);
+          if (roomRow) q = q.eq('room_id', roomRow.id);
+
+          const { data } = await q.maybeSingle();
+          if (data) {
+            const fallbackCode =
+              roomRow?.code ?? (data as any)?.rooms?.code ?? code ?? '';
+            if (fallbackCode) {
+              if (!cancelled) {
+                setResumableMembership({
+                  id: data.id,
+                  playerName: data.player_name ?? '',
+                  roomId: data.room_id,
+                  roomCode: fallbackCode,
+                });
+              }
+              return;
+            }
+          }
         }
+
+        if (!cancelled) setResumableMembership(null);
       } catch {
         if (!cancelled) setResumableMembership(null);
       } finally {
@@ -230,9 +262,19 @@ export function JoinPage() {
     navigate(`/room/${resumableMembership.roomCode}`);
   }, [resumableMembership, navigate]);
 
-  const handleClearResume = useCallback(() => {
+  const handleClearResume = useCallback(async () => {
     if (!resumableMembership) return;
     clearMembership(resumableMembership.roomCode);
+    // P1-18 "not me" fallback — also sever the client_key link on the server
+    // so the fallback lookup doesn't keep re-offering the same resume card.
+    try {
+      await supabase
+        .from('room_memberships')
+        .update({ client_key: null })
+        .eq('id', resumableMembership.id);
+    } catch {
+      /* best-effort */
+    }
     setResumableMembership(null);
   }, [resumableMembership]);
 
@@ -471,6 +513,13 @@ export function JoinPage() {
                 </button>
               </div>
             </div>
+          )}
+
+          {!resumableMembership && isMateInvite && inviteMembershipId && (
+            <p className="rounded-xl border border-pink-500/40 bg-pink-500/10 px-3 py-2 text-center text-xs text-pink-100">
+              You&apos;re joining via a mate invite — you&apos;ll land in the same room. Pick your
+              handset name below.
+            </p>
           )}
 
           {!resumableMembership && (

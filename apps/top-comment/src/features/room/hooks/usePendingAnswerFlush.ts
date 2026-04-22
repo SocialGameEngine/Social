@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useConnectionHealth } from "../../../shared/hooks/useConnectionHealth";
+import { useToast } from "../../../shared/hooks";
 import { submitSocialeResponse } from "../../sociale/socialeService";
 import {
   incrementPendingAttempts,
@@ -23,6 +24,7 @@ const MAX_ATTEMPTS = 5;
 
 export function usePendingAnswerFlush(): void {
   const { isConnected } = useConnectionHealth();
+  const { toast } = useToast();
   const wasConnectedRef = useRef<boolean>(isConnected);
   const flushingRef = useRef(false);
 
@@ -40,6 +42,7 @@ export function usePendingAnswerFlush(): void {
     flushingRef.current = true;
 
     (async () => {
+      let flushed = 0;
       for (const entry of pending) {
         if (entry.attempts >= MAX_ATTEMPTS) {
           // Give up after 5 tries. Removing silently is preferable to
@@ -57,6 +60,7 @@ export function usePendingAnswerFlush(): void {
             value: entry.value,
           });
           removePendingAnswer(entry.id);
+          flushed += 1;
         } catch (err) {
           incrementPendingAttempts(entry.id);
           logger.warn("Pending answer flush failed — will retry on next reconnect", {
@@ -65,9 +69,19 @@ export function usePendingAnswerFlush(): void {
           });
         }
       }
+      if (flushed > 0) {
+        toast({
+          title: "Back online",
+          description:
+            flushed === 1
+              ? "Your answer was sent."
+              : `${flushed} queued answers were sent.`,
+          variant: "success",
+        });
+      }
       flushingRef.current = false;
     })();
-  }, [isConnected]);
+  }, [isConnected, toast]);
 }
 
 export default usePendingAnswerFlush;

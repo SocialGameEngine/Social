@@ -1,10 +1,20 @@
-import { motion } from 'framer-motion';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { usePhaseTimer } from '../../../../shared/hooks';
 import { buildSocialeTimerSessionShim } from '../../utils/socialeTimerShim';
 import { CountdownRing } from '../../../tv/components/CountdownRing';
 import { SplitFlap } from '../../../tv/components/SplitFlap';
 import { useRoundResponses, useRoundVotes } from '../../../../features/sociale/hooks';
-import type { Sociale, SocialeRound, TriviaRoundSettings } from '../../../../domain/types/sociale.types';
+import { triggerHaptic } from '../../../../shared/utils/sessionUtils';
+import type {
+  Sociale,
+  SocialeRound,
+  TriviaRoundSettings,
+  TriviaSnapshotMultipleChoice,
+  TriviaSnapshotWrittenAnswer,
+} from '../../../../domain/types/sociale.types';
+import { useAuth } from '../../../../shared/providers/AuthContext';
+import { supabase } from '../../../../supabase/client';
 import type { SocialeGameParticipant } from '../../components/layout/SocialeGameButton';
 
 interface SocialeRevealPhaseRoomProps {
@@ -18,6 +28,7 @@ interface SocialeRevealPhaseRoomProps {
 
 export function SocialeRevealPhaseRoom({
   sociale,
+  participants: _participants,
   phaseEndsAt,
   isPaused = sociale.status === 'paused',
   currentRound,
@@ -37,6 +48,62 @@ export function SocialeRevealPhaseRoom({
     currentRound?.type === 'topic' ? sociale.id : undefined,
     currentRound?.id,
   );
+
+  // P1-1: green/red flash + haptic when the reveal phase fires. We look up the
+  // current user's response to tell whether their answer was correct, then
+  // flash the matching color once per round.
+  const { user } = useAuth();
+  const [flashState, setFlashState] = useState<'correct' | 'wrong' | null>(null);
+  const firedForRoundRef = useRef<string | null>(null);
+  const [mySocialiteId, setMySocialiteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id || !sociale.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('socialites')
+        .select('id')
+        .eq('sociale_id', sociale.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (!cancelled && data?.id) setMySocialiteId(data.id);
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id, sociale.id]);
+
+  const myResponse = useMemo(
+    () => responses.find((r) => r.socialiteId === mySocialiteId),
+    [responses, mySocialiteId],
+  );
+
+  useEffect(() => {
+    if (!currentRound?.id) return;
+    if (firedForRoundRef.current === currentRound.id) return;
+    firedForRoundRef.current = currentRound.id;
+
+    // Only fire for trivia rounds (we know correctness immediately there).
+    if (currentRound.type !== 'trivia') return;
+
+    // Figure out if THIS player was correct.
+    const settings = currentRound.settings as TriviaRoundSettings | undefined;
+    const snap = settings?.snapshot as
+      | TriviaSnapshotMultipleChoice
+      | TriviaSnapshotWrittenAnswer
+      | undefined;
+    if (!snap || !myResponse) return;
+
+    let isCorrect = myResponse.isCorrect ?? false;
+    if (!isCorrect && 'multipleChoice' in snap && snap.multipleChoice) {
+      const selected = typeof myResponse.value === 'string' ? myResponse.value : String(myResponse.value ?? '');
+      isCorrect = selected === snap.multipleChoice.correctOptionId;
+    }
+
+    setFlashState(isCorrect ? 'correct' : 'wrong');
+    triggerHaptic(isCorrect ? 'success' : 'error');
+    const t = window.setTimeout(() => setFlashState(null), 900);
+    return () => window.clearTimeout(t);
+  }, [currentRound?.id, currentRound?.type, currentRound?.settings, myResponse]);
 
   const revealContent = (() => {
     if (!currentRound) return null;
@@ -100,7 +167,26 @@ export function SocialeRevealPhaseRoom({
   })();
 
   return (
-    <div className="w-full mb-6 px-4">
+    <div className="w-full mb-6 px-4 relative">
+      <AnimatePresence>
+        {flashState && (
+          <motion.div
+            key={flashState}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.85, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.9, ease: 'easeOut' }}
+            className="pointer-events-none fixed inset-0 z-[55]"
+            style={{
+              background:
+                flashState === 'correct'
+                  ? 'radial-gradient(circle at 50% 50%, rgba(34,197,94,0.6), transparent 70%)'
+                  : 'radial-gradient(circle at 50% 50%, rgba(239,68,68,0.6), transparent 70%)',
+            }}
+            aria-hidden
+          />
+        )}
+      </AnimatePresence>
       <div className="chaos-room-panel p-4 sm:p-5 space-y-4" data-phase="reveal">
         <div className="flex items-start justify-between gap-3">
           <span className="chaos-room-eyebrow">

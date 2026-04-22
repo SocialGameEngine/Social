@@ -22,6 +22,8 @@ interface SocialeLeaderboardModalProps {
   myRoundResults?: RoundResult[];
   /** Optional venue name for the share card header. */
   venueName?: string | null;
+  /** P1-13: membership weekly streak for share line. */
+  membershipStreakWeeks?: number | null;
 }
 
 export function SocialeLeaderboardModal({
@@ -32,6 +34,7 @@ export function SocialeLeaderboardModal({
   onLeave,
   myRoundResults,
   venueName,
+  membershipStreakWeeks,
 }: SocialeLeaderboardModalProps) {
   const podiumEntries: PodiumEntry[] = useMemo(
     () =>
@@ -91,6 +94,7 @@ export function SocialeLeaderboardModal({
               score={me.score}
               roundResults={myRoundResults ?? []}
               joinUrl={typeof window !== 'undefined' ? window.location.href : undefined}
+              streakWeeks={membershipStreakWeeks}
             />
           </div>
         )}

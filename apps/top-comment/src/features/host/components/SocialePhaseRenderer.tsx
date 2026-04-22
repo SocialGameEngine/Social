@@ -238,6 +238,7 @@ export function SocialePhaseRenderer({
 
       const socialeTimerProps = {
         id: sociale.id,
+        roomId: sociale.roomId,
         currentRoundId: sociale.currentRoundId || undefined,
         phaseEndsAt: sociale.phaseEndsAt,
         pausedRemainingSeconds: sociale.pausedRemainingSeconds,
@@ -314,6 +315,18 @@ export function SocialePhaseRenderer({
       } else if (currentPhase === 'discussion') {
         // Discussion phase is skipped — useEffect handles the advance to results
         return null;
+      } else if (currentPhase === 'break') {
+        // P1-8 — while the intermission is active, show a reminder in the host
+        // view. Full break controls live in HostSignalsToolbar so they're
+        // available from anywhere in the flow.
+        return (
+          <div className="min-h-[360px] flex flex-col items-center justify-center gap-4 text-center">
+            <div className="text-3xl font-black">Intermission in progress</div>
+            <div className="text-sm text-slate-400">
+              Hit "Resume" on the Signals toolbar when ready to continue.
+            </div>
+          </div>
+        );
       }
 
       return (

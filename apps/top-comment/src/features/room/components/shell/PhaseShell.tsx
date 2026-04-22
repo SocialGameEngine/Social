@@ -125,6 +125,27 @@ export function PhaseShell({
               paddingBottom: "env(safe-area-inset-bottom, 0px)",
             }}
           >
+            {/* P1-20 — thin 2-3px round cursor above the header so players can
+                glance at how far through the sociale they are. */}
+            {roundIndex != null && totalRounds != null && totalRounds > 0 && (
+              <div
+                className="relative h-[3px] w-full shrink-0 bg-white/5"
+                role="progressbar"
+                aria-valuemin={1}
+                aria-valuemax={totalRounds}
+                aria-valuenow={roundIndex}
+                aria-label={`Round ${roundIndex} of ${totalRounds}`}
+              >
+                <div
+                  className="h-full bg-cyan-400 transition-[width] duration-500 ease-out"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, (roundIndex / totalRounds) * 100))}%`,
+                    boxShadow: '0 0 8px rgba(34,211,238,0.55)',
+                  }}
+                />
+              </div>
+            )}
+
             <header className="flex items-center justify-between gap-3 px-4 pt-4 pb-3 bg-gradient-to-b from-black/60 to-transparent shrink-0">
               <button
                 type="button"
