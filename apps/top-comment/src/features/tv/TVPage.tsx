@@ -239,7 +239,7 @@ export function TVPage() {
     );
   }
 
-  if (!sociale || sociale.status === 'ended') {
+  if (!sociale || sociale.status === 'completed' || sociale.status === 'cancelled') {
     return (
       <>
         <BackgroundAnimation show={true} />

@@ -147,7 +147,8 @@ export async function joinRoom(request: JoinRoomRequest): Promise<JoinRoomRespon
 
   const { data: membership, error: membershipError } = await supabase
     .from('room_memberships')
-    .insert(membershipData)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .insert(membershipData as any)
     .select()
     .single();
 

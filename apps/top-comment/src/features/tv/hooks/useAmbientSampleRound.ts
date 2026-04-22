@@ -12,7 +12,8 @@ export function useAmbientSampleRound() {
   return useQuery<AmbientSampleRound | null>({
     queryKey: ['ambient-sample-round'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from('ambient_rounds')
         .select('id, title, content, type')
         .order('order_index', { ascending: true })

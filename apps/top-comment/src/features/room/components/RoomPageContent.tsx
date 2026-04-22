@@ -328,7 +328,8 @@ export function RoomPageContent() {
     try {
       await supabase
         .from('room_memberships')
-        .update({ client_key: null })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .update({ client_key: null } as any)
         .eq('id', resumableMembership.id);
     } catch {
       /* best-effort */

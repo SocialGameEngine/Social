@@ -195,7 +195,7 @@ function HowToCard() {
       opacity: 1,
       y: 0,
       rotate: i % 2 === 0 ? -1.5 : 1.5,
-      transition: { delay: 0.08 * i, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] },
+      transition: { delay: 0.08 * i, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] as [number, number, number, number] },
     }),
   };
 

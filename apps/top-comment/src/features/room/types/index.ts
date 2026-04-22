@@ -1,7 +1,7 @@
 import type { Dispatch } from 'react';
 import type { Session, Room, RoomMembership } from '../../../shared/types';
 
-export type GamePhase = 'lobby' | 'answer' | 'vote' | 'reveal' | 'results' | 'ended';
+export type GamePhase = 'lobby' | 'answer' | 'vote' | 'reveal' | 'results' | 'ended' | 'break';
 export type ModalType = 'answer' | 'vote' | 'leaderboard' | 'selfie' | null;
 
 export interface SubmissionStatus {
