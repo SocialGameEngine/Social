@@ -61,6 +61,8 @@ export interface AmbientRound {
   title: string;
   content: string | null;
   settings: AmbientRoundSettings;
+  explanation: string | null;
+  hint: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -72,4 +74,6 @@ export interface AmbientRoundExportRow {
   title: string;
   content: string | null;
   settings: AmbientRoundSettings;
+  explanation?: string | null;
+  hint?: string | null;
 }

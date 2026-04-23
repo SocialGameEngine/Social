@@ -138,6 +138,8 @@ serve(async (req) => {
                 title: firstRound.title,
                 content: firstRound.content,
                 settings: firstRound.settings,
+                hint: firstRound.hint,
+                explanation: firstRound.explanation,
               }
             }
           })

@@ -350,8 +350,8 @@ export function TVPage() {
         visible={isFinalRound && (currentPhase === 'answer' || currentPhase === 'vote')}
       />
 
-      {/* P1-9: round intro splash — fires once per new round */}
-      {roundKey && currentRound && (
+      {/* P1-9: round intro splash — fires once per new round, only during answer phase */}
+      {roundKey && currentRound && currentPhase === 'answer' && (
         <TVRoundIntroSplash
           triggerKey={roundKey}
           roundNumber={(sociale.currentRoundIndex ?? 0) + 1}

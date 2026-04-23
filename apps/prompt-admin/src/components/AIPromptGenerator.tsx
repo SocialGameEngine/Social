@@ -198,60 +198,45 @@ OUTPUT: Return the response as a downloadable .json file named "ambient_rounds_$
       }
       
       const triviaExample = `{
-  "order_index": 0,
-  "type": "trivia",
+  "type": "trivia_multiple_choice",
   "title": "Science Quickfire",
-  "content": "What is the chemical symbol for gold?",
-  "settings": {
-    "format": "multiple_choice",
-    "categoryKey": "science",
-    "difficulty": "medium",
-    "answerSeconds": 30,
-    "revealSeconds": 15,
-    "resultsSeconds": 15,
-    "correctAnswer": "Au",
-    "options": [
-      { "option_id": "a", "option_text": "Go", "is_correct": false },
-      { "option_id": "b", "option_text": "Gd", "is_correct": false },
-      { "option_id": "c", "option_text": "Au", "is_correct": true },
-      { "option_id": "d", "option_text": "Ag", "is_correct": false }
-    ]
-  }
+  "question": "What is the chemical symbol for gold?",
+  "hint": "Think about the Latin name for gold",
+  "explanation": "Gold's chemical symbol comes from its Latin name 'aurum'.",
+  "category": "science",
+  "options": [
+    { "text": "Go" },
+    { "text": "Gd" },
+    { "text": "Au", "correct": true },
+    { "text": "Ag" }
+  ]
 }`;
 
       const topicExample = `{
-  "order_index": 1,
   "type": "topic",
   "title": "Hot Take of the Night",
-  "content": "Share your most unpopular opinion about food. The room votes on the spiciest take.",
-  "settings": {
-    "answerSeconds": 60,
-    "votingSeconds": 30,
-    "resultsSeconds": 15,
-    "sortBy": "upvotes"
-  }
+  "prompt": "Share your most unpopular opinion about food. The room votes on the spiciest take."
 }`;
 
       const prompt = `Generate ${totalRounds} ambient rounds for a social party game with ${triviaCount} trivia rounds and ${topicCount} topic/discussion rounds.
 
 ROUND REQUIREMENTS:
-- Trivia rounds: A single question with multiple-choice answer. Use varied categories (science, history, geography, pop culture, sport, food & drink, music, film/TV, general knowledge).
+- Trivia rounds: A single question with 4 multiple-choice options. Use varied categories (science, history, geography, pop culture, sport, food & drink, music, film/TV, general knowledge).
 - Topic rounds: Short conversation prompts / hot takes / social observation games that the room answers and votes on.
-- Each round is self-contained and short -- trivia ~45s end-to-end, topic ~100s end-to-end.
 - Content must be family-friendly and inclusive across ages 16-70.
-- Avoid back-to-back same category -- interleave by mixing categories in order_index.
+- Avoid back-to-back same category -- interleave by mixing categories.
 
 ${formData.tags.length > 0 ? (formData.strictCategories
   ? `REQUIRED THEMES / CATEGORIES (STRICT): ${formData.tags.join(', ')}. ALL trivia rounds MUST use only these categories. Do not use any other categories. The categoryKey field must reflect one of these topics exactly.`
   : `PREFERRED THEMES / CATEGORIES: ${formData.tags.join(', ')}`) : ''}
 
 SCHEMA RULES (STRICT):
-- All fields in "settings" must exactly match the schema shown below -- do not add or rename keys.
-- Trivia rounds: "settings" must include format, categoryKey, difficulty, answerSeconds, revealSeconds, resultsSeconds, correctAnswer, options. Use "format": "multiple_choice" with exactly 4 options, exactly one with is_correct: true. The correctAnswer string must exactly match the option_text of the correct option.
-- Topic rounds: "settings" must include answerSeconds, votingSeconds, resultsSeconds, sortBy. Use "sortBy": "upvotes" (or "newest" occasionally).
-- Timing defaults: Trivia -> answerSeconds: 30, revealSeconds: 15, resultsSeconds: 15. Topic -> answerSeconds: 60, votingSeconds: 30, resultsSeconds: 15.
-- difficulty is one of "easy", "medium", "hard". Target spread across trivia: ~30% easy, ~50% medium, ~20% hard.
-- order_index runs from 0 to ${totalRounds - 1} with no gaps or duplicates.
+- Use ONLY the minimal schema shown below. Do not add extra fields.
+- type must be one of: "trivia_multiple_choice", "trivia_written", or "topic"
+- Trivia rounds: Must have "question", "hint", "explanation", "category", and "options" array with exactly 4 items
+- Each option has "text" field. Exactly ONE option must have "correct": true
+- Topic rounds: Only need "title" and "prompt" fields
+- Do NOT include: order_index, settings, snapshot, answerSeconds, or any timing fields (these are auto-generated)
 
 TRIVIA ROUND SCHEMA (use exactly -- all fields required):
 ${triviaExample}
@@ -259,7 +244,7 @@ ${triviaExample}
 TOPIC ROUND SCHEMA (use exactly -- all fields required):
 ${topicExample}
 
-OUTPUT: Return the response as a downloadable .json file named "ambient_rounds_${totalRounds}.json". The file should contain a single JSON array of ${totalRounds} objects only. No markdown, no code fences, no commentary. The array must contain exactly ${totalRounds} items with order_index values 0 through ${totalRounds - 1}.`;
+OUTPUT: Return the response as a downloadable .json file named "ambient_rounds_${totalRounds}.json". The file should contain a single JSON array of ${totalRounds} objects only. No markdown, no code fences, no commentary. The array must contain exactly ${totalRounds} items in the order they should appear in the game.`;
 
       setGeneratedPrompt(prompt);
       setShowGenerated(true);

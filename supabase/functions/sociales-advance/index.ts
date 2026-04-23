@@ -215,6 +215,8 @@ serve(async (req) => {
             title: nextAmbientRound.title,
             content: nextAmbientRound.content,
             settings: nextAmbientRound.settings,
+            hint: nextAmbientRound.hint,
+            explanation: nextAmbientRound.explanation,
           },
         }
 

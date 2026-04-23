@@ -74,27 +74,27 @@ export function RevealPhase({
       const explanationDelay = (wrongCount * stepMs + 500 + 800) / 1000; // Convert to seconds, add 800ms buffer
 
       return (
-        <section className="flex flex-col gap-8">
+        <section className="flex flex-col gap-4">
           <motion.div
-            initial={{ opacity: 0, y: 20, rotate: -2 }}
-            animate={{ opacity: 1, y: 0, rotate: -0.8 }}
+            initial={{ opacity: 0, y: 12, rotate: -1 }}
+            animate={{ opacity: 1, y: 0, rotate: -0.5 }}
             transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
             className="chaos-tv-prompt mx-auto max-w-5xl"
           >
             <div className="chaos-tv-sheen" aria-hidden />
-            <p className="chaos-tv-title chaos-tv-title--soft text-3xl md:text-5xl lg:text-6xl leading-[1.1]">
+            <p className="chaos-tv-title chaos-tv-title--soft text-2xl md:text-3xl lg:text-4xl leading-[1.1]">
               {prompt}
             </p>
           </motion.div>
 
-          <TVRevealSequence tiles={tiles} stepMs={stepMs} />
+          <TVRevealSequence tiles={tiles} roundKey={currentRound.id ?? ''} stepMs={stepMs} />
 
           {snapshot.explanation && (
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: explanationDelay }}
-              className="mx-auto max-w-3xl text-center text-lg md:text-2xl italic text-white/80"
+              className="mx-auto max-w-3xl text-center text-base md:text-lg italic text-white/80"
             >
               {snapshot.explanation}
             </motion.p>
