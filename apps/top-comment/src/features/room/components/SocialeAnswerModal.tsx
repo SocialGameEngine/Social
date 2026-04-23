@@ -327,7 +327,7 @@ export function SocialeAnswerModal({
 
   const canAdvance =
     (isMultipleChoice && !!selectedOption) ||
-    (!isMultipleChoice && answer.trim().length > 0);
+    (!isMultipleChoice && answer.slice(0, CHAR_LIMIT).trim().length > 0);
 
   const handlePrimaryClick = useCallback(() => {
     if (requireLockIn && canAdvance && !lockInConfirmPending) {
@@ -431,7 +431,8 @@ export function SocialeAnswerModal({
                   value={answer.slice(0, CHAR_LIMIT)}
                   maxLength={CHAR_LIMIT}
                   onChange={(e) => {
-                    setAnswer(e.target.value.slice(0, CHAR_LIMIT));
+                    const newValue = e.target.value.slice(0, CHAR_LIMIT);
+                    setAnswer(newValue);
                     if (lockInConfirmPending) setLockInConfirmPending(false);
                     pingTyping();
                   }}

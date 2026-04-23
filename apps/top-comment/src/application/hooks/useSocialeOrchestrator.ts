@@ -87,7 +87,6 @@ export function useSocialeOrchestrator(config: SocialeOrchestratorConfig): UseSo
       }
       return false;
     } catch (error) {
-      console.error('Auto-advance failed:', error);
       return false;
     }
   }, [socialeId]);
@@ -196,7 +195,6 @@ export function useSocialeOrchestrator(config: SocialeOrchestratorConfig): UseSo
       }
       return false;
     } catch (error) {
-      console.error('Manual advance failed:', error);
       return false;
     }
   }, [socialeId, clearTimers]);
@@ -214,7 +212,6 @@ export function useSocialeOrchestrator(config: SocialeOrchestratorConfig): UseSo
       }
       return false;
     } catch (error) {
-      console.error('Pause failed:', error);
       return false;
     }
   }, [socialeId, enablePauseResume, clearTimers]);
@@ -231,7 +228,6 @@ export function useSocialeOrchestrator(config: SocialeOrchestratorConfig): UseSo
       }
       return false;
     } catch (error) {
-      console.error('Resume failed:', error);
       return false;
     }
   }, [socialeId, enablePauseResume]);
@@ -249,7 +245,6 @@ export function useSocialeOrchestrator(config: SocialeOrchestratorConfig): UseSo
       }
       return false;
     } catch (error) {
-      console.error('Start failed:', error);
       return false;
     }
   }, [socialeId, clearTimers]);
@@ -289,7 +284,6 @@ export function useSocialeOrchestrator(config: SocialeOrchestratorConfig): UseSo
       
       return true;
     } catch (error) {
-      console.error('Failed to skip round:', error);
       return false;
     }
   }, [socialeId, clearTimers]);
@@ -311,7 +305,6 @@ export function useSocialeOrchestrator(config: SocialeOrchestratorConfig): UseSo
       
       return true;
     } catch (error) {
-      console.error('Failed to skip phase:', error);
       return false;
     }
   }, [socialeId, clearTimers]);

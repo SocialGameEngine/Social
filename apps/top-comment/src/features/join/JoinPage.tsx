@@ -153,7 +153,7 @@ export function JoinPage() {
       await signOut();
       setShowAccountMenu(false);
     } catch (error) {
-      console.error('Sign out failed:', error);
+      // Sign out failed silently
     }
   };
 

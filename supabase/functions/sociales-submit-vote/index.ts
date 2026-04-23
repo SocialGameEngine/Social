@@ -93,41 +93,60 @@ serve(async (req) => {
       )
     }
 
-    // Get current round state
-    const { data: roundState, error: stateError } = await supabaseClient
-      .from('sociale_round_state')
-      .select('*')
-      .eq('sociale_id', socialeId)
-      .eq('round_id', roundId)
-      .eq('status', 'active')
-      .single()
+    const isAmbient = sociale.mode === 'ambient'
 
-    if (stateError || !roundState) {
-      return new Response(
-        JSON.stringify({ error: 'Round not active' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    if (isAmbient) {
+      // Ambient sociales have no sociale_round_state rows.
+      // Verify via the sociales row directly.
+      if (sociale.status !== 'active') {
+        return new Response(
+          JSON.stringify({ error: 'Round not active' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      if (sociale.current_phase !== 'vote') {
+        return new Response(
+          JSON.stringify({ error: 'Not in voting phase' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      if (sociale.current_round_id !== roundId) {
+        return new Response(
+          JSON.stringify({ error: 'Round not active' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    } else {
+      // Get current round state
+      const { data: roundState, error: stateError } = await supabaseClient
+        .from('sociale_round_state')
+        .select('*')
+        .eq('sociale_id', socialeId)
+        .eq('round_id', roundId)
+        .eq('status', 'active')
+        .single()
+
+      if (stateError || !roundState) {
+        return new Response(
+          JSON.stringify({ error: 'Round not active' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      if (roundState.phase !== 'vote') {
+        return new Response(
+          JSON.stringify({ error: 'Not in voting phase' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     }
 
-    // Check if voting phase is active
-    console.log('🔥 Vote submission - Round state phase:', roundState.phase);
-    console.log('🔥 Vote submission - Round ID:', roundId);
-    console.log('🔥 Vote submission - Socialite ID:', socialiteId);
-    
-    if (roundState.phase !== 'vote') {
-      console.log('🔥 Vote submission rejected - Not in voting phase, current phase:', roundState.phase);
-      return new Response(
-        JSON.stringify({ error: 'Not in voting phase' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Verify target response exists and is for this round
+    // Verify target response exists and is for this round (use resolved_round_id)
     const { data: targetResponse, error: responseError } = await supabaseClient
       .from('sociale_responses')
       .select('*')
       .eq('id', targetResponseId)
-      .eq('round_id', roundId)
+      .eq('resolved_round_id', roundId)
       .single()
 
     if (responseError || !targetResponse) {
@@ -137,12 +156,12 @@ serve(async (req) => {
       )
     }
 
-    // Check if user already voted
+    // Check if user already voted (use resolved_round_id)
     const { data: existingVote, error: existingError } = await supabaseClient
       .from('sociale_votes')
       .select('*')
       .eq('sociale_id', socialeId)
-      .eq('round_id', roundId)
+      .eq('resolved_round_id', roundId)
       .eq('socialite_id', socialiteId)
       .single()
 
@@ -161,12 +180,20 @@ serve(async (req) => {
       )
     }
 
+    // Ambient rounds store their ID in ambient_round_id; regular rounds use round_id.
+    const roundIdPayload = isAmbient
+      ? { round_id: null, ambient_round_id: roundId }
+      : { round_id: roundId, ambient_round_id: null }
+    const scoreEventRoundIdPayload = isAmbient
+      ? { ambient_round_id: roundId }
+      : { round_id: roundId }
+
     // Create the vote
     const { data: vote, error: createError } = await supabaseClient
       .from('sociale_votes')
       .insert({
         sociale_id: socialeId,
-        round_id: roundId,
+        ...roundIdPayload,
         socialite_id: socialiteId,
         target_response_id: targetResponseId,
         created_at: new Date().toISOString(),
@@ -199,11 +226,11 @@ serve(async (req) => {
         .from('sociale_score_events')
         .insert({
           sociale_id: socialeId,
-          round_id: roundId,
+          ...scoreEventRoundIdPayload,
           socialite_id: targetResponse.socialite_id,
-          event_type: 'vote_received',
-          score_change: voteScore,
           reason: 'Received vote',
+          points: voteScore,
+          metadata: null,
           created_at: new Date().toISOString(),
         })
     }
@@ -213,7 +240,7 @@ serve(async (req) => {
       vote: {
         id: vote.id,
         socialeId: vote.sociale_id,
-        roundId: vote.round_id,
+        roundId: (vote as any).resolved_round_id ?? vote.round_id,
         socialiteId: vote.socialite_id,
         targetResponseId: vote.target_response_id,
         createdAt: vote.created_at,

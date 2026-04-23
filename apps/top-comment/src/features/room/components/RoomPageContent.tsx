@@ -122,13 +122,19 @@ export function RoomPageContent() {
   const socialeRoundIdForModals =
     activeSocialeRoundState?.round_id ?? primaryRoomSociale?.currentRoundId ?? null;
 
+  const isAmbientSociale = primaryRoomSociale?.mode === 'ambient';
+  const ambientRound = isAmbientSociale
+    ? (primaryRoomSociale?.runtimeState?.ambientRound as { id: string; content: string | null; title: string | null; type: string; settings?: any } | null ?? null)
+    : null;
+
   const { data: socialeModalRoundRow } = useQuery({
     queryKey: ['sociale-round-modal', socialeRoundIdForModals],
-    enabled: !!socialeRoundIdForModals && !!primaryRoomSociale,
+    // Ambient sociales: round data comes from runtimeState.ambientRound, not sociale_rounds
+    enabled: !!socialeRoundIdForModals && !!primaryRoomSociale && !isAmbientSociale,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sociale_rounds')
-        .select('id, content, title, order_index, type')
+        .select('id, content, title, order_index, type, settings')
         .eq('id', socialeRoundIdForModals as string)
         .single();
       if (error) throw error;
@@ -138,23 +144,73 @@ export function RoomPageContent() {
         title: string | null;
         order_index: number;
         type: string;
+        settings: Record<string, any> | null;
       };
     },
   });
+
+  // For ambient mode use runtime_state data; for regular mode use the DB row.
+  // Ambient round settings use a flat options array (option_id/option_text/is_correct).
+  // SocialeAnswerModal expects settings.snapshot.multipleChoice.options [{id,text}].
+  // Normalise ambient MC settings into the snapshot shape the modal understands.
+  const normalizedAmbientSettings = (() => {
+    if (!ambientRound) return null;
+    const s = ambientRound.settings as any;
+    
+    // If not trivia or already has a complete snapshot, return as-is
+    if (!s || s.format !== 'multiple_choice') return s ?? null;
+    if (s.snapshot?.multipleChoice?.options && s.snapshot?.multipleChoice?.correctOptionId) {
+      return s; // Modern format - already has complete snapshot
+    }
+    
+    // Legacy format - normalize from s.options array with is_correct flags
+    if (s.options && Array.isArray(s.options)) {
+      const options = s.options.map((opt: any) => ({
+        id: opt.option_id,
+        text: opt.option_text,
+      }));
+      const correctOption = s.options.find((opt: any) => opt.is_correct);
+      return {
+        ...s,
+        snapshot: {
+          prompt: s.snapshot?.prompt ?? s.prompt ?? ambientRound.content ?? '',
+          explanation: s.snapshot?.explanation ?? null,
+          multipleChoice: {
+            options,
+            correctOptionId: correctOption?.option_id ?? '',
+          },
+        },
+      };
+    }
+    
+    return s ?? null;
+  })();
+
+  const resolvedRoundRow = isAmbientSociale && ambientRound
+    ? {
+        id: ambientRound.id,
+        content: ambientRound.content,
+        title: ambientRound.title,
+        order_index: primaryRoomSociale?.currentRoundIndex ?? 0,
+        type: ambientRound.type,
+        settings: normalizedAmbientSettings,
+      }
+    : socialeModalRoundRow ?? null;
 
   const socialeModalContext: SocialeModalContext | null = useMemo(() => {
     if (!primaryRoomSociale || !socialeRoundIdForModals) return null;
     if (!isPlayableSocialeStatus(primaryRoomSociale.status)) return null;
     const prompt =
-      (socialeModalRoundRow?.content as string) ||
-      (socialeModalRoundRow?.title as string) ||
+      (resolvedRoundRow?.content as string) ||
+      (resolvedRoundRow?.title as string) ||
       '';
     return {
       socialeId: primaryRoomSociale.id,
       roundId: socialeRoundIdForModals,
       prompt,
-      roundIndex: socialeModalRoundRow?.order_index ?? primaryRoomSociale.currentRoundIndex ?? 0,
-      roundType: socialeModalRoundRow?.type,
+      roundIndex: resolvedRoundRow?.order_index ?? primaryRoomSociale.currentRoundIndex ?? 0,
+      roundType: resolvedRoundRow?.type,
+      roundSettings: resolvedRoundRow?.settings ?? undefined,
       phaseEndsAt: primaryRoomSociale.phaseEndsAt,
       phaseStartedAt: primaryRoomSociale.phaseStartedAt,
       voteSeconds: primaryRoomSociale.settings?.votingSeconds,
@@ -163,10 +219,11 @@ export function RoomPageContent() {
   }, [
     primaryRoomSociale,
     socialeRoundIdForModals,
-    socialeModalRoundRow?.content,
-    socialeModalRoundRow?.title,
-    socialeModalRoundRow?.order_index,
-    socialeModalRoundRow?.type,
+    resolvedRoundRow?.content,
+    resolvedRoundRow?.title,
+    resolvedRoundRow?.order_index,
+    resolvedRoundRow?.type,
+    resolvedRoundRow?.settings,
     isPlayableSocialeStatus,
   ]);
 

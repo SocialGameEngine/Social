@@ -9,12 +9,16 @@ import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { supabase } from '../../../supabase/client';
 import type { SocialeRound } from '../../../domain/types/sociale.types';
 import { useSocialeChannel } from './useSocialeChannel';
+import { useSociale } from './useSociale';
 
 /**
- * Hook for fetching rounds for a Sociale
+ * Hook for fetching rounds for a Sociale.
+ * Ambient sociales have no sociale_rounds rows — returns [] for them.
  */
 export function useSocialeRounds(socialeId?: string) {
   const queryClient = useQueryClient();
+  const { data: sociale } = useSociale(socialeId);
+  const isAmbient = sociale?.mode === 'ambient';
 
   // Use unified sociale channel instead of dedicated rounds channel
   const onPayload = useCallback((payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
@@ -29,13 +33,13 @@ export function useSocialeRounds(socialeId?: string) {
     queryKey: ['sociale_rounds', socialeId],
     queryFn: async () => {
       if (!socialeId) return [];
-      
+
       const { data, error } = await supabase
         .from('sociale_rounds')
         .select('*')
         .eq('sociale_id', socialeId)
         .order('order_index', { ascending: true });
-      
+
       if (error) throw error;
       return (data ?? []).map((round) => ({
         id: round.id,
@@ -50,17 +54,21 @@ export function useSocialeRounds(socialeId?: string) {
         updatedAt: round.updated_at,
       })) as SocialeRound[];
     },
-    enabled: !!socialeId,
+    enabled: !!socialeId && !isAmbient,
   });
 }
 
 /**
- * Hook for fetching the current round
+ * Hook for fetching the current round.
+ * For ambient sociales, returns the round from runtime_state.ambientRound.
  */
 export function useCurrentRound(socialeId?: string, currentRoundId?: string) {
+  const { data: sociale } = useSociale(socialeId);
   const { data: rounds = [] } = useSocialeRounds(socialeId);
-  
-  const currentRound = rounds.find(round => round.id === currentRoundId);
-  
-  return currentRound || null;
+
+  if (sociale?.mode === 'ambient') {
+    return (sociale.runtimeState?.ambientRound as SocialeRound | null) ?? null;
+  }
+
+  return rounds.find(round => round.id === currentRoundId) ?? null;
 }

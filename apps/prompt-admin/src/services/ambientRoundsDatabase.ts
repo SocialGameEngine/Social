@@ -66,13 +66,57 @@ export async function reorderAmbientRounds(orderedIds: string[]): Promise<void> 
 export async function replaceAllAmbientRounds(
   rows: AmbientRoundExportRow[],
 ): Promise<void> {
-  // Delete all existing
-  await supabase
+  // Strategy: Delete all referencing data first, then delete ambient_rounds, then insert new ones
+  // This is necessary because FK constraints prevent deletion of rounds that are referenced
+  
+  // Step 1: Get all existing ambient round IDs
+  const { data: existingRecords, error: fetchError } = await supabase
     .from('ambient_rounds')
-    .delete()
-    .neq('id', '00000000-0000-0000-0000-000000000000');
+    .select('id');
+  
+  if (fetchError) throw fetchError;
+  
+  if (existingRecords && existingRecords.length > 0) {
+    const existingIds = existingRecords.map(r => r.id);
+    
+    // Step 2: Delete all referencing records in batches
+    // Delete sociale_responses that reference these ambient rounds
+    const DELETE_CHUNK = 100;
+    for (let i = 0; i < existingIds.length; i += DELETE_CHUNK) {
+      const chunk = existingIds.slice(i, i + DELETE_CHUNK);
+      
+      // Delete responses
+      await supabase
+        .from('sociale_responses')
+        .delete()
+        .in('ambient_round_id', chunk);
+      
+      // Delete votes
+      await supabase
+        .from('sociale_votes')
+        .delete()
+        .in('ambient_round_id', chunk);
+      
+      // Delete score events
+      await supabase
+        .from('sociale_score_events')
+        .delete()
+        .in('ambient_round_id', chunk);
+    }
+    
+    // Step 3: Now delete all ambient rounds
+    for (let i = 0; i < existingIds.length; i += DELETE_CHUNK) {
+      const chunk = existingIds.slice(i, i + DELETE_CHUNK);
+      const { error: deleteError } = await supabase
+        .from('ambient_rounds')
+        .delete()
+        .in('id', chunk);
+      
+      if (deleteError) throw deleteError;
+    }
+  }
 
-  // Insert in chunks of 50
+  // Step 4: Insert new records in chunks
   const CHUNK = 50;
   for (let i = 0; i < rows.length; i += CHUNK) {
     const { error } = await supabase

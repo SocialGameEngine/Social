@@ -48,12 +48,15 @@ serve(async (req) => {
     const { roomId, title, description, mode, totalRounds, rounds } = body
 
     // Validate required fields
-    if (!roomId || !mode || !totalRounds) {
+    if (!roomId || !mode) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: roomId, mode, totalRounds' }),
+        JSON.stringify({ error: 'Missing required fields: roomId, mode' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Derive totalRounds: use provided value, fall back to rounds array length, or 0 (ambient overrides later)
+    const resolvedTotalRounds = totalRounds ?? rounds?.length ?? 0
 
     // Verify user is a member of the room (not banned)
     const { data: membership, error: membershipError } = await supabaseClient
@@ -80,7 +83,7 @@ serve(async (req) => {
         title: title || null,
         description: description || null,
         mode,
-        total_rounds: totalRounds,
+        total_rounds: resolvedTotalRounds,
         status: 'draft',
         current_round_index: null,
         created_at: new Date().toISOString(),

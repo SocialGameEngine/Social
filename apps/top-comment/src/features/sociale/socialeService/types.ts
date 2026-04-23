@@ -103,7 +103,9 @@ export type SocialiteRow = {
 export type SocialeResponseRow = {
   id: string;
   sociale_id: string;
-  round_id: string;
+  round_id: string | null;
+  ambient_round_id: string | null;
+  resolved_round_id: string | null;
   socialite_id: string;
   type: string;
   value: Json;
@@ -119,7 +121,9 @@ export type SocialeResponseRow = {
 export type SocialeVoteRow = {
   id: string;
   sociale_id: string;
-  round_id: string;
+  round_id: string | null;
+  ambient_round_id: string | null;
+  resolved_round_id: string | null;
   socialite_id: string;
   target_response_id: string;
   created_at: string;

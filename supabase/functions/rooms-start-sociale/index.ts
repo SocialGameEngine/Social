@@ -170,23 +170,48 @@ serve(async (req: Request) => {
       )
     }
 
-    // Get the first round
-    console.log('Fetching first round for Sociale:', targetSocialeId)
-    const { data: firstRound, error: roundError } = await supabase
-      .from('sociale_rounds')
-      .select('*')
-      .eq('sociale_id', targetSocialeId)
-      .eq('order_index', 0)
-      .single()
+    // Get the first round — ambient mode uses ambient_rounds, all other modes use sociale_rounds
+    console.log('Fetching first round for Sociale:', targetSocialeId, 'mode:', sociale.mode)
+    let firstRound: any = null
+    const isAmbient = sociale.mode === 'ambient'
 
-    console.log('Round fetch result:', { firstRound, error: roundError })
+    if (isAmbient) {
+      const { data, error } = await supabase
+        .from('ambient_rounds')
+        .select('*')
+        .eq('order_index', 0)
+        .single()
 
-    if (roundError || !firstRound) {
-      console.error('No rounds found for Sociale:', roundError)
-      return new Response(
-        JSON.stringify({ error: 'No rounds found for this Sociale', details: roundError }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      )
+      console.log('Ambient round fetch result:', { data, error })
+
+      if (error || !data) {
+        console.error('No ambient rounds found:', error)
+        return new Response(
+          JSON.stringify({ error: 'No ambient rounds found. Populate the ambient_rounds library first.', details: error }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+
+      firstRound = data
+    } else {
+      const { data, error } = await supabase
+        .from('sociale_rounds')
+        .select('*')
+        .eq('sociale_id', targetSocialeId)
+        .eq('order_index', 0)
+        .single()
+
+      console.log('Round fetch result:', { data, error })
+
+      if (error || !data) {
+        console.error('No rounds found for Sociale:', error)
+        return new Response(
+          JSON.stringify({ error: 'No rounds found for this Sociale', details: error }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+
+      firstRound = data
     }
 
     // Get existing Socialites who have explicitly joined the Sociale
@@ -264,27 +289,29 @@ serve(async (req: Request) => {
       )
     }
 
-    // Create round state for the first round
-    const { error: roundStateError } = await supabase
-      .from('sociale_round_state')
-      .insert({
-        sociale_id: targetSocialeId,
-        round_id: firstRound.id,
-        status: 'active',
-        phase: 'answer',
-        started_at: nowIso,
-        phase_started_at: nowIso,
-        phase_ends_at: phaseEndsAt,
-        created_at: nowIso,
-        updated_at: nowIso,
-      })
+    // Create round state for the first round (skipped for ambient — no sociale_rounds FK to reference)
+    if (!isAmbient) {
+      const { error: roundStateError } = await supabase
+        .from('sociale_round_state')
+        .insert({
+          sociale_id: targetSocialeId,
+          round_id: firstRound.id,
+          status: 'active',
+          phase: 'answer',
+          started_at: nowIso,
+          phase_started_at: nowIso,
+          phase_ends_at: phaseEndsAt,
+          created_at: nowIso,
+          updated_at: nowIso,
+        })
 
-    if (roundStateError) {
-      console.error('Failed to create round state:', roundStateError)
-      return new Response(
-        JSON.stringify({ error: `Failed to create round state: ${roundStateError.message}`, details: roundStateError }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
+      if (roundStateError) {
+        console.error('Failed to create round state:', roundStateError)
+        return new Response(
+          JSON.stringify({ error: `Failed to create round state: ${roundStateError.message}`, details: roundStateError }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        )
+      }
     }
 
     // NOTE: Trivia snapshots are now created in sociales-create, not here

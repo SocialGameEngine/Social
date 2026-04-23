@@ -472,7 +472,6 @@ export async function populateRoundContent(roundId: string): Promise<void> {
       }
     }
   } catch (error) {
-    console.error(`Failed to populate content for round ${roundId}:`, error);
     const fallbackTitle = round.type === 'topic' ? 'Hot Topic' : 'Trivia Question';
     const fallbackContent = round.type === 'topic' 
       ? 'No prompt available' 

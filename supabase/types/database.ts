@@ -915,10 +915,12 @@ export type Database = {
       }
       sociale_responses: {
         Row: {
+          ambient_round_id: string | null
           created_at: string
           id: string
           is_correct: boolean | null
-          round_id: string
+          resolved_round_id: string | null
+          round_id: string | null
           score_awarded: number | null
           sociale_id: string
           socialite_id: string
@@ -927,10 +929,12 @@ export type Database = {
           value: Json
         }
         Insert: {
+          ambient_round_id?: string | null
           created_at?: string
           id?: string
           is_correct?: boolean | null
-          round_id: string
+          resolved_round_id?: string | null
+          round_id?: string | null
           score_awarded?: number | null
           sociale_id: string
           socialite_id: string
@@ -939,10 +943,12 @@ export type Database = {
           value: Json
         }
         Update: {
+          ambient_round_id?: string | null
           created_at?: string
           id?: string
           is_correct?: boolean | null
-          round_id?: string
+          resolved_round_id?: string | null
+          round_id?: string | null
           score_awarded?: number | null
           sociale_id?: string
           socialite_id?: string
@@ -1098,31 +1104,37 @@ export type Database = {
       }
       sociale_score_events: {
         Row: {
+          ambient_round_id: string | null
           created_at: string
           id: string
           metadata: Json | null
           points: number
           reason: string
+          resolved_round_id: string | null
           round_id: string | null
           sociale_id: string
           socialite_id: string
         }
         Insert: {
+          ambient_round_id?: string | null
           created_at?: string
           id?: string
           metadata?: Json | null
           points: number
           reason: string
+          resolved_round_id?: string | null
           round_id?: string | null
           sociale_id: string
           socialite_id: string
         }
         Update: {
+          ambient_round_id?: string | null
           created_at?: string
           id?: string
           metadata?: Json | null
           points?: number
           reason?: string
+          resolved_round_id?: string | null
           round_id?: string | null
           sociale_id?: string
           socialite_id?: string
@@ -1153,25 +1165,31 @@ export type Database = {
       }
       sociale_votes: {
         Row: {
+          ambient_round_id: string | null
           created_at: string
           id: string
-          round_id: string
+          resolved_round_id: string | null
+          round_id: string | null
           sociale_id: string
           socialite_id: string
           target_response_id: string
         }
         Insert: {
+          ambient_round_id?: string | null
           created_at?: string
           id?: string
-          round_id: string
+          resolved_round_id?: string | null
+          round_id?: string | null
           sociale_id: string
           socialite_id: string
           target_response_id: string
         }
         Update: {
+          ambient_round_id?: string | null
           created_at?: string
           id?: string
-          round_id?: string
+          resolved_round_id?: string | null
+          round_id?: string | null
           sociale_id?: string
           socialite_id?: string
           target_response_id?: string

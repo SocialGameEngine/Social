@@ -114,29 +114,33 @@ export function SocialePhaseRenderer({
     }
   }, [socialeId]);
   
+  const isAmbient = sociale?.mode === 'ambient';
+
   const { data: rounds, isLoading: roundsLoading } = useQuery({
     queryKey: ['sociale-rounds', socialeId],
     queryFn: async () => {
       if (!socialeId) return [];
-      
+
       const { data, error } = await supabase
         .from('sociale_rounds')
         .select('*')
         .eq('sociale_id', socialeId)
         .order('order_index', { ascending: true });
-      
+
       if (error) throw error;
       return data || [];
     },
-    enabled: !!socialeId,
+    enabled: !!socialeId && !isAmbient,
   });
 
   // Simple loading check without useMemo
-  const isLoading = socialeLoading || roundsLoading || socialitesLoading || responsesLoading || votesLoading;
-  
-  // Simple current round calculation without useMemo
-  const currentRound = rounds?.find((r: { id: string }) => r.id === sociale?.currentRoundId) ?? null;
-  
+  const isLoading = socialeLoading || (!isAmbient && roundsLoading) || socialitesLoading || responsesLoading || votesLoading;
+
+  // Ambient mode: current round lives in runtime_state.ambientRound, not sociale_rounds
+  const currentRound = isAmbient
+    ? (sociale?.runtimeState?.ambientRound ?? null)
+    : (rounds?.find((r: { id: string }) => r.id === sociale?.currentRoundId) ?? null);
+
   // Convert database Json type to expected Record<string, any> type for components
   const normalizedCurrentRound = currentRound ? {
     ...currentRound,

@@ -88,9 +88,32 @@ export function SocialeRoomPhaseController({
 
   const currentRoundId =
     activeRoundState?.round_id ?? sociale?.currentRoundId ?? undefined;
-  
+
   // Get current round data for settings
   const currentRound = useCurrentRound(socialeId, currentRoundId);
+
+  // Ambient rounds store MC options as {option_id, option_text, is_correct}[]
+  // but SocialeAnswerModal expects settings.snapshot.multipleChoice.options as {id, text}[].
+  // Normalise here so the dispatch to OPEN_SOCIALE_MODAL carries the correct shape.
+  const normalizedRoundSettings = (() => {
+    const s = currentRound?.settings as any;
+    if (!s || s.format !== 'multiple_choice') return s ?? undefined;
+    if (s.snapshot?.multipleChoice) return s; // already in snapshot shape (regular rounds)
+    const options = (s.options ?? []).map((opt: any) => ({
+      id: opt.option_id,
+      text: opt.option_text,
+    }));
+    const correctOption = (s.options ?? []).find((opt: any) => opt.is_correct);
+    return {
+      ...s,
+      snapshot: {
+        multipleChoice: {
+          options,
+          correctOptionId: correctOption?.option_id ?? '',
+        },
+      },
+    };
+  })();
 
   const { data: myResponses = [] } = useMyResponses(socialeId, currentSocialite?.id);
   const { data: myVotes = [] } = useMyVotes(socialeId, currentSocialite?.id);
@@ -148,7 +171,7 @@ export function SocialeRoomPhaseController({
           hasSubmitted={hasSubmittedAnswer}
           onOpenModal={onOpenModal}
           participants={participants}
-          roundSettings={currentRound?.settings}
+          roundSettings={normalizedRoundSettings}
           currentRound={currentRound}
         />
       );
@@ -162,7 +185,7 @@ export function SocialeRoomPhaseController({
           hasSubmitted={hasSubmittedVote}
           onOpenModal={onOpenModal}
           participants={participants}
-          roundSettings={currentRound?.settings}
+          roundSettings={normalizedRoundSettings}
           currentRound={currentRound}
         />
       );

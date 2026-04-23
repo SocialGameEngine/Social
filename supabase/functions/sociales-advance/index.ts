@@ -96,6 +96,154 @@ serve(async (req) => {
       )
     }
 
+    // =========================================================================
+    // AMBIENT MODE — no sociale_round_state rows; round data lives in
+    // runtime_state.ambientRound and ambient_rounds table.
+    // =========================================================================
+    if (sociale.mode === 'ambient') {
+      const currentRoundIndex = sociale.current_round_index ?? 0
+      const currentPhase = sociale.current_phase || 'answer'
+      const ambientRound = (sociale.runtime_state as any)?.ambientRound
+
+      if (!ambientRound) {
+        return new Response(
+          JSON.stringify({ error: 'Ambient round data missing from runtime_state' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Determine phase sequence from round type
+      const phaseSequence: string[] = ambientRound.type === 'trivia'
+        ? ['answer', 'reveal', 'results']
+        : ['answer', 'vote', 'results']
+
+      const currentPhaseIndex = phaseSequence.indexOf(currentPhase)
+      const nowIso = new Date().toISOString()
+
+      const buildAmbientResponse = (updatedSociale: any, nextPhase: string): AdvanceSocialeResponse => ({
+        sociale: {
+          id: updatedSociale.id,
+          roomId: updatedSociale.room_id,
+          createdBy: updatedSociale.created_by,
+          title: updatedSociale.title,
+          description: updatedSociale.description,
+          mode: updatedSociale.mode,
+          status: updatedSociale.status,
+          currentRoundIndex: updatedSociale.current_round_index,
+          currentRoundId: updatedSociale.current_round_id,
+          currentPhase: updatedSociale.current_phase,
+          phaseStartedAt: updatedSociale.phase_started_at,
+          phaseEndsAt: updatedSociale.phase_ends_at,
+          totalRounds: updatedSociale.total_rounds,
+          settings: updatedSociale.settings || {},
+          scoreboard: updatedSociale.scoreboard || {},
+          runtimeState: updatedSociale.runtime_state,
+          createdAt: updatedSociale.created_at,
+          updatedAt: updatedSociale.updated_at,
+          startedAt: updatedSociale.started_at,
+          endedAt: updatedSociale.ended_at,
+          legacySessionId: updatedSociale.legacy_session_id,
+        },
+        advanced: true,
+        nextPhase,
+      })
+
+      if (currentPhaseIndex < phaseSequence.length - 1) {
+        // Advance within current round
+        const nextPhase = phaseSequence[currentPhaseIndex + 1]
+        const settings = ambientRound.settings || {}
+        const phaseDuration: Record<string, number> = {
+          answer: settings.answerSeconds ?? 30,
+          vote: settings.votingSeconds ?? 30,
+          reveal: settings.revealSeconds ?? 5,
+          results: settings.resultsSeconds ?? 8,
+        }
+        const phaseEndsAt = new Date(Date.now() + (phaseDuration[nextPhase] ?? 15) * 1000).toISOString()
+
+        const { data: updatedSociale, error: updateError } = await supabaseClient
+          .from('sociales')
+          .update({ current_phase: nextPhase, phase_started_at: nowIso, phase_ends_at: phaseEndsAt, updated_at: nowIso })
+          .eq('id', socialeId)
+          .select()
+          .single()
+
+        if (updateError) throw updateError
+
+        return new Response(JSON.stringify(buildAmbientResponse(updatedSociale, nextPhase)),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      } else {
+        // Last phase of current round — move to next round
+        const nextRoundIndex = currentRoundIndex + 1
+
+        if (nextRoundIndex >= (sociale.total_rounds ?? 0)) {
+          // End the Sociale
+          const { error: endError } = await supabaseClient
+            .from('sociales')
+            .update({ status: 'completed', ended_at: nowIso, updated_at: nowIso })
+            .eq('id', socialeId)
+
+          if (endError) throw endError
+
+          return new Response(
+            JSON.stringify({ sociale: { ...sociale, status: 'completed' }, advanced: true, nextPhase: 'completed' }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        // Fetch the next ambient round
+        const { data: nextAmbientRound, error: nextRoundError } = await supabaseClient
+          .from('ambient_rounds')
+          .select('*')
+          .eq('order_index', nextRoundIndex)
+          .single()
+
+        if (nextRoundError || !nextAmbientRound) {
+          return new Response(
+            JSON.stringify({ error: `Ambient round at index ${nextRoundIndex} not found` }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        const nextSettings = (nextAmbientRound.settings as any) || {}
+        const phaseEndsAt = new Date(Date.now() + (nextSettings.answerSeconds ?? 30) * 1000).toISOString()
+
+        const updatedRuntimeState = {
+          ...((sociale.runtime_state as Record<string, any>) || {}),
+          ambientRound: {
+            id: nextAmbientRound.id,
+            type: nextAmbientRound.type,
+            title: nextAmbientRound.title,
+            content: nextAmbientRound.content,
+            settings: nextAmbientRound.settings,
+          },
+        }
+
+        const { data: updatedSociale, error: updateError } = await supabaseClient
+          .from('sociales')
+          .update({
+            current_round_index: nextRoundIndex,
+            current_round_id: nextAmbientRound.id,
+            current_phase: 'answer',
+            phase_started_at: nowIso,
+            phase_ends_at: phaseEndsAt,
+            runtime_state: updatedRuntimeState,
+            updated_at: nowIso,
+          })
+          .eq('id', socialeId)
+          .select()
+          .single()
+
+        if (updateError) throw updateError
+
+        return new Response(JSON.stringify(buildAmbientResponse(updatedSociale, 'answer')),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+    }
+
+    // =========================================================================
+    // REGULAR MODE (topics_only / trivia_only / alternating / custom)
+    // =========================================================================
+
     // Get current round state.
     // Prefer `sociales.current_round_id` so we don't accidentally pick the wrong active row.
     let roundStateQuery: any = supabaseClient

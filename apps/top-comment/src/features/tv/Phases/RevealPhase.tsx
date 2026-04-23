@@ -68,6 +68,11 @@ export function RevealPhase({
         isCorrect: opt.id === correctOptionId,
       }));
 
+      // Calculate delay for explanation: reveal sequence takes (wrongCount * 750ms) + 500ms + buffer
+      const wrongCount = options.length - 1;
+      const stepMs = 750;
+      const explanationDelay = (wrongCount * stepMs + 500 + 800) / 1000; // Convert to seconds, add 800ms buffer
+
       return (
         <section className="flex flex-col gap-8">
           <motion.div
@@ -82,13 +87,13 @@ export function RevealPhase({
             </p>
           </motion.div>
 
-          <TVRevealSequence tiles={tiles} stepMs={750} />
+          <TVRevealSequence tiles={tiles} stepMs={stepMs} />
 
           {snapshot.explanation && (
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.35 }}
+              transition={{ duration: 0.6, delay: explanationDelay }}
               className="mx-auto max-w-3xl text-center text-lg md:text-2xl italic text-white/80"
             >
               {snapshot.explanation}

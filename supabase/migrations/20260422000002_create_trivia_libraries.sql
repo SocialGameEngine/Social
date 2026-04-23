@@ -60,28 +60,36 @@ ALTER TABLE public.trivia_question_aliases ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
 -- Read access for all authenticated users
+DROP POLICY IF EXISTS "Trivia question packs - Select" ON public.trivia_question_packs;
 CREATE POLICY "Trivia question packs - Select" ON public.trivia_question_packs
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Trivia questions - Select" ON public.trivia_questions;
 CREATE POLICY "Trivia questions - Select" ON public.trivia_questions
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Trivia question options - Select" ON public.trivia_question_options;
 CREATE POLICY "Trivia question options - Select" ON public.trivia_question_options
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Trivia question aliases - Select" ON public.trivia_question_aliases;
 CREATE POLICY "Trivia question aliases - Select" ON public.trivia_question_aliases
   FOR SELECT USING (true);
 
 -- Write access for service role only
+DROP POLICY IF EXISTS "Trivia question packs - All" ON public.trivia_question_packs;
 CREATE POLICY "Trivia question packs - All" ON public.trivia_question_packs
   FOR ALL USING (auth.role() = 'service_role');
 
+DROP POLICY IF EXISTS "Trivia questions - All" ON public.trivia_questions;
 CREATE POLICY "Trivia questions - All" ON public.trivia_questions
   FOR ALL USING (auth.role() = 'service_role');
 
+DROP POLICY IF EXISTS "Trivia question options - All" ON public.trivia_question_options;
 CREATE POLICY "Trivia question options - All" ON public.trivia_question_options
   FOR ALL USING (auth.role() = 'service_role');
 
+DROP POLICY IF EXISTS "Trivia question aliases - All" ON public.trivia_question_aliases;
 CREATE POLICY "Trivia question aliases - All" ON public.trivia_question_aliases
   FOR ALL USING (auth.role() = 'service_role');
 
@@ -103,10 +111,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_trivia_question_packs_updated_at ON public.trivia_question_packs;
 CREATE TRIGGER update_trivia_question_packs_updated_at 
   BEFORE UPDATE ON public.trivia_question_packs 
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_trivia_questions_updated_at ON public.trivia_questions;
 CREATE TRIGGER update_trivia_questions_updated_at 
   BEFORE UPDATE ON public.trivia_questions 
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

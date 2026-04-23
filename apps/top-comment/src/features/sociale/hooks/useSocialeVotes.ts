@@ -76,7 +76,8 @@ export function useRoundVotes(socialeId?: string, roundId?: string) {
   const onPayload = useCallback((payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
     if (payload?.table === 'sociale_votes' && roundId) {
       const record = payload.new || payload.old;
-      if ((record as any)?.round_id === roundId) {
+      const rec = record as any;
+      if (rec?.resolved_round_id === roundId || rec?.round_id === roundId) {
         void queryClient.invalidateQueries({ queryKey: ['sociale-votes', socialeId, roundId] });
       }
     }
@@ -93,7 +94,7 @@ export function useRoundVotes(socialeId?: string, roundId?: string) {
         .from('sociale_votes')
         .select('*')
         .eq('sociale_id', socialeId)
-        .eq('round_id', roundId)
+        .eq('resolved_round_id', roundId)
         .order('created_at', { ascending: true });
       
       if (error) {
