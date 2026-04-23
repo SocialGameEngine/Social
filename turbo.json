@@ -13,7 +13,7 @@
   "concurrency": "16",
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "^type-check"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
       "env": [
         "VITE_SUPABASE_URL",
@@ -24,7 +24,7 @@
         "OPENAI_API_KEY",
         "VITE_OPENAI_API_KEY"
       ],
-      "inputs": ["!apps/event-platform/**"]
+      "inputs": ["!apps/event-platform/**", "src/**/*.ts", "src/**/*.tsx", "tsconfig.json", "package.json"]
     },
     "dev": {
       "cache": false,

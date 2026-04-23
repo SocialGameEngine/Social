@@ -21,6 +21,7 @@ import {
   mapSocialeResponse,
   mapSocialeVote,
 } from './mappers';
+import type { SocialeResponseRow, SocialeVoteRow } from './types';
 
 /**
  * Fetch a Sociale by ID
@@ -107,7 +108,7 @@ export async function fetchSocialeResponses(roundId: string): Promise<SocialeRes
     .order('created_at', { ascending: true });
 
   if (error) throw error;
-  return (data ?? []).map(mapSocialeResponse).filter((r): r is SocialeResponse => r !== null);
+  return (data as SocialeResponseRow[] ?? []).map(mapSocialeResponse).filter((r): r is SocialeResponse => r !== null);
 }
 
 /**
@@ -120,7 +121,7 @@ export async function fetchSocialeVotes(roundId: string): Promise<SocialeVote[]>
     .eq('resolved_round_id', roundId);
 
   if (error) throw error;
-  return (data ?? []).map(mapSocialeVote).filter((v): v is SocialeVote => v !== null);
+  return (data as SocialeVoteRow[] ?? []).map(mapSocialeVote).filter((v): v is SocialeVote => v !== null);
 }
 
 /**

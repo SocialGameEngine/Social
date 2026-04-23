@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../supabase/client';
 import type { SocialeResponse, SubmitSocialeResponseRequest } from '../../../domain/types/sociale.types';
 import { mapSocialeResponse, submitSocialeResponse } from '../socialeService';
+import type { SocialeResponseRow } from '../socialeService/types';
 import { useSocialeChannel } from './useSocialeChannel';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { handleSupabaseError } from '../../../shared/utils/handleAsyncError';
@@ -50,7 +51,7 @@ export function useSocialeResponses(socialeId?: string) {
         if (error.code === 'PGRST116') return [];
         throw error;
       }
-      return data.map(mapSocialeResponse).filter(Boolean) as SocialeResponse[];
+      return (data as SocialeResponseRow[]).map(mapSocialeResponse).filter(Boolean) as SocialeResponse[];
     },
     enabled: !!socialeId,
   });
@@ -90,7 +91,7 @@ export function useRoundResponses(socialeId?: string, roundId?: string) {
         if (error.code === 'PGRST116') return [];
         throw error;
       }
-      const mapped = data.map(mapSocialeResponse).filter(Boolean) as SocialeResponse[];
+      const mapped = (data as SocialeResponseRow[]).map(mapSocialeResponse).filter(Boolean) as SocialeResponse[];
 
       // Ensure at most one response per socialite per round by keeping the
       // latest-created response for each socialiteId.
@@ -138,7 +139,7 @@ export function useMyResponses(socialeId?: string, socialiteId?: string) {
         if (error.code === 'PGRST116') return [];
         throw error;
       }
-      const mapped = data.map(mapSocialeResponse).filter(Boolean) as SocialeResponse[];
+      const mapped = (data as SocialeResponseRow[]).map(mapSocialeResponse).filter(Boolean) as SocialeResponse[];
       // Keep only the latest response for this player (if they somehow have more).
       return mapped.length <= 1
         ? mapped
@@ -215,7 +216,7 @@ export function useUpdateResponse() {
       if (error) {
         handleSupabaseError(error, { context: 'updateResponse', rethrow: true });
       }
-      return mapSocialeResponse(data);
+      return mapSocialeResponse(data as SocialeResponseRow);
     },
   });
 }

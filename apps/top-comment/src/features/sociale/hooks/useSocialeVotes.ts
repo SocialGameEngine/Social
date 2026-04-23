@@ -9,6 +9,7 @@ import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { supabase } from '../../../supabase/client';
 import type { SocialeVote, SubmitSocialeVoteRequest } from '../../../domain/types/sociale.types';
 import { mapSocialeVote } from '../socialeService';
+import type { SocialeVoteRow } from '../socialeService/types';
 import { useSocialeChannel } from './useSocialeChannel';
 import { logger } from '../../../shared/utils/logger';
 
@@ -60,7 +61,7 @@ export function useSocialeVotes(socialeId?: string) {
         if (error.code === 'PGRST116') return [];
         throw error;
       }
-      return data.map(mapSocialeVote).filter(Boolean) as SocialeVote[];
+      return (data as SocialeVoteRow[]).map(mapSocialeVote).filter(Boolean) as SocialeVote[];
     },
     enabled: !!socialeId,
   });
@@ -101,7 +102,7 @@ export function useRoundVotes(socialeId?: string, roundId?: string) {
         if (error.code === 'PGRST116') return [];
         throw error;
       }
-      return data.map(mapSocialeVote).filter(Boolean) as SocialeVote[];
+      return (data as SocialeVoteRow[]).map(mapSocialeVote).filter(Boolean) as SocialeVote[];
     },
     enabled: !!socialeId && !!roundId,
   });
@@ -141,7 +142,7 @@ export function useMyVotes(socialeId?: string, socialiteId?: string) {
         if (error.code === 'PGRST116') return [];
         throw error;
       }
-      return data.map(mapSocialeVote).filter(Boolean) as SocialeVote[];
+      return (data as SocialeVoteRow[]).map(mapSocialeVote).filter(Boolean) as SocialeVote[];
     },
     enabled: !!socialeId && !!socialiteId,
   });
@@ -224,7 +225,7 @@ export function useUpdateVote() {
         if (error.code === 'PGRST116') return null;
         throw error;
       }
-      return mapSocialeVote(data);
+      return mapSocialeVote(data as SocialeVoteRow);
     },
     onError: (error) => {
       logger.error('Vote mutation failed', { error: error instanceof Error ? error.message : String(error) });
