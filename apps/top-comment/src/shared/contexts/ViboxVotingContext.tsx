@@ -1,6 +1,23 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '../../supabase/client';
+
+// RPC function types based on database schema
+type VoteCountResult = {
+  track_id: string;
+  upvotes: number;
+  downvotes: number;
+  total_votes: number;
+  net_votes: number;
+  last_voted_at: string;
+};
+
+type UserVoteResult = {
+  created_at: string;
+  track_id: string;
+  vote_type: string;
+  updated_at?: string;
+};
 import { logger } from '../../shared/utils/logger';
 import { throttle } from '../../shared/utils/realtimeThrottle';
 
@@ -64,19 +81,19 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
     try {
       if (!roomId) return;
       
-      const { data, error } = await (supabase.rpc as any)('get_vote_counts_from_db', { p_room_id: roomId! });
+      const { data, error } = await supabase.rpc('get_vote_counts_from_db', { p_room_id: roomId! });
       if (error) throw error;
       
       const countsMap = new Map<string, VoteCounts>();
       if (Array.isArray(data)) {
-        data.forEach((count: any) => {
+        data.forEach((count) => {
           countsMap.set(count.track_id, {
             track_id: count.track_id,
             upvotes: count.upvotes || 0,
             downvotes: count.downvotes || 0,
             total_votes: count.total_votes || 0,
             net_votes: (count.upvotes || 0) - (count.downvotes || 0),
-            last_voted_at: count.last_voted_at || new Date().toISOString(),
+            last_voted_at: new Date().toISOString(),
           });
         });
       }
@@ -91,7 +108,7 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
     try {
       if (!roomId || !membershipId) return;
 
-      const { data, error } = await (supabase.rpc as any)('get_user_votes_from_db', { 
+      const { data, error } = await supabase.rpc('get_user_votes_from_db', { 
         p_room_id: roomId!, 
         p_membership_id: membershipId! 
       });
@@ -99,14 +116,14 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
 
       const votesMap = new Map<string, UserVote>();
       if (Array.isArray(data)) {
-        data.forEach((vote: any) => {
+        data.forEach((vote: UserVoteResult) => {
           votesMap.set(vote.track_id, {
             track_id: vote.track_id,
             room_id: roomId,
             membership_id: membershipId,
-            vote_type: vote.vote_type,
+            vote_type: vote.vote_type as 'up' | 'down',
             created_at: vote.created_at,
-            updated_at: vote.updated_at,
+            updated_at: vote.updated_at || vote.created_at,
           });
         });
       }
@@ -127,7 +144,7 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
         return;
       }
 
-      const { error } = await (supabase.rpc as any)('vote_on_track', {
+      const { error } = await supabase.rpc('vote_on_track', {
         p_room_id: roomId!,
         p_membership_id: membershipId!,
         p_track_id: trackId,
@@ -200,8 +217,9 @@ export function VotingProvider({ children, room, memberships = [] }: VotingProvi
     try {
       if (!roomId || !membershipId) throw new Error('No room or membership context found');
       
-      const { error } = await (supabase.rpc as any)('remove_vote', {
+      const { error } = await supabase.rpc('remove_vote', {
         p_room_id: roomId!,
+        p_membership_id: membershipId!,
         p_track_id: trackId
       });
 

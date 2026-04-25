@@ -12,6 +12,9 @@
 -- Drop the broken restrictive policy that blocks Realtime
 DROP POLICY IF EXISTS "Users can manage their own socialite" ON socialites;
 
+-- Drop existing policy if it exists (may have been created by earlier migration)
+DROP POLICY IF EXISTS "Room members can view socialites" ON socialites;
+
 -- Restore the original working policy that allows room members to see socialites
 -- This is required for Realtime to work properly
 CREATE POLICY "Room members can view socialites"
@@ -27,15 +30,20 @@ CREATE POLICY "Room members can view socialites"
 
 -- Allow users to manage their own socialites (INSERT, UPDATE, DELETE)
 -- This maintains security while allowing Realtime to work
-CREATE POLICY "Users can manage their own socialite"
+-- Drop any existing policies first
+DROP POLICY IF EXISTS "Users can insert their own socialite" ON socialites;
+DROP POLICY IF EXISTS "Users can update their own socialite" ON socialites;
+DROP POLICY IF EXISTS "Users can delete their own socialite" ON socialites;
+
+CREATE POLICY "Users can insert their own socialite"
   ON socialites FOR INSERT
   WITH CHECK (user_id = auth.uid());
 
-CREATE POLICY "Users can manage their own socialite"
+CREATE POLICY "Users can update their own socialite"
   ON socialites FOR UPDATE
   USING (user_id = auth.uid());
 
-CREATE POLICY "Users can manage their own socialite"
+CREATE POLICY "Users can delete their own socialite"
   ON socialites FOR DELETE
   USING (user_id = auth.uid());
 

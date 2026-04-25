@@ -1,4 +1,10 @@
 import { supabase } from '../supabase/client';
+import type { Database } from '../../../../packages/db/src/supabase-types';
+
+type TriviaQuestionWithOptions = Database['public']['Tables']['trivia_questions']['Row'] & {
+  trivia_question_options: Database['public']['Tables']['trivia_question_options']['Row'][];
+  trivia_question_aliases: Database['public']['Tables']['trivia_question_aliases']['Row'][];
+};
 
 // --- Question Management Types ---
 
@@ -129,7 +135,7 @@ async function getQuestions(filters: QuestionFilters = {}): Promise<TriviaQuesti
   const { data, error } = await query;
   if (error) throw error;
 
-  return (data || []).map(q => ({
+  return (data || []).map((q: TriviaQuestionWithOptions) => ({
     id: q.id,
     packId: q.pack_id || undefined,
     format: q.format as 'multiple_choice' | 'written_answer',
@@ -144,13 +150,13 @@ async function getQuestions(filters: QuestionFilters = {}): Promise<TriviaQuesti
     createdBy: q.created_by || '',
     createdAt: q.created_at || '',
     updatedAt: q.updated_at || '',
-    options: (q as any).trivia_question_options?.map((opt: any) => ({
+    options: q.trivia_question_options?.map((opt) => ({
       id: opt.option_id, // Use option_id from database
       text: opt.option_text,
       isCorrect: opt.is_correct,
-      sortOrder: opt.sort_order,
+      sortOrder: opt.sort_order || 0,
     })),
-    aliases: (q as any).trivia_question_aliases?.map((alias: any) => ({
+    aliases: q.trivia_question_aliases?.map((alias) => ({
       text: alias.alias_text,
       normalized: alias.alias_normalized,
       matchType: 'alias' as const,

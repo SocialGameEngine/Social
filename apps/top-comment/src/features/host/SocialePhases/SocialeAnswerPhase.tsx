@@ -15,6 +15,7 @@ import {
 import { useHostSignals } from '../../room/hooks/useHostSignals';
 import { RoundAudioEditor } from '../components/RoundAudioEditor';
 import { ModerationQueue } from '../components/ModerationQueue';
+import { PredictiveRoundReview } from '../rounds/PredictiveRoundReview';
 import type { Socialite, SocialeResponse } from '../../../domain/types/sociale.types';
 import type { TriviaInteractionSettings } from '../../../domain/types/interaction.types';
 
@@ -209,6 +210,15 @@ export function SocialeAnswerPhase({
           />
         </div>
       </div>
+
+      {/* Predictive round host review panel */}
+      {isCurrentPlayerHost && currentRound?.type === 'predictive' && responses.length > 0 && (
+        <PredictiveRoundReview
+          socialeId={sociale.id}
+          responses={responses}
+          isDark={isDark}
+        />
+      )}
 
       {/* Response Status */}
       <div className={clsx(

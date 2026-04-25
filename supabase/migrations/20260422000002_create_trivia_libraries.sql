@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS public.trivia_question_packs (
   status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),
-  created_by TEXT REFERENCES auth.users(id) ON DELETE SET NULL
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL
 );
 
 -- Trivia questions
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS public.trivia_questions (
   accepted_answers TEXT[] DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),
-  created_by TEXT REFERENCES auth.users(id) ON DELETE SET NULL
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL
 );
 
 -- Trivia question options (for multiple choice questions)

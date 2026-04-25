@@ -10,6 +10,7 @@ import { FormField } from '@social/ui';
 import { useTheme } from '../../../shared/providers/ThemeProvider';
 import { supabase } from '../../../supabase/client';
 import { usePromptLibraries } from '../../../shared/hooks/usePromptLibraries';
+import { useQuery } from '@tanstack/react-query';
 import type { CreateSocialeRequest, SocialeMode, SocialeRound } from '../../../features/sociale';
 import { 
   generateTopicsOnlyRounds, 
@@ -64,6 +65,7 @@ export function SocialeCreateModal({
   const [voiceProfile, setVoiceProfile] = useState<string>('');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ambientPackId, setAmbientPackId] = useState<string>('00000000-0000-0000-0000-000000000001');
   const [previewData, setPreviewData] = useState<Array<{
     roundNumber: number;
     type: string;
@@ -77,6 +79,19 @@ export function SocialeCreateModal({
   
   // Load available prompt libraries
   const { data: libraries, isLoading: librariesLoading } = usePromptLibraries();
+
+  // Load ambient packs
+  const { data: ambientPacks = [] } = useQuery({
+    queryKey: ['ambient_packs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ambient_packs')
+        .select('*')
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   // Generate preview data for rounds (async with loading state)
   const generatePreviewData = async () => {
@@ -144,8 +159,10 @@ export function SocialeCreateModal({
         
         if (library) {
           try {
+            // HOSTED MODE: Trivia libraries are for host-controlled Sociales
+            // These are different from ambient packs which are for autonomous ambient mode
             if (library.type === 'trivia') {
-              // Fetch complete trivia questions for this pack
+              // Fetch real trivia questions from database
               const { data: questions } = await supabase
                 .from('trivia_questions')
                 .select(`
@@ -171,16 +188,10 @@ export function SocialeCreateModal({
                 libraryQuestions[libraryId] = [];
               }
             } else if (library.type === 'prompt') {
-              // Fetch real prompts for this library
-              const { data: prompts } = await supabase
-                .from('prompts')
-                .select('text')
-                .eq('library_id', libraryId)
-                .eq('is_active', true);
-              
-              if (prompts && prompts.length > 0) {
-                libraryContent[libraryId] = prompts.map((p: { text: string }) => p.text);
-              }
+              // HOSTED MODE: Topic/prompt libraries are for host-controlled Sociales
+              // These use static JSON files (no database table)
+              // Different from ambient packs which are for autonomous ambient mode
+              libraryContent[libraryId] = library.prompts || [];
             }
           } catch (error) {
             // Fallback to static content if available
@@ -301,6 +312,8 @@ export function SocialeCreateModal({
       let validationError: string | null = null;
       let isValid = true;
       
+      // HOSTED MODE: Regenerate prompt for host-controlled rounds
+      // (Not for ambient mode which uses ambient_packs)
       if (round.type === 'trivia' && round.libraryId) {
         // Fetch a different question from the same pack
         const { data: questions } = await supabase
@@ -319,16 +332,13 @@ export function SocialeCreateModal({
           isValid = false;
         }
       } else if (round.libraryId) {
-        // Fetch a different prompt from the same library
-        const { data: prompts } = await supabase
-          .from('prompts')
-          .select('text')
-          .eq('library_id', round.libraryId)
-          .eq('is_active', true)
-          .neq('text', round.prompt);
+        // HOSTED MODE: Topic prompts use static JSON libraries
+        // (Not for ambient mode which uses ambient_packs)
+        const library = libraries?.find(lib => lib.id === round.libraryId);
+        const availablePrompts = library?.prompts?.filter(p => p !== round.prompt) || [];
         
-        if (prompts && prompts.length > 0) {
-          newPrompt = prompts[Math.floor(Math.random() * prompts.length)].text;
+        if (availablePrompts.length > 0) {
+          newPrompt = availablePrompts[Math.floor(Math.random() * availablePrompts.length)];
           isValid = true;
         } else {
           newPrompt = 'No other prompts available';
@@ -398,6 +408,8 @@ export function SocialeCreateModal({
       let validationError: string | null = null;
       let isValid = true;
 
+      // HOSTED MODE: Change round type/library for host-controlled rounds
+      // (Not for ambient mode which uses ambient_packs)
       if (newType === 'trivia') {
         const { data: questions } = await supabase
           .from('trivia_questions')
@@ -413,14 +425,13 @@ export function SocialeCreateModal({
           isValid = false;
         }
       } else {
-        const { data: prompts } = await supabase
-          .from('prompts')
-          .select('text')
-          .eq('library_id', newLibraryId)
-          .eq('is_active', true);
+        // HOSTED MODE: Topic prompts use static JSON libraries
+        // (Not for ambient mode which uses ambient_packs)
+        const library = libraries?.find(lib => lib.id === newLibraryId);
+        const availablePrompts = library?.prompts || [];
 
-        if (prompts && prompts.length > 0) {
-          newPrompt = prompts[Math.floor(Math.random() * prompts.length)].text;
+        if (availablePrompts.length > 0) {
+          newPrompt = availablePrompts[Math.floor(Math.random() * availablePrompts.length)];
         } else {
           newPrompt = 'No prompts available';
           validationError = 'No active prompts in this library';
@@ -507,20 +518,10 @@ export function SocialeCreateModal({
           isValid = false;
         }
       } else {
-        const { data: prompts } = await supabase
-          .from('prompts')
-          .select('text')
-          .eq('library_id', newLibraryId)
-          .eq('is_active', true)
-          .neq('text', round.prompt);
-
-        if (prompts && prompts.length > 0) {
-          newPrompt = prompts[Math.floor(Math.random() * prompts.length)].text;
-        } else {
-          newPrompt = 'No prompts available';
-          validationError = 'No active prompts in this library';
-          isValid = false;
-        }
+        // Legacy prompt libraries no longer supported
+        newPrompt = 'Legacy prompt library - please use trivia packs';
+        validationError = 'Prompt libraries deprecated';
+        isValid = false;
       }
 
       setPreviewData(prev => {
@@ -782,6 +783,7 @@ export function SocialeCreateModal({
         selectedLibraries: (mode === 'custom' || mode === 'ambient') ? undefined : selectedLibraries,
         rounds: (mode === 'custom' || mode === 'ambient') ? undefined : populatedRounds,
         previewQuestions: (mode !== 'ambient' && previewQuestions.length > 0) ? previewQuestions : undefined,
+        ambientPackId: mode === 'ambient' ? ambientPackId : undefined,
       };
 
       await onCreateSociale(request);
@@ -981,6 +983,57 @@ export function SocialeCreateModal({
                     </button>
                   </div>
                 </div>
+
+                {/* Ambient Pack Selection */}
+                {mode === 'ambient' && (
+                  <div className="space-y-2">
+                    <label className={`text-sm font-semibold ${!isDark ? 'text-slate-700' : 'text-cyan-100'}`}>
+                      Select Ambient Pack
+                    </label>
+                    <p className={`text-xs mb-3 ${!isDark ? 'text-slate-600' : 'text-cyan-300'}`}>
+                      Choose the pack of ambient rounds to use
+                    </p>
+                    <div className="grid grid-cols-1 gap-2">
+                      {ambientPacks.map((pack) => (
+                        <button
+                          key={pack.id}
+                          type="button"
+                          onClick={() => setAmbientPackId(pack.id)}
+                          className={`
+                            p-3 rounded-lg border-2 text-left transition-all
+                            ${ambientPackId === pack.id
+                              ? (!isDark
+                                  ? "border-brand-primary bg-amber-100 text-brand-primary shadow-sm"
+                                  : "border-cyan-300 bg-slate-800/70 text-cyan-100 shadow-cyan-500/20")
+                              : !isDark ? "border-slate-300 bg-white hover:border-slate-400" : "border-slate-600 bg-slate-800 hover:border-slate-500"
+                            }
+                          `}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{pack.emoji}</span>
+                            <div>
+                              <div className={`font-semibold ${!isDark ? 'text-slate-900' : 'text-cyan-100'}`}>
+                                {pack.name}
+                              </div>
+                              {pack.description && (
+                                <div className={`text-xs ${!isDark ? 'text-slate-600' : 'text-cyan-300'}`}>
+                                  {pack.description}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                      {ambientPacks.length === 0 && (
+                        <div className={`rounded-lg border-2 border-dashed p-4 text-center text-sm ${
+                          !isDark ? 'border-slate-300 text-slate-500' : 'border-slate-600 text-slate-400'
+                        }`}>
+                          No ambient packs configured for this venue. Ask your admin to add question packs.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Prompt Library Selection */}
                 {mode !== 'custom' && mode !== 'ambient' && (

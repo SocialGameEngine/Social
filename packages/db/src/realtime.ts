@@ -1,6 +1,10 @@
 /**
  * Realtime Subscription Helpers
  * Simplifies Supabase realtime subscriptions for game events
+ * 
+ * NOTE: This file contains legacy code for the old Sessions architecture.
+ * The new Sociale architecture uses different realtime subscriptions.
+ * This file is kept for backwards compatibility but most functions are disabled.
  */
 
 import type { SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
@@ -14,26 +18,14 @@ export type AnswerUpdateCallback = (answers: Answer[]) => void;  // Updated: Sub
 export type SocialeUpdateCallback = (sociale: Sociale) => void;
 export type SocialiteUpdateCallback = (socialites: Socialite[]) => void;
 
+// Legacy function - sessions table no longer exists
 export function subscribeToSession(
-  client: SupabaseClient<Database>,
-  sessionId: string,
-  onUpdate: SessionUpdateCallback,
-): RealtimeChannel {
-  return client
-    .channel(`session:${sessionId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'sessions',
-        filter: `id=eq.${sessionId}`,
-      },
-      (payload) => {
-        onUpdate(payload.new as Session);
-      },
-    )
-    .subscribe();
+  _client: SupabaseClient<Database>,
+  _sessionId: string,
+  _onUpdate: SessionUpdateCallback,
+): RealtimeChannel | null {
+  console.warn('subscribeToSession is deprecated - sessions table no longer exists');
+  return null;
 }
 
 export function subscribeToTeams(  // Updated: subscribeToPlayers → subscribeToTeams
@@ -81,63 +73,15 @@ export function subscribeToTeams(  // Updated: subscribeToPlayers → subscribeT
   */
 }
 
-export function subscribeToAnswers(  // Updated: subscribeToSubmissions → subscribeToAnswers
-  client: SupabaseClient<Database>,
-  sessionId: string,
-  onUpdate: AnswerUpdateCallback,  // Updated: SubmissionUpdateCallback → AnswerUpdateCallback
-  roundIndex?: number,  // Updated: roundNumber → roundIndex
-): RealtimeChannel {
-  const channel = client.channel(`answers:${sessionId}:${roundIndex ?? 'all'}`);
-
-  const fetchAnswers = async () => {  // Updated: fetchSubmissions → fetchAnswers
-    let query = client
-      .from('answers')  // Updated: submissions → answers
-      .select('*')
-      .eq('session_id', sessionId);
-
-    if (roundIndex !== undefined) {
-      query = query.eq('round_index', roundIndex);  // Updated: round_number → round_index
-    }
-
-    const { data } = await query.order('created_at', { ascending: true });  // Updated: order by created_at
-
-    if (data) {
-      onUpdate(data);
-    }
-  };
-
-  channel.on(
-    'postgres_changes',
-    {
-      event: '*',
-      schema: 'public',
-      table: 'answers',  // Updated: submissions → answers
-      filter: `session_id=eq.${sessionId}`,
-    },
-    () => {
-      fetchAnswers();  // Updated: fetchSubmissions → fetchAnswers
-    },
-  );
-
-  // Also listen to votes to update answer data
-  channel.on(
-    'postgres_changes',
-    {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'votes',
-      filter: `session_id=eq.${sessionId}`,
-    },
-    () => {
-      fetchAnswers();  // Updated: fetchSubmissions → fetchAnswers
-    },
-  );
-
-  channel.subscribe(() => {
-    fetchAnswers();  // Updated: fetchSubmissions → fetchAnswers
-  });
-
-  return channel;
+// Legacy function - answers table no longer exists
+export function subscribeToAnswers(
+  _client: SupabaseClient<Database>,
+  _sessionId: string,
+  _onUpdate: AnswerUpdateCallback,
+  _roundIndex?: number,
+): RealtimeChannel | null {
+  console.warn('subscribeToAnswers is deprecated - answers table no longer exists');
+  return null;
 }
 
 export function unsubscribe(channel: RealtimeChannel | null): void {

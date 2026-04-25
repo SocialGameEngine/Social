@@ -45,7 +45,7 @@ serve(async (req) => {
 
     // Parse request body
     const body: SubmitSocialeVoteRequest = await req.json()
-    const { socialeId, roundId, socialiteId, targetResponseId } = body
+    const { socialeId, roundId, socialiteId, targetResponseId, isPractice } = body
 
     if (!socialeId || !roundId || !socialiteId || !targetResponseId) {
       return new Response(
@@ -196,6 +196,8 @@ serve(async (req) => {
         ...roundIdPayload,
         socialite_id: socialiteId,
         target_response_id: targetResponseId,
+        // P2-4: Mark as practice for ghost mode (late joiners)
+        is_practice: isPractice || false,
         created_at: new Date().toISOString(),
       })
       .select()

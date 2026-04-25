@@ -30,6 +30,8 @@ interface SocialeVoteModalProps {
   totalRounds?: number;
   /** P1-17: require a two-step "Lock it in" confirmation before the vote is submitted. */
   requireLockIn?: boolean;
+  /** P2-4: Ghost mode flag for late joiners - votes marked as practice */
+  isGhostMode?: boolean;
 }
 
 const getStoredVoteKey = (socialeId: string, roundId: string, socialiteId: string) =>
@@ -62,6 +64,7 @@ export function SocialeVoteModal({
   roundIndex,
   totalRounds,
   requireLockIn = false,
+  isGhostMode = false,
 }: SocialeVoteModalProps) {
   const { user } = useAuth();
   const [selectedResponseId, setSelectedResponseId] = useState<string | null>(null);
@@ -130,6 +133,8 @@ export function SocialeVoteModal({
         roundId,
         socialiteId: currentSocialite.id,
         targetResponseId: selectedResponseId,
+        // P2-4: Mark as practice when in ghost mode
+        isPractice: isGhostMode,
       });
 
       storeVoteClientSide(socialeId, roundId, currentSocialite.id, selectedResponseId);
@@ -219,6 +224,24 @@ export function SocialeVoteModal({
             <p className="text-center text-sm text-black/60">No prompt available</p>
           )}
         </motion.div>
+
+        {/* P2-4: Ghost mode indicator for late joiners */}
+        {isGhostMode && (
+          <motion.div
+            initial={{ y: -10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+            className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-400/30 rounded-xl p-3 backdrop-blur-sm"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">👻</span>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-purple-100">Ghost Mode Active</p>
+                <p className="text-xs text-purple-200/80">You're practicing - votes won't affect scores</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {selectableResponses.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center">

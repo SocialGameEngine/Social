@@ -25,6 +25,7 @@ import { HostMainContent } from "./components/HostMainContent";
 import { HostCommandPaletteSection } from "./components/HostCommandPaletteSection";
 import { HostSignalsToolbar } from "./components/HostSignalsToolbar";
 import { HostModerationQueue } from "./components/HostModerationQueue";
+import { HostBanterDrawer } from "./components/HostBanterDrawer";
 import { HostTTSTester } from "./components/HostTTSTester";
 import { useCommandPalette } from "./components/shell";
 import { useSessionMachine } from "./state";
@@ -521,6 +522,7 @@ export function HostPage() {
       />
 
       <HostModerationQueue socialeId={primarySocialeId ?? null} />
+      <HostBanterDrawer sociale={activeSocialeQuery.data ?? null} />
       <HostTTSTester />
 
       <HostCommandPaletteSection

@@ -173,6 +173,8 @@ export function SocialeRoomPhaseController({
           participants={participants}
           roundSettings={normalizedRoundSettings}
           currentRound={currentRound}
+          // P2-4: Pass userId for ghost mode detection
+          userId={userId}
         />
       );
     case 'vote':

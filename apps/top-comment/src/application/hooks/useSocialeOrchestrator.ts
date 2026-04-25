@@ -6,13 +6,19 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { SocialeStateMachine } from '../../domain/services/SocialeStateMachine';
-import { 
-  advanceSocialePhase, 
-  pauseSociale as pauseSocialeService, 
+import {
+  advanceSocialePhase,
+  pauseSociale as pauseSocialeService,
   startSociale as startSocialeService,
   skipSocialeRound,
   skipSocialePhase
 } from '../../features/sociale/socialeService';
+import {
+  detectTieBreak,
+  createTieBreakState,
+  DEFAULT_TIE_BREAK_CONFIG,
+} from '../../domain/sociale/tieBreak';
+import { supabase } from '../../supabase/client';
 import { 
   getNextPhase,
   getPhaseDuration 
@@ -288,6 +294,34 @@ export function useSocialeOrchestrator(config: SocialeOrchestratorConfig): UseSo
     }
   }, [socialeId, clearTimers]);
 
+  // Detect and activate tie-break based on current scoreboard
+  const handleTieBreak = useCallback(async (
+    scoreboard: Record<string, number>
+  ): Promise<boolean> => {
+    if (!socialeId) return false;
+
+    const { needed, participants } = detectTieBreak(scoreboard, DEFAULT_TIE_BREAK_CONFIG);
+    if (!needed) return false;
+
+    const state = createTieBreakState(participants, scoreboard);
+
+    try {
+      const { error } = await supabase
+        .from('sociales')
+        .update({
+          is_tie_break: true,
+          tie_break_round_number: state.roundNumber,
+          tie_break_participants: state.participants,
+        })
+        .eq('id', socialeId);
+
+      if (error) throw error;
+      return true;
+    } catch {
+      return false;
+    }
+  }, [socialeId]);
+
   // Skip current phase
   const handleSkipPhase = useCallback(async (): Promise<boolean> => {
     if (!socialeId) return false;
@@ -346,6 +380,7 @@ export function useSocialeOrchestrator(config: SocialeOrchestratorConfig): UseSo
     startSociale,
     skipRound: handleSkipRound,
     skipPhase: handleSkipPhase,
+    handleTieBreak,
     toggleAutoAdvance,
     setAutoAdvanceEnabled,
     

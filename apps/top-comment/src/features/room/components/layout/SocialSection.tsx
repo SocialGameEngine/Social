@@ -5,20 +5,28 @@ interface SocialSectionProps {
   onOpenLeaderboard: () => void;
   onOpenChat: () => void;
   onOpenCommunity: () => void;
+  onOpenBanter?: () => void;
+  onOpenLeague?: () => void;
   onOpenQuestions?: () => void;
   isLoading?: boolean;
   leaderboardExpanded?: boolean;
   chatExpanded?: boolean;
+  banterExpanded?: boolean;
+  leagueExpanded?: boolean;
 }
 
 export function SocialSection({
   onOpenLeaderboard,
   onOpenChat,
   onOpenCommunity,
+  onOpenBanter,
+  onOpenLeague,
   onOpenQuestions,
   isLoading = false,
   leaderboardExpanded,
   chatExpanded,
+  banterExpanded,
+  leagueExpanded,
 }: SocialSectionProps) {
   if (isLoading) {
     return <SkeletonGrid count={3} />;
@@ -29,7 +37,7 @@ export function SocialSection({
       <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 px-1">
         Social
       </h2>
-      <div className={`grid gap-3 ${onOpenQuestions ? 'grid-cols-4' : 'grid-cols-3'}`}>
+      <div className={`grid gap-3 ${(onOpenQuestions || onOpenBanter || onOpenLeague) ? 'grid-cols-4' : 'grid-cols-3'}`}>
         <InteractionTypeButton
           icon={
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,6 +70,32 @@ export function SocialSection({
           variant="social"
           onClick={onOpenCommunity}
         />
+        {onOpenLeague && (
+          <InteractionTypeButton
+            icon={
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+              </svg>
+            }
+            label="League"
+            variant="social"
+            onClick={onOpenLeague}
+            aria-expanded={leagueExpanded}
+          />
+        )}
+        {onOpenBanter && (
+          <InteractionTypeButton
+            icon={
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+              </svg>
+            }
+            label="Banter"
+            variant="social"
+            onClick={onOpenBanter}
+            aria-expanded={banterExpanded}
+          />
+        )}
         {onOpenQuestions && (
           <InteractionTypeButton
             icon={

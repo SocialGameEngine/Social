@@ -42,6 +42,8 @@ interface SocialeAnswerModalProps {
   comboTriggerKey?: string | number | null;
   /** Room id — enables P1-5 typing broadcasts and submitted pings. */
   roomId?: string | null;
+  /** P2-4: Ghost mode flag for late joiners - responses marked as practice */
+  isGhostMode?: boolean;
 }
 
 const CHAR_LIMIT = 120;
@@ -86,6 +88,7 @@ export function SocialeAnswerModal({
   comboCount,
   comboTriggerKey,
   roomId = null,
+  isGhostMode = false,
 }: SocialeAnswerModalProps) {
   const { user } = useAuth();
   const [answer, setAnswer] = useState('');
@@ -253,6 +256,8 @@ export function SocialeAnswerModal({
         socialiteId: currentSocialite.id,
         type: answerType,
         value: answerValueRaw,
+        // P2-4: Mark as practice when in ghost mode
+        isPractice: isGhostMode,
       });
 
       if (isMultipleChoice && snapshot && 'multipleChoice' in snapshot && snapshot.multipleChoice) {
@@ -395,6 +400,24 @@ export function SocialeAnswerModal({
               </div>
             )}
           </motion.div>
+
+          {/* P2-4: Ghost mode indicator for late joiners */}
+          {isGhostMode && (
+            <motion.div
+              initial={{ y: -10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+              className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-400/30 rounded-xl p-3 backdrop-blur-sm"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">👻</span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-purple-100">Ghost Mode Active</p>
+                  <p className="text-xs text-purple-200/80">You're practicing - responses won't affect scores</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {isMultipleChoice && mcOptions && mcOptions.length > 0 ? (
             <div className="grid grid-cols-1 gap-3">

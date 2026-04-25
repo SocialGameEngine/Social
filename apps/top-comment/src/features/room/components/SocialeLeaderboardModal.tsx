@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { PhaseShell } from './shell/PhaseShell';
 import { PodiumLeaderboard, type PodiumEntry } from './leaderboard/PodiumLeaderboard';
 import { ShareCardButton } from './ShareCardButton';
+import { ShareCardPngButton } from '../../share/ShareCardPngButton';
 import type { RoundResult } from '../utils/shareCard';
 
 export interface SocialeLeaderboardTeam {
@@ -95,6 +96,23 @@ export function SocialeLeaderboardModal({
               roundResults={myRoundResults ?? []}
               joinUrl={typeof window !== 'undefined' ? window.location.href : undefined}
               streakWeeks={membershipStreakWeeks}
+            />
+            <ShareCardPngButton
+              stats={{
+                totalScore: me.score,
+                roundsPlayed: myRoundResults?.length ?? 0,
+                correctAnswers: myRoundResults?.filter(r => r.status === 'correct').length ?? 0,
+                totalAnswers: myRoundResults?.length ?? 0,
+                longestStreak: membershipStreakWeeks ?? 0,
+                currentStreak: membershipStreakWeeks ?? 0,
+                rankPosition: me.rank,
+                totalPlayers: finalLeaderboard.length,
+                votesReceived: 0,
+                perfectRounds: 0,
+              }}
+              playerName={me.teamName}
+              venueName={venueName}
+              correctnessPattern={myRoundResults?.map(r => r.status === 'correct')}
             />
           </div>
         )}

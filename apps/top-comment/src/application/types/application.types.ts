@@ -193,6 +193,7 @@ export interface UseSocialeOrchestratorReturn extends SocialeOrchestrationState 
   startSociale: () => Promise<boolean>;
   skipRound: () => Promise<boolean>;
   skipPhase: () => Promise<boolean>;
+  handleTieBreak: (scoreboard: Record<string, number>) => Promise<boolean>;
   toggleAutoAdvance: () => void;
   setAutoAdvanceEnabled: (enabled: boolean) => void;
   

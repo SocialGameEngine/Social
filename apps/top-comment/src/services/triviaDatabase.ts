@@ -3,6 +3,18 @@
 
 import { supabase } from "../supabase/client";
 
+type InteractionSettings = {
+  snapshot?: {
+    multipleChoice?: {
+      correctOptionId?: string;
+    };
+    writtenAnswer?: {
+      correctAnswer?: string;
+    };
+    explanation?: string;
+  };
+};
+
 export interface TriviaSubmissionData {
   id: string;
   interaction_id: string | null;
@@ -64,7 +76,7 @@ export class TriviaDatabase {
 
     if (interactionError) throw new Error(`Failed to fetch interaction: ${interactionError.message}`);
 
-    const settings = interaction.settings as any;
+    const settings = interaction.settings as InteractionSettings;
     const correctAnswer = settings?.snapshot?.multipleChoice?.correctOptionId || 
                          settings?.snapshot?.writtenAnswer?.correctAnswer || '';
     const explanation = settings?.snapshot?.explanation || '';

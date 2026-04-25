@@ -9,6 +9,17 @@ export { useSocialites, useCurrentSocialite, useJoinSociale, useUpdateSocialite,
 export { useSocialeResponses, useRoundResponses, useMyResponses, useSubmitResponse, useUpdateResponse, useDeleteResponse } from './useSocialeResponses';
 export { useSocialeVotes, useRoundVotes, useMyVotes, useSubmitVote, useUpdateVote, useDeleteVote } from './useSocialeVotes';
 export { useSocialeRounds, useCurrentRound } from './useSocialeRounds';
+export { 
+  useSocialeBanter, 
+  useApprovedSocialeBanter, 
+  usePendingSocialeBanter,
+  useUserBanterUpvotes,
+  useBanterUpvoteStatus,
+  useSubmitBanter,
+  useUpvoteBanter,
+  useRemoveBanterUpvote,
+  useModerateBanter 
+} from './useSocialeBanter';
 
 // Re-export for convenience
 export type {
@@ -28,6 +39,13 @@ export type {
   JoinSocialeRequest,
   SubmitSocialeResponseRequest,
   SubmitSocialeVoteRequest,
+  // P2-5: Banter types
+  SocialeBanter,
+  SocialeBanterUpvote,
+  SocialeBanterStatus,
+  SubmitSocialeBanterRequest,
+  SubmitSocialeBanterUpvoteRequest,
+  ModerateSocialeBanterRequest,
 } from '../../../domain/types/sociale.types';
 
 // Export SocialeStatus type separately to avoid conflict with component

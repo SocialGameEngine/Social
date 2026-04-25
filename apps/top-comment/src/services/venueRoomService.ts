@@ -8,24 +8,27 @@ import { generateUniqueRoomCode } from './roomService';
  */
 export async function getOrCreateVenueRoom(authUserId: string): Promise<Room> {
   try {
-    // First, get the venue account's room_id
-    const { data: venueAccount, error: venueError } = await supabase
-      .from('venue_accounts')
-      .select('room_id')
-      .eq('auth_user_id', authUserId)
-      .single();
+    // Note: venue_accounts table no longer exists in current schema
+    // This is legacy code - venues now use regular rooms
+    
+    // Try to find existing room for this user
+    const { data: existingRooms, error: findError } = await supabase
+      .from('rooms')
+      .select('*')
+      .eq('creator_id', authUserId)
+      .limit(1);
 
-    if (venueError) {
-      console.error('Error fetching venue account:', venueError);
-      throw new Error('Failed to fetch venue account');
+    if (!findError && existingRooms && existingRooms.length > 0) {
+      return existingRooms[0] as unknown as Room;
     }
 
-    // If venue has a room_id, get that room
-    if (venueAccount?.room_id) {
+    // Legacy venue_accounts check (table doesn't exist anymore)
+    // Keeping for backwards compatibility but will always fail gracefully
+    if (false) {
       const { data: room, error: roomError } = await supabase
         .from('rooms')
         .select('*')
-        .eq('id', venueAccount.room_id)
+        .eq('id', 'legacy')
         .single();
 
       if (roomError) {
@@ -41,10 +44,10 @@ export async function getOrCreateVenueRoom(authUserId: string): Promise<Room> {
     
     const roomData = {
       code: roomCode,
-      host_uid: authUserId, // Use auth_user_id instead of venue_account_id
+      host_uid: authUserId,
       name: 'Venue Room',
       description: 'Default room for venue',
-      max_players: 50,
+      status: 'active',
       settings: {
         maxPlayers: 50,
         allowPlayerChat: true,
@@ -56,7 +59,7 @@ export async function getOrCreateVenueRoom(authUserId: string): Promise<Room> {
     };
 
     const { data: newRoom, error: createError } = await supabase
-      .from('rooms' as any)
+      .from('rooms')
       .insert(roomData)
       .select()
       .single();
@@ -81,9 +84,9 @@ export async function getOrCreateVenueRoom(authUserId: string): Promise<Room> {
 export async function getVenueRoom(authUserId: string): Promise<Room | null> {
   try {
     const { data: rooms, error } = await supabase
-      .from('rooms' as any)
+      .from('rooms')
       .select('*')
-      .eq('host_uid', authUserId)
+      .eq('creator_id', authUserId) // Updated: host_uid -> creator_id
       .limit(1);
 
     if (error) {

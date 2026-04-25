@@ -9,6 +9,12 @@ import { clsx } from 'clsx';
 import { useTheme } from '../../shared/providers/ThemeProvider';
 import { Button, Card } from '@social/ui';
 import type { Socialite, SocialeResponse, SocialeVote } from '../../domain/types/sociale.types';
+import { PictureRoundAnswer } from '../room/rounds/PictureRoundAnswer';
+import { WagerRoundAnswer } from '../room/rounds/WagerRoundAnswer';
+import { BluffRoundAnswer } from '../room/rounds/BluffRoundAnswer';
+import { MoleRoundAnswer } from '../room/rounds/MoleRoundAnswer';
+import { OrderRoundAnswer } from '../room/rounds/OrderRoundAnswer';
+import { PredictiveRoundAnswer } from '../room/rounds/PredictiveRoundAnswer';
 
 interface SocialePlayerViewProps {
   sociale: {
@@ -320,7 +326,7 @@ function SocialePlayerLobby({
   );
 }
 
-// Player Answer View — format-aware for trivia (MC + written answer)
+// Player Answer View — format-aware for trivia (MC + written answer) and all round types
 function SocialePlayerAnswer({
   currentRound,
   currentSocialite,
@@ -356,6 +362,85 @@ function SocialePlayerAnswer({
       }
     }
   };
+
+  // Round-type dispatch — rendered before the generic text UI when not yet responded
+  const roundType = currentRound?.type;
+  if (!hasResponded) {
+    if (roundType === 'picture') {
+      return (
+        <Card className="p-6" isDark={isDark}>
+          <PictureRoundAnswer
+            content={currentRound?.settings?.imageUrl ?? currentRound?.content ?? null}
+            prompt={currentRound?.content ?? null}
+            onSubmit={onSubmitResponse}
+            isDark={isDark}
+          />
+        </Card>
+      );
+    }
+    if (roundType === 'wager') {
+      return (
+        <Card className="p-6" isDark={isDark}>
+          <WagerRoundAnswer
+            prompt={currentRound?.content ?? null}
+            currentScore={currentSocialite?.score ?? 0}
+            onSubmit={onSubmitResponse}
+            isDark={isDark}
+          />
+        </Card>
+      );
+    }
+    if (roundType === 'bluff') {
+      return (
+        <Card className="p-6" isDark={isDark}>
+          <BluffRoundAnswer
+            prompt={currentRound?.content ?? null}
+            onSubmit={onSubmitResponse}
+            isDark={isDark}
+          />
+        </Card>
+      );
+    }
+    if (roundType === 'mole') {
+      return (
+        <Card className="p-6" isDark={isDark}>
+          <MoleRoundAnswer
+            prompt={currentRound?.content ?? null}
+            socialites={[]}
+            currentSocialiteId={currentSocialite?.id ?? null}
+            onSubmit={onSubmitResponse}
+            isDark={isDark}
+          />
+        </Card>
+      );
+    }
+    if (roundType === 'order') {
+      const items = currentRound?.settings?.items ?? [];
+      if (items.length > 0) {
+        return (
+          <Card className="p-6" isDark={isDark}>
+            <OrderRoundAnswer
+              items={items}
+              prompt={currentRound?.content ?? null}
+              onSubmit={onSubmitResponse}
+              isDark={isDark}
+            />
+          </Card>
+        );
+      }
+    }
+    if (roundType === 'predictive') {
+      return (
+        <Card className="p-6" isDark={isDark}>
+          <PredictiveRoundAnswer
+            prompt={currentRound?.content ?? null}
+            onSubmit={onSubmitResponse}
+            isDark={isDark}
+          />
+        </Card>
+      );
+    }
+  }
 
   if (hasResponded) {
     return (

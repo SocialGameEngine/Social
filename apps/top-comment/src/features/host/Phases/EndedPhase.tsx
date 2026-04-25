@@ -1,5 +1,6 @@
 import { Leaderboard } from "@social/ui";
 import { useTheme } from "../../../shared/providers/ThemeProvider";
+import { downloadCSV, generateSessionFilename } from "../../../domain/analytics/sessionAnalytics";
 import type { SessionAnalytics } from "../../../shared/types";
 
 interface LeaderboardTeam {
@@ -14,8 +15,38 @@ interface EndedPhaseProps {
   analytics: SessionAnalytics | null;
 }
 
+function buildCSV(leaderboard: LeaderboardTeam[], analytics: SessionAnalytics | null): string {
+  const lines: string[] = ['SESSION ANALYTICS', ''];
+
+  if (analytics) {
+    lines.push(`Session ID,${analytics.sessionId}`);
+    lines.push(`Started,${analytics.startTime}`);
+    if (analytics.endTime) lines.push(`Ended,${analytics.endTime}`);
+    if (analytics.duration) lines.push(`Duration (minutes),${Math.round(analytics.duration / 60)}`);
+    lines.push(`Players joined,${analytics.joinedCount ?? analytics.totalParticipants}`);
+    lines.push(`Rounds completed,${analytics.roundsCompleted}`);
+    if (analytics.answerRate != null) lines.push(`Completion rate,${(analytics.answerRate * 100).toFixed(1)}%`);
+    if (analytics.voteRate != null) lines.push(`Avg votes/round,${analytics.voteRate.toFixed(1)}`);
+    lines.push('');
+  }
+
+  lines.push('LEADERBOARD');
+  lines.push('');
+  lines.push('Rank,Player,Score');
+  leaderboard.forEach(e => lines.push(`${e.rank},"${e.playerName}",${e.score}`));
+
+  return lines.join('\n');
+}
+
 export function EndedPhase({ leaderboard, analytics }: EndedPhaseProps) {
   const { isDark } = useTheme();
+
+  const handleExportCSV = () => {
+    const csv = buildCSV(leaderboard, analytics);
+    const filename = generateSessionFilename(undefined, new Date());
+    downloadCSV(csv, filename);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -72,6 +103,18 @@ export function EndedPhase({ leaderboard, analytics }: EndedPhaseProps) {
           </dl>
         </div>
       )}
+      <div>
+        <button
+          onClick={handleExportCSV}
+          className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors border ${
+            !isDark
+              ? 'border-slate-300 text-slate-700 hover:bg-slate-100'
+              : 'border-slate-600 text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          Export analytics CSV
+        </button>
+      </div>
     </div>
   );
 }

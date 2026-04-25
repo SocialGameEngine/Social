@@ -2,6 +2,11 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./app/App";
+import { registerBuiltInRoundTypes } from "./domain/sociale/rounds/index";
+
+// Register all round types before the app mounts so the round registry is
+// populated before any component that calls getRoundType() or similar.
+registerBuiltInRoundTypes();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

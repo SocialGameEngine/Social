@@ -23,6 +23,13 @@
 
 import { supabase } from '../../supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+
+type RealtimeFilter = {
+  event: string;
+  schema?: string; 
+  table?: string;
+  filter?: string;
+};
 import { logger } from '../utils/logger';
 
 export interface PgChangesFilter {
@@ -79,7 +86,7 @@ class SubscriptionPool {
       }
     };
 
-    let channel = supabase.channel(channelName) as any;
+    let channel = supabase.channel(channelName);
 
     for (const f of filters) {
       const opts: Record<string, any> = {
@@ -88,7 +95,7 @@ class SubscriptionPool {
         table: f.table,
       };
       if (f.filter) opts.filter = f.filter;
-      channel = channel.on('postgres_changes', opts, dispatcher);
+      channel = (channel as any).on('postgres_changes', opts, dispatcher);
     }
 
     channel.subscribe((status: string) => {

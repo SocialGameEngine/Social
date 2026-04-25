@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { getMascotPath } from '../../../shared/mascots';
 import type {
@@ -8,6 +9,7 @@ import type {
 } from '../../../domain/types/sociale.types';
 import { DualLeaderboard } from '../components/DualLeaderboard';
 import { useRoomAllTimeLeaderboard } from '../hooks/useRoomAllTimeLeaderboard';
+import { SequentialStatCards } from '../components/SequentialStatCards';
 
 interface ResultsPhaseProps {
   sociale: Sociale;
@@ -27,6 +29,7 @@ export function ResultsPhase({
 }: ResultsPhaseProps) {
   const isAmbient = sociale.mode === 'ambient';
   const allTimeQuery = useRoomAllTimeLeaderboard(isAmbient ? roomId : undefined);
+  const [statCardsDone, setStatCardsDone] = useState(false);
 
   const mappedScoreboard = scoreboard.map((entry) => ({
     id: entry.socialiteId,
@@ -35,6 +38,19 @@ export function ResultsPhase({
     score: entry.score,
     mascotId: entry.mascotId,
   }));
+
+  // Show sequential stat cards overlay until dismissed, then reveal leaderboard.
+  // Ambient mode skips stat cards (continuous loop, no natural pause point).
+  if (!isAmbient && !statCardsDone) {
+    return (
+      <SequentialStatCards
+        sociale={sociale}
+        isActive={true}
+        onNext={() => setStatCardsDone(true)}
+        onSkip={() => setStatCardsDone(true)}
+      />
+    );
+  }
 
   // Ambient mode keeps the side-by-side dual leaderboard.
   if (isAmbient) {

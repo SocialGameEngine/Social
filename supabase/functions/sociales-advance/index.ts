@@ -190,10 +190,12 @@ serve(async (req) => {
           )
         }
 
-        // Fetch the next ambient round
+        // Fetch the next ambient round from the same pack
+        const packId = (sociale as any).ambient_pack_id || '00000000-0000-0000-0000-000000000001'
         const { data: nextAmbientRound, error: nextRoundError } = await supabaseClient
           .from('ambient_rounds')
           .select('*')
+          .eq('pack_id', packId)
           .eq('order_index', nextRoundIndex)
           .single()
 

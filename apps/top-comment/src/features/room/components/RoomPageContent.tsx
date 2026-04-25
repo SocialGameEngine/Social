@@ -63,6 +63,8 @@ import { PromptsBottomSheet } from './bottomsheets/PromptsBottomSheet';
 import { FibbageBottomSheet } from './bottomsheets/FibbageBottomSheet';
 import { TriviaBottomSheet } from './bottomsheets/TriviaBottomSheet';
 import { ChatLobbyBottomSheet } from './bottomsheets/ChatLobbyBottomSheet';
+import { BanterBottomSheet } from './bottomsheets/BanterBottomSheet';
+import { LeagueBottomSheet } from './bottomsheets/LeagueBottomSheet';
 import { LeaderboardBottomSheet } from './bottomsheets/LeaderboardBottomSheet';
 import { HelpBottomSheet } from './bottomsheets/HelpBottomSheet';
 
@@ -264,6 +266,8 @@ export function RoomPageContent() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showVIBox, setShowVIBox] = useState(false);
   const [showChatDrawer, setShowChatDrawer] = useState(false);
+  const [showBanterDrawer, setShowBanterDrawer] = useState(false);
+  const [showLeagueDrawer, setShowLeagueDrawer] = useState(false);
   const [showLeaderboardDrawer, setShowLeaderboardDrawer] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showCommunityModal, setShowCommunityModal] = useState(false);
@@ -634,6 +638,23 @@ export function RoomPageContent() {
   
   const handleToggleChat = () => {
     setShowChatDrawer(!showChatDrawer);
+    setShowBanterDrawer(false);
+    setShowLeaderboardDrawer(false);
+    setShowHowToPlay(false);
+  };
+
+  const handleToggleBanter = () => {
+    setShowBanterDrawer(!showBanterDrawer);
+    setShowChatDrawer(false);
+    setShowLeaderboardDrawer(false);
+    setShowLeagueDrawer(false);
+    setShowHowToPlay(false);
+  };
+
+  const handleToggleLeague = () => {
+    setShowLeagueDrawer(prev => !prev);
+    setShowBanterDrawer(false);
+    setShowChatDrawer(false);
     setShowLeaderboardDrawer(false);
     setShowHowToPlay(false);
   };
@@ -690,9 +711,13 @@ export function RoomPageContent() {
           onOpenLeaderboard={handleToggleLeaderboard}
           onOpenChat={handleToggleChat}
           onOpenCommunity={() => setShowCommunityModal(true)}
+          onOpenBanter={primaryRoomSociale ? handleToggleBanter : undefined}
+          onOpenLeague={handleToggleLeague}
           onOpenQuestions={() => setShowQuestionsSheet(true)}
           leaderboardExpanded={showLeaderboardDrawer}
           chatExpanded={showChatDrawer}
+          banterExpanded={showBanterDrawer}
+          leagueExpanded={showLeagueDrawer}
         />
         
         {/* Section 4: Misc Section */}
@@ -801,6 +826,18 @@ export function RoomPageContent() {
           onChallengePlayer={(membershipId: string, playerName: string) => {
             sendChallenge(membershipId, `Challenge from ${myDisplayName || 'Player'}`, 100);
           }}
+        />
+        {primaryRoomSociale && (
+          <BanterBottomSheet
+            isOpen={showBanterDrawer}
+            onClose={() => setShowBanterDrawer(false)}
+            sociale={primaryRoomSociale}
+          />
+        )}
+        <LeagueBottomSheet
+          isOpen={showLeagueDrawer}
+          onClose={() => setShowLeagueDrawer(false)}
+          membershipId={myMembership?.id}
         />
         <LeaderboardBottomSheet
           isOpen={showLeaderboardDrawer}
@@ -951,6 +988,18 @@ export function RoomPageContent() {
         onChallengePlayer={(membershipId: string, playerName: string) => {
           sendChallenge(membershipId, `Challenge from ${myDisplayName || 'Player'}`, 100);
         }}
+      />
+      {primaryRoomSociale && (
+        <BanterBottomSheet
+          isOpen={showBanterDrawer}
+          onClose={() => setShowBanterDrawer(false)}
+          sociale={primaryRoomSociale}
+        />
+      )}
+      <LeagueBottomSheet
+        isOpen={showLeagueDrawer}
+        onClose={() => setShowLeagueDrawer(false)}
+        membershipId={myMembership?.id}
       />
       <LeaderboardBottomSheet
         isOpen={showLeaderboardDrawer}

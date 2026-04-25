@@ -118,6 +118,12 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- RLS for vibox_votes
 ALTER TABLE public.vibox_votes ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (from restore migration)
+DROP POLICY IF EXISTS "Users can view votes in their room" ON public.vibox_votes;
+DROP POLICY IF EXISTS "Users can insert their own votes" ON public.vibox_votes;
+DROP POLICY IF EXISTS "Users can update their own votes" ON public.vibox_votes;
+
+-- Recreate policies with correct table name
 CREATE POLICY "Users can view votes in their room" ON public.vibox_votes
   FOR SELECT USING (room_id IN (
     SELECT room_id FROM public.room_memberships 

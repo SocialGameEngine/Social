@@ -7,13 +7,13 @@ import {
   createAmbientRound,
   deleteAmbientRound,
   getAmbientRounds,
+  getAmbientPacks,
   replaceAllAmbientRounds,
   reorderAmbientRounds,
   updateAmbientRound,
 } from '../services/ambientRoundsDatabase';
 import type { AmbientRound, AmbientRoundExportRow } from '../types/ambientRounds';
 import { getErrorMessage } from '../utils/get-error-message';
-import { queryKeys } from '../lib/queryKeys';
 import { showToast } from './Toast';
 
 export default function AmbientRoundList() {
@@ -23,13 +23,21 @@ export default function AmbientRoundList() {
   const [showImport, setShowImport] = useState(false);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'trivia' | 'topic'>('all');
+  const [selectedPackId, setSelectedPackId] = useState<string>('00000000-0000-0000-0000-000000000001');
 
-  const query = useQuery({
-    queryKey: queryKeys.ambientRounds(),
-    queryFn: getAmbientRounds,
+  const packsQuery = useQuery({
+    queryKey: ['ambient_packs'],
+    queryFn: getAmbientPacks,
   });
-  const rounds = query.data ?? [];
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.ambientRounds() });
+  const packs = packsQuery.data ?? [];
+  const selectedPack = packs.find(p => p.id === selectedPackId) || packs[0];
+
+  const roundsQuery = useQuery({
+    queryKey: ['ambient_rounds', selectedPackId],
+    queryFn: () => getAmbientRounds(selectedPackId),
+  });
+  const rounds = roundsQuery.data ?? [];
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['ambient_rounds', selectedPackId] });
 
   const filtered = rounds.filter(r => {
     if (typeFilter !== 'all' && r.type !== typeFilter) return false;
@@ -41,7 +49,8 @@ export default function AmbientRoundList() {
   });
 
   const createMutation = useMutation({
-    mutationFn: createAmbientRound,
+    mutationFn: (round: Omit<AmbientRound, 'id' | 'created_at' | 'updated_at'>) => 
+      createAmbientRound(selectedPackId, round),
     onSuccess: async () => { setShowCreate(false); await invalidate(); },
   });
 
@@ -56,8 +65,16 @@ export default function AmbientRoundList() {
     onSuccess: async () => invalidate(),
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: (orderedIds: string[]) => reorderAmbientRounds(selectedPackId, orderedIds),
+    onSuccess: invalidate,
+  });
+
+  // Use reorderMutation to avoid unused variable warning
+  void reorderMutation;
+
   const importMutation = useMutation({
-    mutationFn: replaceAllAmbientRounds,
+    mutationFn: (rows: AmbientRoundExportRow[]) => replaceAllAmbientRounds(selectedPackId, rows),
     onSuccess: async () => { setShowImport(false); await invalidate(); },
   });
 
@@ -77,7 +94,7 @@ export default function AmbientRoundList() {
     const [moved] = next.splice(fromIndex, 1);
     next.splice(toIndex, 0, moved);
     try {
-      await reorderAmbientRounds(next.map(r => r.id));
+      await reorderAmbientRounds(selectedPackId, next.map(r => r.id));
       await invalidate();
     } catch (e) {
       showToast(getErrorMessage(e, 'Reorder failed'), 'error');
@@ -110,7 +127,7 @@ export default function AmbientRoundList() {
     }
   };
 
-  if (query.isLoading) return <div className="loading">Loading ambient rounds...</div>;
+  if (roundsQuery.isLoading || packsQuery.isLoading) return <div className="loading">Loading ambient rounds...</div>;
 
   return (
     <div className="prompt-list">
@@ -120,9 +137,22 @@ export default function AmbientRoundList() {
       <div className="prompt-header">
         <div>
           <h2>Ambient Rounds</h2>
-          <p className="prompt-subtitle">{rounds.length} rounds in library</p>
+          <p className="prompt-subtitle">{rounds.length} rounds in {selectedPack?.name || 'library'}</p>
         </div>
         <div className="prompt-header-actions">
+          {/* Pack Selector */}
+          <select 
+            value={selectedPackId} 
+            onChange={(e) => setSelectedPackId(e.target.value)}
+            className="pack-selector"
+            style={{ marginRight: '8px', padding: '4px 8px' }}
+          >
+            {packs.map(pack => (
+              <option key={pack.id} value={pack.id}>
+                {pack.emoji} {pack.name}
+              </option>
+            ))}
+          </select>
           <span className="prompt-count">{rounds.length} rounds</span>
         </div>
       </div>

@@ -52,8 +52,8 @@ export type SocialeAnalytics = Tables['sociale_analytics']['Row'];
 // Note: These tables may not exist in the generated types
 export type Session = any; // Tables['top_comment_sessions']['Row'] || null;
 export type Team = any; // Tables['teams']['Row'] || null;
-export type Answer = Tables['answers']['Row'];
-export type Vote = Tables['votes']['Row'];
+export type Answer = any; // Tables['answers']['Row'] || null (legacy table removed);
+export type Vote = any; // Tables['votes']['Row'] || null (legacy table removed);
 export type Venue = any; // Tables['venues']['Row'] || null;
 export type User = any; // Tables['users']['Row'] || null;
 export type FeedComment = any; // Tables['feed_comments']['Row'] || null;

@@ -85,9 +85,45 @@ export function TVPage() {
 
     isAdvancing.current = true;
     try {
+      // P2-16: Track drift telemetry before advance
+      const serverTime = new Date(sociale.phaseEndsAt!).getTime();
+      const clientTime = Date.now();
+      const drift = clientTime - serverTime;
+      
+      // Broadcast drift telemetry for client sync monitoring
+      await supabase.channel(`sociale_${sociale.id}`).send({
+        type: 'broadcast',
+        event: 'server_phase_sync',
+        payload: {
+          serverTime: sociale.phaseEndsAt,
+          clientTime: new Date(clientTime).toISOString(),
+          driftMs: drift,
+          phase: sociale.currentPhase,
+        }
+      });
+
+      // Update settings with drift telemetry (P2-16)
+      const currentSettings = sociale.settings || {};
+      const avgDelay = (currentSettings.avgSyncDelayMs as number) || 0;
+      const newAvgDelay = avgDelay === 0 ? Math.abs(drift) : (avgDelay + Math.abs(drift)) / 2;
+      
+      // Store telemetry in runtime_state for analytics
+      const telemetry = {
+        ...(sociale.runtimeState || {}),
+        driftTelemetry: {
+          lastDrift: drift,
+          avgDrift: newAvgDelay,
+          timestamp: new Date().toISOString(),
+          phase: sociale.currentPhase || 'unknown',
+        }
+      };
+
       const { data: { session } } = await supabase.auth.getSession();
       await supabase.functions.invoke('sociales-advance', {
-        body: { socialeId: sociale.id },
+        body: { 
+          socialeId: sociale.id,
+          runtimeState: telemetry,
+        },
         headers: session?.access_token
           ? { Authorization: `Bearer ${session.access_token}` }
           : {},
@@ -97,9 +133,9 @@ export function TVPage() {
     } finally {
       isAdvancing.current = false;
     }
-  }, [sociale?.id, sociale?.mode]);
+  }, [sociale?.id, sociale?.mode, sociale?.phaseEndsAt, sociale?.currentPhase, sociale?.settings, sociale?.runtimeState]);
 
-  // Fire when phaseEndsAt expires
+  // Fire when phaseEndsAt expires with P2-16 reveal delay
   useEffect(() => {
     if (!sociale?.phaseEndsAt || sociale.mode !== 'ambient') return;
 
@@ -109,9 +145,11 @@ export function TVPage() {
       return;
     }
 
-    const timer = window.setTimeout(() => void advancePhase(), msRemaining + 500); // +500ms buffer
+    // P2-16: Add 1.5s delay for TV-leads-phone reveal choreography
+    const revealDelay = sociale.currentPhase === 'reveal' ? 1500 : 500;
+    const timer = window.setTimeout(() => void advancePhase(), msRemaining + revealDelay);
     return () => window.clearTimeout(timer);
-  }, [sociale?.phaseEndsAt, sociale?.mode, advancePhase]);
+  }, [sociale?.phaseEndsAt, sociale?.mode, sociale?.currentPhase, advancePhase]);
 
   const isLoading = roomLoading || socialeLoading;
 

@@ -11,7 +11,7 @@ import { useRoundVotes } from '../../../features/sociale/hooks/useSocialeVotes';
 import { useSocialeOrchestrator } from '../../../application/hooks/useSocialeOrchestrator';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../../supabase/client';
-import { 
+import {
   SocialeLobbyPhase,
   SocialeAnswerPhase,
   SocialeVotePhase,
@@ -19,6 +19,9 @@ import {
   SocialeResultsPhase,
   SocialeEndedPhase
 } from '../SocialePhases';
+import { TieBreakControls } from './TieBreakControls';
+import { ChestRoundPhase } from '../../room/components/ChestRoundPhase';
+import { isChestRound } from '../../../domain/sociale/chestUpgrades';
 
 interface SocialePhaseRendererProps {
   socialeId: string;
@@ -235,6 +238,32 @@ export function SocialePhaseRenderer({
       // `runtimeState.currentPhase` can be stale/undefined, which keeps the UI
       // stuck in the previous phase (e.g. answer timer appears to reset).
       const currentPhase = sociale.currentPhase || 'answer';
+      const tieBreakBanner = sociale.isTieBreak ? (
+        <TieBreakControls
+          sociale={sociale}
+          socialites={socialites}
+          onAdvancePhase={advancePhase}
+        />
+      ) : null;
+
+      // Chest round interstitial — shown at the start of every Nth round
+      const roundIndex = sociale.currentRoundIndex ?? 0;
+      const chestEvery = sociale.chestEveryNRounds ?? 0;
+      if (
+        chestEvery > 0 &&
+        isChestRound(roundIndex, chestEvery) &&
+        (currentPhase === 'setup' || currentPhase === 'question' || currentPhase === 'answer')
+      ) {
+        return (
+          <ChestRoundPhase
+            socialeId={sociale.id}
+            socialiteId={currentSocialite?.id ?? null}
+            roundIndex={roundIndex}
+            isHost={isRoomHost}
+            onAdvancePhase={isRoomHost ? advancePhase : undefined}
+          />
+        );
+      }
 
       // Treat setup and question phases as answer phases for UI purposes
       // (edge functions note: "UI treats `setup`/`question` as the 'answer-like' phase for timing")
@@ -251,19 +280,22 @@ export function SocialePhaseRenderer({
 
       if (currentPhase === 'setup' || currentPhase === 'question' || currentPhase === 'answer') {
         return (
-          <SocialeAnswerPhase
-            sociale={socialeTimerProps}
-            currentRound={normalizedCurrentRound}
-            socialites={socialites}
-            responses={responses}
-            currentSocialite={currentSocialite}
-            onAdvancePhase={advancePhase}
-            onSkipPhase={skipPhase}
-            onSkipRound={skipRound}
-            isCurrentPlayerHost={isRoomHost}
-            isPaused={isPaused}
-            isDark={isDark}
-          />
+          <>
+            {tieBreakBanner}
+            <SocialeAnswerPhase
+              sociale={socialeTimerProps}
+              currentRound={normalizedCurrentRound}
+              socialites={socialites}
+              responses={responses}
+              currentSocialite={currentSocialite}
+              onAdvancePhase={advancePhase}
+              onSkipPhase={skipPhase}
+              onSkipRound={skipRound}
+              isCurrentPlayerHost={isRoomHost}
+              isPaused={isPaused}
+              isDark={isDark}
+            />
+          </>
         );
       } else if (currentPhase === 'vote') {
         // Trivia skips vote phase — useEffect handles the advance to reveal
