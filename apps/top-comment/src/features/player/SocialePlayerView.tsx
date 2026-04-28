@@ -15,6 +15,7 @@ import { BluffRoundAnswer } from '../room/rounds/BluffRoundAnswer';
 import { MoleRoundAnswer } from '../room/rounds/MoleRoundAnswer';
 import { OrderRoundAnswer } from '../room/rounds/OrderRoundAnswer';
 import { PredictiveRoundAnswer } from '../room/rounds/PredictiveRoundAnswer';
+import { PhotoRoundAnswer } from '../room/rounds/PhotoRoundAnswer';
 
 interface SocialePlayerViewProps {
   sociale: {
@@ -406,7 +407,7 @@ function SocialePlayerAnswer({
         <Card className="p-6" isDark={isDark}>
           <MoleRoundAnswer
             prompt={currentRound?.content ?? null}
-            socialites={[]}
+            socialites={socialites.filter(s => s.isActive && !s.isBanned && s.id !== currentSocialite?.id)}
             currentSocialiteId={currentSocialite?.id ?? null}
             onSubmit={onSubmitResponse}
             isDark={isDark}
@@ -428,6 +429,19 @@ function SocialePlayerAnswer({
           </Card>
         );
       }
+    }
+    if (roundType === 'photo') {
+      return (
+        <Card className="p-6" isDark={isDark}>
+          <PhotoRoundAnswer
+            socialeId={sociale.id}
+            socialiteId={currentSocialite?.id ?? null}
+            prompt={currentRound?.content ?? null}
+            onSubmit={onSubmitResponse}
+            isDark={isDark}
+          />
+        </Card>
+      );
     }
     if (roundType === 'predictive') {
       return (

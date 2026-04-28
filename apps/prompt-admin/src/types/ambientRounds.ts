@@ -1,6 +1,31 @@
-// Mirrors the ambient_rounds table schema.
-// settings JSONB matches the SocialeRoundSettings union from the main app.
+/**
+ * Ambient Rounds Type Definitions
+ * 
+ * PURPOSE: TypeScript interfaces for the autonomous/ambient game mode content system.
+ * These types mirror the database schema and are shared between prompt-admin
+ * (content management) and the main game app (runtime execution).
+ * 
+ * AMBIENT MODE CONCEPT:
+ * Unlike hosted games with a human MC, ambient mode runs continuously on venue TVs
+ * without supervision. The TV cycles through rounds automatically, gathering answers,
+ * tallying votes, and displaying results - then loops back to the start.
+ * 
+ * ROUND TYPES:
+ * - trivia: Multiple choice or written answer questions (test knowledge)
+ * - topic: Discussion prompts where players submit opinions and vote on favorites
+ * 
+ * SETTINGS JSONB:
+ * The settings field is a discriminated union stored as JSONB. Each round type has
+ * its own settings shape that configures timing, scoring, and content display.
+ * 
+ * PACK SYSTEM:
+ * Rounds are organized into "packs" (themed collections). A venue might have:
+ * - "General Trivia" pack for everyday content
+ * - "Sports Sunday" pack for game day
+ * - "The Crown Pub - Custom" pack with venue-specific inside jokes
+ */
 
+/** Round types: trivia (knowledge) or topic (opinion/discussion) */
 export type AmbientRoundType = 'trivia' | 'topic';
 export type TriviaFormat = 'multiple_choice' | 'written_answer';
 

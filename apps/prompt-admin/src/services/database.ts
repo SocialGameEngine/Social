@@ -1,3 +1,17 @@
+/**
+ * Database Service - Prompt Library Management
+ * 
+ * PURPOSE: Provides CRUD operations for the prompt library system, which stores
+ * party game questions and icebreakers used during hosted sessions.
+ * 
+ * TABLES:
+ * - prompt_libraries: Containers organizing prompts by theme/occasion
+ * - prompts: Individual question/prompt text with usage analytics
+ * 
+ * AUTHENTICATION: Uses Supabase service role key for full database access.
+ * Requires VITE_SUPABASE_SERVICE_KEY in .env.local (not the anon key).
+ */
+
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import type { Prompt, PromptLibrary } from "../types/prompts";
@@ -11,8 +25,13 @@ if (!supabaseUrl || !supabaseKey) {
   );
 }
 
+/** Service-role Supabase client with elevated privileges for admin operations */
 export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
 
+/** 
+ * Fetches all prompt libraries sorted by display order.
+ * Used to populate the library selector sidebar.
+ */
 export async function getLibraries(): Promise<PromptLibrary[]> {
   const { data, error } = await supabase
     .from("prompt_libraries")
@@ -26,6 +45,10 @@ export async function getLibraries(): Promise<PromptLibrary[]> {
   return data ?? [];
 }
 
+/** 
+ * Returns the count of active prompts in a specific library.
+ * Displayed in library list items to show content volume.
+ */
 export async function getPromptCount(libraryId: string): Promise<number> {
   const { count, error } = await supabase
     .from("prompts")
@@ -39,6 +62,10 @@ export async function getPromptCount(libraryId: string): Promise<number> {
   return count ?? 0;
 }
 
+/** 
+ * Creates a new prompt library (e.g., "Holiday Party 2024").
+ * Auto-generates timestamps via database defaults.
+ */
 export async function createLibrary(
   library: Omit<PromptLibrary, "created_at" | "updated_at">,
 ): Promise<PromptLibrary> {
@@ -55,6 +82,10 @@ export async function createLibrary(
   return data;
 }
 
+/** 
+ * Bulk upsert for library sync operations (import/restore scenarios).
+ * Preserves IDs for data portability between environments.
+ */
 export async function upsertLibrary(library: PromptLibrary): Promise<void> {
   const { error } = await supabase.from("prompt_libraries").upsert(library);
 
@@ -63,6 +94,10 @@ export async function upsertLibrary(library: PromptLibrary): Promise<void> {
   }
 }
 
+/** 
+ * Updates library metadata (name, emoji, description, sort_order).
+ * Automatically updates the updated_at timestamp.
+ */
 export async function updateLibrary(
   id: string,
   library: Partial<PromptLibrary>,
@@ -81,6 +116,11 @@ export async function updateLibrary(
   return data;
 }
 
+/**
+ * Bulk replacement of all prompts in a library.
+ * DELETES existing prompts first, then inserts new ones.
+ * Use with caution - prompts are permanently removed.
+ */
 export async function replaceLibraryPrompts(
   libraryId: string,
   texts: string[],
@@ -97,7 +137,12 @@ export async function replaceLibraryPrompts(
   await createPromptsBulk(libraryId, texts, 0);
 }
 
+/**
+ * Permanently deletes a library and all its prompts (cascade delete).
+ * Foreign key constraint handles prompt deletion automatically.
+ */
 export async function deleteLibrary(id: string): Promise<void> {
+  // Delete prompts first to avoid FK constraint issues
   await supabase.from("prompts").delete().eq("library_id", id);
 
   const { error } = await supabase.from("prompt_libraries").delete().eq("id", id);
@@ -107,6 +152,10 @@ export async function deleteLibrary(id: string): Promise<void> {
   }
 }
 
+/**
+ * Fetches all prompts in a library, ordered by sort_order.
+ * Includes usage analytics fields (times_shown, thumbs_up, etc.).
+ */
 export async function getPrompts(libraryId: string): Promise<Prompt[]> {
   const { data, error } = await supabase
     .from("prompts")
@@ -121,6 +170,10 @@ export async function getPrompts(libraryId: string): Promise<Prompt[]> {
   return data ?? [];
 }
 
+/**
+ * Creates a single new prompt in the specified library.
+ * Use createPromptsBulk for importing multiple prompts.
+ */
 export async function createPrompt(
   prompt: Omit<Prompt, "id" | "created_at" | "updated_at">,
 ): Promise<Prompt> {
@@ -137,6 +190,11 @@ export async function createPrompt(
   return data;
 }
 
+/**
+ * Bulk creates prompts from text strings with sequential sort_order.
+ * Used for CSV/JSON imports. Assigns sort_order starting from startSortOrder.
+ * All prompts default to is_active=true.
+ */
 export async function createPromptsBulk(
   libraryId: string,
   texts: string[],
@@ -160,6 +218,10 @@ export async function createPromptsBulk(
   }
 }
 
+/**
+ * Updates a prompt's text, variant, or active status.
+ * Use for editing individual prompts or toggling is_active.
+ */
 export async function updatePrompt(
   id: string,
   prompt: Partial<Prompt>,
@@ -178,6 +240,10 @@ export async function updatePrompt(
   return data;
 }
 
+/**
+ * Permanently deletes a single prompt.
+ * This is irreversible - consider setting is_active=false instead.
+ */
 export async function deletePrompt(id: string): Promise<void> {
   const { error } = await supabase.from("prompts").delete().eq("id", id);
 
@@ -186,6 +252,11 @@ export async function deletePrompt(id: string): Promise<void> {
   }
 }
 
+/**
+ * Reorders prompts by updating sort_order to match the provided ID array.
+ * Each prompt gets sort_order = its index in the array (0, 1, 2...).
+ * Used after drag-and-drop reordering in the UI.
+ */
 export async function reorderPrompts(
   libraryId: string,
   promptIds: string[],

@@ -1,12 +1,34 @@
 import { useState } from 'react';
 
+/**
+ * AIPromptGenerator - AI Prompt Generator Component
+ * 
+ * PURPOSE: Generates structured AI prompts for bulk content creation across
+ * three library types: prompts (party questions), trivia (quiz questions), 
+ * and ambient rounds (autonomous game content).
+ * 
+ * USAGE: Embedded in library management tabs. Users configure parameters,
+ * click "Generate", then copy the prompt to their preferred AI tool (ChatGPT,
+ * Claude, etc.). The AI returns JSON that can be bulk-imported.
+ * 
+ * ARCHITECTURE:
+ * - Self-contained state for form configuration
+ * - Type-specific prompt templates with embedded schemas
+ * - Collapsible UI to conserve screen space
+ * - Copy-to-clipboard for easy AI tool handoff
+ */
+
 interface Props {
+  /** Target library type determines prompt template and schema */
   type: 'prompts' | 'ambient' | 'trivia';
 }
 
 export default function AIPromptGenerator({ type }: Props) {
+  // UI state
   const [isExpanded, setIsExpanded] = useState(false);
   const [showGenerated, setShowGenerated] = useState(false);
+  
+  // Form configuration state - persisted per type
   const [formData, setFormData] = useState({
     count: '20',
     tags: [] as string[],
@@ -16,13 +38,17 @@ export default function AIPromptGenerator({ type }: Props) {
     triviaFormatRatio: '80_mc_20_written',
     difficultyDist: 'pyramid',
   });
+  // Tag input buffer for comma-separated entry
   const [tagInput, setTagInput] = useState('');
+  // The final generated prompt text for copying
   const [generatedPrompt, setGeneratedPrompt] = useState('');
 
+  /** Updates a single form field while preserving other values */
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  /** Adds a tag if unique, clears input buffer */
   const addTag = (tag: string) => {
     const trimmed = tag.trim();
     if (trimmed && !formData.tags.includes(trimmed)) {
@@ -31,6 +57,7 @@ export default function AIPromptGenerator({ type }: Props) {
     setTagInput('');
   };
 
+  /** Removes a tag from the filter list */
   const removeTag = (tagToRemove: string) => {
     setFormData(prev => ({ 
       ...prev, 
@@ -38,6 +65,7 @@ export default function AIPromptGenerator({ type }: Props) {
     }));
   };
 
+  /** Handles Enter or comma to commit tag, prevents form submission */
   const handleTagInputKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
@@ -45,6 +73,11 @@ export default function AIPromptGenerator({ type }: Props) {
     }
   };
 
+  /**
+   * Generates the AI prompt based on type and form configuration.
+   * Each type has a specialized template with embedded JSON schemas
+   * to ensure consistent, importable AI output.
+   */
   const generatePrompt = () => {
     if (type === 'prompts') {
       const promptTypeLabels = {
@@ -251,10 +284,12 @@ OUTPUT: Return the response as a downloadable .json file named "ambient_rounds_$
     }
   };
 
+  /** Copies the generated prompt to system clipboard */
   const copyToClipboard = () => {
     navigator.clipboard.writeText(generatedPrompt);
   };
 
+  // Color theming based on library type for visual distinction
   const bgColor = type === 'prompts' ? '#f0f9ff' : type === 'trivia' ? '#f0fdf4' : '#fef3c7';
   const borderColor = type === 'prompts' ? '#0ea5e9' : type === 'trivia' ? '#16a34a' : '#f59e0b';
   const textColor = type === 'prompts' ? '#0369a1' : type === 'trivia' ? '#166534' : '#92400e';
