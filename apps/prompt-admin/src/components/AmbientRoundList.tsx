@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import AmbientRoundForm from './AmbientRoundForm';
 import AmbientRoundBulkImport from './AmbientRoundBulkImport';
-import AIPromptGenerator from './AIPromptGenerator';
+import AIPromptGeneratorTabs from './AIPromptGeneratorTabs';
 import {
   createAmbientRound,
   deleteAmbientRound,
@@ -132,7 +132,7 @@ export default function AmbientRoundList() {
   return (
     <div className="prompt-list">
       {/* AI Prompt Generator */}
-      <AIPromptGenerator type="ambient" />
+      <AIPromptGeneratorTabs type="ambient" />
 
       <div className="prompt-header">
         <div>
