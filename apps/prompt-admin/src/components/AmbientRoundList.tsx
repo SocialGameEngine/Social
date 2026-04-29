@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import AmbientRoundForm from './AmbientRoundForm';
 import AmbientRoundBulkImport from './AmbientRoundBulkImport';
 import AIPromptGeneratorTabs from './AIPromptGeneratorTabs';
+import AmbientPackManager from './AmbientPackManager';
 import {
   createAmbientRound,
   deleteAmbientRound,
@@ -133,6 +134,9 @@ export default function AmbientRoundList() {
     <div className="prompt-list">
       {/* AI Prompt Generator */}
       <AIPromptGeneratorTabs type="ambient" />
+
+      {/* Pack Manager */}
+      <AmbientPackManager />
 
       <div className="prompt-header">
         <div>

@@ -42,6 +42,7 @@ interface SocialeCreateModalProps {
     description?: string | null;
     mode?: SocialeMode;
     totalRounds?: number;
+    ambientPackId?: string | null;
     settings?: {
       voiceProfile?: string;
     };
@@ -673,6 +674,9 @@ export function SocialeCreateModal({
       if (existingSociale?.settings && (existingSociale.settings as any)?.voiceProfile) {
         setVoiceProfile((existingSociale.settings as any).voiceProfile);
       }
+      if (existingSociale?.ambientPackId) {
+        setAmbientPackId(existingSociale.ambientPackId);
+      }
     } else {
       // Reset to create defaults when opening in create mode.
       setTitle('');
@@ -680,6 +684,7 @@ export function SocialeCreateModal({
       setMode('alternating');
       setTotalRounds(5);
       setVoiceProfile('');
+      setAmbientPackId('00000000-0000-0000-0000-000000000001'); // Reset to default General pack
     }
   }, [
     isOpen,
@@ -689,6 +694,7 @@ export function SocialeCreateModal({
     existingSociale?.mode,
     existingSociale?.totalRounds,
     existingSociale?.settings?.voiceProfile,
+    existingSociale?.ambientPackId,
   ]);
 
   const handleSubmit = async (e: React.FormEvent) => {

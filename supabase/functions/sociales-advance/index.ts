@@ -191,17 +191,21 @@ serve(async (req) => {
         }
 
         // Fetch the next ambient round from the same pack
+        // Use offset-based lookup (.order + .range) instead of exact order_index match
+        // so it works even if order_index values aren't perfectly 0-based sequential.
         const packId = (sociale as any).ambient_pack_id || '00000000-0000-0000-0000-000000000001'
-        const { data: nextAmbientRound, error: nextRoundError } = await supabaseClient
+        const { data: nextAmbientRounds, error: nextRoundError } = await supabaseClient
           .from('ambient_rounds')
           .select('*')
           .eq('pack_id', packId)
-          .eq('order_index', nextRoundIndex)
-          .single()
+          .order('order_index', { ascending: true })
+          .range(nextRoundIndex, nextRoundIndex)
+
+        const nextAmbientRound = nextAmbientRounds?.[0] ?? null
 
         if (nextRoundError || !nextAmbientRound) {
           return new Response(
-            JSON.stringify({ error: `Ambient round at index ${nextRoundIndex} not found` }),
+            JSON.stringify({ error: `Ambient round at position ${nextRoundIndex} not found (pack ${packId})` }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }

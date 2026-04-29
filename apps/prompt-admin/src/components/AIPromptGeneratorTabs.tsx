@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import AIPromptGenerator from './AIPromptGenerator';
 import BarContextGenerator from './BarContextGenerator';
+import ApiTriviaSourcer from './ApiTriviaSourcer';
 
 /**
  * AIPromptGeneratorTabs - Tab Wrapper for AI Prompt Generators
  * 
- * PURPOSE: Provides a two-tab interface switching between:
+ * PURPOSE: Provides a three-tab interface switching between:
  * - General: The existing AI prompt generator (researches facts)
- * - Bar Context: The new venue-specific generator (formats host-supplied facts)
+ * - Bar Context: The venue-specific generator (formats host-supplied facts)
+ * - API Source: Live API fetcher (pulls real questions from free trivia APIs)
  * 
  * USAGE: Replaces direct <AIPromptGenerator> usage in App.tsx.
  * The 'type' prop is passed through to the General tab only.
@@ -18,7 +20,7 @@ interface Props {
 }
 
 export default function AIPromptGeneratorTabs({ type }: Props) {
-  const [activeTab, setActiveTab] = useState<'general' | 'bar_context'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'bar_context' | 'api_source'>('general');
 
   return (
     <div>
@@ -55,12 +57,27 @@ export default function AIPromptGeneratorTabs({ type }: Props) {
         >
           Bar Context
         </button>
+        <button
+          onClick={() => setActiveTab('api_source')}
+          style={{
+            padding: '6px 16px',
+            fontSize: '13px',
+            fontWeight: activeTab === 'api_source' ? 'bold' : 'normal',
+            background: activeTab === 'api_source' ? '#e5e7eb' : 'transparent',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px 6px 0 0',
+            borderBottom: activeTab === 'api_source' ? 'none' : '1px solid #d1d5db',
+            cursor: 'pointer',
+            color: '#374151',
+          }}
+        >
+          API Source
+        </button>
       </div>
 
-      {activeTab === 'general'
-        ? <AIPromptGenerator type={type} />
-        : <BarContextGenerator />
-      }
+      {activeTab === 'general' && <AIPromptGenerator type={type} />}
+      {activeTab === 'bar_context' && <BarContextGenerator />}
+      {activeTab === 'api_source' && <ApiTriviaSourcer />}
     </div>
   );
 }

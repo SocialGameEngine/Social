@@ -133,7 +133,19 @@ export async function advanceSocialePhase(payload: AdvanceSocialePhaseRequest): 
     { body: payload }
   );
   
-  if (error) throw error;
+  if (error) {
+    // Extract actual error message from Response body
+    try {
+      if (error.context && error.context instanceof Response) {
+        const body = await error.context.json();
+        console.error('sociales-advance error body:', body);
+        throw new Error(body.error || error.message);
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message !== error.message) throw e;
+    }
+    throw error;
+  }
   if (!data) throw new Error('No data returned from advanceSocialePhase');
   return data;
 }

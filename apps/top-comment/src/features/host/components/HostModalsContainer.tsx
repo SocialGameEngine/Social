@@ -198,6 +198,7 @@ export function HostModalsContainer({
                 description: settingsSociale.description,
                 mode: settingsSociale.mode,
                 totalRounds: settingsSociale.totalRounds,
+                ambientPackId: settingsSociale.ambientPackId,
               }
             : null
         }
