@@ -46,6 +46,8 @@ serve(async (req) => {
     // Parse request body
     const body: CreateSocialeRequest = await req.json()
     const { roomId, title, description, mode, totalRounds, rounds, ambientPackId } = body
+    
+    console.log('sociales-create received:', { mode, ambientPackId, hasAmbientPackId: !!ambientPackId })
 
     // Validate required fields
     if (!roomId || !mode) {
