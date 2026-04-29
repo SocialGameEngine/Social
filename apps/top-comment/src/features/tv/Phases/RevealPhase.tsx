@@ -33,7 +33,7 @@ export function RevealPhase({
   currentRound,
   responses,
   votes: _votes,
-  socialites: _socialites,
+  socialites,
   isDark: _isDark,
 }: RevealPhaseProps) {
   if (!currentRound) return null;
@@ -52,10 +52,24 @@ export function RevealPhase({
 
       // Aggregate votes per option from `responses.value` (selected option id).
       const voteCountByOption = new Map<string, number>();
+      const votersByOption = new Map<string, Array<{ id: string; displayName: string; mascotId?: number }>>();
+      
       responses.forEach((r) => {
         const selected = typeof r.value === 'string' ? r.value : String(r.value ?? '');
         if (!selected) return;
         voteCountByOption.set(selected, (voteCountByOption.get(selected) ?? 0) + 1);
+        
+        // Find the socialite who made this response to get their mascot
+        const socialite = socialites.find((s) => s.id === r.socialiteId);
+        if (socialite) {
+          const voters = votersByOption.get(selected) ?? [];
+          voters.push({
+            id: socialite.id,
+            displayName: socialite.displayName,
+            mascotId: socialite.mascotId,
+          });
+          votersByOption.set(selected, voters);
+        }
       });
       const totalVotes = Array.from(voteCountByOption.values()).reduce((a, b) => a + b, 0);
 
@@ -66,6 +80,7 @@ export function RevealPhase({
         voteCount: voteCountByOption.get(opt.id) ?? 0,
         totalVotes,
         isCorrect: opt.id === correctOptionId,
+        voters: votersByOption.get(opt.id) ?? [],
       }));
 
       // Calculate delay for explanation: reveal sequence takes (wrongCount * 750ms) + 500ms + buffer

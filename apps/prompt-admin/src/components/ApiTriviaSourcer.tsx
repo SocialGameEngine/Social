@@ -261,7 +261,7 @@ export default function ApiTriviaSourcer() {
 
     const prompt = `For each trivia question below, write a hint and an explanation.
 
-- hint: A short, playful clue (1 sentence) that nudges the player toward the answer without giving it away. Pub quiz MC style.
+- hint: A short, playful clue (1 sentence) that points toward the answer without revealing it. Use wordplay, context clues, or indirect references — never state part of the answer directly. Pub quiz MC style.
 - explanation: A brief, interesting explanation (1–2 sentences) shown after the answer is revealed. Add a fun fact or context.
 
 Questions:

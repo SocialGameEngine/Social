@@ -1,8 +1,15 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
+import { getMascotPath } from "../../../shared/mascots";
 
 export type TVAnswerTileShape = "triangle" | "diamond" | "circle" | "square";
+
+export interface TVAnswerTileVoter {
+  id: string;
+  displayName: string;
+  mascotId?: number;
+}
 
 export interface TVAnswerTileProps {
   /** Option index 0..3 — determines default color+shape pairing. */
@@ -22,6 +29,8 @@ export interface TVAnswerTileProps {
   color?: string;
   /** Optional framer `layoutId` for shared-element transitions (e.g. Wave 3 RevealSequence). */
   layoutId?: string;
+  /** Players who chose this answer - shown as mascot lineup during reveal. */
+  voters?: TVAnswerTileVoter[];
 }
 
 interface TilePalette {
@@ -83,6 +92,7 @@ export function TVAnswerTile({
   shape,
   color,
   layoutId,
+  voters = [],
 }: TVAnswerTileProps) {
   const palette = PALETTE[optionIndex % PALETTE.length];
   const tileShape: TVAnswerTileShape = shape ?? palette.shape;
@@ -190,6 +200,80 @@ export function TVAnswerTile({
             <span>{sharePct}%</span>
           </div>
         </div>
+      )}
+
+      {/* Mascot lineup - shows players who chose this answer during reveal */}
+      {isRevealed && voters.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 4,
+            marginTop: 8,
+            justifyContent: "center",
+          }}
+        >
+          {voters.slice(0, 8).map((voter, idx) => {
+            const mascotPath = getMascotPath(voter.mascotId);
+            return (
+              <motion.div
+                key={voter.id}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.4 + idx * 0.05, duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+                title={voter.displayName}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  background: isWinning ? "rgba(34,197,94,0.3)" : "rgba(255,255,255,0.1)",
+                  border: isWinning ? "2px solid rgba(34,197,94,0.6)" : "2px solid rgba(255,255,255,0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                }}
+              >
+                {mascotPath ? (
+                  <img
+                    src={mascotPath}
+                    alt={voter.displayName}
+                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                    draggable={false}
+                  />
+                ) : (
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>
+                    {voter.displayName.slice(0, 1).toUpperCase()}
+                  </span>
+                )}
+              </motion.div>
+            );
+          })}
+          {voters.length > 8 && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.8, duration: 0.3 }}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#fff",
+              }}
+            >
+              +{voters.length - 8}
+            </motion.div>
+          )}
+        </motion.div>
       )}
 
       {isLosing && <XOverlay />}

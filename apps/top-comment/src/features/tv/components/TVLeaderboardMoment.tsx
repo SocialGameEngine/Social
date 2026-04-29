@@ -17,6 +17,8 @@ interface TVLeaderboardMomentProps {
   durationMs?: number;
   /** Title above the board. */
   title?: string;
+  /** Current phase - if it changes away from results, dismiss immediately. */
+  currentPhase?: string;
 }
 
 /**
@@ -32,15 +34,24 @@ export function TVLeaderboardMoment({
   rows,
   durationMs = 5200,
   title = "Tonight's board",
+  currentPhase,
 }: TVLeaderboardMomentProps) {
   const [visible, setVisible] = useState(false);
 
+  // Show when triggerKey changes
   useEffect(() => {
     if (triggerKey === null || triggerKey === undefined) return;
     setVisible(true);
     const timer = window.setTimeout(() => setVisible(false), durationMs);
     return () => window.clearTimeout(timer);
   }, [triggerKey, durationMs]);
+
+  // Dismiss immediately if phase changes away from results
+  useEffect(() => {
+    if (currentPhase && currentPhase !== 'results') {
+      setVisible(false);
+    }
+  }, [currentPhase]);
 
   const sorted = [...rows].sort((a, b) => b.score - a.score).slice(0, 10);
 

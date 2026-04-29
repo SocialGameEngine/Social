@@ -92,6 +92,22 @@ export function RoomPageContent() {
       queryClient.invalidateQueries({ queryKey: ['sociale', room.currentSocialeId] });
     }
   }, [room?.currentSocialeId, queryClient]);
+
+  // Sync correction: refetch when tab becomes visible again to catch up
+  // after being backgrounded (browser throttles realtime connections)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && room?.currentSocialeId) {
+        void queryClient.invalidateQueries({ queryKey: ['sociale', room.currentSocialeId] });
+        void queryClient.invalidateQueries({ queryKey: ['socialites', room.currentSocialeId] });
+        void queryClient.invalidateQueries({ queryKey: ['sociale-responses', room.currentSocialeId] });
+        void queryClient.invalidateQueries({ queryKey: ['sociales', 'room', room.id] });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [queryClient, room?.currentSocialeId, room?.id]);
   const isPlayableSocialeStatus = useCallback(
     (status?: string | null) => status !== 'completed' && status !== 'cancelled',
     []

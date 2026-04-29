@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Confetti } from "./Confetti";
-import { TVAnswerTile } from "./TVAnswerTile";
+import { TVAnswerTile, type TVAnswerTileVoter } from "./TVAnswerTile";
 
 export interface TVRevealSequenceTile {
   id: string;
@@ -10,6 +10,8 @@ export interface TVRevealSequenceTile {
   voteCount: number;
   totalVotes: number;
   isCorrect: boolean;
+  /** Players who chose this option */
+  voters?: TVAnswerTileVoter[];
 }
 
 interface TVRevealSequenceProps {
@@ -70,6 +72,7 @@ export function TVRevealSequence({ tiles, roundKey, stepMs = 800 }: TVRevealSequ
           totalVotes={t.totalVotes}
           isRevealed={revealedIds.has(t.id)}
           isCorrect={t.isCorrect}
+          voters={t.voters}
         />
       ))}
       <AnimatePresence>

@@ -179,6 +179,27 @@ export function HostPage() {
     }
   }, [room?.currentSocialeId, activeSocialeId]);
 
+  // Sync correction: refetch when tab becomes visible again to catch up
+  // after being backgrounded (browser throttles realtime connections)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        if (primarySocialeId) {
+          void queryClient.invalidateQueries({ queryKey: ['sociale', primarySocialeId] });
+          void queryClient.invalidateQueries({ queryKey: ['socialites', primarySocialeId] });
+          void queryClient.invalidateQueries({ queryKey: ['sociale-responses', primarySocialeId] });
+        }
+        if (storedRoomId) {
+          void queryClient.invalidateQueries({ queryKey: ['sociales', 'room', storedRoomId] });
+          void queryClient.invalidateQueries({ queryKey: ['room', storedRoomId] });
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [queryClient, primarySocialeId, storedRoomId]);
+
   const handlePlayerSignIn = () => setShowPlayerAuthModal(true);
   const handleVenueSignIn = () => setShowVenueAuthModal(true);
 

@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useMemo, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 import { Timer } from "@social/ui";
 import { BackgroundAnimation } from "../../components/BackgroundAnimation";
 import { useTheme } from "../../shared/providers/ThemeProvider";
@@ -35,6 +36,7 @@ import {
 export function TVPage() {
   const { roomCode = "" } = useParams<{ roomCode: string }>();
   const { isDark } = useTheme();
+  const queryClient = useQueryClient();
 
   // Fetch room first to get the sociale
   const { room, isLoading: roomLoading } = useRoom({ roomCode });
@@ -50,6 +52,23 @@ export function TVPage() {
     timeRemaining,
     isLoading: socialeLoading,
   } = useTVPresenter(room?.currentSocialeId ?? "");
+
+  // Sync correction: refetch when tab becomes visible again to catch up
+  // after being backgrounded (browser throttles realtime connections)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && room?.currentSocialeId) {
+        // Invalidate all sociale-related queries to force a fresh fetch
+        void queryClient.invalidateQueries({ queryKey: ['sociale', room.currentSocialeId] });
+        void queryClient.invalidateQueries({ queryKey: ['socialites', room.currentSocialeId] });
+        void queryClient.invalidateQueries({ queryKey: ['sociale-responses', room.currentSocialeId] });
+        void queryClient.invalidateQueries({ queryKey: ['sociale-votes', room.currentSocialeId] });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [queryClient, room?.currentSocialeId]);
 
   const { reactions, reactionCounts, bursts } = useReactions({
     roomId: sociale?.roomId,
@@ -449,6 +468,7 @@ export function TVPage() {
       <TVLeaderboardMoment
         triggerKey={leaderboardMomentKey}
         rows={leaderboardRows}
+        currentPhase={currentPhase}
       />
 
       <motion.main
