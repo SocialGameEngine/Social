@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Confetti } from "./Confetti";
-import { TVAnswerTile } from "./TVAnswerTile";
+import { TVAnswerTile, type TVAnswerTileVoter } from "./TVAnswerTile";
 
 export interface TVRevealSequenceTile {
   id: string;
@@ -10,10 +10,14 @@ export interface TVRevealSequenceTile {
   voteCount: number;
   totalVotes: number;
   isCorrect: boolean;
+  /** Players who chose this option */
+  voters?: TVAnswerTileVoter[];
 }
 
 interface TVRevealSequenceProps {
   tiles: TVRevealSequenceTile[];
+  /** Stable key that changes only when the round changes (e.g. round ID). */
+  roundKey: string;
   /** Ms between revealing each wrong tile; correct tile is last (+ pause). */
   stepMs?: number;
 }
@@ -22,10 +26,12 @@ interface TVRevealSequenceProps {
  * P1-1 staggered reveal: wrong options earn an X one-by-one; correct lands
  * last with a green wash + confetti accent. Vote bars stay visible throughout.
  */
-export function TVRevealSequence({ tiles, stepMs = 800 }: TVRevealSequenceProps) {
+export function TVRevealSequence({ tiles, roundKey, stepMs = 800 }: TVRevealSequenceProps) {
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
   const [correctRevealed, setCorrectRevealed] = useState(false);
 
+  // Use roundKey (not tiles) as the dependency so realtime re-renders don't
+  // restart the staggered reveal timers.
   useEffect(() => {
     setRevealedIds(new Set());
     setCorrectRevealed(false);
@@ -52,10 +58,11 @@ export function TVRevealSequence({ tiles, stepMs = 800 }: TVRevealSequenceProps)
     }
 
     return () => timers.forEach((t) => window.clearTimeout(t));
-  }, [tiles, stepMs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundKey, stepMs]);
 
   return (
-    <div className="relative mx-auto grid w-full max-w-5xl grid-cols-1 gap-5 md:grid-cols-2">
+    <div className="relative mx-auto grid w-full max-w-5xl grid-cols-1 gap-3 md:grid-cols-2">
       {tiles.map((t) => (
         <TVAnswerTile
           key={t.id}
@@ -65,7 +72,7 @@ export function TVRevealSequence({ tiles, stepMs = 800 }: TVRevealSequenceProps)
           totalVotes={t.totalVotes}
           isRevealed={revealedIds.has(t.id)}
           isCorrect={t.isCorrect}
-          layoutId={`tv-answer-tile-${t.id}`}
+          voters={t.voters}
         />
       ))}
       <AnimatePresence>

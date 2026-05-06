@@ -9,6 +9,7 @@ import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { supabase } from '../../../supabase/client';
 import type { SocialeVote, SubmitSocialeVoteRequest } from '../../../domain/types/sociale.types';
 import { mapSocialeVote } from '../socialeService';
+import type { SocialeVoteRow } from '../socialeService/types';
 import { useSocialeChannel } from './useSocialeChannel';
 import { logger } from '../../../shared/utils/logger';
 
@@ -60,7 +61,7 @@ export function useSocialeVotes(socialeId?: string) {
         if (error.code === 'PGRST116') return [];
         throw error;
       }
-      return data.map(mapSocialeVote).filter(Boolean) as SocialeVote[];
+      return (data as SocialeVoteRow[]).map(mapSocialeVote).filter(Boolean) as SocialeVote[];
     },
     enabled: !!socialeId,
   });
@@ -76,7 +77,8 @@ export function useRoundVotes(socialeId?: string, roundId?: string) {
   const onPayload = useCallback((payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
     if (payload?.table === 'sociale_votes' && roundId) {
       const record = payload.new || payload.old;
-      if ((record as any)?.round_id === roundId) {
+      const rec = record as any;
+      if (rec?.resolved_round_id === roundId || rec?.round_id === roundId) {
         void queryClient.invalidateQueries({ queryKey: ['sociale-votes', socialeId, roundId] });
       }
     }
@@ -93,14 +95,14 @@ export function useRoundVotes(socialeId?: string, roundId?: string) {
         .from('sociale_votes')
         .select('*')
         .eq('sociale_id', socialeId)
-        .eq('round_id', roundId)
+        .eq('resolved_round_id', roundId)
         .order('created_at', { ascending: true });
       
       if (error) {
         if (error.code === 'PGRST116') return [];
         throw error;
       }
-      return data.map(mapSocialeVote).filter(Boolean) as SocialeVote[];
+      return (data as SocialeVoteRow[]).map(mapSocialeVote).filter(Boolean) as SocialeVote[];
     },
     enabled: !!socialeId && !!roundId,
   });
@@ -140,7 +142,7 @@ export function useMyVotes(socialeId?: string, socialiteId?: string) {
         if (error.code === 'PGRST116') return [];
         throw error;
       }
-      return data.map(mapSocialeVote).filter(Boolean) as SocialeVote[];
+      return (data as SocialeVoteRow[]).map(mapSocialeVote).filter(Boolean) as SocialeVote[];
     },
     enabled: !!socialeId && !!socialiteId,
   });
@@ -223,7 +225,7 @@ export function useUpdateVote() {
         if (error.code === 'PGRST116') return null;
         throw error;
       }
-      return mapSocialeVote(data);
+      return mapSocialeVote(data as SocialeVoteRow);
     },
     onError: (error) => {
       logger.error('Vote mutation failed', { error: error instanceof Error ? error.message : String(error) });

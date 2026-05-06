@@ -33,7 +33,7 @@ export function RevealPhase({
   currentRound,
   responses,
   votes: _votes,
-  socialites: _socialites,
+  socialites,
   isDark: _isDark,
 }: RevealPhaseProps) {
   if (!currentRound) return null;
@@ -52,10 +52,24 @@ export function RevealPhase({
 
       // Aggregate votes per option from `responses.value` (selected option id).
       const voteCountByOption = new Map<string, number>();
+      const votersByOption = new Map<string, Array<{ id: string; displayName: string; mascotId?: number }>>();
+      
       responses.forEach((r) => {
         const selected = typeof r.value === 'string' ? r.value : String(r.value ?? '');
         if (!selected) return;
         voteCountByOption.set(selected, (voteCountByOption.get(selected) ?? 0) + 1);
+        
+        // Find the socialite who made this response to get their mascot
+        const socialite = socialites.find((s) => s.id === r.socialiteId);
+        if (socialite) {
+          const voters = votersByOption.get(selected) ?? [];
+          voters.push({
+            id: socialite.id,
+            displayName: socialite.displayName,
+            mascotId: socialite.mascotId,
+          });
+          votersByOption.set(selected, voters);
+        }
       });
       const totalVotes = Array.from(voteCountByOption.values()).reduce((a, b) => a + b, 0);
 
@@ -66,30 +80,36 @@ export function RevealPhase({
         voteCount: voteCountByOption.get(opt.id) ?? 0,
         totalVotes,
         isCorrect: opt.id === correctOptionId,
+        voters: votersByOption.get(opt.id) ?? [],
       }));
 
+      // Calculate delay for explanation: reveal sequence takes (wrongCount * 750ms) + 500ms + buffer
+      const wrongCount = options.length - 1;
+      const stepMs = 750;
+      const explanationDelay = (wrongCount * stepMs + 500 + 800) / 1000; // Convert to seconds, add 800ms buffer
+
       return (
-        <section className="flex flex-col gap-8">
+        <section className="flex flex-col gap-4">
           <motion.div
-            initial={{ opacity: 0, y: 20, rotate: -2 }}
-            animate={{ opacity: 1, y: 0, rotate: -0.8 }}
+            initial={{ opacity: 0, y: 12, rotate: -1 }}
+            animate={{ opacity: 1, y: 0, rotate: -0.5 }}
             transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
             className="chaos-tv-prompt mx-auto max-w-5xl"
           >
             <div className="chaos-tv-sheen" aria-hidden />
-            <p className="chaos-tv-title chaos-tv-title--soft text-3xl md:text-5xl lg:text-6xl leading-[1.1]">
+            <p className="chaos-tv-title chaos-tv-title--soft text-2xl md:text-3xl lg:text-4xl leading-[1.1]">
               {prompt}
             </p>
           </motion.div>
 
-          <TVRevealSequence tiles={tiles} stepMs={750} />
+          <TVRevealSequence tiles={tiles} roundKey={currentRound.id ?? ''} stepMs={stepMs} />
 
           {snapshot.explanation && (
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.35 }}
-              className="mx-auto max-w-3xl text-center text-lg md:text-2xl italic text-white/80"
+              transition={{ duration: 0.6, delay: explanationDelay }}
+              className="mx-auto max-w-3xl text-center text-base md:text-lg italic text-white/80"
             >
               {snapshot.explanation}
             </motion.p>

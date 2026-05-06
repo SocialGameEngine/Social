@@ -97,10 +97,12 @@ serve(async (req) => {
     if (sociale.mode === 'ambient') {
       // Ambient mode doesn't need prompt libraries validation
       
-      // Fetch the first ambient round to get timing settings
+      // Fetch the first ambient round from the selected pack to get timing settings
+      const packId = (sociale as any).ambient_pack_id || '00000000-0000-0000-0000-000000000001'
       const { data: firstAmbientRound, error: ambientRoundError } = await supabaseClient
         .from('ambient_rounds')
         .select('*')
+        .eq('pack_id', packId)
         .eq('order_index', 0)
         .single()
 

@@ -26,6 +26,8 @@ export interface SocialeModalContext {
   phaseStartedAt?: string | null;
   voteSeconds?: number;
   paused: boolean;
+  // P2-4: Ghost mode flag for late joiners
+  isGhostMode?: boolean;
 }
 
 export interface RoomPageState {

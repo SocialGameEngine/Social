@@ -11,7 +11,7 @@ import { useRoundVotes } from '../../../features/sociale/hooks/useSocialeVotes';
 import { useSocialeOrchestrator } from '../../../application/hooks/useSocialeOrchestrator';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../../supabase/client';
-import { 
+import {
   SocialeLobbyPhase,
   SocialeAnswerPhase,
   SocialeVotePhase,
@@ -19,6 +19,9 @@ import {
   SocialeResultsPhase,
   SocialeEndedPhase
 } from '../SocialePhases';
+import { TieBreakControls } from './TieBreakControls';
+import { ChestRoundPhase } from '../../room/components/ChestRoundPhase';
+import { isChestRound } from '../../../domain/sociale/chestUpgrades';
 
 interface SocialePhaseRendererProps {
   socialeId: string;
@@ -114,29 +117,51 @@ export function SocialePhaseRenderer({
     }
   }, [socialeId]);
   
+  const isAmbient = sociale?.mode === 'ambient';
+
+  const forceTieBreak = useCallback(async () => {
+    const topTwo = [...socialites]
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .slice(0, 2)
+      .map(s => s.id);
+
+    await supabase
+      .from('sociales')
+      .update({
+        is_tie_break: true,
+        tie_break_round_number: 1,
+        tie_break_participants: topTwo,
+        status: 'active',
+        current_phase: 'answer',
+      })
+      .eq('id', socialeId);
+  }, [socialeId, socialites]);
+
   const { data: rounds, isLoading: roundsLoading } = useQuery({
     queryKey: ['sociale-rounds', socialeId],
     queryFn: async () => {
       if (!socialeId) return [];
-      
+
       const { data, error } = await supabase
         .from('sociale_rounds')
         .select('*')
         .eq('sociale_id', socialeId)
         .order('order_index', { ascending: true });
-      
+
       if (error) throw error;
       return data || [];
     },
-    enabled: !!socialeId,
+    enabled: !!socialeId && !isAmbient,
   });
 
   // Simple loading check without useMemo
-  const isLoading = socialeLoading || roundsLoading || socialitesLoading || responsesLoading || votesLoading;
-  
-  // Simple current round calculation without useMemo
-  const currentRound = rounds?.find((r: { id: string }) => r.id === sociale?.currentRoundId) ?? null;
-  
+  const isLoading = socialeLoading || (!isAmbient && roundsLoading) || socialitesLoading || responsesLoading || votesLoading;
+
+  // Ambient mode: current round lives in runtime_state.ambientRound, not sociale_rounds
+  const currentRound = isAmbient
+    ? (sociale?.runtimeState?.ambientRound ?? null)
+    : (rounds?.find((r: { id: string }) => r.id === sociale?.currentRoundId) ?? null);
+
   // Convert database Json type to expected Record<string, any> type for components
   const normalizedCurrentRound = currentRound ? {
     ...currentRound,
@@ -170,10 +195,21 @@ export function SocialePhaseRenderer({
 
   // Prevent double-advancing the same phase (guards against Strict Mode double-invoke)
   const advancedPhaseRef = useRef<string | null>(null);
+  // Track if an advance is currently in progress to prevent race conditions
+  const isAdvancingRef = useRef<boolean>(false);
+  // Track pending skip timeout for cleanup
+  const skipTimeoutRef = useRef<number | null>(null);
 
   // Auto-advance phases that the host panel skips: trivia vote → reveal, discussion → results.
   // Done in a useEffect to avoid calling advancePhase() during render.
+  // Uses a small delay to prevent race conditions with the orchestrator's timer-based advance.
   useEffect(() => {
+    // Clear any pending skip timeout on dependency change
+    if (skipTimeoutRef.current) {
+      clearTimeout(skipTimeoutRef.current);
+      skipTimeoutRef.current = null;
+    }
+
     if (sociale?.status !== 'active') return;
     const phase = sociale.currentPhase || 'answer';
     const roundType = normalizedCurrentRound?.type;
@@ -183,10 +219,32 @@ export function SocialePhaseRenderer({
       (phase === 'vote' && roundType === 'trivia') ||
       phase === 'discussion';
 
-    if (shouldSkip && advancedPhaseRef.current !== key) {
-      advancedPhaseRef.current = key;
-      advancePhase();
+    if (shouldSkip && advancedPhaseRef.current !== key && !isAdvancingRef.current) {
+      // Use a small delay to prevent race conditions with the orchestrator's
+      // timer-based auto-advance. This ensures we don't double-advance when
+      // both mechanisms fire nearly simultaneously.
+      skipTimeoutRef.current = window.setTimeout(() => {
+        // Re-check conditions after delay in case state changed
+        if (!isAdvancingRef.current && advancedPhaseRef.current !== key) {
+          advancedPhaseRef.current = key;
+          isAdvancingRef.current = true;
+          advancePhase().finally(() => {
+            // Reset the advancing flag after a short delay to allow
+            // the realtime update to propagate
+            setTimeout(() => {
+              isAdvancingRef.current = false;
+            }, 500);
+          });
+        }
+      }, 100);
     }
+
+    return () => {
+      if (skipTimeoutRef.current) {
+        clearTimeout(skipTimeoutRef.current);
+        skipTimeoutRef.current = null;
+      }
+    };
   }, [sociale?.status, sociale?.currentPhase, sociale?.currentRoundId, normalizedCurrentRound?.type, advancePhase]);
 
   // Handle loading state
@@ -231,6 +289,32 @@ export function SocialePhaseRenderer({
       // `runtimeState.currentPhase` can be stale/undefined, which keeps the UI
       // stuck in the previous phase (e.g. answer timer appears to reset).
       const currentPhase = sociale.currentPhase || 'answer';
+      const tieBreakBanner = sociale.isTieBreak ? (
+        <TieBreakControls
+          sociale={sociale}
+          socialites={socialites}
+          onAdvancePhase={advancePhase}
+        />
+      ) : null;
+
+      // Chest round interstitial — shown at the start of every Nth round
+      const roundIndex = sociale.currentRoundIndex ?? 0;
+      const chestEvery = sociale.chestEveryNRounds ?? 0;
+      if (
+        chestEvery > 0 &&
+        isChestRound(roundIndex, chestEvery) &&
+        (currentPhase === 'setup' || currentPhase === 'question' || currentPhase === 'answer')
+      ) {
+        return (
+          <ChestRoundPhase
+            socialeId={sociale.id}
+            socialiteId={currentSocialite?.id ?? null}
+            roundIndex={roundIndex}
+            isHost={isRoomHost}
+            onAdvancePhase={isRoomHost ? advancePhase : undefined}
+          />
+        );
+      }
 
       // Treat setup and question phases as answer phases for UI purposes
       // (edge functions note: "UI treats `setup`/`question` as the 'answer-like' phase for timing")
@@ -247,19 +331,22 @@ export function SocialePhaseRenderer({
 
       if (currentPhase === 'setup' || currentPhase === 'question' || currentPhase === 'answer') {
         return (
-          <SocialeAnswerPhase
-            sociale={socialeTimerProps}
-            currentRound={normalizedCurrentRound}
-            socialites={socialites}
-            responses={responses}
-            currentSocialite={currentSocialite}
-            onAdvancePhase={advancePhase}
-            onSkipPhase={skipPhase}
-            onSkipRound={skipRound}
-            isCurrentPlayerHost={isRoomHost}
-            isPaused={isPaused}
-            isDark={isDark}
-          />
+          <>
+            {tieBreakBanner}
+            <SocialeAnswerPhase
+              sociale={socialeTimerProps}
+              currentRound={normalizedCurrentRound}
+              socialites={socialites}
+              responses={responses}
+              currentSocialite={currentSocialite}
+              onAdvancePhase={advancePhase}
+              onSkipPhase={skipPhase}
+              onSkipRound={skipRound}
+              isCurrentPlayerHost={isRoomHost}
+              isPaused={isPaused}
+              isDark={isDark}
+            />
+          </>
         );
       } else if (currentPhase === 'vote') {
         // Trivia skips vote phase — useEffect handles the advance to reveal
@@ -353,6 +440,7 @@ export function SocialePhaseRenderer({
           currentSocialite={currentSocialite}
           onCreateNewSociale={onCreateNewSociale ?? (() => {})}
           onReturnToLobby={onReturnToLobby ?? (() => {})}
+          onForceTieBreak={isRoomHost ? forceTieBreak : undefined}
           isCurrentPlayerHost={isRoomHost}
           isDark={isDark}
         />

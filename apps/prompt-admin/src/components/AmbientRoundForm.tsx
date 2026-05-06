@@ -22,7 +22,10 @@ export default function AmbientRoundForm({ mode, initialData, nextOrderIndex, on
   });
   const [explanation, setExplanation] = useState(() => {
     const s = initialData?.settings as any;
-    return s?.snapshot?.explanation ?? '';
+    return s?.snapshot?.explanation ?? initialData?.explanation ?? '';
+  });
+  const [hint, setHint] = useState(() => {
+    return initialData?.hint ?? '';
   });
   const [correctAnswer, setCorrectAnswer] = useState(() => {
     const s = initialData?.settings as any;
@@ -117,6 +120,8 @@ export default function AmbientRoundForm({ mode, initialData, nextOrderIndex, on
         title: title.trim(),
         content: prompt.trim() || null,
         settings: buildSettings() as any,
+        explanation: explanation.trim() || null,
+        hint: hint.trim() || null,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed.');
@@ -210,10 +215,16 @@ export default function AmbientRoundForm({ mode, initialData, nextOrderIndex, on
       )}
 
       {type === 'trivia' && (
-        <div className="form-group">
-          <label>Explanation (shown after reveal, optional)</label>
-          <textarea value={explanation} onChange={e => setExplanation(e.target.value)} rows={2} />
-        </div>
+        <>
+          <div className="form-group">
+            <label>Explanation (shown after reveal, optional)</label>
+            <textarea value={explanation} onChange={e => setExplanation(e.target.value)} rows={2} />
+          </div>
+          <div className="form-group">
+            <label>Hint (shown during answer phase, optional)</label>
+            <textarea value={hint} onChange={e => setHint(e.target.value)} rows={2} />
+          </div>
+        </>
       )}
 
       {error && <p className="error">{error}</p>}

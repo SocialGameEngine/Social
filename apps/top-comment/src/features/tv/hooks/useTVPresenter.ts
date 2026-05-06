@@ -22,11 +22,34 @@ export function useTVPresenter(socialeId: string) {
     return Math.max(0, Math.ceil(remaining / 1000));
   }, [sociale?.phaseEndsAt]);
 
-  // Scoreboard from sociale.scoreboard (already computed by backend)
+  // Scoreboard: compute live from socialites (sorted by score, ranked)
+  // The sociale.scoreboard field is only populated when the Sociale ends,
+  // so we build it dynamically from socialite scores for live updates.
   const scoreboard = useMemo(() => {
-    if (!sociale?.scoreboard) return [];
-    return Object.values(sociale.scoreboard) as any[];
-  }, [sociale?.scoreboard]);
+    if (!socialites || socialites.length === 0) return [];
+    
+    const sorted = [...socialites]
+      .filter(s => s.isActive)
+      .sort((a, b) => b.score - a.score);
+    
+    let currentRank = 1;
+    let previousScore = sorted[0]?.score ?? 0;
+    
+    return sorted.map((socialite, index) => {
+      if (index > 0 && socialite.score < previousScore) {
+        currentRank = index + 1;
+      }
+      previousScore = socialite.score;
+      
+      return {
+        socialiteId: socialite.id,
+        displayName: socialite.displayName,
+        mascotId: socialite.mascotId,
+        score: socialite.score,
+        rank: currentRank,
+      };
+    });
+  }, [socialites]);
 
   // Responses for the current round only
   const currentRoundResponses = useMemo(

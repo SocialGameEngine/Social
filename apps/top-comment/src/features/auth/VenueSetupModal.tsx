@@ -76,7 +76,6 @@ export function VenueSetupModal({ open, onClose }: VenueSetupModalProps) {
           name: roomName.trim(),
           code: roomCode.trim().toUpperCase(),
           host_uid: user.id,
-          max_players: maxPlayers,
           status: 'active',
         })
         .select()
@@ -86,15 +85,8 @@ export function VenueSetupModal({ open, onClose }: VenueSetupModalProps) {
         throw roomError;
       }
 
-      // Update venue account with the new room_id
-      const { error: updateError } = await (supabase as any).rpc('update_venue_room_id', {
-        p_user_id: user.id,
-        p_room_id: roomData.id
-      });
-
-      if (updateError) {
-        throw updateError;
-      }
+      // Note: venue_accounts table no longer exists
+      // Rooms are now created directly without venue account linkage
 
       setNotification({
         message: "Venue room created successfully!",

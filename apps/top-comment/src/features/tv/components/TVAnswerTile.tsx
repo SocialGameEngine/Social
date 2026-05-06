@@ -1,7 +1,15 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
+import { getMascotPath } from "../../../shared/mascots";
 
 export type TVAnswerTileShape = "triangle" | "diamond" | "circle" | "square";
+
+export interface TVAnswerTileVoter {
+  id: string;
+  displayName: string;
+  mascotId?: number;
+}
 
 export interface TVAnswerTileProps {
   /** Option index 0..3 — determines default color+shape pairing. */
@@ -21,6 +29,8 @@ export interface TVAnswerTileProps {
   color?: string;
   /** Optional framer `layoutId` for shared-element transitions (e.g. Wave 3 RevealSequence). */
   layoutId?: string;
+  /** Players who chose this answer - shown as mascot lineup during reveal. */
+  voters?: TVAnswerTileVoter[];
 }
 
 interface TilePalette {
@@ -82,6 +92,7 @@ export function TVAnswerTile({
   shape,
   color,
   layoutId,
+  voters = [],
 }: TVAnswerTileProps) {
   const palette = PALETTE[optionIndex % PALETTE.length];
   const tileShape: TVAnswerTileShape = shape ?? palette.shape;
@@ -90,40 +101,57 @@ export function TVAnswerTile({
   const sharePct = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
 
   const isLosing = isRevealed && !isCorrect;
+  const isWinning = isRevealed && isCorrect;
+
+  // Stable style — only depends on tileColor which doesn't change per-tile.
+  const baseStyle = useMemo(() => ({
+    position: "relative" as const,
+    display: "flex" as const,
+    flexDirection: "column" as const,
+    alignItems: "stretch" as const,
+    justifyContent: "flex-start" as const,
+    padding: "1rem 1rem 0.75rem",
+    borderRadius: "20px",
+    overflow: "hidden" as const,
+    minHeight: 120,
+  }), []);
 
   return (
     <motion.div
-      layoutId={layoutId}
-      layout
+      initial={false}
       animate={{
-        scale: isLosing ? 0.6 : 1,
-        opacity: isLosing ? 0.4 : 1,
-      }}
-      transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
-      style={{
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "stretch",
-        justifyContent: "flex-start",
-        padding: "1.75rem 1.25rem 1rem",
-        borderRadius: "24px",
-        background: `linear-gradient(180deg, ${tileColor}22 0%, ${tileColor}11 100%)`,
-        border: `2px solid ${tileColor}`,
-        boxShadow: isRevealed && isCorrect
-          ? `0 0 0 4px ${tileColor}aa, 0 18px 32px rgba(0,0,0,0.45)`
+        scale: isWinning ? 1.08 : isLosing ? 0.6 : 1,
+        opacity: isLosing ? 0.35 : 1,
+        background: isWinning
+          ? `linear-gradient(180deg, rgba(34,197,94,0.35) 0%, rgba(34,197,94,0.15) 100%)`
+          : isLosing
+            ? `linear-gradient(180deg, ${tileColor}11 0%, ${tileColor}08 100%)`
+            : `linear-gradient(180deg, ${tileColor}22 0%, ${tileColor}11 100%)`,
+        borderColor: isWinning
+          ? `rgba(34,197,94,0.9)`
+          : isLosing ? tileColor + '44' : tileColor,
+        boxShadow: isWinning
+          ? `0 0 0 6px rgba(34,197,94,0.4), 0 0 40px rgba(34,197,94,0.5), 0 18px 40px rgba(0,0,0,0.5)`
           : `0 10px 24px rgba(0,0,0,0.4)`,
-        overflow: "hidden",
-        minHeight: 200,
+        filter: isLosing ? 'grayscale(0.6)' : 'grayscale(0)',
+      }}
+      transition={{
+        duration: isWinning ? 0.6 : 0.5,
+        ease: [0.34, 1.56, 0.64, 1],
+      }}
+      style={{
+        ...baseStyle,
+        border: `3px solid ${tileColor}`,
+        zIndex: isWinning ? 10 : 1,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
-        <ShapeGlyph shape={tileShape} color={tileColor} size={64} />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.75rem" }}>
+        <ShapeGlyph shape={tileShape} color={tileColor} size={44} />
         <div
           style={{
-            fontSize: "1.75rem",
+            fontSize: "1.35rem",
             fontWeight: 900,
-            lineHeight: 1.1,
+            lineHeight: 1.15,
             color: "#ffffff",
             textShadow: "0 2px 4px rgba(0,0,0,0.6)",
             flex: 1,
@@ -174,9 +202,82 @@ export function TVAnswerTile({
         </div>
       )}
 
-      {isLosing && (
-        <XOverlay />
+      {/* Mascot lineup - shows players who chose this answer during reveal */}
+      {isRevealed && voters.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 4,
+            marginTop: 8,
+            justifyContent: "center",
+          }}
+        >
+          {voters.slice(0, 8).map((voter, idx) => {
+            const mascotPath = getMascotPath(voter.mascotId);
+            return (
+              <motion.div
+                key={voter.id}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.4 + idx * 0.05, duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+                title={voter.displayName}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  background: isWinning ? "rgba(34,197,94,0.3)" : "rgba(255,255,255,0.1)",
+                  border: isWinning ? "2px solid rgba(34,197,94,0.6)" : "2px solid rgba(255,255,255,0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                }}
+              >
+                {mascotPath ? (
+                  <img
+                    src={mascotPath}
+                    alt={voter.displayName}
+                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                    draggable={false}
+                  />
+                ) : (
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>
+                    {voter.displayName.slice(0, 1).toUpperCase()}
+                  </span>
+                )}
+              </motion.div>
+            );
+          })}
+          {voters.length > 8 && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.8, duration: 0.3 }}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#fff",
+              }}
+            >
+              +{voters.length - 8}
+            </motion.div>
+          )}
+        </motion.div>
       )}
+
+      {isLosing && <XOverlay />}
+      {isWinning && <CheckOverlay />}
     </motion.div>
   );
 }
@@ -185,8 +286,8 @@ function XOverlay(): ReactNode {
   return (
     <motion.svg
       initial={{ opacity: 0, scale: 0.4 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: 0.2, duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+      animate={{ opacity: 0.7, scale: 1 }}
+      transition={{ delay: 0.15, duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}
       style={{
         position: "absolute",
         inset: 0,
@@ -197,8 +298,41 @@ function XOverlay(): ReactNode {
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
     >
-      <line x1="15" y1="15" x2="85" y2="85" stroke="#ffffffcc" strokeWidth="6" strokeLinecap="round" />
-      <line x1="85" y1="15" x2="15" y2="85" stroke="#ffffffcc" strokeWidth="6" strokeLinecap="round" />
+      <line x1="15" y1="15" x2="85" y2="85" stroke="#ff4444" strokeWidth="7" strokeLinecap="round" />
+      <line x1="85" y1="15" x2="15" y2="85" stroke="#ff4444" strokeWidth="7" strokeLinecap="round" />
+    </motion.svg>
+  );
+}
+
+function CheckOverlay(): ReactNode {
+  return (
+    <motion.svg
+      initial={{ opacity: 0, scale: 0.2 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: 0.1, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+      style={{
+        position: "absolute",
+        top: 12,
+        right: 12,
+        width: 56,
+        height: 56,
+        pointerEvents: "none",
+        filter: "drop-shadow(0 2px 8px rgba(34,197,94,0.6))",
+      }}
+      viewBox="0 0 100 100"
+    >
+      <circle cx="50" cy="50" r="45" fill="rgba(34,197,94,0.9)" />
+      <motion.polyline
+        points="28,52 44,68 72,34"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ delay: 0.3, duration: 0.4, ease: "easeOut" }}
+      />
     </motion.svg>
   );
 }

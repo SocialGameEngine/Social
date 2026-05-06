@@ -6,7 +6,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import type { Database } from '../../types/database.ts'
-import type { CreateSocialeRequest, CreateSocialeResponse } from '../../apps/top-comment/src/domain/types/sociale.types.ts'
+import type { CreateSocialeRequest, CreateSocialeResponse } from '../../../apps/top-comment/src/domain/types/sociale.types.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,15 +45,20 @@ serve(async (req) => {
 
     // Parse request body
     const body: CreateSocialeRequest = await req.json()
-    const { roomId, title, description, mode, totalRounds, rounds } = body
+    const { roomId, title, description, mode, totalRounds, rounds, ambientPackId } = body
+    
+    console.log('sociales-create received:', { mode, ambientPackId, hasAmbientPackId: !!ambientPackId })
 
     // Validate required fields
-    if (!roomId || !mode || !totalRounds) {
+    if (!roomId || !mode) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: roomId, mode, totalRounds' }),
+        JSON.stringify({ error: 'Missing required fields: roomId, mode' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Derive totalRounds: use provided value, fall back to rounds array length, or 0 (ambient overrides later)
+    const resolvedTotalRounds = totalRounds ?? rounds?.length ?? 0
 
     // Verify user is a member of the room (not banned)
     const { data: membership, error: membershipError } = await supabaseClient
@@ -80,7 +85,7 @@ serve(async (req) => {
         title: title || null,
         description: description || null,
         mode,
-        total_rounds: totalRounds,
+        total_rounds: resolvedTotalRounds,
         status: 'draft',
         current_round_index: null,
         created_at: new Date().toISOString(),
@@ -93,11 +98,21 @@ serve(async (req) => {
 
     // Handle ambient mode
     if (mode === 'ambient') {
+      // Use provided packId or fall back to default pack
+      const targetPackId = ambientPackId || '00000000-0000-0000-0000-000000000001'
+      
+      // Store the pack_id on the sociale
+      await supabaseClient
+        .from('sociales')
+        .update({ ambient_pack_id: targetPackId })
+        .eq('id', sociale.id)
+
       // Ambient sociales don't create sociale_rounds.
-      // Set total_rounds to the current size of ambient_rounds.
+      // Set total_rounds to the current size of ambient_rounds in the selected pack.
       const { count, error: countError } = await supabaseClient
         .from('ambient_rounds')
         .select('id', { count: 'exact', head: true })
+        .eq('pack_id', targetPackId)
 
       if (countError) throw countError
 
@@ -121,6 +136,7 @@ serve(async (req) => {
       const { data: firstRound } = await supabaseClient
         .from('ambient_rounds')
         .select('*')
+        .eq('pack_id', targetPackId)
         .eq('order_index', 0)
         .single()
 
@@ -135,6 +151,8 @@ serve(async (req) => {
                 title: firstRound.title,
                 content: firstRound.content,
                 settings: firstRound.settings,
+                hint: firstRound.hint,
+                explanation: firstRound.explanation,
               }
             }
           })

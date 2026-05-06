@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { usePhaseTimer } from '../../../../shared/hooks';
 import { buildSocialeTimerSessionShim } from '../../utils/socialeTimerShim';
 import { useRoomPageContext } from '../../context/RoomPageContext';
-import { useRoundResponses, useSocialites } from '../../../../features/sociale/hooks';
+import { useRoundResponses, useSocialites, useCurrentSocialite } from '../../../../features/sociale/hooks';
 import { PhasePreviewCard } from '../../components/shell/PhasePreviewCard';
 import type { Sociale } from '../../../../domain/types/sociale.types';
 import type { SocialeGameParticipant } from '../../components/layout/SocialeGameButton';
@@ -17,6 +17,7 @@ interface SocialeAnswerPhaseRoomProps {
   isPaused?: boolean;
   roundSettings?: any;
   currentRound?: any;
+  userId?: string;
 }
 
 function truncatePrompt(text: string | null | undefined, limit = 90): string | null {
@@ -34,16 +35,28 @@ export function SocialeAnswerPhaseRoom({
   isPaused = sociale.status === 'paused',
   roundSettings,
   currentRound,
+  userId,
 }: SocialeAnswerPhaseRoomProps) {
   const { dispatch } = useRoomPageContext();
   const timerShim = buildSocialeTimerSessionShim(sociale, 'answer');
   const { totalSeconds } = usePhaseTimer({ session: timerShim });
 
   const { data: socialites = [] } = useSocialites(sociale.id);
+  const { data: currentSocialite } = useCurrentSocialite(sociale.id, userId);
   const { data: roundResponses = [] } = useRoundResponses(
     sociale.id,
     sociale.currentRoundId ?? undefined,
   );
+
+  // P2-4: Ghost mode detection for late joiners
+  const isGhostMode = useMemo(() => {
+    if (!currentSocialite) return false;
+    // If user has pending_until_round_index, they're a late joiner
+    const pendingRound = currentSocialite.pendingUntilRoundIndex;
+    if (pendingRound === null || pendingRound === undefined) return false;
+    const currentRound = sociale.currentRoundIndex ?? 0;
+    return currentRound < pendingRound;
+  }, [currentSocialite, sociale.currentRoundIndex]);
 
   const activeSocialiteCount = useMemo(
     () => socialites.filter((s) => s.isActive).length,
@@ -65,6 +78,8 @@ export function SocialeAnswerPhaseRoom({
           roundSettings,
           phaseEndsAt,
           paused: isPaused,
+          // P2-4: Pass ghost mode flag to modal
+          isGhostMode,
         },
       });
     } else {

@@ -23,8 +23,8 @@ import { HostAccountMenu } from "./components/HostAccountMenu";
 import { HostControlButtons } from "./components/HostControlButtons";
 import { HostMainContent } from "./components/HostMainContent";
 import { HostCommandPaletteSection } from "./components/HostCommandPaletteSection";
-import { HostSignalsToolbar } from "./components/HostSignalsToolbar";
 import { HostModerationQueue } from "./components/HostModerationQueue";
+import { HostBanterDrawer } from "./components/HostBanterDrawer";
 import { HostTTSTester } from "./components/HostTTSTester";
 import { useCommandPalette } from "./components/shell";
 import { useSessionMachine } from "./state";
@@ -151,7 +151,8 @@ export function HostPage() {
   const inviteLink = useMemo(() => {
     const code = roomJoinCode;
     if (!code) return "";
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    // Use network URL from env var for mobile access, fallback to window.location.origin
+    const origin = import.meta.env.VITE_NETWORK_URL || (typeof window !== "undefined" ? window.location.origin : "");
     if (!origin) return "";
     return `${origin}/room/${code}`;
   }, [roomJoinCode]);
@@ -177,6 +178,27 @@ export function HostPage() {
       setActiveSocialeId(null);
     }
   }, [room?.currentSocialeId, activeSocialeId]);
+
+  // Sync correction: refetch when tab becomes visible again to catch up
+  // after being backgrounded (browser throttles realtime connections)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        if (primarySocialeId) {
+          void queryClient.invalidateQueries({ queryKey: ['sociale', primarySocialeId] });
+          void queryClient.invalidateQueries({ queryKey: ['socialites', primarySocialeId] });
+          void queryClient.invalidateQueries({ queryKey: ['sociale-responses', primarySocialeId] });
+        }
+        if (storedRoomId) {
+          void queryClient.invalidateQueries({ queryKey: ['sociales', 'room', storedRoomId] });
+          void queryClient.invalidateQueries({ queryKey: ['room', storedRoomId] });
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [queryClient, primarySocialeId, storedRoomId]);
 
   const handlePlayerSignIn = () => setShowPlayerAuthModal(true);
   const handleVenueSignIn = () => setShowVenueAuthModal(true);
@@ -514,13 +536,8 @@ export function HostPage() {
         </HostPanel>
       </HostGameProvider>
 
-      {/* Wave 4: broadcast-driven host toolbar (P1-4/P1-6/P1-17/P1-8) */}
-      <HostSignalsToolbar
-        roomId={storedRoomId ?? null}
-        socialeId={primarySocialeId ?? null}
-      />
-
       <HostModerationQueue socialeId={primarySocialeId ?? null} />
+      <HostBanterDrawer sociale={activeSocialeQuery.data ?? null} />
       <HostTTSTester />
 
       <HostCommandPaletteSection

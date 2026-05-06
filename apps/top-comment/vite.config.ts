@@ -9,6 +9,7 @@ export default defineConfig({
   envDir: path.resolve(__dirname, "../../"),
   // Ensure JSON files are served as static assets
   server: {
+    host: true, // Listen on all network interfaces
     fs: {
       // Allow serving files from the project root
       strict: false,

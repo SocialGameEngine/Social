@@ -384,26 +384,46 @@ export async function startSocialeInRoom(
   });
 
   if (error) {
+    console.error('Edge function error object:', JSON.stringify(error, null, 2));
+    
     // Try to parse the error context for more details
     let errorMessage = `Failed to start Sociale: ${error.message}`;
     let errorDetails = null;
     
     try {
-      if (error.context && typeof error.context === 'string') {
+      // If error.context is a Response object, read its body
+      if (error.context && error.context instanceof Response) {
+        console.error('Error context is Response object, reading body...');
+        const responseBody = await error.context.json();
+        console.error('Response body:', responseBody);
+        if (responseBody.error) {
+          errorMessage = responseBody.error;
+          errorDetails = responseBody.details;
+        }
+      } else if (error.context && typeof error.context === 'string') {
         const parsed = JSON.parse(error.context);
+        console.error('Parsed error context:', parsed);
         if (parsed.error || parsed.details) {
           errorMessage = parsed.error || errorMessage;
           errorDetails = parsed.details;
         }
+      } else if (error.context && typeof error.context === 'object') {
+        console.error('Error context object:', error.context);
+        const ctx = error.context as any;
+        if (ctx.error || ctx.details) {
+          errorMessage = ctx.error || errorMessage;
+          errorDetails = ctx.details;
+        }
       }
     } catch (e) {
-      // If parsing fails, use the original error
+      console.error('Failed to parse error context:', e);
     }
     
     const fullError = new Error(errorMessage);
     if (errorDetails) {
       (fullError as any).details = errorDetails;
     }
+    console.error('Throwing error:', errorMessage, errorDetails);
     throw fullError;
   }
 

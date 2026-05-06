@@ -55,22 +55,24 @@ export function useSocialeGameState(config: SocialeStateConfig = {}): UseSociale
   const { data: responses = [], isLoading: responsesLoading } = useSocialeResponses(socialeId);
   const { data: votes = [], isLoading: votesLoading } = useSocialeVotes(socialeId);
 
-  // Fetch rounds using Supabase client
+  const isAmbient = sociale?.mode === 'ambient';
+
+  // Fetch rounds using Supabase client (skipped for ambient — no sociale_rounds rows)
   const { data: rounds, isLoading: roundsLoading } = useQuery({
     queryKey: ['sociale-rounds', socialeId],
     queryFn: async () => {
       if (!socialeId) return [];
-      
+
       const { data, error } = await supabase
         .from('sociale_rounds')
         .select('*')
         .eq('sociale_id', socialeId)
         .order('order_index', { ascending: true });
-      
+
       if (error) throw error;
       return data || [];
     },
-    enabled: !!socialeId,
+    enabled: !!socialeId && !isAmbient,
   });
 
   // Clear error function
@@ -91,11 +93,13 @@ export function useSocialeGameState(config: SocialeStateConfig = {}): UseSociale
       // Track if we have initial snapshot (moved inside useMemo)
       const hasSnapshot = !socialeLoading && sociale !== undefined;
       
-      // Basic loading state
-      const isLoading = socialeLoading || roundsLoading || socialitesLoading || responsesLoading || votesLoading || !hasSnapshot;
+      // Basic loading state (ambient doesn't wait on roundsLoading — no sociale_rounds to fetch)
+      const isLoading = socialeLoading || (!isAmbient && roundsLoading) || socialitesLoading || responsesLoading || votesLoading || !hasSnapshot;
       
-      // Current round and state
-      const currentRound = rounds?.find((r: { id: string }) => r.id === sociale?.currentRoundId) ?? null;
+      // Current round — ambient reads from runtime_state, regular modes find by ID in rounds array
+      const currentRound = isAmbient
+        ? ((sociale?.runtimeState?.ambientRound as SocialeRound | null) ?? null)
+        : (rounds?.find((r: { id: string }) => r.id === sociale?.currentRoundId) ?? null);
       const currentRoundState = currentRound ? null : null; // Would fetch round state
       
       // Scoreboard calculation

@@ -35,6 +35,12 @@ export type SocialeRow = {
   prompt_library_id?: string | null;
   selected_libraries?: string[] | null;
   current_library_index?: number | null;
+  // Phase A fields
+  ambient_pack_id?: string | null;
+  is_tie_break?: boolean;
+  tie_break_round_number?: number;
+  tie_break_participants?: string[] | null;
+  chest_every_n_rounds?: number;
 };
 
 /**
@@ -103,7 +109,9 @@ export type SocialiteRow = {
 export type SocialeResponseRow = {
   id: string;
   sociale_id: string;
-  round_id: string;
+  round_id: string | null;
+  ambient_round_id: string | null;
+  resolved_round_id: string | null;
   socialite_id: string;
   type: string;
   value: Json;
@@ -119,7 +127,9 @@ export type SocialeResponseRow = {
 export type SocialeVoteRow = {
   id: string;
   sociale_id: string;
-  round_id: string;
+  round_id: string | null;
+  ambient_round_id: string | null;
+  resolved_round_id: string | null;
   socialite_id: string;
   target_response_id: string;
   created_at: string;

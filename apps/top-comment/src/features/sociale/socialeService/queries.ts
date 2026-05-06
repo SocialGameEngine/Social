@@ -21,6 +21,7 @@ import {
   mapSocialeResponse,
   mapSocialeVote,
 } from './mappers';
+import type { SocialeResponseRow, SocialeVoteRow } from './types';
 
 /**
  * Fetch a Sociale by ID
@@ -51,15 +52,18 @@ export async function fetchSocialesForRoom(roomId: string): Promise<Sociale[]> {
 }
 
 /**
- * Fetch rounds for a Sociale
+ * Fetch rounds for a Sociale.
+ * Ambient sociales have no sociale_rounds rows — returns [] without querying.
  */
-export async function fetchSocialeRounds(socialeId: string): Promise<SocialeRound[]> {
+export async function fetchSocialeRounds(socialeId: string, mode?: string): Promise<SocialeRound[]> {
+  if (mode === 'ambient') return [];
+
   const { data, error } = await supabase
     .from('sociale_rounds')
     .select('*')
     .eq('sociale_id', socialeId)
     .order('order_index', { ascending: true });
-  
+
   if (error) throw error;
   return (data ?? []).map(mapSocialeRound).filter((r): r is SocialeRound => r !== null);
 }
@@ -100,11 +104,11 @@ export async function fetchSocialeResponses(roundId: string): Promise<SocialeRes
   const { data, error } = await supabase
     .from('sociale_responses')
     .select('*')
-    .eq('round_id', roundId)
+    .eq('resolved_round_id', roundId)
     .order('created_at', { ascending: true });
-  
+
   if (error) throw error;
-  return (data ?? []).map(mapSocialeResponse).filter((r): r is SocialeResponse => r !== null);
+  return (data as SocialeResponseRow[] ?? []).map(mapSocialeResponse).filter((r): r is SocialeResponse => r !== null);
 }
 
 /**
@@ -114,10 +118,10 @@ export async function fetchSocialeVotes(roundId: string): Promise<SocialeVote[]>
   const { data, error } = await supabase
     .from('sociale_votes')
     .select('*')
-    .eq('round_id', roundId);
-  
+    .eq('resolved_round_id', roundId);
+
   if (error) throw error;
-  return (data ?? []).map(mapSocialeVote).filter((v): v is SocialeVote => v !== null);
+  return (data as SocialeVoteRow[] ?? []).map(mapSocialeVote).filter((v): v is SocialeVote => v !== null);
 }
 
 /**
@@ -215,7 +219,7 @@ export function subscribeToSocialeResponses(
         event: '*',
         schema: 'public',
         table: 'sociale_responses',
-        filter: `round_id=eq.${roundId}`,
+        filter: `resolved_round_id=eq.${roundId}`,
       },
       () => {
         fetchSocialeResponses(roundId).then(callback);

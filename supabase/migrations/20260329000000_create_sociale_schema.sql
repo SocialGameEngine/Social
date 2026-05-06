@@ -49,8 +49,8 @@ CREATE TABLE IF NOT EXISTS sociales (
   started_at TIMESTAMPTZ,
   ended_at TIMESTAMPTZ,
   
-  -- Migration / replacement support
-  legacy_session_id UUID REFERENCES top_comment_sessions(id)
+  -- Migration / replacement support (nullable, no FK constraint since table may not exist)
+  legacy_session_id UUID
 );
 
 -- Index for room lookup

@@ -6,6 +6,7 @@ import { RoomPageProvider } from '../context/RoomPageContext';
 import { useAuth } from '../../../shared/providers/AuthContext';
 import { usePlayerAccountResolver } from '../../player/usePlayerAccountResolver';
 import { RoomPageContent } from './index';
+import { RoomReconnectingBanner } from './RoomReconnectingBanner';
 import { RoomSkeleton } from '../../../shared/components/skeletons/RoomSkeleton';
 import { RoomLoadingState } from '../../../shared/components/RoomLoadingState';
 import { ErrorState } from '../../../shared/components/ErrorState';
@@ -66,12 +67,15 @@ export function RoomPage() {
   // Only show error after retries have been exhausted
   if (roomStatus === "error" || !room) {
     return (
-      <ErrorState
-        title="Room Not Found"
-        message={roomError?.message || `The room code "${roomCode}" doesn't exist or may still be loading.`}
-        onRetry={retryRoom}
-        retryLabel="Try Again"
-      />
+      <>
+        <RoomReconnectingBanner />
+        <ErrorState
+          title="Room Not Found"
+          message={roomError?.message || `The room code "${roomCode}" doesn't exist or may still be loading.`}
+          onRetry={retryRoom}
+          retryLabel="Try Again"
+        />
+      </>
     );
   }
 

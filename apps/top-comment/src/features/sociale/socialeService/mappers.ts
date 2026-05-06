@@ -138,7 +138,7 @@ export function mapSocialeResponse(data: SocialeResponseRow | null): SocialeResp
   return {
     id: data.id,
     socialeId: data.sociale_id,
-    roundId: data.round_id,
+    roundId: data.resolved_round_id ?? data.round_id ?? '',
     socialiteId: data.socialite_id,
     type: data.type as any,
     value: data.value as string | number | boolean | Record<string, unknown>,
@@ -158,7 +158,7 @@ export function mapSocialeVote(data: SocialeVoteRow | null): SocialeVote | null 
   return {
     id: data.id,
     socialeId: data.sociale_id,
-    roundId: data.round_id,
+    roundId: data.resolved_round_id ?? data.round_id ?? '',
     socialiteId: data.socialite_id,
     targetResponseId: data.target_response_id,
     createdAt: data.created_at,

@@ -170,23 +170,64 @@ serve(async (req: Request) => {
       )
     }
 
-    // Get the first round
-    console.log('Fetching first round for Sociale:', targetSocialeId)
-    const { data: firstRound, error: roundError } = await supabase
-      .from('sociale_rounds')
-      .select('*')
-      .eq('sociale_id', targetSocialeId)
-      .eq('order_index', 0)
-      .single()
+    // Get the first round — ambient mode uses ambient_rounds, all other modes use sociale_rounds
+    console.log('Fetching first round for Sociale:', targetSocialeId, 'mode:', sociale.mode)
+    let firstRound: any = null
+    const isAmbient = sociale.mode === 'ambient'
 
-    console.log('Round fetch result:', { firstRound, error: roundError })
+    if (isAmbient) {
+      // Use the Sociale's pack, or fall back to the default General pack
+      const DEFAULT_PACK_ID = '00000000-0000-0000-0000-000000000001'
+      const packId = sociale.ambient_pack_id || DEFAULT_PACK_ID
 
-    if (roundError || !firstRound) {
-      console.error('No rounds found for Sociale:', roundError)
-      return new Response(
-        JSON.stringify({ error: 'No rounds found for this Sociale', details: roundError }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      )
+      // Backfill the pack_id on the Sociale if it was missing
+      if (!sociale.ambient_pack_id) {
+        console.log('Backfilling ambient_pack_id on Sociale:', targetSocialeId, 'with default pack:', DEFAULT_PACK_ID)
+        await supabase
+          .from('sociales')
+          .update({ ambient_pack_id: DEFAULT_PACK_ID })
+          .eq('id', targetSocialeId)
+      }
+
+      console.log('Fetching first round from pack:', packId)
+      const { data: firstRounds, error } = await supabase
+        .from('ambient_rounds')
+        .select('*')
+        .eq('pack_id', packId)
+        .order('order_index', { ascending: true })
+        .range(0, 0)
+
+      const data = firstRounds?.[0] ?? null
+      console.log('Ambient round fetch result:', { data, error })
+
+      if (error || !data) {
+        console.error('No ambient rounds found for pack:', sociale.ambient_pack_id, error)
+        return new Response(
+          JSON.stringify({ error: `No ambient rounds found for this pack. Populate the ambient_rounds library for pack ${sociale.ambient_pack_id} first.`, details: error }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+
+      firstRound = data
+    } else {
+      const { data, error } = await supabase
+        .from('sociale_rounds')
+        .select('*')
+        .eq('sociale_id', targetSocialeId)
+        .eq('order_index', 0)
+        .single()
+
+      console.log('Round fetch result:', { data, error })
+
+      if (error || !data) {
+        console.error('No rounds found for Sociale:', error)
+        return new Response(
+          JSON.stringify({ error: 'No rounds found for this Sociale', details: error }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+
+      firstRound = data
     }
 
     // Get existing Socialites who have explicitly joined the Sociale
@@ -240,18 +281,38 @@ serve(async (req: Request) => {
 
     console.log(`Starting Sociale ${targetSocialeId} with first round ${firstRound.id}`)
 
+    // For ambient mode, store the first round data in runtime_state so
+    // sociales-advance can read it without an extra DB fetch.
+    // deno-lint-ignore no-explicit-any
+    const updatePayload: any = {
+      status: 'active',
+      current_round_index: 0,
+      current_round_id: firstRound.id,
+      current_phase: 'answer',
+      phase_started_at: nowIso,
+      phase_ends_at: phaseEndsAt,
+      started_at: nowIso,
+      updated_at: nowIso,
+    }
+
+    if (isAmbient) {
+      updatePayload.runtime_state = {
+        ...((sociale.runtime_state as Record<string, any>) || {}),
+        ambientRound: {
+          id: firstRound.id,
+          type: firstRound.type,
+          title: firstRound.title,
+          content: firstRound.content,
+          settings: firstRound.settings,
+          hint: firstRound.hint,
+          explanation: firstRound.explanation,
+        },
+      }
+    }
+
     const { data: updatedSociale, error: startError } = await supabase
       .from('sociales')
-      .update({
-        status: 'active',
-        current_round_index: 0,
-        current_round_id: firstRound.id,
-        current_phase: 'answer',
-        phase_started_at: nowIso,
-        phase_ends_at: phaseEndsAt,
-        started_at: nowIso,
-        updated_at: nowIso,
-      })
+      .update(updatePayload)
       .eq('id', targetSocialeId)
       .select()
       .single()
@@ -264,27 +325,29 @@ serve(async (req: Request) => {
       )
     }
 
-    // Create round state for the first round
-    const { error: roundStateError } = await supabase
-      .from('sociale_round_state')
-      .insert({
-        sociale_id: targetSocialeId,
-        round_id: firstRound.id,
-        status: 'active',
-        phase: 'answer',
-        started_at: nowIso,
-        phase_started_at: nowIso,
-        phase_ends_at: phaseEndsAt,
-        created_at: nowIso,
-        updated_at: nowIso,
-      })
+    // Create round state for the first round (skipped for ambient — no sociale_rounds FK to reference)
+    if (!isAmbient) {
+      const { error: roundStateError } = await supabase
+        .from('sociale_round_state')
+        .insert({
+          sociale_id: targetSocialeId,
+          round_id: firstRound.id,
+          status: 'active',
+          phase: 'answer',
+          started_at: nowIso,
+          phase_started_at: nowIso,
+          phase_ends_at: phaseEndsAt,
+          created_at: nowIso,
+          updated_at: nowIso,
+        })
 
-    if (roundStateError) {
-      console.error('Failed to create round state:', roundStateError)
-      return new Response(
-        JSON.stringify({ error: `Failed to create round state: ${roundStateError.message}`, details: roundStateError }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
+      if (roundStateError) {
+        console.error('Failed to create round state:', roundStateError)
+        return new Response(
+          JSON.stringify({ error: `Failed to create round state: ${roundStateError.message}`, details: roundStateError }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        )
+      }
     }
 
     // NOTE: Trivia snapshots are now created in sociales-create, not here

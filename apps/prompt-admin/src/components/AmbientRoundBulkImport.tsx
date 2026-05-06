@@ -1,11 +1,140 @@
 import { useState } from 'react';
 import type { AmbientRoundExportRow } from '../types/ambientRounds';
 
-interface Props {
-  onImport: (rows: AmbientRoundExportRow[]) => Promise<void>;
+// Normalize all formats to full database schema
+function normalizeRow(row: any, index: number): any {
+  const type = row.type;
+
+  // NEW MINIMAL FORMAT: trivia_multiple_choice
+  if (type === 'trivia_multiple_choice') {
+    const correctIndex = (row.options || []).findIndex((opt: any) => opt.correct);
+    const options = (row.options || []).map((opt: any, i: number) => ({
+      id: String.fromCharCode(97 + i), // a, b, c, d
+      text: opt.text,
+    }));
+    const correctOptionId = correctIndex >= 0 ? String.fromCharCode(97 + correctIndex) : 'a';
+
+    return {
+      order_index: index,
+      type: 'trivia',
+      title: row.title,
+      content: row.question || null,
+      explanation: row.explanation || null,
+      hint: row.hint || null,
+      settings: {
+        format: 'multiple_choice',
+        categoryKey: row.category || 'general',
+        answerSeconds: 30,
+        revealSeconds: 15,
+        resultsSeconds: 15,
+        pointsCorrect: 100,
+        speedBonusEnabled: true,
+        snapshot: {
+          prompt: row.question || '',
+          explanation: row.explanation || null,
+          multipleChoice: { options, correctOptionId },
+        },
+      },
+    };
+  }
+
+  // NEW MINIMAL FORMAT: trivia_written
+  if (type === 'trivia_written') {
+    return {
+      order_index: index,
+      type: 'trivia',
+      title: row.title,
+      content: row.question || null,
+      explanation: row.explanation || null,
+      hint: row.hint || null,
+      settings: {
+        format: 'written_answer',
+        categoryKey: row.category || 'general',
+        answerSeconds: 45,
+        revealSeconds: 15,
+        resultsSeconds: 15,
+        pointsCorrect: 100,
+        speedBonusEnabled: true,
+        snapshot: {
+          prompt: row.question || '',
+          explanation: row.explanation || null,
+          writtenAnswer: {
+            correctAnswer: row.answer || '',
+            acceptedAnswers: row.acceptedAnswers || [],
+          },
+        },
+      },
+    };
+  }
+
+  // NEW MINIMAL FORMAT: topic
+  if (type === 'topic') {
+    return {
+      order_index: index,
+      type: 'topic',
+      title: row.title,
+      content: row.prompt || null,
+      explanation: null,
+      hint: null,
+      settings: {
+        topic: row.prompt || row.title,
+        sortBy: 'upvotes',
+        allowUpvotes: true,
+        answerSeconds: 60,
+        votingSeconds: 30,
+        resultsSeconds: 15,
+      },
+    };
+  }
+
+  // LEGACY FORMAT: Already has full settings.snapshot structure
+  const s = row.settings || {};
+  if (s.snapshot?.multipleChoice?.options && s.snapshot?.multipleChoice?.correctOptionId) {
+    return {
+      ...row,
+      order_index: row.order_index ?? index,
+      explanation: s.snapshot.explanation ?? row.explanation ?? null,
+      hint: row.hint ?? null,
+    };
+  }
+
+  // LEGACY FORMAT: Old flat options array with is_correct flags
+  if (row.type === 'trivia' && s.format === 'multiple_choice' && Array.isArray(s.options)) {
+    const options = s.options.map((opt: any) => ({ id: opt.option_id, text: opt.option_text }));
+    const correctOpt = s.options.find((opt: any) => opt.is_correct);
+    return {
+      ...row,
+      order_index: row.order_index ?? index,
+      explanation: s.explanation ?? row.explanation ?? null,
+      hint: s.hint ?? row.hint ?? null,
+      settings: {
+        format: 'multiple_choice',
+        categoryKey: s.categoryKey || 'general',
+        answerSeconds: s.answerSeconds ?? 30,
+        revealSeconds: s.revealSeconds ?? 15,
+        resultsSeconds: s.resultsSeconds ?? 15,
+        pointsCorrect: s.pointsCorrect ?? 100,
+        speedBonusEnabled: s.speedBonusEnabled ?? true,
+        snapshot: {
+          prompt: row.content || '',
+          explanation: s.explanation ?? row.explanation ?? null,
+          multipleChoice: { options, correctOptionId: correctOpt?.option_id ?? '' },
+        },
+      },
+    };
+  }
+
+  // Fallback: pass through with order_index
+  return { ...row, order_index: row.order_index ?? index };
 }
 
-export default function AmbientRoundBulkImport({ onImport }: Props) {
+interface Props {
+  onImport: (rows: AmbientRoundExportRow[]) => Promise<void>;
+  importMode: 'replace' | 'append';
+  onImportModeChange: (mode: 'replace' | 'append') => void;
+}
+
+export default function AmbientRoundBulkImport({ onImport, importMode, onImportModeChange }: Props) {
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -28,12 +157,60 @@ export default function AmbientRoundBulkImport({ onImport }: Props) {
     }
     for (let i = 0; i < parsed.length; i++) {
       const row = parsed[i] as any;
-      if (!row?.type || !row?.title || !row?.settings) {
-        setError(`Row ${i}: must have type, title, and settings fields.`);
+      if (!row?.type || !row?.title) {
+        setError(`Row ${i}: must have type and title fields.`);
         return;
       }
-      if (row.type !== 'trivia' && row.type !== 'topic') {
-        setError(`Row ${i}: type must be "trivia" or "topic" (got "${row.type}").`);
+
+      const validTypes = ['trivia_multiple_choice', 'trivia_written', 'topic', 'trivia'];
+      if (!validTypes.includes(row.type)) {
+        setError(`Row ${i}: type must be one of: ${validTypes.join(', ')} (got "${row.type}").`);
+        return;
+      }
+
+      // NEW MINIMAL FORMAT: trivia_multiple_choice
+      if (row.type === 'trivia_multiple_choice') {
+        if (!row.question) {
+          setError(`Row ${i}: trivia_multiple_choice requires "question" field.`);
+          return;
+        }
+        if (!Array.isArray(row.options) || row.options.length !== 4) {
+          setError(`Row ${i}: trivia_multiple_choice requires "options" array with exactly 4 items.`);
+          return;
+        }
+        const correctCount = row.options.filter((o: any) => o?.correct).length;
+        if (correctCount !== 1) {
+          setError(`Row ${i}: exactly one option must have "correct": true.`);
+          return;
+        }
+        continue;
+      }
+
+      // NEW MINIMAL FORMAT: trivia_written
+      if (row.type === 'trivia_written') {
+        if (!row.question) {
+          setError(`Row ${i}: trivia_written requires "question" field.`);
+          return;
+        }
+        if (!row.answer) {
+          setError(`Row ${i}: trivia_written requires "answer" field.`);
+          return;
+        }
+        continue;
+      }
+
+      // NEW MINIMAL FORMAT: topic
+      if (row.type === 'topic') {
+        if (!row.prompt) {
+          setError(`Row ${i}: topic requires "prompt" field.`);
+          return;
+        }
+        continue;
+      }
+
+      // LEGACY FORMATS: Validate old schema with settings object
+      if (!row.settings) {
+        setError(`Row ${i}: legacy format requires "settings" field.`);
         return;
       }
       if (typeof row.settings.answerSeconds !== 'number') {
@@ -54,29 +231,28 @@ export default function AmbientRoundBulkImport({ onImport }: Props) {
           return;
         }
         if (row.settings.format === 'multiple_choice') {
-          if (!Array.isArray(row.settings.options) || row.settings.options.length < 2) {
-            setError(`Row ${i} (trivia): multiple_choice requires settings.options array.`);
+          const hasLegacyFormat = Array.isArray(row.settings.options) && row.settings.options.length >= 2;
+          const hasModernFormat = row.settings.snapshot?.multipleChoice?.options && row.settings.snapshot?.multipleChoice?.correctOptionId;
+          
+          if (!hasLegacyFormat && !hasModernFormat) {
+            setError(`Row ${i} (trivia): multiple_choice requires either settings.options array OR settings.snapshot.multipleChoice.`);
             return;
           }
-          const correctCount = row.settings.options.filter((o: any) => o?.is_correct).length;
-          if (correctCount !== 1) {
-            setError(`Row ${i} (trivia): exactly one option must have is_correct: true.`);
-            return;
+          
+          if (hasLegacyFormat) {
+            const correctCount = row.settings.options.filter((o: any) => o?.is_correct).length;
+            if (correctCount !== 1) {
+              setError(`Row ${i} (trivia): exactly one option must have is_correct: true.`);
+              return;
+            }
           }
-        }
-        if (typeof row.settings.correctAnswer !== 'string' || row.settings.correctAnswer.length === 0) {
-          setError(`Row ${i} (trivia): settings.correctAnswer must be a non-empty string.`);
-          return;
-        }
-      } else if (row.type === 'topic') {
-        if (typeof row.settings.votingSeconds !== 'number') {
-          setError(`Row ${i} (topic): settings.votingSeconds must be a number.`);
-          return;
         }
       }
     }
     try {
-      await onImport(parsed as AmbientRoundExportRow[]);
+      // Normalize all rows to full database schema
+      const normalized = (parsed as any[]).map((row, index) => normalizeRow(row, index));
+      await onImport(normalized as AmbientRoundExportRow[]);
       setText('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Import failed.');
@@ -90,9 +266,25 @@ export default function AmbientRoundBulkImport({ onImport }: Props) {
   return (
     <div className="bulk-import">
       <h3>Bulk Import</h3>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <button
+          className={`btn ${importMode === 'append' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => onImportModeChange('append')}
+        >
+          ➕ Append
+        </button>
+        <button
+          className={`btn ${importMode === 'replace' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => onImportModeChange('replace')}
+        >
+          🔄 Replace All
+        </button>
+      </div>
       <p className="hint">
-        Paste a JSON array of ambient rounds, or upload the seed file.
-        <strong> This replaces all existing rounds.</strong>
+        {importMode === 'append'
+          ? 'Paste a JSON array of rounds to add after the existing ones.'
+          : <>Paste a JSON array of ambient rounds, or upload the seed file. <strong>This replaces all existing rounds.</strong></>
+        }
       </p>
       <label className="btn btn-secondary">
         Upload JSON
@@ -116,7 +308,7 @@ export default function AmbientRoundBulkImport({ onImport }: Props) {
       />
       {error && <p className="error">{error}</p>}
       <button className="btn btn-primary" onClick={() => void handleImport()} disabled={!text.trim()}>
-        Import and Replace All
+        {importMode === 'append' ? 'Import and Append' : 'Import and Replace All'}
       </button>
     </div>
   );

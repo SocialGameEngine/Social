@@ -112,9 +112,19 @@ CREATE TRIGGER cleanup_guests_on_room_archive
 -- Requires the pg_cron extension to be enabled in the Supabase dashboard
 -- (Database → Extensions → pg_cron).  Safe to run even if some rooms already
 -- had their guests cleaned eagerly by the trigger or edge function.
+-- Only runs if pg_cron extension is available
 
-SELECT cron.schedule(
-  'cleanup-guest-memberships',   -- job name (idempotent)
-  '0 * * * *',                   -- every hour on the hour
-  'SELECT cleanup_guest_memberships()'
-);
+DO $$
+BEGIN
+  -- Check if cron schema exists (pg_cron extension is enabled)
+  IF EXISTS (
+    SELECT 1 FROM information_schema.schemata 
+    WHERE schema_name = 'cron'
+  ) THEN
+    PERFORM cron.schedule(
+      'cleanup-guest-memberships',   -- job name (idempotent)
+      '0 * * * *',                   -- every hour on the hour
+      'SELECT cleanup_guest_memberships()'
+    );
+  END IF;
+END $$;

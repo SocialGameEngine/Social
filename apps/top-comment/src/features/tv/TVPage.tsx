@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useMemo, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 import { Timer } from "@social/ui";
 import { BackgroundAnimation } from "../../components/BackgroundAnimation";
 import { useTheme } from "../../shared/providers/ThemeProvider";
@@ -22,6 +23,7 @@ import { TVFinalRoundBadge } from "./components/TVFinalRoundBadge";
 import { TVLeaderboardMoment } from "./components/TVLeaderboardMoment";
 import { TVPodiumCeremony } from "./components/TVPodiumCeremony";
 import { TVHypeMeter } from "./components/TVHypeMeter";
+import { TVBanterOverlay } from "./components/TVBanterOverlay";
 import {
   LobbyPhase,
   AnswerPhase,
@@ -35,6 +37,7 @@ import {
 export function TVPage() {
   const { roomCode = "" } = useParams<{ roomCode: string }>();
   const { isDark } = useTheme();
+  const queryClient = useQueryClient();
 
   // Fetch room first to get the sociale
   const { room, isLoading: roomLoading } = useRoom({ roomCode });
@@ -47,9 +50,37 @@ export function TVPage() {
     currentRoundVotes,
     scoreboard,
     currentPhase,
-    timeRemaining,
     isLoading: socialeLoading,
   } = useTVPresenter(room?.currentSocialeId ?? "");
+
+  // Sync correction: refetch when tab becomes visible again to catch up
+  // after being backgrounded (browser throttles realtime connections)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && room?.currentSocialeId) {
+        // Invalidate all sociale-related queries to force a fresh fetch
+        void queryClient.invalidateQueries({ queryKey: ['sociale', room.currentSocialeId] });
+        void queryClient.invalidateQueries({ queryKey: ['socialites', room.currentSocialeId] });
+        void queryClient.invalidateQueries({ queryKey: ['sociale-responses', room.currentSocialeId] });
+        void queryClient.invalidateQueries({ queryKey: ['sociale-votes', room.currentSocialeId] });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [queryClient, room?.currentSocialeId]);
+
+  // Announce TV presence so the host panel can show "TV Connected"
+  useEffect(() => {
+    if (!room?.id) return;
+    const channel = supabase.channel(`room-tv:${room.id}`);
+    channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await channel.track({ role: 'tv' });
+      }
+    });
+    return () => { void supabase.removeChannel(channel); };
+  }, [room?.id]);
 
   const { reactions, reactionCounts, bursts } = useReactions({
     roomId: sociale?.roomId,
@@ -66,22 +97,12 @@ export function TVPage() {
   // broadcast's nonce so repeat presses refire the animation.
   const { signals: hostSignals, send: sendHostSignal } = useHostSignals(room?.id ?? null);
 
-  // P1-1: track previous scoreboard ranks so we can show ↑/↓ deltas on the
-  // leaderboard moment. Keyed by socialiteId → rank (1-based).
-  const prevRanksRef = useRef<Map<string, number>>(new Map());
-
-  // P1-2 (topic-round score coupling): track the peak hype level reached
-  // during the current round so we can award a bonus when the round ends.
-  const peakHypeLevelRef = useRef<number>(0);
-  const prevRoundIdRef = useRef<string | null>(null);
-  const prevRoundTypeRef = useRef<string | null>(null);
-
-  // Ambient mode auto-advance
+  // Ambient mode auto-advance — TVPage owns this because the TV must be on anyway.
   const isAdvancing = useRef(false);
 
   const advancePhase = useCallback(async () => {
     if (!sociale?.id || isAdvancing.current) return;
-    if (sociale?.mode !== 'ambient') return; // only TVPage drives ambient advance
+    if (sociale?.mode !== 'ambient') return;
 
     isAdvancing.current = true;
     try {
@@ -99,7 +120,6 @@ export function TVPage() {
     }
   }, [sociale?.id, sociale?.mode]);
 
-  // Fire when phaseEndsAt expires
   useEffect(() => {
     if (!sociale?.phaseEndsAt || sociale.mode !== 'ambient') return;
 
@@ -109,9 +129,20 @@ export function TVPage() {
       return;
     }
 
-    const timer = window.setTimeout(() => void advancePhase(), msRemaining + 500); // +500ms buffer
+    const timer = window.setTimeout(() => void advancePhase(), msRemaining);
     return () => window.clearTimeout(timer);
   }, [sociale?.phaseEndsAt, sociale?.mode, advancePhase]);
+
+  // P1-1: track previous scoreboard ranks so we can show ↑/↓ deltas on the
+  // leaderboard moment. Keyed by socialiteId → rank (1-based).
+  const prevRanksRef = useRef<Map<string, number>>(new Map());
+
+  // P1-2 (topic-round score coupling): track the peak hype level reached
+  // during the current round so we can award a bonus when the round ends.
+  const peakHypeLevelRef = useRef<number>(0);
+  const prevRoundIdRef = useRef<string | null>(null);
+  const prevRoundTypeRef = useRef<string | null>(null);
+
 
   const isLoading = roomLoading || socialeLoading;
 
@@ -350,8 +381,8 @@ export function TVPage() {
         visible={isFinalRound && (currentPhase === 'answer' || currentPhase === 'vote')}
       />
 
-      {/* P1-9: round intro splash — fires once per new round */}
-      {roundKey && currentRound && (
+      {/* P1-9: round intro splash — fires once per new round, only during answer phase */}
+      {roundKey && currentRound && currentPhase === 'answer' && (
         <TVRoundIntroSplash
           triggerKey={roundKey}
           roundNumber={(sociale.currentRoundIndex ?? 0) + 1}
@@ -411,6 +442,7 @@ export function TVPage() {
       <TVLeaderboardMoment
         triggerKey={leaderboardMomentKey}
         rows={leaderboardRows}
+        currentPhase={currentPhase}
       />
 
       <motion.main
@@ -447,7 +479,10 @@ export function TVPage() {
             roomId={room?.id ?? null}
             active={currentPhase === "results" || currentPhase === "reveal"}
             onLevelUp={handleHypeLevelUp}
+            playerCount={socialites.length || 4}
           />
+
+          {sociale?.id && <TVBanterOverlay socialeId={sociale.id} />}
 
           <PresenterReactionBar reactionCounts={reactionCounts} />
         </div>

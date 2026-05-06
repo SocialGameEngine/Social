@@ -5,7 +5,7 @@ import LibraryForm, { type LibraryFormData } from "./components/LibraryForm";
 import LibraryList from "./components/LibraryList";
 import PromptList from "./components/PromptList";
 import AmbientRoundList from "./components/AmbientRoundList";
-import AIPromptGenerator from "./components/AIPromptGenerator";
+import AIPromptGeneratorTabs from "./components/AIPromptGeneratorTabs";
 import TriviaLibraryForm from "./components/TriviaLibraryForm";
 import TriviaLibraryList from "./components/TriviaLibraryList";
 import TriviaQuestionList from "./components/TriviaQuestionList";
@@ -454,7 +454,7 @@ function App() {
                     <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
                       Use the AI generator below to create trivia questions, then create a new library and import them.
                     </p>
-                    <AIPromptGenerator type="trivia" />
+                    <AIPromptGeneratorTabs type="trivia" />
                   </div>
                 </div>
               )}
@@ -505,7 +505,7 @@ function App() {
                     <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
                       Use the AI generator below to create prompts, then create a new library and import them.
                     </p>
-                    <AIPromptGenerator type="prompts" />
+                    <AIPromptGeneratorTabs type="prompts" />
                   </div>
                 </div>
               )}

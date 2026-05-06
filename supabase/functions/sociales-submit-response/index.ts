@@ -45,7 +45,7 @@ serve(async (req) => {
 
     // Parse request body
     const body: SubmitSocialeResponseRequest = await req.json()
-    const { socialeId, roundId, socialiteId, type, value, isCorrect } = body
+    const { socialeId, roundId, socialiteId, type, value, isCorrect, isPractice } = body
 
     if (!socialeId || !roundId || !socialiteId || !type || value === undefined) {
       return new Response(
@@ -93,46 +93,116 @@ serve(async (req) => {
       )
     }
 
-    // Get current round state
-    const { data: roundState, error: stateError } = await supabaseClient
-      .from('sociale_round_state')
-      .select('*')
-      .eq('sociale_id', socialeId)
-      .eq('round_id', roundId)
-      .eq('status', 'active')
-      .single()
+    const isAmbient = sociale.mode === 'ambient'
 
-    if (stateError || !roundState) {
-      return new Response(
-        JSON.stringify({ error: 'Round not active' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    if (isAmbient) {
+      // Ambient sociales have no sociale_round_state rows.
+      // Verify phase/round via the sociales row directly.
+      if (sociale.status !== 'active') {
+        return new Response(
+          JSON.stringify({ error: 'Round not active' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      const responsePhases = ['setup', 'question', 'answer']
+      if (!responsePhases.includes(sociale.current_phase ?? '')) {
+        return new Response(
+          JSON.stringify({ error: 'Not in response phase' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      if (sociale.current_round_id !== roundId) {
+        return new Response(
+          JSON.stringify({ error: 'Round not active' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    } else {
+      // Get current round state
+      const { data: roundState, error: stateError } = await supabaseClient
+        .from('sociale_round_state')
+        .select('*')
+        .eq('sociale_id', socialeId)
+        .eq('round_id', roundId)
+        .eq('status', 'active')
+        .single()
+
+      if (stateError || !roundState) {
+        return new Response(
+          JSON.stringify({ error: 'Round not active' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Check if response phase is active
+      const responsePhases = ['setup', 'question', 'answer']
+      if (!responsePhases.includes(roundState.phase)) {
+        return new Response(
+          JSON.stringify({ error: 'Not in response phase' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     }
 
-    // Check if response phase is active
-    const responsePhases = ['setup', 'question', 'answer']
-    if (!responsePhases.includes(roundState.phase)) {
-      return new Response(
-        JSON.stringify({ error: 'Not in response phase' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Get the round to access settings for trivia scoring
+    // Get the round to access settings for trivia scoring.
+    // Ambient rounds live in ambient_rounds; regular rounds in sociale_rounds.
     // P1-11: also pull point_multiplier so the final round can double scores.
-    const { data: currentRound } = await supabaseClient
-      .from('sociale_rounds')
-      .select('type, settings, point_multiplier')
-      .eq('id', roundId)
-      .single()
+    let roundType = 'prompt'
+    let roundSettings: any = {}
+    let pointMultiplier = 1
 
-    const roundType = currentRound?.type || 'prompt'
-    const roundSettings = (currentRound?.settings || {}) as any
-    const pointMultiplier =
-      typeof currentRound?.point_multiplier === 'number' &&
-      currentRound.point_multiplier > 0
-        ? currentRound.point_multiplier
-        : 1
+    if (isAmbient) {
+      const { data: ambientRound } = await supabaseClient
+        .from('ambient_rounds')
+        .select('type, settings')
+        .eq('id', roundId)
+        .single()
+      if (ambientRound) {
+        roundType = ambientRound.type || 'prompt'
+        const s = (ambientRound.settings || {}) as any
+        
+        // If already has complete snapshot (modern format), use as-is
+        if (s.snapshot?.multipleChoice?.options && s.snapshot?.multipleChoice?.correctOptionId) {
+          roundSettings = s
+        }
+        // Legacy format - normalize from s.options array with is_correct flags
+        else if (s.format === 'multiple_choice' && s.options && Array.isArray(s.options)) {
+          const options = (s.options as any[]).map((opt) => ({
+            id: opt.option_id,
+            text: opt.option_text,
+          }))
+          const correct = (s.options as any[]).find((opt) => opt.is_correct)
+          roundSettings = {
+            ...s,
+            snapshot: {
+              prompt: s.snapshot?.prompt ?? s.prompt ?? ambientRound.content ?? '',
+              explanation: s.snapshot?.explanation ?? null,
+              multipleChoice: {
+                options,
+                correctOptionId: correct?.option_id ?? '',
+              },
+            },
+          }
+        } else {
+          roundSettings = s
+        }
+      }
+    } else {
+      const { data: currentRound } = await supabaseClient
+        .from('sociale_rounds')
+        .select('type, settings, point_multiplier')
+        .eq('id', roundId)
+        .single()
+      if (currentRound) {
+        roundType = currentRound.type || 'prompt'
+        roundSettings = (currentRound.settings || {}) as any
+        pointMultiplier =
+          typeof currentRound.point_multiplier === 'number' &&
+          currentRound.point_multiplier > 0
+            ? currentRound.point_multiplier
+            : 1
+      }
+    }
 
     // Calculate score based on response type
     let scoreAwarded = 0
@@ -175,12 +245,12 @@ serve(async (req) => {
     }
 
     // Fetch most recent existing response (if any).
-    // If historical duplicates exist, we update the newest row and let the UI dedupe.
+    // Use resolved_round_id so both ambient and regular rounds match.
     const { data: existingResponse, error: existingError } = await supabaseClient
       .from('sociale_responses')
       .select('*')
       .eq('sociale_id', socialeId)
-      .eq('round_id', roundId)
+      .eq('resolved_round_id', roundId)
       .eq('socialite_id', socialiteId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -189,14 +259,24 @@ serve(async (req) => {
     if (existingError) throw existingError
 
     const nowIso = new Date().toISOString()
+    // Ambient rounds store their ID in ambient_round_id; regular rounds use round_id.
+    const roundIdPayload = isAmbient
+      ? { round_id: null, ambient_round_id: roundId }
+      : { round_id: roundId, ambient_round_id: null }
+    const scoreEventRoundIdPayload = isAmbient
+      ? { ambient_round_id: roundId }
+      : { round_id: roundId }
+
     const responseUpsertPayload = {
       sociale_id: socialeId,
-      round_id: roundId,
+      ...roundIdPayload,
       socialite_id: socialiteId,
       type,
       value,
       is_correct: computedIsCorrect,
       score_awarded: scoreAwarded,
+      // P2-4: Mark as practice for ghost mode (late joiners)
+      is_practice: isPractice || false,
       updated_at: nowIso,
     }
 
@@ -229,7 +309,7 @@ serve(async (req) => {
           .from('sociale_score_events')
           .insert({
             sociale_id: socialeId,
-            round_id: roundId,
+            ...scoreEventRoundIdPayload,
             socialite_id: socialiteId,
             reason: `Updated ${type} response`,
             points: delta,
@@ -242,7 +322,7 @@ serve(async (req) => {
         response: {
           id: updatedResponse.id,
           socialeId: updatedResponse.sociale_id,
-          roundId: updatedResponse.round_id,
+          roundId: (updatedResponse as any).resolved_round_id ?? updatedResponse.round_id,
           socialiteId: updatedResponse.socialite_id,
           type: updatedResponse.type,
           value: updatedResponse.value,
@@ -264,7 +344,7 @@ serve(async (req) => {
       .from('sociale_responses')
       .insert({
         sociale_id: socialeId,
-        round_id: roundId,
+        ...roundIdPayload,
         socialite_id: socialiteId,
         type,
         value,
@@ -293,7 +373,7 @@ serve(async (req) => {
         .from('sociale_score_events')
         .insert({
           sociale_id: socialeId,
-          round_id: roundId,
+          ...scoreEventRoundIdPayload,
           socialite_id: socialiteId,
           reason: `Submitted ${type} response`,
           points: scoreAwarded,
@@ -302,12 +382,12 @@ serve(async (req) => {
         })
     }
 
-    // Return created response
+    // Return created response — resolved_round_id is the canonical round ID for both modes
     const responseResult: SubmitSocialeResponseResponse = {
       response: {
         id: response.id,
         socialeId: response.sociale_id,
-        roundId: response.round_id,
+        roundId: response.resolved_round_id ?? response.round_id,
         socialiteId: response.socialite_id,
         type: response.type,
         value: response.value,

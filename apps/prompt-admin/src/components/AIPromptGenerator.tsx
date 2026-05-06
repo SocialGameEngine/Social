@@ -1,27 +1,54 @@
 import { useState } from 'react';
 
+/**
+ * AIPromptGenerator - AI Prompt Generator Component
+ * 
+ * PURPOSE: Generates structured AI prompts for bulk content creation across
+ * three library types: prompts (party questions), trivia (quiz questions), 
+ * and ambient rounds (autonomous game content).
+ * 
+ * USAGE: Embedded in library management tabs. Users configure parameters,
+ * click "Generate", then copy the prompt to their preferred AI tool (ChatGPT,
+ * Claude, etc.). The AI returns JSON that can be bulk-imported.
+ * 
+ * ARCHITECTURE:
+ * - Self-contained state for form configuration
+ * - Type-specific prompt templates with embedded schemas
+ * - Collapsible UI to conserve screen space
+ * - Copy-to-clipboard for easy AI tool handoff
+ */
+
 interface Props {
+  /** Target library type determines prompt template and schema */
   type: 'prompts' | 'ambient' | 'trivia';
 }
 
 export default function AIPromptGenerator({ type }: Props) {
+  // UI state
   const [isExpanded, setIsExpanded] = useState(false);
   const [showGenerated, setShowGenerated] = useState(false);
+  
+  // Form configuration state - persisted per type
   const [formData, setFormData] = useState({
     count: '20',
     tags: [] as string[],
+    strictCategories: true,
     roundSpread: '50_trivia_50_topic',
     promptType: 'open_ended',
     triviaFormatRatio: '80_mc_20_written',
     difficultyDist: 'pyramid',
   });
+  // Tag input buffer for comma-separated entry
   const [tagInput, setTagInput] = useState('');
+  // The final generated prompt text for copying
   const [generatedPrompt, setGeneratedPrompt] = useState('');
 
+  /** Updates a single form field while preserving other values */
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  /** Adds a tag if unique, clears input buffer */
   const addTag = (tag: string) => {
     const trimmed = tag.trim();
     if (trimmed && !formData.tags.includes(trimmed)) {
@@ -30,6 +57,7 @@ export default function AIPromptGenerator({ type }: Props) {
     setTagInput('');
   };
 
+  /** Removes a tag from the filter list */
   const removeTag = (tagToRemove: string) => {
     setFormData(prev => ({ 
       ...prev, 
@@ -37,6 +65,7 @@ export default function AIPromptGenerator({ type }: Props) {
     }));
   };
 
+  /** Handles Enter or comma to commit tag, prevents form submission */
   const handleTagInputKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
@@ -44,6 +73,11 @@ export default function AIPromptGenerator({ type }: Props) {
     }
   };
 
+  /**
+   * Generates the AI prompt based on type and form configuration.
+   * Each type has a specialized template with embedded JSON schemas
+   * to ensure consistent, importable AI output.
+   */
   const generatePrompt = () => {
     if (type === 'prompts') {
       const promptTypeLabels = {
@@ -72,9 +106,11 @@ REQUIREMENTS:
 - Write conversationally, as if spoken aloud in a group setting
 - Length: 1-2 sentences maximum per prompt
 
-${formData.tags.length > 0 ? `FOCUS ON THESE TOPICS: ${formData.tags.join(', ')}` : ''}
+${formData.tags.length > 0 ? (formData.strictCategories
+  ? `REQUIRED TOPICS (STRICT): ${formData.tags.join(', ')}. Every single prompt MUST be about one of these topics only. Do not include prompts outside these topics.`
+  : `PREFERRED TOPICS: ${formData.tags.join(', ')}`) : ''}
 
-OUTPUT: Return a JSON array only. No markdown, no commentary, no code fences.
+OUTPUT: Return the response as a downloadable .json file named "prompts_${formData.count}.json". The file should contain a JSON array only. No markdown, no commentary, no code fences.
 [
   {"text": "prompt text here"},
   {"text": "prompt text here"}
@@ -160,7 +196,9 @@ FORMAT REQUIREMENTS:
 - Mix of topics: general knowledge, pop culture, science, history, geography
 - Keep content family-friendly and internationally accessible
 
-${formData.tags.length > 0 ? `FOCUS CATEGORIES: ${formData.tags.join(', ')}` : ''}
+${formData.tags.length > 0 ? (formData.strictCategories
+  ? `REQUIRED CATEGORIES (STRICT): ${formData.tags.join(', ')}. ALL questions MUST be from these categories only. Do not generate questions outside these categories. The categoryKey field must reflect one of these topics.`
+  : `PREFERRED CATEGORIES: ${formData.tags.join(', ')}`) : ''}
 
 TRIVIA ROUND SCHEMA (use exactly -- all fields required):
 ${triviaExample}
@@ -168,7 +206,7 @@ ${triviaExample}
 TOPIC ROUND SCHEMA (use exactly -- all fields required):
 ${topicExample}
 
-OUTPUT: Return a single JSON array of ${totalCount} objects only. No markdown, no code fences, no commentary. The array must contain exactly ${totalCount} items with order_index values 0 through ${totalCount - 1}.`;
+OUTPUT: Return the response as a downloadable .json file named "ambient_rounds_${totalCount}.json". The file should contain a single JSON array of ${totalCount} objects only. No markdown, no code fences, no commentary. The array must contain exactly ${totalCount} items with order_index values 0 through ${totalCount - 1}.`;
 
       setGeneratedPrompt(prompt);
       setShowGenerated(true);
@@ -193,58 +231,45 @@ OUTPUT: Return a single JSON array of ${totalCount} objects only. No markdown, n
       }
       
       const triviaExample = `{
-  "order_index": 0,
-  "type": "trivia",
+  "type": "trivia_multiple_choice",
   "title": "Science Quickfire",
-  "content": "What is the chemical symbol for gold?",
-  "settings": {
-    "format": "multiple_choice",
-    "categoryKey": "science",
-    "difficulty": "medium",
-    "answerSeconds": 30,
-    "revealSeconds": 5,
-    "resultsSeconds": 8,
-    "correctAnswer": "Au",
-    "options": [
-      { "option_id": "a", "option_text": "Go", "is_correct": false },
-      { "option_id": "b", "option_text": "Gd", "is_correct": false },
-      { "option_id": "c", "option_text": "Au", "is_correct": true },
-      { "option_id": "d", "option_text": "Ag", "is_correct": false }
-    ]
-  }
+  "question": "What is the chemical symbol for gold?",
+  "hint": "Think about the Latin name for gold",
+  "explanation": "Gold's chemical symbol comes from its Latin name 'aurum'.",
+  "category": "science",
+  "options": [
+    { "text": "Go" },
+    { "text": "Gd" },
+    { "text": "Au", "correct": true },
+    { "text": "Ag" }
+  ]
 }`;
 
       const topicExample = `{
-  "order_index": 1,
   "type": "topic",
   "title": "Hot Take of the Night",
-  "content": "Share your most unpopular opinion about food. The room votes on the spiciest take.",
-  "settings": {
-    "answerSeconds": 60,
-    "votingSeconds": 30,
-    "resultsSeconds": 10,
-    "sortBy": "upvotes"
-  }
+  "prompt": "Share your most unpopular opinion about food. The room votes on the spiciest take."
 }`;
 
       const prompt = `Generate ${totalRounds} ambient rounds for a social party game with ${triviaCount} trivia rounds and ${topicCount} topic/discussion rounds.
 
 ROUND REQUIREMENTS:
-- Trivia rounds: A single question with multiple-choice answer. Use varied categories (science, history, geography, pop culture, sport, food & drink, music, film/TV, general knowledge).
+- Trivia rounds: A single question with 4 multiple-choice options. Use varied categories (science, history, geography, pop culture, sport, food & drink, music, film/TV, general knowledge).
 - Topic rounds: Short conversation prompts / hot takes / social observation games that the room answers and votes on.
-- Each round is self-contained and short -- trivia ~45s end-to-end, topic ~100s end-to-end.
 - Content must be family-friendly and inclusive across ages 16-70.
-- Avoid back-to-back same category -- interleave by mixing categories in order_index.
+- Avoid back-to-back same category -- interleave by mixing categories.
 
-${formData.tags.length > 0 ? `PREFERRED THEMES / CATEGORIES: ${formData.tags.join(', ')}` : ''}
+${formData.tags.length > 0 ? (formData.strictCategories
+  ? `REQUIRED THEMES / CATEGORIES (STRICT): ${formData.tags.join(', ')}. ALL trivia rounds MUST use only these categories. Do not use any other categories. The categoryKey field must reflect one of these topics exactly.`
+  : `PREFERRED THEMES / CATEGORIES: ${formData.tags.join(', ')}`) : ''}
 
 SCHEMA RULES (STRICT):
-- All fields in "settings" must exactly match the schema shown below -- do not add or rename keys.
-- Trivia rounds: "settings" must include format, categoryKey, difficulty, answerSeconds, revealSeconds, resultsSeconds, correctAnswer, options. Use "format": "multiple_choice" with exactly 4 options, exactly one with is_correct: true. The correctAnswer string must exactly match the option_text of the correct option.
-- Topic rounds: "settings" must include answerSeconds, votingSeconds, resultsSeconds, sortBy. Use "sortBy": "upvotes" (or "newest" occasionally).
-- Timing defaults: Trivia -> answerSeconds: 30, revealSeconds: 5, resultsSeconds: 8. Topic -> answerSeconds: 60, votingSeconds: 30, resultsSeconds: 10.
-- difficulty is one of "easy", "medium", "hard". Target spread across trivia: ~30% easy, ~50% medium, ~20% hard.
-- order_index runs from 0 to ${totalRounds - 1} with no gaps or duplicates.
+- Use ONLY the minimal schema shown below. Do not add extra fields.
+- type must be one of: "trivia_multiple_choice", "trivia_written", or "topic"
+- Trivia rounds: Must have "question", "hint", "explanation", "category", and "options" array with exactly 4 items
+- Each option has "text" field. Exactly ONE option must have "correct": true
+- Topic rounds: Only need "title" and "prompt" fields
+- Do NOT include: order_index, settings, snapshot, answerSeconds, or any timing fields (these are auto-generated)
 
 TRIVIA ROUND SCHEMA (use exactly -- all fields required):
 ${triviaExample}
@@ -252,17 +277,19 @@ ${triviaExample}
 TOPIC ROUND SCHEMA (use exactly -- all fields required):
 ${topicExample}
 
-OUTPUT: Return a single JSON array of ${totalRounds} objects only. No markdown, no code fences, no commentary. The array must contain exactly ${totalRounds} items with order_index values 0 through ${totalRounds - 1}.`;
+OUTPUT: Return the response as a downloadable .json file named "ambient_rounds_${totalRounds}.json". The file should contain a single JSON array of ${totalRounds} objects only. No markdown, no code fences, no commentary. The array must contain exactly ${totalRounds} items in the order they should appear in the game.`;
 
       setGeneratedPrompt(prompt);
       setShowGenerated(true);
     }
   };
 
+  /** Copies the generated prompt to system clipboard */
   const copyToClipboard = () => {
     navigator.clipboard.writeText(generatedPrompt);
   };
 
+  // Color theming based on library type for visual distinction
   const bgColor = type === 'prompts' ? '#f0f9ff' : type === 'trivia' ? '#f0fdf4' : '#fef3c7';
   const borderColor = type === 'prompts' ? '#0ea5e9' : type === 'trivia' ? '#16a34a' : '#f59e0b';
   const textColor = type === 'prompts' ? '#0369a1' : type === 'trivia' ? '#166534' : '#92400e';
@@ -316,10 +343,10 @@ OUTPUT: Return a single JSON array of ${totalRounds} objects only. No markdown, 
                 onChange={e => updateField('count', e.target.value)}
                 style={{ width: '100%', padding: '6px', fontSize: '12px' }}
               >
-                <option value="10">10</option>
                 <option value="20">20</option>
                 <option value="50">50</option>
                 <option value="100">100</option>
+                <option value="200">200</option>
               </select>
             </div>
 
@@ -443,6 +470,52 @@ OUTPUT: Return a single JSON array of ${totalRounds} objects only. No markdown, 
                   }}
                 />
               </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                userSelect: 'none'
+              }}>
+                <div
+                  onClick={() => updateField('strictCategories', !formData.strictCategories)}
+                  style={{
+                    width: '36px',
+                    height: '20px',
+                    borderRadius: '10px',
+                    background: formData.strictCategories ? borderColor : '#ccc',
+                    position: 'relative',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    flexShrink: 0,
+                  }}
+                >
+                  <div style={{
+                    width: '16px',
+                    height: '16px',
+                    borderRadius: '50%',
+                    background: 'white',
+                    position: 'absolute',
+                    top: '2px',
+                    left: formData.strictCategories ? '18px' : '2px',
+                    transition: 'left 0.2s',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                  }} />
+                </div>
+                <span style={{ color: textColor }}>
+                  Strict categories {formData.strictCategories ? '(on)' : '(off)'}
+                </span>
+              </label>
+              <span style={{ fontSize: '11px', color: '#666' }}>
+                {formData.strictCategories
+                  ? 'AI must only use the tags above as categories'
+                  : 'Tags are suggestions — AI may use other categories'}
+              </span>
             </div>
 
             {type === 'ambient' && (

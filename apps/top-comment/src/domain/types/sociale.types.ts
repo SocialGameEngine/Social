@@ -39,7 +39,16 @@ export type SocialeRoundType =
   | 'trivia'   // Trivia question round
   | 'topic'    // Topic discussion round
   | 'poll'     // Poll/voting round
-  | 'custom';  // Custom round type
+  | 'custom'   // Custom round type
+  | 'picture'  // Image identification round
+  | 'music'    // Audio recognition round
+  | 'wager'    // Points wagering round
+  | 'predictive' // Host-selects-correct post-submission
+  | 'photo'    // Camera submission round
+  | 'bluff'    // Dead Man's Bluff (Fibbage-style)
+  | 'mole'     // The Mole (spy theme)
+  | 'order'    // Drag-and-drop ordering round
+  | 'chest';   // Roguelike upgrade round
 
 /**
  * Round lifecycle status
@@ -95,6 +104,7 @@ export const DEFAULT_SOCIALE_SETTINGS: SocialeSettings = {
   autoAdvance: true,
   showInterRoundLeaderboard: true,
   allowLateJoin: true,
+  avgSyncDelayMs: undefined,
 };
 
 // =============================================================================
@@ -186,6 +196,93 @@ export interface PollRoundSettings extends BaseRoundSettings {
 }
 
 /**
+ * Picture round settings
+ */
+export interface PictureRoundSettings extends BaseRoundSettings {
+  imageUrl: string;
+  correctAnswer: string;
+  acceptedAnswers?: string[];
+  caseSensitive?: boolean;
+  pointsForCorrect?: number;
+  revealSeconds?: number;
+}
+
+/**
+ * Wager round settings
+ */
+export interface WagerRoundSettings extends BaseRoundSettings {
+  category: string;
+  question: string;
+  correctAnswer: string;
+  acceptedAnswers?: string[];
+  caseSensitive?: boolean;
+  minWager?: number;
+  maxWager?: number;
+  wagerSeconds?: number;
+  revealSeconds?: number;
+}
+
+/**
+ * Photo submission round settings
+ */
+export interface PhotoRoundSettings extends BaseRoundSettings {
+  prompt: string;
+  captureSeconds?: number;
+  gallerySeconds?: number;
+  maxFileSize?: number;
+  requireModeration?: boolean;
+  allowMultipleVotes?: boolean;
+}
+
+/**
+ * Bluff round settings (Dead Man's Bluff / Fibbage-style)
+ */
+export interface BluffRoundSettings extends BaseRoundSettings {
+  question: string;
+  realAnswer: string;
+  bluffSeconds?: number;
+  revealSeconds?: number;
+  maxBluffLength?: number;
+  pointsForTruth?: number;
+  pointsPerFool?: number;
+}
+
+/**
+ * Mole round settings (spy theme)
+ */
+export interface MoleRoundSettings extends BaseRoundSettings {
+  prompt: string;
+  submissionSeconds?: number;
+  reviewSeconds?: number;
+  revealSeconds?: number;
+  maxWordCount?: number;
+}
+
+/**
+ * Order round settings (drag-and-drop)
+ */
+export interface OrderRoundSettings extends BaseRoundSettings {
+  prompt: string;
+  items: string[];
+  correctOrder: number[];
+  orderSeconds?: number;
+  revealSeconds?: number;
+  pointsForPerfect?: number;
+  pointsPerCorrect?: number;
+}
+
+/**
+ * Predictive round settings (host picks correct)
+ */
+export interface PredictiveRoundSettings extends BaseRoundSettings {
+  prompt: string;
+  submissionSeconds?: number;
+  reviewSeconds?: number;
+  revealSeconds?: number;
+  pointsForMatch?: number;
+}
+
+/**
  * Custom round settings (extensible)
  */
 export interface CustomRoundSettings extends BaseRoundSettings {
@@ -200,6 +297,13 @@ export type SocialeRoundSettings =
   | TriviaRoundSettings 
   | TopicRoundSettings 
   | PollRoundSettings 
+  | PictureRoundSettings
+  | WagerRoundSettings
+  | PhotoRoundSettings
+  | BluffRoundSettings
+  | MoleRoundSettings
+  | OrderRoundSettings
+  | PredictiveRoundSettings
   | CustomRoundSettings;
 
 // =============================================================================
@@ -254,6 +358,13 @@ export interface Sociale {
   promptLibraryId?: string | null;
   selectedLibraries?: string[] | null;
   currentLibraryIndex?: number | null;
+  
+  // Phase A fields
+  ambientPackId?: string | null;
+  isTieBreak?: boolean;
+  tieBreakRoundNumber?: number;
+  tieBreakParticipants?: string[];
+  chestEveryNRounds?: number;
 }
 
 /**
@@ -544,6 +655,9 @@ export interface CreateSocialeRequest {
       is_correct: boolean;
     }>;
   }>;
+  
+  // Ambient pack selection
+  ambientPackId?: string;
 }
 
 /**
@@ -621,6 +735,8 @@ export interface SubmitSocialeResponseRequest {
   socialiteId: string;
   type: SocialeResponseType;
   value: unknown;
+  // P2-4: Ghost mode flag - mark response as practice
+  isPractice?: boolean;
 }
 
 /**
@@ -631,6 +747,8 @@ export interface SubmitSocialeVoteRequest {
   roundId: string;
   socialiteId: string;
   targetResponseId: string;
+  // P2-4: Ghost mode flag - mark vote as practice
+  isPractice?: boolean;
 }
 
 /**
@@ -681,6 +799,69 @@ export interface SubmitSocialeResponseResponse {
 export interface SubmitSocialeVoteResponse {
   vote: SocialeVote;
   sociale: Sociale;
+}
+
+// =============================================================================
+// BANTER CHANNEL TYPES (P2-5)
+// =============================================================================
+
+/**
+ * Banter status types
+ */
+export type SocialeBanterStatus = 'pending' | 'approved' | 'rejected' | 'on_tv';
+
+/**
+ * Sociale Banter message
+ */
+export interface SocialeBanter {
+  id: string;
+  socialeId: string;
+  socialiteId: string;
+  membershipId?: string;
+  displayName: string;
+  content: string;
+  status: SocialeBanterStatus;
+  upvoteCount: number;
+  createdAt: string;
+  moderatedAt?: string;
+  moderatedBy?: string;
+}
+
+/**
+ * Banter upvote
+ */
+export interface SocialeBanterUpvote {
+  banterId: string;
+  socialiteId: string;
+  createdAt: string;
+}
+
+/**
+ * Submit banter request
+ */
+export interface SubmitSocialeBanterRequest {
+  socialeId: string;
+  socialiteId: string;
+  membershipId?: string;
+  displayName: string;
+  content: string;
+}
+
+/**
+ * Submit banter upvote request
+ */
+export interface SubmitSocialeBanterUpvoteRequest {
+  banterId: string;
+  socialiteId: string;
+}
+
+/**
+ * Moderate banter request (host only)
+ */
+export interface ModerateSocialeBanterRequest {
+  banterId: string;
+  status: SocialeBanterStatus;
+  moderatedBy: string;
 }
 
 // =============================================================================

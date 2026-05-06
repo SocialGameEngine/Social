@@ -22,6 +22,8 @@ export interface SocialeModalContext {
   phaseStartedAt?: string | null;
   voteSeconds?: number;
   paused: boolean;
+  // P2-4: Ghost mode flag for late joiners
+  isGhostMode?: boolean;
 }
 
 export interface RoomModalsProps {
@@ -154,6 +156,8 @@ export function RoomModals({
           paused={state.socialeModalContext.paused}
           requireLockIn={requireLockIn}
           roomId={roomId}
+          // P2-4: Pass ghost mode flag
+          isGhostMode={state.socialeModalContext.isGhostMode}
         />
       )}
 
@@ -173,6 +177,8 @@ export function RoomModals({
           startedAt={state.socialeModalContext.phaseStartedAt}
           voteSeconds={state.socialeModalContext.voteSeconds}
           paused={state.socialeModalContext.paused}
+          // P2-4: Pass ghost mode flag
+          isGhostMode={state.socialeModalContext.isGhostMode}
         />
       )}
 

@@ -63,6 +63,8 @@ import { PromptsBottomSheet } from './bottomsheets/PromptsBottomSheet';
 import { FibbageBottomSheet } from './bottomsheets/FibbageBottomSheet';
 import { TriviaBottomSheet } from './bottomsheets/TriviaBottomSheet';
 import { ChatLobbyBottomSheet } from './bottomsheets/ChatLobbyBottomSheet';
+import { BanterBottomSheet } from './bottomsheets/BanterBottomSheet';
+import { LeagueBottomSheet } from './bottomsheets/LeagueBottomSheet';
 import { LeaderboardBottomSheet } from './bottomsheets/LeaderboardBottomSheet';
 import { HelpBottomSheet } from './bottomsheets/HelpBottomSheet';
 
@@ -90,6 +92,22 @@ export function RoomPageContent() {
       queryClient.invalidateQueries({ queryKey: ['sociale', room.currentSocialeId] });
     }
   }, [room?.currentSocialeId, queryClient]);
+
+  // Sync correction: refetch when tab becomes visible again to catch up
+  // after being backgrounded (browser throttles realtime connections)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && room?.currentSocialeId) {
+        void queryClient.invalidateQueries({ queryKey: ['sociale', room.currentSocialeId] });
+        void queryClient.invalidateQueries({ queryKey: ['socialites', room.currentSocialeId] });
+        void queryClient.invalidateQueries({ queryKey: ['sociale-responses', room.currentSocialeId] });
+        void queryClient.invalidateQueries({ queryKey: ['sociales', 'room', room.id] });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [queryClient, room?.currentSocialeId, room?.id]);
   const isPlayableSocialeStatus = useCallback(
     (status?: string | null) => status !== 'completed' && status !== 'cancelled',
     []
@@ -122,13 +140,19 @@ export function RoomPageContent() {
   const socialeRoundIdForModals =
     activeSocialeRoundState?.round_id ?? primaryRoomSociale?.currentRoundId ?? null;
 
+  const isAmbientSociale = primaryRoomSociale?.mode === 'ambient';
+  const ambientRound = isAmbientSociale
+    ? (primaryRoomSociale?.runtimeState?.ambientRound as { id: string; content: string | null; title: string | null; type: string; settings?: any } | null ?? null)
+    : null;
+
   const { data: socialeModalRoundRow } = useQuery({
     queryKey: ['sociale-round-modal', socialeRoundIdForModals],
-    enabled: !!socialeRoundIdForModals && !!primaryRoomSociale,
+    // Ambient sociales: round data comes from runtimeState.ambientRound, not sociale_rounds
+    enabled: !!socialeRoundIdForModals && !!primaryRoomSociale && !isAmbientSociale,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sociale_rounds')
-        .select('id, content, title, order_index, type')
+        .select('id, content, title, order_index, type, settings')
         .eq('id', socialeRoundIdForModals as string)
         .single();
       if (error) throw error;
@@ -138,23 +162,73 @@ export function RoomPageContent() {
         title: string | null;
         order_index: number;
         type: string;
+        settings: Record<string, any> | null;
       };
     },
   });
+
+  // For ambient mode use runtime_state data; for regular mode use the DB row.
+  // Ambient round settings use a flat options array (option_id/option_text/is_correct).
+  // SocialeAnswerModal expects settings.snapshot.multipleChoice.options [{id,text}].
+  // Normalise ambient MC settings into the snapshot shape the modal understands.
+  const normalizedAmbientSettings = (() => {
+    if (!ambientRound) return null;
+    const s = ambientRound.settings as any;
+    
+    // If not trivia or already has a complete snapshot, return as-is
+    if (!s || s.format !== 'multiple_choice') return s ?? null;
+    if (s.snapshot?.multipleChoice?.options && s.snapshot?.multipleChoice?.correctOptionId) {
+      return s; // Modern format - already has complete snapshot
+    }
+    
+    // Legacy format - normalize from s.options array with is_correct flags
+    if (s.options && Array.isArray(s.options)) {
+      const options = s.options.map((opt: any) => ({
+        id: opt.option_id,
+        text: opt.option_text,
+      }));
+      const correctOption = s.options.find((opt: any) => opt.is_correct);
+      return {
+        ...s,
+        snapshot: {
+          prompt: s.snapshot?.prompt ?? s.prompt ?? ambientRound.content ?? '',
+          explanation: s.snapshot?.explanation ?? null,
+          multipleChoice: {
+            options,
+            correctOptionId: correctOption?.option_id ?? '',
+          },
+        },
+      };
+    }
+    
+    return s ?? null;
+  })();
+
+  const resolvedRoundRow = isAmbientSociale && ambientRound
+    ? {
+        id: ambientRound.id,
+        content: ambientRound.content,
+        title: ambientRound.title,
+        order_index: primaryRoomSociale?.currentRoundIndex ?? 0,
+        type: ambientRound.type,
+        settings: normalizedAmbientSettings,
+      }
+    : socialeModalRoundRow ?? null;
 
   const socialeModalContext: SocialeModalContext | null = useMemo(() => {
     if (!primaryRoomSociale || !socialeRoundIdForModals) return null;
     if (!isPlayableSocialeStatus(primaryRoomSociale.status)) return null;
     const prompt =
-      (socialeModalRoundRow?.content as string) ||
-      (socialeModalRoundRow?.title as string) ||
+      (resolvedRoundRow?.content as string) ||
+      (resolvedRoundRow?.title as string) ||
       '';
     return {
       socialeId: primaryRoomSociale.id,
       roundId: socialeRoundIdForModals,
       prompt,
-      roundIndex: socialeModalRoundRow?.order_index ?? primaryRoomSociale.currentRoundIndex ?? 0,
-      roundType: socialeModalRoundRow?.type,
+      roundIndex: resolvedRoundRow?.order_index ?? primaryRoomSociale.currentRoundIndex ?? 0,
+      roundType: resolvedRoundRow?.type,
+      roundSettings: resolvedRoundRow?.settings ?? undefined,
       phaseEndsAt: primaryRoomSociale.phaseEndsAt,
       phaseStartedAt: primaryRoomSociale.phaseStartedAt,
       voteSeconds: primaryRoomSociale.settings?.votingSeconds,
@@ -163,10 +237,11 @@ export function RoomPageContent() {
   }, [
     primaryRoomSociale,
     socialeRoundIdForModals,
-    socialeModalRoundRow?.content,
-    socialeModalRoundRow?.title,
-    socialeModalRoundRow?.order_index,
-    socialeModalRoundRow?.type,
+    resolvedRoundRow?.content,
+    resolvedRoundRow?.title,
+    resolvedRoundRow?.order_index,
+    resolvedRoundRow?.type,
+    resolvedRoundRow?.settings,
     isPlayableSocialeStatus,
   ]);
 
@@ -207,6 +282,8 @@ export function RoomPageContent() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showVIBox, setShowVIBox] = useState(false);
   const [showChatDrawer, setShowChatDrawer] = useState(false);
+  const [showBanterDrawer, setShowBanterDrawer] = useState(false);
+  const [showLeagueDrawer, setShowLeagueDrawer] = useState(false);
   const [showLeaderboardDrawer, setShowLeaderboardDrawer] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showCommunityModal, setShowCommunityModal] = useState(false);
@@ -432,8 +509,14 @@ export function RoomPageContent() {
     }
   }, [user, authLoading, signInAnonymously]);
 
-  // Show loading skeleton while data is loading
-  const isDataLoading = !session && !primaryRoomSociale;
+  // Show loading skeleton while data is loading.
+  // Guard: if the pointed-to sociale is already completed/cancelled, don't
+  // spin forever — primaryRoomSociale will be undefined (filtered out) even
+  // though room.currentSocialeId is still set.
+  const activeSocialeIsEnded =
+    activeRoomSociale?.status === 'completed' ||
+    activeRoomSociale?.status === 'cancelled';
+  const isDataLoading = !session && !primaryRoomSociale && !activeSocialeIsEnded;
   if (isDataLoading && (room?.currentSessionId || room?.currentSocialeId)) {
     return <SessionSkeleton />;
   }
@@ -577,6 +660,23 @@ export function RoomPageContent() {
   
   const handleToggleChat = () => {
     setShowChatDrawer(!showChatDrawer);
+    setShowBanterDrawer(false);
+    setShowLeaderboardDrawer(false);
+    setShowHowToPlay(false);
+  };
+
+  const handleToggleBanter = () => {
+    setShowBanterDrawer(!showBanterDrawer);
+    setShowChatDrawer(false);
+    setShowLeaderboardDrawer(false);
+    setShowLeagueDrawer(false);
+    setShowHowToPlay(false);
+  };
+
+  const handleToggleLeague = () => {
+    setShowLeagueDrawer(prev => !prev);
+    setShowBanterDrawer(false);
+    setShowChatDrawer(false);
     setShowLeaderboardDrawer(false);
     setShowHowToPlay(false);
   };
@@ -590,9 +690,9 @@ export function RoomPageContent() {
   
   // Main content with 4-section layout
   const mainContent = (
-    <div className={cn("flex-1 overflow-hidden relative z-10 flex flex-col", 
+    <div className={cn("flex-1 min-w-0 overflow-hidden relative z-10 flex flex-col", 
       isMainEventMode && "room-main-event-mode")}>
-      <div className="flex-1 overflow-y-auto pt-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4">
         {/* Section 1: Session or Sociale (latest room Sociale replaces session panel) */}
         <RoomMainEventPanel
           roomId={room?.id}
@@ -633,9 +733,13 @@ export function RoomPageContent() {
           onOpenLeaderboard={handleToggleLeaderboard}
           onOpenChat={handleToggleChat}
           onOpenCommunity={() => setShowCommunityModal(true)}
+          onOpenBanter={primaryRoomSociale ? handleToggleBanter : undefined}
+          onOpenLeague={handleToggleLeague}
           onOpenQuestions={() => setShowQuestionsSheet(true)}
           leaderboardExpanded={showLeaderboardDrawer}
           chatExpanded={showChatDrawer}
+          banterExpanded={showBanterDrawer}
+          leagueExpanded={showLeagueDrawer}
         />
         
         {/* Section 4: Misc Section */}
@@ -668,10 +772,11 @@ export function RoomPageContent() {
             primaryRoomSociale?.currentPhase === 'results' ||
             primaryRoomSociale?.currentPhase === 'reveal'
           }
+          playerCount={memberships?.length ?? 1}
         />
         <BackgroundAnimation show={true} />
-        <div className="flex-1 flex min-h-0">
-          <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex min-h-0 min-w-0">
+          <div className="flex-1 flex flex-col min-h-0 min-w-0">
             <RoomHeader
               roomCode={room?.code}
               currentPhase={primaryRoomSociale?.currentPhase as any}
@@ -745,6 +850,18 @@ export function RoomPageContent() {
             sendChallenge(membershipId, `Challenge from ${myDisplayName || 'Player'}`, 100);
           }}
         />
+        {primaryRoomSociale && (
+          <BanterBottomSheet
+            isOpen={showBanterDrawer}
+            onClose={() => setShowBanterDrawer(false)}
+            sociale={primaryRoomSociale}
+          />
+        )}
+        <LeagueBottomSheet
+          isOpen={showLeagueDrawer}
+          onClose={() => setShowLeagueDrawer(false)}
+          membershipId={myMembership?.id}
+        />
         <LeaderboardBottomSheet
           isOpen={showLeaderboardDrawer}
           onClose={() => setShowLeaderboardDrawer(false)}
@@ -801,6 +918,7 @@ export function RoomPageContent() {
           primaryRoomSociale?.currentPhase === 'results' ||
           primaryRoomSociale?.currentPhase === 'reveal'
         }
+        playerCount={memberships?.length ?? 1}
       />
       <BackgroundAnimation show={true} />
       <div className="flex-1 flex min-h-0 sm:overflow-hidden">
@@ -894,6 +1012,18 @@ export function RoomPageContent() {
         onChallengePlayer={(membershipId: string, playerName: string) => {
           sendChallenge(membershipId, `Challenge from ${myDisplayName || 'Player'}`, 100);
         }}
+      />
+      {primaryRoomSociale && (
+        <BanterBottomSheet
+          isOpen={showBanterDrawer}
+          onClose={() => setShowBanterDrawer(false)}
+          sociale={primaryRoomSociale}
+        />
+      )}
+      <LeagueBottomSheet
+        isOpen={showLeagueDrawer}
+        onClose={() => setShowLeagueDrawer(false)}
+        membershipId={myMembership?.id}
       />
       <LeaderboardBottomSheet
         isOpen={showLeaderboardDrawer}

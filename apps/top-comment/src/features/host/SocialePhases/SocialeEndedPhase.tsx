@@ -3,13 +3,17 @@
 // =============================================================================
 // Final phase for Sociale games - show final scores and game summary
 
+import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { useTheme } from '../../../shared/providers/ThemeProvider';
 import { Button } from '@social/ui';
-import { 
-  SocialiteCard
-} from './components';
+import { SocialiteCard } from './components';
+import { WrappedRecap } from '../../share/WrappedRecap';
+import { transformSocialeToSessionData } from '../../share/hooks/useWrappedRecap';
+import { generateStoryCards } from '../../../domain/share/generateStoryCards';
+import { supabase } from '../../../supabase/client';
 import type { Socialite } from '../../../domain/types/sociale.types';
+import type { StoryCard } from '../../../domain/share/generateStoryCards';
 
 interface SocialeEndedPhaseProps {
   sociale: {
@@ -26,6 +30,7 @@ interface SocialeEndedPhaseProps {
   currentSocialite?: Socialite | null;
   onCreateNewSociale: () => void;
   onReturnToLobby: () => void;
+  onForceTieBreak?: () => void;
   isCurrentPlayerHost: boolean;
   isDark?: boolean;
 }
@@ -36,11 +41,66 @@ export function SocialeEndedPhase({
   currentSocialite,
   onCreateNewSociale,
   onReturnToLobby,
+  onForceTieBreak,
   isCurrentPlayerHost,
   isDark: propIsDark
 }: SocialeEndedPhaseProps) {
   const { isDark: themeIsDark } = useTheme();
   const isDark = propIsDark ?? themeIsDark;
+
+  const [showRecap, setShowRecap] = useState(false);
+  const [recapCards, setRecapCards] = useState<StoryCard[]>([]);
+
+  // Pre-fetch recap data for the current player on mount
+  useEffect(() => {
+    if (!currentSocialite || !sociale.id) return;
+
+    const fetchRecapData = async () => {
+      const [{ data: responses }, { data: votes }, { data: scoreEvents }] = await Promise.all([
+        supabase
+          .from('sociale_responses')
+          .select('id, round_index, is_correct, response_time_ms, category')
+          .eq('sociale_id', sociale.id)
+          .eq('socialite_id', currentSocialite.id)
+          .eq('is_practice', false),
+        supabase
+          .from('sociale_votes')
+          .select('voted_for_response_id')
+          .eq('sociale_id', sociale.id)
+          .eq('socialite_id', currentSocialite.id),
+        supabase
+          .from('sociale_score_events')
+          .select('round_index, points')
+          .eq('sociale_id', sociale.id)
+          .eq('socialite_id', currentSocialite.id),
+      ]);
+
+      if (!responses) return;
+
+      const myRank = [...socialites]
+        .filter(s => s.isActive && !s.isBanned)
+        .sort((a, b) => b.score - a.score)
+        .findIndex(s => s.id === currentSocialite.id) + 1;
+
+      const socialeContext = {
+        current_round_index: sociale.settings.totalRounds,
+        rank_position: myRank,
+        total_players: socialites.filter(s => s.isActive && !s.isBanned).length,
+        created_at: new Date().toISOString(),
+      };
+
+      const sessionData = transformSocialeToSessionData(
+        socialeContext,
+        responses,
+        votes ?? [],
+        scoreEvents ?? []
+      );
+
+      setRecapCards(generateStoryCards(sessionData));
+    };
+
+    fetchRecapData().catch(console.error);
+  }, [currentSocialite, sociale.id, sociale.settings.totalRounds, socialites]);
 
   // Sort socialites by final score
   const sortedSocialites = [...socialites]
@@ -69,6 +129,16 @@ export function SocialeEndedPhase({
   //   // For now, just show it ended
   //   return 'Game Complete';
   // };
+
+  if (showRecap && recapCards.length > 0 && currentSocialite) {
+    return (
+      <WrappedRecap
+        cards={recapCards}
+        playerName={currentSocialite.displayName || 'Player'}
+        onClose={() => setShowRecap(false)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -303,7 +373,7 @@ export function SocialeEndedPhase({
             </ul>
           </div>
           
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center gap-3 flex-wrap">
             <Button
               onClick={onCreateNewSociale}
               variant="primary"
@@ -311,7 +381,7 @@ export function SocialeEndedPhase({
             >
               New Game
             </Button>
-            
+
             <Button
               onClick={onReturnToLobby}
               variant="secondary"
@@ -319,6 +389,16 @@ export function SocialeEndedPhase({
             >
               Back to Lobby
             </Button>
+
+            {onForceTieBreak && (
+              <Button
+                onClick={onForceTieBreak}
+                variant="secondary"
+                size="sm"
+              >
+                🎯 Force Tie-Breaker
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -327,13 +407,13 @@ export function SocialeEndedPhase({
       {!isCurrentPlayerHost && (
         <div className={clsx(
           'rounded-lg p-4 text-center',
-          isDark 
-            ? 'bg-slate-800 border border-slate-700 text-slate-300' 
+          isDark
+            ? 'bg-slate-800 border border-slate-700 text-slate-300'
             : 'bg-slate-50 border border-slate-200 text-slate-600'
         )}>
           <p className="mb-3">Thanks for playing!</p>
           <p>Wait for the host to start a new game...</p>
-          
+
           {currentSocialite && (
             <div className="mt-4">
               <p className={clsx(
@@ -342,12 +422,29 @@ export function SocialeEndedPhase({
               )}>
                 Your Final Score: {currentSocialite.score}
               </p>
-              
+
               <p className="text-sm mt-1">
                 {sortedSocialites.findIndex(s => s.id === currentSocialite.id) + 1} of {totalPlayers} place
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Recap button — visible to all players including host */}
+      {recapCards.length > 0 && currentSocialite && (
+        <div className="flex justify-center">
+          <button
+            onClick={() => setShowRecap(true)}
+            className={clsx(
+              'px-6 py-2 rounded-lg font-semibold text-sm transition-colors',
+              isDark
+                ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                : 'bg-cyan-500 hover:bg-cyan-400 text-white'
+            )}
+          >
+            ✨ View Your Recap
+          </button>
         </div>
       )}
     </div>

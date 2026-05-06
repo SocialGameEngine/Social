@@ -14,7 +14,8 @@
  */
 
 import { Button } from '@social/ui';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { Session } from '../../../../shared/types';
 import type { Sociale } from '../../../../domain/types/sociale.types';
 import { PHASE_ACTION_LABELS } from '../../types/host-panel.types';
@@ -36,6 +37,8 @@ interface HostActionBarProps {
   onParticipantsOpen?: () => void;
   onModerationOpen?: () => void;
   onChatOpen?: () => void;
+  /** Rendered inside the action bar when the 🎛 signals button is toggled. */
+  signalsSlot?: React.ReactNode;
 }
 
 // Format timer display
@@ -62,7 +65,10 @@ export function HostActionBar({
   onParticipantsOpen,
   onModerationOpen,
   onChatOpen,
+  signalsSlot,
 }: HostActionBarProps) {
+  const [showSignals, setShowSignals] = useState(false);
+
   // No controls needed if no room
   if (!hasRoom) {
     return null;
@@ -119,13 +125,30 @@ export function HostActionBar({
     
     return (
       <div className="host-action-bar-container">
+        {/* Signals panel — slides open above the controls row */}
+        <AnimatePresence>
+          {showSignals && signalsSlot && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="pb-3 border-b border-slate-700/50 mb-3">
+                {signalsSlot}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Status indicator row */}
         <div className="flex items-center justify-between px-1 py-2 border-b border-slate-700/50">
           <div className="flex items-center gap-2">
-            <span 
+            <span
               className={`w-2 h-2 rounded-full ${
                 isPaused ? 'bg-yellow-400' : 'bg-green-400'
-              } ${!isPaused && 'animate-pulse'}`} 
+              } ${!isPaused && 'animate-pulse'}`}
               aria-hidden="true"
             />
             <span className="text-xs font-medium text-cyan-300 uppercase tracking-wide">
@@ -178,6 +201,21 @@ export function HostActionBar({
                     {playerCount > 99 ? '99+' : playerCount}
                   </span>
                 )}
+              </button>
+            )}
+
+            {/* Signals toggle button */}
+            {signalsSlot && (
+              <button
+                onClick={() => setShowSignals(v => !v)}
+                className={`host-icon-button transition-colors ${showSignals ? 'bg-slate-600' : ''}`}
+                aria-label="Toggle soundboard and signals"
+                aria-expanded={showSignals}
+                title="Soundboard & Signals"
+              >
+                <svg className="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                </svg>
               </button>
             )}
 
