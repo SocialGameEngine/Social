@@ -130,9 +130,11 @@ function normalizeRow(row: any, index: number): any {
 
 interface Props {
   onImport: (rows: AmbientRoundExportRow[]) => Promise<void>;
+  importMode: 'replace' | 'append';
+  onImportModeChange: (mode: 'replace' | 'append') => void;
 }
 
-export default function AmbientRoundBulkImport({ onImport }: Props) {
+export default function AmbientRoundBulkImport({ onImport, importMode, onImportModeChange }: Props) {
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -264,9 +266,25 @@ export default function AmbientRoundBulkImport({ onImport }: Props) {
   return (
     <div className="bulk-import">
       <h3>Bulk Import</h3>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <button
+          className={`btn ${importMode === 'append' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => onImportModeChange('append')}
+        >
+          ➕ Append
+        </button>
+        <button
+          className={`btn ${importMode === 'replace' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => onImportModeChange('replace')}
+        >
+          🔄 Replace All
+        </button>
+      </div>
       <p className="hint">
-        Paste a JSON array of ambient rounds, or upload the seed file.
-        <strong> This replaces all existing rounds.</strong>
+        {importMode === 'append'
+          ? 'Paste a JSON array of rounds to add after the existing ones.'
+          : <>Paste a JSON array of ambient rounds, or upload the seed file. <strong>This replaces all existing rounds.</strong></>
+        }
       </p>
       <label className="btn btn-secondary">
         Upload JSON
@@ -290,7 +308,7 @@ export default function AmbientRoundBulkImport({ onImport }: Props) {
       />
       {error && <p className="error">{error}</p>}
       <button className="btn btn-primary" onClick={() => void handleImport()} disabled={!text.trim()}>
-        Import and Replace All
+        {importMode === 'append' ? 'Import and Append' : 'Import and Replace All'}
       </button>
     </div>
   );

@@ -15,7 +15,6 @@ import { BluffRoundAnswer } from '../room/rounds/BluffRoundAnswer';
 import { MoleRoundAnswer } from '../room/rounds/MoleRoundAnswer';
 import { OrderRoundAnswer } from '../room/rounds/OrderRoundAnswer';
 import { PredictiveRoundAnswer } from '../room/rounds/PredictiveRoundAnswer';
-import { PhotoRoundAnswer } from '../room/rounds/PhotoRoundAnswer';
 
 interface SocialePlayerViewProps {
   sociale: {
@@ -114,6 +113,7 @@ export function SocialePlayerView({
           <SocialePlayerAnswer
             currentRound={currentRound}
             currentSocialite={currentSocialite}
+            socialites={socialites}
             hasResponded={hasResponded}
             onSubmitResponse={onSubmitResponse}
             isDark={isDark}
@@ -331,12 +331,14 @@ function SocialePlayerLobby({
 function SocialePlayerAnswer({
   currentRound,
   currentSocialite,
+  socialites,
   hasResponded,
   onSubmitResponse,
   isDark
 }: {
   currentRound: any;
   currentSocialite: Socialite | null;
+  socialites: Socialite[];
   hasResponded: boolean;
   onSubmitResponse: (content: string) => void;
   isDark: boolean;
@@ -432,14 +434,10 @@ function SocialePlayerAnswer({
     }
     if (roundType === 'photo') {
       return (
-        <Card className="p-6" isDark={isDark}>
-          <PhotoRoundAnswer
-            socialeId={sociale.id}
-            socialiteId={currentSocialite?.id ?? null}
-            prompt={currentRound?.content ?? null}
-            onSubmit={onSubmitResponse}
-            isDark={isDark}
-          />
+        <Card className="p-6 text-center" isDark={isDark}>
+          <p className={clsx('text-sm', isDark ? 'text-slate-400' : 'text-slate-500')}>
+            Photo rounds are not available in this view.
+          </p>
         </Card>
       );
     }

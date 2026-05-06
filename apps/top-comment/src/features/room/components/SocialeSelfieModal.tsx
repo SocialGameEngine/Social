@@ -1,6 +1,10 @@
-import { useRef, useCallback, useState, useEffect } from 'react';
+import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import { Button } from '@social/ui';
 import type { SocialeLeaderboardTeam } from './SocialeLeaderboardModal';
+import type { RoundResult } from '../utils/shareCard';
+import { pickBragStat } from '../../../domain/share/pickBragStat';
+
+type OverlayStyle = 'classic' | 'neon' | 'minimal' | 'gold' | 'retro';
 
 interface SocialeSelfieModalProps {
   isOpen: boolean;
@@ -8,14 +12,16 @@ interface SocialeSelfieModalProps {
   currentSocialite?: SocialeLeaderboardTeam | null;
   finalLeaderboard?: Array<SocialeLeaderboardTeam & { rank: number }>;
   venueName?: string;
+  myRoundResults?: RoundResult[];
 }
 
-export function SocialeSelfieModal({ 
-  isOpen, 
-  onClose, 
-  currentSocialite = null, 
-  finalLeaderboard = [], 
-  venueName 
+export function SocialeSelfieModal({
+  isOpen,
+  onClose,
+  currentSocialite = null,
+  finalLeaderboard = [],
+  venueName,
+  myRoundResults,
 }: SocialeSelfieModalProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const captureCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -24,57 +30,105 @@ export function SocialeSelfieModal({
   const [, setIsTakingSelfie] = useState(false);
   const [selfieImage, setSelfieImage] = useState<string | null>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const [restartCounter, setRestartCounter] = useState(0);
-  // Auto-start camera when modal opens or restartCounter changes
+  const [overlayStyle, setOverlayStyle] = useState<OverlayStyle>('classic');
+
+  // Auto-start camera when modal opens
   useEffect(() => {
     if (isOpen && !cameraStream && !selfieImage) {
       startSelfie();
     }
-  }, [isOpen, restartCounter]); // Trigger on modal open or restart
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const bragStat = useMemo(() => {
+    if (!currentSocialite || !myRoundResults || myRoundResults.length === 0) return null;
+    const totalPlayers = finalLeaderboard.length;
+    const socialiteWithRank = finalLeaderboard.find(s => s.id === currentSocialite.id);
+    const correct = myRoundResults.filter(r => r.status === 'correct').length;
+    return pickBragStat({
+      totalScore: currentSocialite.score ?? 0,
+      roundsPlayed: myRoundResults.length,
+      correctAnswers: correct,
+      totalAnswers: myRoundResults.length,
+      longestStreak: 0,
+      currentStreak: 0,
+      rankPosition: socialiteWithRank?.rank ?? 1,
+      previousRank: socialiteWithRank?.rank ?? 1,
+      totalPlayers,
+      votesReceived: 0,
+      perfectRounds: 0,
+    });
+  }, [currentSocialite, myRoundResults, finalLeaderboard]);
 
   // Shared overlay drawing function - Strava style
   const drawOverlay = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
     if (!currentSocialite || finalLeaderboard.length === 0) return;
-    
+
     const socialiteWithRank = finalLeaderboard.find(s => s.id === currentSocialite.id);
     if (!socialiteWithRank) return;
 
     const scale = width / 375;
     const padding = 24 * scale;
-    const topY = padding + 40 * scale;
-    
-    // Add semi-transparent gradient at top for readability
-    const gradient = ctx.createLinearGradient(0, 0, 0, 150 * scale);
-    gradient.addColorStop(0, 'rgba(0,0,0,0.5)');
-    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+
+    // Style-dependent colors
+    type StyleConfig = { gradientStart: string; gradientEnd: string; textColor: string; accentColor: string };
+    const styleConfig: Record<OverlayStyle, StyleConfig> = {
+      classic: { gradientStart: 'rgba(59,130,246,0.7)', gradientEnd: 'rgba(147,51,234,0.4)', textColor: '#ffffff', accentColor: '#60a5fa' },
+      neon:    { gradientStart: 'rgba(0,0,0,0.75)',     gradientEnd: 'rgba(0,0,0,0.1)',      textColor: '#f472b6', accentColor: '#f472b6' },
+      minimal: { gradientStart: 'rgba(255,255,255,0.15)', gradientEnd: 'rgba(255,255,255,0)', textColor: '#ffffff', accentColor: '#e2e8f0' },
+      gold:    { gradientStart: 'rgba(251,191,36,0.7)', gradientEnd: 'rgba(217,119,6,0.4)', textColor: '#ffffff', accentColor: '#fde68a' },
+      retro:   { gradientStart: 'rgba(251,146,60,0.7)', gradientEnd: 'rgba(239,68,68,0.4)', textColor: '#ffffff', accentColor: '#fdba74' },
+    };
+    const cfg = styleConfig[overlayStyle];
+
+    // Top gradient band
+    const topBandH = bragStat ? 200 * scale : 150 * scale;
+    const gradient = ctx.createLinearGradient(0, 0, 0, topBandH);
+    gradient.addColorStop(0, cfg.gradientStart);
+    gradient.addColorStop(1, cfg.gradientEnd);
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, 150 * scale);
-    
-    // Player name - large, bold at top left
-    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, topBandH);
+
+    let topY = padding + 16 * scale;
+
+    // Brag stat headline (Fix C)
+    if (bragStat) {
+      ctx.fillStyle = cfg.textColor;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.font = `bold ${22 * scale}px Arial, sans-serif`;
+      ctx.fillText(`${bragStat.emoji} ${bragStat.headline}`, padding, topY);
+      topY += 28 * scale;
+      ctx.font = `${13 * scale}px Arial, sans-serif`;
+      ctx.fillStyle = cfg.accentColor;
+      ctx.fillText(bragStat.subtext, padding, topY);
+      topY += 22 * scale;
+    }
+
+    // Player name
+    ctx.fillStyle = cfg.textColor;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.font = `bold ${28 * scale}px Arial, sans-serif`;
     ctx.fillText(currentSocialite.teamName, padding, topY);
-    
-    // Rank - smaller, below player name
+
+    // Rank
     ctx.font = `${16 * scale}px Arial, sans-serif`;
     ctx.fillText(`#${socialiteWithRank.rank}`, padding, topY + 32 * scale);
-    
-    // Venue if available
+
+    // Venue
     if (venueName) {
       ctx.font = `${12 * scale}px Arial, sans-serif`;
       ctx.fillStyle = '#aaaaaa';
       ctx.fillText(venueName, padding, topY + 55 * scale);
     }
-    
-    // Söcial logo/text at bottom right
+
+    // Söcial logo at bottom right
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
-    ctx.fillStyle = '#60a5fa';
+    ctx.fillStyle = cfg.accentColor;
     ctx.font = `bold ${12 * scale}px Arial, sans-serif`;
     ctx.fillText('Söcial', width - padding, height - padding);
-  }, [currentSocialite, finalLeaderboard, venueName]);
+  }, [currentSocialite, finalLeaderboard, venueName, overlayStyle, bragStat]);
 
   // Preview animation loop - draws overlay on preview canvas
   const startPreviewOverlay = useCallback(() => {
@@ -200,9 +254,8 @@ export function SocialeSelfieModal({
     setCameraStream(null);
     setSelfieImage(null);
     setIsTakingSelfie(false);
-    // Trigger camera restart
-    setRestartCounter(c => c + 1);
-  }, [cameraStream, stopPreviewOverlay]);
+    void startSelfie();
+  }, [cameraStream, stopPreviewOverlay]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const downloadSelfie = useCallback(() => {
     if (!selfieImage) return;
@@ -370,36 +423,36 @@ export function SocialeSelfieModal({
                 <p className="text-xs text-slate-400 uppercase tracking-wider mb-3 text-center">Overlay Style</p>
                 <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                   {/* Classic Style */}
-                  <button className="flex-shrink-0 flex flex-col items-center gap-2 group">
-                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 border-2 border-white shadow-lg flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <button onClick={() => setOverlayStyle('classic')} aria-pressed={overlayStyle === 'classic'} className="flex-shrink-0 flex flex-col items-center gap-2 group">
+                    <div className={`w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 border-2 shadow-lg flex items-center justify-center group-hover:scale-105 transition-transform ${overlayStyle === 'classic' ? 'border-cyan-400 ring-2 ring-cyan-400' : 'border-white'}`}>
                       <span className="text-white text-xs font-bold">#1</span>
                     </div>
                     <span className="text-xs text-slate-300">Classic</span>
                   </button>
                   {/* Neon Style */}
-                  <button className="flex-shrink-0 flex flex-col items-center gap-2 group">
-                    <div className="w-16 h-16 rounded-xl bg-black border-2 border-pink-400 shadow-[0_0_10px_rgba(244,114,182,0.5)] flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <button onClick={() => setOverlayStyle('neon')} aria-pressed={overlayStyle === 'neon'} className="flex-shrink-0 flex flex-col items-center gap-2 group">
+                    <div className={`w-16 h-16 rounded-xl bg-black border-2 shadow-[0_0_10px_rgba(244,114,182,0.5)] flex items-center justify-center group-hover:scale-105 transition-transform ${overlayStyle === 'neon' ? 'border-cyan-400 ring-2 ring-cyan-400' : 'border-pink-400'}`}>
                       <span className="text-pink-400 text-xs font-bold">#1</span>
                     </div>
                     <span className="text-xs text-slate-300">Neon</span>
                   </button>
                   {/* Minimal Style */}
-                  <button className="flex-shrink-0 flex flex-col items-center gap-2 group">
-                    <div className="w-16 h-16 rounded-xl bg-white/10 border border-white/30 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <button onClick={() => setOverlayStyle('minimal')} aria-pressed={overlayStyle === 'minimal'} className="flex-shrink-0 flex flex-col items-center gap-2 group">
+                    <div className={`w-16 h-16 rounded-xl bg-white/10 border flex items-center justify-center group-hover:scale-105 transition-transform ${overlayStyle === 'minimal' ? 'border-cyan-400 ring-2 ring-cyan-400' : 'border-white/30'}`}>
                       <span className="text-white text-xs font-light">1st</span>
                     </div>
                     <span className="text-xs text-slate-300">Minimal</span>
                   </button>
                   {/* Gold Style */}
-                  <button className="flex-shrink-0 flex flex-col items-center gap-2 group">
-                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-600 border-2 border-yellow-200 shadow-lg flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <button onClick={() => setOverlayStyle('gold')} aria-pressed={overlayStyle === 'gold'} className="flex-shrink-0 flex flex-col items-center gap-2 group">
+                    <div className={`w-16 h-16 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-600 border-2 shadow-lg flex items-center justify-center group-hover:scale-105 transition-transform ${overlayStyle === 'gold' ? 'border-cyan-400 ring-2 ring-cyan-400' : 'border-yellow-200'}`}>
                       <span className="text-white text-xs font-bold">#1</span>
                     </div>
                     <span className="text-xs text-slate-300">Gold</span>
                   </button>
                   {/* Retro Style */}
-                  <button className="flex-shrink-0 flex flex-col items-center gap-2 group">
-                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 border-2 border-orange-200 shadow-lg flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <button onClick={() => setOverlayStyle('retro')} aria-pressed={overlayStyle === 'retro'} className="flex-shrink-0 flex flex-col items-center gap-2 group">
+                    <div className={`w-16 h-16 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 border-2 shadow-lg flex items-center justify-center group-hover:scale-105 transition-transform ${overlayStyle === 'retro' ? 'border-cyan-400 ring-2 ring-cyan-400' : 'border-orange-200'}`}>
                       <span className="text-white text-xs font-bold">#1</span>
                     </div>
                     <span className="text-xs text-slate-300">Retro</span>

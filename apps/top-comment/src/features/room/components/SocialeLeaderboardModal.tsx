@@ -1,8 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { PhaseShell } from './shell/PhaseShell';
 import { PodiumLeaderboard, type PodiumEntry } from './leaderboard/PodiumLeaderboard';
 import { ShareCardButton } from './ShareCardButton';
 import { ShareCardPngButton } from '../../share/ShareCardPngButton';
+import { WrappedRecap } from '../../share/WrappedRecap';
+import { generateStoryCards } from '../../../domain/share/generateStoryCards';
 import type { RoundResult } from '../utils/shareCard';
 
 export interface SocialeLeaderboardTeam {
@@ -37,6 +39,8 @@ export function SocialeLeaderboardModal({
   venueName,
   membershipStreakWeeks,
 }: SocialeLeaderboardModalProps) {
+  const [showRecap, setShowRecap] = useState(false);
+
   const podiumEntries: PodiumEntry[] = useMemo(
     () =>
       finalLeaderboard.map((t) => ({
@@ -52,6 +56,40 @@ export function SocialeLeaderboardModal({
   const me = currentSocialiteId
     ? finalLeaderboard.find((t) => t.id === currentSocialiteId)
     : null;
+
+  const recapCards = useMemo(() => {
+    if (!me || !myRoundResults || myRoundResults.length === 0) return [];
+    try {
+      return generateStoryCards({
+        totalScore: me.score,
+        roundsPlayed: myRoundResults.length,
+        correctAnswers: myRoundResults.filter(r => r.status === 'correct').length,
+        totalAnswers: myRoundResults.length,
+        longestStreak: 0,
+        rankPosition: me.rank,
+        totalPlayers: finalLeaderboard.length,
+        votesReceived: 0,
+        votesGiven: 0,
+        perfectRounds: 0,
+        roundScores: [],
+        roundAccuracy: myRoundResults.map(r => r.status === 'correct'),
+        venueName: venueName ?? undefined,
+        sessionDate: new Date(),
+      });
+    } catch {
+      return [];
+    }
+  }, [me, myRoundResults, finalLeaderboard.length, venueName]);
+
+  if (showRecap && recapCards.length > 0 && me) {
+    return (
+      <WrappedRecap
+        cards={recapCards}
+        playerName={me.teamName}
+        onClose={() => setShowRecap(false)}
+      />
+    );
+  }
 
   return (
     <PhaseShell
@@ -114,6 +152,15 @@ export function SocialeLeaderboardModal({
               venueName={venueName}
               correctnessPattern={myRoundResults?.map(r => r.status === 'correct')}
             />
+            {recapCards.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowRecap(true)}
+                className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-3 text-sm font-black uppercase tracking-wider text-white shadow-lg"
+              >
+                ✨ View Your Recap
+              </button>
+            )}
           </div>
         )}
 

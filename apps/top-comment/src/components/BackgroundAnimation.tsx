@@ -23,7 +23,7 @@ export function BackgroundAnimation({ show, className }: BackgroundAnimationProp
 
       const size = Math.random() * 150 + 30;
       bubble.style.width = bubble.style.height = `${size}px`;
-      bubble.style.left = `${Math.random() * 100}%`;
+      bubble.style.left = `${Math.random() * 85}%`;
 
       const duration = Math.random() * 14 + 8;
       const initialDelay = Math.random() * duration * -1.5;
@@ -88,8 +88,8 @@ export function BackgroundAnimation({ show, className }: BackgroundAnimationProp
         @keyframes beer-rise {
           0%   { transform: translateY(0) translateX(0) scale(0.3); opacity: 0; }
           10%  { opacity: 1; }
-          90%  { transform: translateY(-110vh) translateX(40px) rotate(15deg) scale(1.2); opacity: 1; }
-          100% { transform: translateY(-130vh) translateX(50px) rotate(20deg) scale(1.3); opacity: 0; }
+          90%  { transform: translateY(-110vh) translateX(0px) rotate(15deg) scale(1.2); opacity: 1; }
+          100% { transform: translateY(-130vh) translateX(0px) rotate(20deg) scale(1.3); opacity: 0; }
         }
 
         .bg-glow-orb {

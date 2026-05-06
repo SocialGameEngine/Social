@@ -23,9 +23,10 @@ export function useTVAutoTTS(
 ) {
   const voiceProfile = (sociale?.settings as any)?.voiceProfile as VoiceProfile | undefined;
   const { play } = useTTS({ profile: voiceProfile });
-  
+
   const prevPhaseRef = useRef<string | null>(null);
   const prevRoundIdRef = useRef<string | null>(null);
+  const questionFiredForPhaseRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!sociale?.currentPhase) return;
@@ -77,6 +78,23 @@ export function useTVAutoTTS(
       timers.forEach((t) => window.clearTimeout(t));
     };
   }, [currentRound?.id, sociale?.totalRounds, sociale?.currentRoundIndex, play]);
+
+  // P1-16: Re-read the question when the host manually advances into the
+  // answer phase (e.g. from setup/question → answer). Does NOT double-fire
+  // on new rounds since those are handled by the round-intro effect above.
+  useEffect(() => {
+    if (sociale?.currentPhase !== 'answer') return;
+    if (!currentRound?.id) return;
+    const key = `${currentRound.id}-answer`;
+    if (questionFiredForPhaseRef.current === key) return;
+    // Skip if this is a brand-new round (handled by the intro effect above)
+    if (currentRound.id !== prevRoundIdRef.current) return;
+    questionFiredForPhaseRef.current = key;
+    const prompt = getPromptText(currentRound);
+    if (!prompt) return;
+    const timer = window.setTimeout(() => void play(prompt), 1000);
+    return () => window.clearTimeout(timer);
+  }, [sociale?.currentPhase, currentRound?.id, play]);
 }
 
 function getPromptText(round: SocialeRound): string {

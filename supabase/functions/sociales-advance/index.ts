@@ -118,6 +118,14 @@ serve(async (req) => {
         : ['answer', 'vote', 'results']
 
       const currentPhaseIndex = phaseSequence.indexOf(currentPhase)
+
+      // Guard: if the stored phase isn't in the sequence (e.g. DB corruption or
+      // a round-type mismatch), treat it as the last phase so we move to the
+      // next round rather than silently looping back to 'answer'.
+      if (currentPhaseIndex === -1) {
+        console.error(`[ambient-advance] Unknown phase "${currentPhase}" for ${ambientRound.type} round. Expected one of: ${phaseSequence.join(', ')}. Treating as last phase → moving to next round.`)
+      }
+
       const nowIso = new Date().toISOString()
 
       const buildAmbientResponse = (updatedSociale: any, nextPhase: string): AdvanceSocialeResponse => ({
@@ -148,7 +156,7 @@ serve(async (req) => {
         nextPhase,
       })
 
-      if (currentPhaseIndex < phaseSequence.length - 1) {
+      if (currentPhaseIndex !== -1 && currentPhaseIndex < phaseSequence.length - 1) {
         // Advance within current round
         const nextPhase = phaseSequence[currentPhaseIndex + 1]
         const settings = ambientRound.settings || {}

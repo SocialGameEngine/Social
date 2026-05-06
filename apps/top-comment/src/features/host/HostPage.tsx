@@ -23,7 +23,6 @@ import { HostAccountMenu } from "./components/HostAccountMenu";
 import { HostControlButtons } from "./components/HostControlButtons";
 import { HostMainContent } from "./components/HostMainContent";
 import { HostCommandPaletteSection } from "./components/HostCommandPaletteSection";
-import { HostSignalsToolbar } from "./components/HostSignalsToolbar";
 import { HostModerationQueue } from "./components/HostModerationQueue";
 import { HostBanterDrawer } from "./components/HostBanterDrawer";
 import { HostTTSTester } from "./components/HostTTSTester";
@@ -152,7 +151,8 @@ export function HostPage() {
   const inviteLink = useMemo(() => {
     const code = roomJoinCode;
     if (!code) return "";
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    // Use network URL from env var for mobile access, fallback to window.location.origin
+    const origin = import.meta.env.VITE_NETWORK_URL || (typeof window !== "undefined" ? window.location.origin : "");
     if (!origin) return "";
     return `${origin}/room/${code}`;
   }, [roomJoinCode]);
@@ -535,12 +535,6 @@ export function HostPage() {
         />
         </HostPanel>
       </HostGameProvider>
-
-      {/* Wave 4: broadcast-driven host toolbar (P1-4/P1-6/P1-17/P1-8) */}
-      <HostSignalsToolbar
-        roomId={storedRoomId ?? null}
-        socialeId={primarySocialeId ?? null}
-      />
 
       <HostModerationQueue socialeId={primarySocialeId ?? null} />
       <HostBanterDrawer sociale={activeSocialeQuery.data ?? null} />

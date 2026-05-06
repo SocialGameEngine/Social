@@ -30,6 +30,7 @@ interface SocialeEndedPhaseProps {
   currentSocialite?: Socialite | null;
   onCreateNewSociale: () => void;
   onReturnToLobby: () => void;
+  onForceTieBreak?: () => void;
   isCurrentPlayerHost: boolean;
   isDark?: boolean;
 }
@@ -40,6 +41,7 @@ export function SocialeEndedPhase({
   currentSocialite,
   onCreateNewSociale,
   onReturnToLobby,
+  onForceTieBreak,
   isCurrentPlayerHost,
   isDark: propIsDark
 }: SocialeEndedPhaseProps) {
@@ -371,7 +373,7 @@ export function SocialeEndedPhase({
             </ul>
           </div>
           
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center gap-3 flex-wrap">
             <Button
               onClick={onCreateNewSociale}
               variant="primary"
@@ -379,7 +381,7 @@ export function SocialeEndedPhase({
             >
               New Game
             </Button>
-            
+
             <Button
               onClick={onReturnToLobby}
               variant="secondary"
@@ -387,6 +389,16 @@ export function SocialeEndedPhase({
             >
               Back to Lobby
             </Button>
+
+            {onForceTieBreak && (
+              <Button
+                onClick={onForceTieBreak}
+                variant="secondary"
+                size="sm"
+              >
+                🎯 Force Tie-Breaker
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -395,13 +407,13 @@ export function SocialeEndedPhase({
       {!isCurrentPlayerHost && (
         <div className={clsx(
           'rounded-lg p-4 text-center',
-          isDark 
-            ? 'bg-slate-800 border border-slate-700 text-slate-300' 
+          isDark
+            ? 'bg-slate-800 border border-slate-700 text-slate-300'
             : 'bg-slate-50 border border-slate-200 text-slate-600'
         )}>
           <p className="mb-3">Thanks for playing!</p>
           <p>Wait for the host to start a new game...</p>
-          
+
           {currentSocialite && (
             <div className="mt-4">
               <p className={clsx(
@@ -414,22 +426,25 @@ export function SocialeEndedPhase({
               <p className="text-sm mt-1">
                 {sortedSocialites.findIndex(s => s.id === currentSocialite.id) + 1} of {totalPlayers} place
               </p>
-
-              {recapCards.length > 0 && (
-                <button
-                  onClick={() => setShowRecap(true)}
-                  className={clsx(
-                    'mt-4 px-6 py-2 rounded-lg font-semibold text-sm transition-colors',
-                    isDark
-                      ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
-                      : 'bg-cyan-500 hover:bg-cyan-400 text-white'
-                  )}
-                >
-                  ✨ View Your Recap
-                </button>
-              )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Recap button — visible to all players including host */}
+      {recapCards.length > 0 && currentSocialite && (
+        <div className="flex justify-center">
+          <button
+            onClick={() => setShowRecap(true)}
+            className={clsx(
+              'px-6 py-2 rounded-lg font-semibold text-sm transition-colors',
+              isDark
+                ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                : 'bg-cyan-500 hover:bg-cyan-400 text-white'
+            )}
+          >
+            ✨ View Your Recap
+          </button>
         </div>
       )}
     </div>

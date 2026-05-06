@@ -18,7 +18,12 @@ import { supabase } from "../../../supabase/client";
  */
 
 const WINDOW_MS = 5000;
-const LEVELS = [50, 120, 220];
+const BASE_LEVELS = [50, 120, 220];
+
+/** Scale thresholds down for smaller rooms so solo play is still fun. */
+function getScaledThresholds(playerCount: number): number[] {
+  return BASE_LEVELS.map(t => Math.round(t / Math.max(1, playerCount / 4)));
+}
 
 export interface HypeSnapshot {
   /** Taps within the current rolling window. */
@@ -54,6 +59,8 @@ interface UseHypeMeterOptions {
   throttleMs?: number;
   /** Called once per new level crossed. */
   onLevelUp?: (level: number) => void;
+  /** Player count for scaling difficulty thresholds. Defaults to 4. */
+  playerCount?: number;
 }
 
 export function useHypeMeter({
@@ -61,6 +68,7 @@ export function useHypeMeter({
   enabled = true,
   throttleMs = 80,
   onLevelUp,
+  playerCount,
 }: UseHypeMeterOptions) {
   const [snapshot, setSnapshot] = useState<HypeSnapshot>(DEFAULT_SNAPSHOT);
   const tapsRef = useRef<number[]>([]);
@@ -68,8 +76,11 @@ export function useHypeMeter({
   const peakLevelRef = useRef<number>(0);
   const lastSendRef = useRef<number>(0);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const pendingTapsRef = useRef<number>(0);
+  const batchTimerRef = useRef<number | null>(null);
 
   const recomputeSnapshot = useCallback(() => {
+    const LEVELS = getScaledThresholds(playerCount ?? 4);
     const now = Date.now();
     const cutoff = now - WINDOW_MS;
     tapsRef.current = tapsRef.current.filter((t) => t > cutoff);
@@ -103,7 +114,7 @@ export function useHypeMeter({
       // re-triggers animations.
       lastLevelRef.current = 0;
     }
-  }, [onLevelUp]);
+  }, [onLevelUp, playerCount]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -111,8 +122,14 @@ export function useHypeMeter({
       config: { broadcast: { self: true } },
     });
     channel
-      .on("broadcast", { event: "hype:tap" }, () => {
-        tapsRef.current.push(Date.now());
+      .on("broadcast", { event: "hype:tap" }, ({ payload }) => {
+        // Support both legacy single-tap ({}) and batched ({count: N}) payloads
+        const count = Math.min(Number((payload as any)?.count ?? 1), 10);
+        const now = Date.now();
+        // Spread timestamps evenly across the batch window for meter realism
+        for (let i = 0; i < count; i++) {
+          tapsRef.current.push(now - Math.round((count - 1 - i) * (500 / count)));
+        }
         recomputeSnapshot();
       })
       .subscribe();
@@ -124,6 +141,11 @@ export function useHypeMeter({
       supabase.removeChannel(channel);
       channelRef.current = null;
       window.clearInterval(interval);
+      // Clean up any pending batch timer
+      if (batchTimerRef.current !== null) {
+        window.clearTimeout(batchTimerRef.current);
+        batchTimerRef.current = null;
+      }
     };
   }, [roomId, recomputeSnapshot]);
 
@@ -134,7 +156,23 @@ export function useHypeMeter({
     const now = Date.now();
     if (now - lastSendRef.current < throttleMs) return;
     lastSendRef.current = now;
-    void channel.send({ type: "broadcast", event: "hype:tap", payload: {} });
+    // Accumulate tap into the pending batch
+    pendingTapsRef.current = Math.min(pendingTapsRef.current + 1, 10);
+    // Schedule a batch flush in 500ms if not already scheduled
+    if (batchTimerRef.current === null) {
+      batchTimerRef.current = window.setTimeout(() => {
+        const count = pendingTapsRef.current;
+        pendingTapsRef.current = 0;
+        batchTimerRef.current = null;
+        if (count > 0 && channelRef.current) {
+          void channelRef.current.send({
+            type: "broadcast",
+            event: "hype:tap",
+            payload: { count },
+          });
+        }
+      }, 500);
+    }
   }, [enabled, throttleMs]);
 
   return { snapshot, tap };

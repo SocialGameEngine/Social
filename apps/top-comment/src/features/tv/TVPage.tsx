@@ -23,6 +23,7 @@ import { TVFinalRoundBadge } from "./components/TVFinalRoundBadge";
 import { TVLeaderboardMoment } from "./components/TVLeaderboardMoment";
 import { TVPodiumCeremony } from "./components/TVPodiumCeremony";
 import { TVHypeMeter } from "./components/TVHypeMeter";
+import { TVBanterOverlay } from "./components/TVBanterOverlay";
 import {
   LobbyPhase,
   AnswerPhase,
@@ -49,7 +50,6 @@ export function TVPage() {
     currentRoundVotes,
     scoreboard,
     currentPhase,
-    timeRemaining,
     isLoading: socialeLoading,
   } = useTVPresenter(room?.currentSocialeId ?? "");
 
@@ -70,6 +70,18 @@ export function TVPage() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [queryClient, room?.currentSocialeId]);
 
+  // Announce TV presence so the host panel can show "TV Connected"
+  useEffect(() => {
+    if (!room?.id) return;
+    const channel = supabase.channel(`room-tv:${room.id}`);
+    channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await channel.track({ role: 'tv' });
+      }
+    });
+    return () => { void supabase.removeChannel(channel); };
+  }, [room?.id]);
+
   const { reactions, reactionCounts, bursts } = useReactions({
     roomId: sociale?.roomId,
     membershipId: undefined,
@@ -85,6 +97,42 @@ export function TVPage() {
   // broadcast's nonce so repeat presses refire the animation.
   const { signals: hostSignals, send: sendHostSignal } = useHostSignals(room?.id ?? null);
 
+  // Ambient mode auto-advance — TVPage owns this because the TV must be on anyway.
+  const isAdvancing = useRef(false);
+
+  const advancePhase = useCallback(async () => {
+    if (!sociale?.id || isAdvancing.current) return;
+    if (sociale?.mode !== 'ambient') return;
+
+    isAdvancing.current = true;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      await supabase.functions.invoke('sociales-advance', {
+        body: { socialeId: sociale.id },
+        headers: session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : {},
+      });
+    } catch (err) {
+      console.error('Ambient auto-advance failed:', err);
+    } finally {
+      isAdvancing.current = false;
+    }
+  }, [sociale?.id, sociale?.mode]);
+
+  useEffect(() => {
+    if (!sociale?.phaseEndsAt || sociale.mode !== 'ambient') return;
+
+    const msRemaining = new Date(sociale.phaseEndsAt).getTime() - Date.now();
+    if (msRemaining <= 0) {
+      void advancePhase();
+      return;
+    }
+
+    const timer = window.setTimeout(() => void advancePhase(), msRemaining);
+    return () => window.clearTimeout(timer);
+  }, [sociale?.phaseEndsAt, sociale?.mode, advancePhase]);
+
   // P1-1: track previous scoreboard ranks so we can show ↑/↓ deltas on the
   // leaderboard moment. Keyed by socialiteId → rank (1-based).
   const prevRanksRef = useRef<Map<string, number>>(new Map());
@@ -95,80 +143,6 @@ export function TVPage() {
   const prevRoundIdRef = useRef<string | null>(null);
   const prevRoundTypeRef = useRef<string | null>(null);
 
-  // Ambient mode auto-advance
-  const isAdvancing = useRef(false);
-
-  const advancePhase = useCallback(async () => {
-    if (!sociale?.id || isAdvancing.current) return;
-    if (sociale?.mode !== 'ambient') return; // only TVPage drives ambient advance
-
-    isAdvancing.current = true;
-    try {
-      // P2-16: Track drift telemetry before advance
-      const serverTime = new Date(sociale.phaseEndsAt!).getTime();
-      const clientTime = Date.now();
-      const drift = clientTime - serverTime;
-      
-      // Broadcast drift telemetry for client sync monitoring
-      await supabase.channel(`sociale_${sociale.id}`).send({
-        type: 'broadcast',
-        event: 'server_phase_sync',
-        payload: {
-          serverTime: sociale.phaseEndsAt,
-          clientTime: new Date(clientTime).toISOString(),
-          driftMs: drift,
-          phase: sociale.currentPhase,
-        }
-      });
-
-      // Update settings with drift telemetry (P2-16)
-      const currentSettings = sociale.settings || {};
-      const avgDelay = (currentSettings.avgSyncDelayMs as number) || 0;
-      const newAvgDelay = avgDelay === 0 ? Math.abs(drift) : (avgDelay + Math.abs(drift)) / 2;
-      
-      // Store telemetry in runtime_state for analytics
-      const telemetry = {
-        ...(sociale.runtimeState || {}),
-        driftTelemetry: {
-          lastDrift: drift,
-          avgDrift: newAvgDelay,
-          timestamp: new Date().toISOString(),
-          phase: sociale.currentPhase || 'unknown',
-        }
-      };
-
-      const { data: { session } } = await supabase.auth.getSession();
-      await supabase.functions.invoke('sociales-advance', {
-        body: { 
-          socialeId: sociale.id,
-          runtimeState: telemetry,
-        },
-        headers: session?.access_token
-          ? { Authorization: `Bearer ${session.access_token}` }
-          : {},
-      });
-    } catch (err) {
-      console.error('Ambient auto-advance failed:', err);
-    } finally {
-      isAdvancing.current = false;
-    }
-  }, [sociale?.id, sociale?.mode, sociale?.phaseEndsAt, sociale?.currentPhase, sociale?.settings, sociale?.runtimeState]);
-
-  // Fire when phaseEndsAt expires with P2-16 reveal delay
-  useEffect(() => {
-    if (!sociale?.phaseEndsAt || sociale.mode !== 'ambient') return;
-
-    const msRemaining = new Date(sociale.phaseEndsAt).getTime() - Date.now();
-    if (msRemaining <= 0) {
-      void advancePhase();
-      return;
-    }
-
-    // P2-16: Add 1.5s delay for TV-leads-phone reveal choreography
-    const revealDelay = sociale.currentPhase === 'reveal' ? 1500 : 500;
-    const timer = window.setTimeout(() => void advancePhase(), msRemaining + revealDelay);
-    return () => window.clearTimeout(timer);
-  }, [sociale?.phaseEndsAt, sociale?.mode, sociale?.currentPhase, advancePhase]);
 
   const isLoading = roomLoading || socialeLoading;
 
@@ -505,7 +479,10 @@ export function TVPage() {
             roomId={room?.id ?? null}
             active={currentPhase === "results" || currentPhase === "reveal"}
             onLevelUp={handleHypeLevelUp}
+            playerCount={socialites.length || 4}
           />
+
+          {sociale?.id && <TVBanterOverlay socialeId={sociale.id} />}
 
           <PresenterReactionBar reactionCounts={reactionCounts} />
         </div>

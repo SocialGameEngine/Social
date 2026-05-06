@@ -62,11 +62,25 @@ export function usePendingAnswerFlush(): void {
           removePendingAnswer(entry.id);
           flushed += 1;
         } catch (err) {
-          incrementPendingAttempts(entry.id);
-          logger.warn("Pending answer flush failed — will retry on next reconnect", {
-            id: entry.id,
-            error: err instanceof Error ? err.message : String(err),
-          });
+          const msg = err instanceof Error ? err.message : String(err);
+          // 400 = round closed / bad request — retrying won't help, drop it.
+          const isPermanent =
+            msg.includes('400') ||
+            msg.includes('non-2xx') ||
+            msg.includes('Bad Request');
+          if (isPermanent) {
+            removePendingAnswer(entry.id);
+            logger.warn("Dropped stale pending answer (server rejected with 4xx)", {
+              id: entry.id,
+              error: msg,
+            });
+          } else {
+            incrementPendingAttempts(entry.id);
+            logger.warn("Pending answer flush failed — will retry on next reconnect", {
+              id: entry.id,
+              error: msg,
+            });
+          }
         }
       }
       if (flushed > 0) {

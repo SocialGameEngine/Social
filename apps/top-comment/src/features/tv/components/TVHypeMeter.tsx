@@ -10,17 +10,20 @@ interface TVHypeMeterProps {
   active: boolean;
   /** Called when the hype meter crosses a new level threshold. */
   onLevelUp?: (level: number) => void;
+  /** Player count for scaling difficulty thresholds. */
+  playerCount?: number;
 }
 
 /**
  * P1-2: collective hype meter display for the TV. Fills as phones tap,
  * bursts a celebration swell + confetti + sound when hitting a level threshold.
  */
-export function TVHypeMeter({ roomId, active, onLevelUp }: TVHypeMeterProps) {
+export function TVHypeMeter({ roomId, active, onLevelUp, playerCount }: TVHypeMeterProps) {
   const [swell, setSwell] = useState<number | null>(null);
   const { snapshot } = useHypeMeter({
     roomId,
     enabled: active,
+    playerCount,
     onLevelUp: (level) => {
       setSwell(level);
       window.setTimeout(() => setSwell(null), 2400);

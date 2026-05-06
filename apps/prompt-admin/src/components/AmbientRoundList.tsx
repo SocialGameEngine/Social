@@ -10,6 +10,7 @@ import {
   getAmbientRounds,
   getAmbientPacks,
   replaceAllAmbientRounds,
+  appendAmbientRounds,
   reorderAmbientRounds,
   updateAmbientRound,
 } from '../services/ambientRoundsDatabase';
@@ -25,6 +26,7 @@ export default function AmbientRoundList() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'trivia' | 'topic'>('all');
   const [selectedPackId, setSelectedPackId] = useState<string>('00000000-0000-0000-0000-000000000001');
+  const [importMode, setImportMode] = useState<'replace' | 'append'>('replace');
 
   const packsQuery = useQuery({
     queryKey: ['ambient_packs'],
@@ -75,7 +77,10 @@ export default function AmbientRoundList() {
   void reorderMutation;
 
   const importMutation = useMutation({
-    mutationFn: (rows: AmbientRoundExportRow[]) => replaceAllAmbientRounds(selectedPackId, rows),
+    mutationFn: (rows: AmbientRoundExportRow[]) =>
+      importMode === 'append'
+        ? appendAmbientRounds(selectedPackId, rows)
+        : replaceAllAmbientRounds(selectedPackId, rows),
     onSuccess: async () => { setShowImport(false); await invalidate(); },
   });
 
@@ -120,7 +125,10 @@ export default function AmbientRoundList() {
   };
 
   const handleImport = async (rows: AmbientRoundExportRow[]): Promise<void> => {
-    if (!confirm(`Replace all ${rounds.length} existing rounds with ${rows.length} imported rounds? This cannot be undone.`)) return;
+    const confirmMsg = importMode === 'append'
+      ? `Add ${rows.length} rounds to the existing ${rounds.length}?`
+      : `Replace all ${rounds.length} existing rounds with ${rows.length} imported rounds? This cannot be undone.`;
+    if (!confirm(confirmMsg)) return;
     try {
       await importMutation.mutateAsync(rows);
     } catch (e) {
@@ -206,7 +214,11 @@ export default function AmbientRoundList() {
 
         {showImport && (
           <div style={{ padding: '16px' }}>
-            <AmbientRoundBulkImport onImport={handleImport} />
+            <AmbientRoundBulkImport
+              onImport={handleImport}
+              importMode={importMode}
+              onImportModeChange={setImportMode}
+            />
           </div>
         )}
       </div>

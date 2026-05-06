@@ -12,6 +12,8 @@ import { supabase } from '../../../supabase/client';
 import { usePromptLibraries } from '../../../shared/hooks/usePromptLibraries';
 import { useQuery } from '@tanstack/react-query';
 import type { CreateSocialeRequest, SocialeMode, SocialeRound } from '../../../features/sociale';
+import { RoundTypeSelector } from './RoundTypeSelector';
+import type { RoundTypeId } from './RoundTypeSelector';
 import { 
   generateTopicsOnlyRounds, 
   generateTriviaOnlyRounds, 
@@ -67,6 +69,7 @@ export function SocialeCreateModal({
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ambientPackId, setAmbientPackId] = useState<string>('00000000-0000-0000-0000-000000000001');
+  const [customRoundType, setCustomRoundType] = useState<RoundTypeId>('topic');
   const [previewData, setPreviewData] = useState<Array<{
     roundNumber: number;
     type: string;
@@ -1039,6 +1042,15 @@ export function SocialeCreateModal({
                       )}
                     </div>
                   </div>
+                )}
+
+                {/* Custom Mode Round Type */}
+                {mode === 'custom' && (
+                  <RoundTypeSelector
+                    value={customRoundType}
+                    onChange={setCustomRoundType}
+                    isDark={isDark}
+                  />
                 )}
 
                 {/* Prompt Library Selection */}

@@ -207,8 +207,38 @@ export async function reorderAmbientRounds(
 }
 
 /**
+ * BULK IMPORT / APPEND
+ *
+ * Appends new rounds after the existing ones, preserving all current content.
+ * order_index continues from the highest existing value.
+ *
+ * @param packId - Target pack to append into
+ * @param rows - New rounds to add after existing ones
+ */
+export async function appendAmbientRounds(
+  packId: string,
+  rows: AmbientRoundExportRow[],
+): Promise<void> {
+  const { data: existing } = await supabase
+    .from('ambient_rounds')
+    .select('order_index')
+    .eq('pack_id', packId)
+    .order('order_index', { ascending: false })
+    .limit(1);
+
+  const startIndex = (existing?.[0]?.order_index ?? -1) + 1;
+  const records = rows.map((row, i) => ({ ...row, pack_id: packId, order_index: startIndex + i }));
+
+  const CHUNK = 50;
+  for (let i = 0; i < records.length; i += CHUNK) {
+    const { error } = await supabase.from('ambient_rounds').insert(records.slice(i, i + CHUNK));
+    if (error) throw error;
+  }
+}
+
+/**
  * BULK IMPORT / REPLACE
- * 
+ *
  * DANGER: This function DELETES all existing rounds in the pack
  * and inserts new ones. Use only after explicit user confirmation.
  * 

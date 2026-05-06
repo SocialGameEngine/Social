@@ -25,6 +25,7 @@ interface HostTopStatusBarProps {
   mode?: SessionMode;
   roundIndex?: number;
   totalRounds?: number;
+  tvCount?: number;
   onMenuOpen?: () => void;
   onSettingsOpen?: () => void;
 }
@@ -52,6 +53,7 @@ export function HostTopStatusBar({
   mode,
   roundIndex,
   totalRounds,
+  tvCount = 0,
   onMenuOpen,
   onSettingsOpen,
 }: HostTopStatusBarProps) {
@@ -114,6 +116,14 @@ export function HostTopStatusBar({
             <span className="text-xs font-semibold text-amber-400 uppercase">Rehearsal</span>
           </div>
         )}
+
+        {/* TV presence indicator */}
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-slate-800">
+          <span className={`w-2 h-2 rounded-full ${tvCount > 0 ? 'bg-green-400' : 'bg-slate-600'}`} aria-hidden="true" />
+          <span className={`text-xs font-semibold ${tvCount > 0 ? 'text-green-400' : 'text-slate-500'}`}>
+            {tvCount > 0 ? `${tvCount} TV${tvCount > 1 ? 's' : ''} Connected` : 'TV Offline'}
+          </span>
+        </div>
       </div>
 
       {/* Center section: Phase and timer */}

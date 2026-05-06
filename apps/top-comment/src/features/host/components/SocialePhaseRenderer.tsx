@@ -119,6 +119,24 @@ export function SocialePhaseRenderer({
   
   const isAmbient = sociale?.mode === 'ambient';
 
+  const forceTieBreak = useCallback(async () => {
+    const topTwo = [...socialites]
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .slice(0, 2)
+      .map(s => s.id);
+
+    await supabase
+      .from('sociales')
+      .update({
+        is_tie_break: true,
+        tie_break_round_number: 1,
+        tie_break_participants: topTwo,
+        status: 'active',
+        current_phase: 'answer',
+      })
+      .eq('id', socialeId);
+  }, [socialeId, socialites]);
+
   const { data: rounds, isLoading: roundsLoading } = useQuery({
     queryKey: ['sociale-rounds', socialeId],
     queryFn: async () => {
@@ -177,10 +195,21 @@ export function SocialePhaseRenderer({
 
   // Prevent double-advancing the same phase (guards against Strict Mode double-invoke)
   const advancedPhaseRef = useRef<string | null>(null);
+  // Track if an advance is currently in progress to prevent race conditions
+  const isAdvancingRef = useRef<boolean>(false);
+  // Track pending skip timeout for cleanup
+  const skipTimeoutRef = useRef<number | null>(null);
 
   // Auto-advance phases that the host panel skips: trivia vote → reveal, discussion → results.
   // Done in a useEffect to avoid calling advancePhase() during render.
+  // Uses a small delay to prevent race conditions with the orchestrator's timer-based advance.
   useEffect(() => {
+    // Clear any pending skip timeout on dependency change
+    if (skipTimeoutRef.current) {
+      clearTimeout(skipTimeoutRef.current);
+      skipTimeoutRef.current = null;
+    }
+
     if (sociale?.status !== 'active') return;
     const phase = sociale.currentPhase || 'answer';
     const roundType = normalizedCurrentRound?.type;
@@ -190,10 +219,32 @@ export function SocialePhaseRenderer({
       (phase === 'vote' && roundType === 'trivia') ||
       phase === 'discussion';
 
-    if (shouldSkip && advancedPhaseRef.current !== key) {
-      advancedPhaseRef.current = key;
-      advancePhase();
+    if (shouldSkip && advancedPhaseRef.current !== key && !isAdvancingRef.current) {
+      // Use a small delay to prevent race conditions with the orchestrator's
+      // timer-based auto-advance. This ensures we don't double-advance when
+      // both mechanisms fire nearly simultaneously.
+      skipTimeoutRef.current = window.setTimeout(() => {
+        // Re-check conditions after delay in case state changed
+        if (!isAdvancingRef.current && advancedPhaseRef.current !== key) {
+          advancedPhaseRef.current = key;
+          isAdvancingRef.current = true;
+          advancePhase().finally(() => {
+            // Reset the advancing flag after a short delay to allow
+            // the realtime update to propagate
+            setTimeout(() => {
+              isAdvancingRef.current = false;
+            }, 500);
+          });
+        }
+      }, 100);
     }
+
+    return () => {
+      if (skipTimeoutRef.current) {
+        clearTimeout(skipTimeoutRef.current);
+        skipTimeoutRef.current = null;
+      }
+    };
   }, [sociale?.status, sociale?.currentPhase, sociale?.currentRoundId, normalizedCurrentRound?.type, advancePhase]);
 
   // Handle loading state
@@ -389,6 +440,7 @@ export function SocialePhaseRenderer({
           currentSocialite={currentSocialite}
           onCreateNewSociale={onCreateNewSociale ?? (() => {})}
           onReturnToLobby={onReturnToLobby ?? (() => {})}
+          onForceTieBreak={isRoomHost ? forceTieBreak : undefined}
           isCurrentPlayerHost={isRoomHost}
           isDark={isDark}
         />

@@ -14,3 +14,4 @@ export { OfflineBanner } from './OfflineBanner';
 export { ParticipantsSheet } from './ParticipantsSheet';
 export { HostDesktopShell } from './HostDesktopShell';
 export { CommandPalette, useCommandPalette, type Command } from './CommandPalette';
+export { HostSignalsPanel } from './HostSignalsPanel';

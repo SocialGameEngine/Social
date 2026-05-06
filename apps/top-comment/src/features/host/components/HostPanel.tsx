@@ -17,10 +17,14 @@ import { useResponsiveLayout } from '../../room/hooks/useResponsiveLayout';
 import { useConnectionStatus } from '../hooks/useConnectionStatus';
 import { useSessionMachine } from '../state/sessionMachine';
 import { useHostGame } from '../context/HostGameContext';
+import { useHostSignals } from '../../room/hooks/useHostSignals';
+import { useHostHotkeys } from '../hooks/useHostHotkeys';
+import { useTVPresence } from '../hooks/useTVPresence';
 import {
   HostMobileShell,
   HostTopStatusBar,
   HostActionBar,
+  HostSignalsPanel,
   ConfirmDialog,
   ToastProvider,
   OfflineBanner,
@@ -73,6 +77,7 @@ export function HostPanel({
   const { isMobile } = useResponsiveLayout();
   const [showParticipantsSheet, setShowParticipantsSheet] = useState(false);
   const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
+  const tvCount = useTVPresence(room?.id);
   
   // Session state machine
   const memberCount = useMemo(() => memberships.length, [memberships.length]);
@@ -100,6 +105,22 @@ export function HostPanel({
     onStatusChange: (status) => {
       // Could integrate with session machine here
     },
+  });
+
+  // Host signals — always subscribed so hotkeys and state work regardless of panel visibility
+  const { signals, send } = useHostSignals(room?.id ?? null);
+
+  const SOUNDBOARD_IDS = ['drumroll','cheer','boo','fail','applause','lobby','ding','buzz','confetti'] as const;
+  useHostHotkeys({
+    onSound: room?.id
+      ? (idx) => { const id = SOUNDBOARD_IDS[idx]; if (id) send('sound:play', { id }); }
+      : undefined,
+    onAttentionToggle: room?.id
+      ? () => send(signals.attentionLocked ? 'attention:release' : 'attention:lock')
+      : undefined,
+    onLockInToggle: room?.id
+      ? () => send('lockin:required', { enabled: !signals.lockInRequired })
+      : undefined,
   });
 
   // Use passed playerCount or compute from memberships (for participants list)
@@ -161,10 +182,11 @@ export function HostPanel({
             <HostTopStatusBar
               roomCode={roomCode}
               phaseName={phaseName}
-                            connectionStatus={connectionStatus.status}
+              connectionStatus={connectionStatus.status}
               isPaused={session?.paused ?? sociale?.status === 'paused'}
               roundIndex={sociale?.currentRoundIndex ?? session?.roundIndex}
               totalRounds={sociale?.totalRounds ?? session?.settings?.totalRounds}
+              tvCount={tvCount}
               onSettingsOpen={onOpenSettings}
             />
           }
@@ -183,6 +205,16 @@ export function HostPanel({
               onEndSociale={handleEndSessionClick}
               onCreateSociale={onCreateSession}
               onParticipantsOpen={() => setShowParticipantsSheet(true)}
+              signalsSlot={
+                room?.id ? (
+                  <HostSignalsPanel
+                    signals={signals}
+                    send={send as (event: string, payload?: any) => void}
+                    socialeId={sociale?.id ?? null}
+                    layout="inline"
+                  />
+                ) : undefined
+              }
             />
           }
         >
@@ -248,6 +280,7 @@ export function HostPanel({
                   isPaused={session?.paused ?? (sociale?.status === 'paused')}
                   roundIndex={sociale?.currentRoundIndex ?? session?.roundIndex}
                   totalRounds={sociale?.totalRounds ?? session?.settings?.totalRounds}
+                  tvCount={tvCount}
                   onSettingsOpen={onOpenSettings}
                 />
               </div>
@@ -293,6 +326,18 @@ export function HostPanel({
                 />
                 <KeyboardShortcutsHelp />
               </div>
+
+              {/* Signals: soundboard, attention toggle, lock-in, break controls */}
+              {room?.id && (
+                <div className="bg-slate-800 rounded-2xl p-4 border border-cyan-400/20">
+                  <HostSignalsPanel
+                    signals={signals}
+                    send={send as (event: string, payload?: any) => void}
+                    socialeId={sociale?.id ?? null}
+                    layout="panel"
+                  />
+                </div>
+              )}
 
               
                           </aside>

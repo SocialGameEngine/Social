@@ -81,6 +81,12 @@ export function useSocialeOrchestrator(config: SocialeOrchestratorConfig): UseSo
       return false;
     }
 
+    // Ambient mode: TVPage owns the advance loop (TV must be on anyway).
+    // The host panel must not compete with it.
+    if (currentSocialeRef.mode === 'ambient') {
+      return false;
+    }
+
     try {
       const result = await advanceSocialePhase({ 
         socialeId, 
@@ -148,7 +154,8 @@ export function useSocialeOrchestrator(config: SocialeOrchestratorConfig): UseSo
     isAutoAdvanceEnabled, 
     currentSociale?.status, 
     currentSociale?.phaseEndsAt, 
-    clearTimers
+    clearTimers,
+    performAutoAdvance
   ]);
 
   // Method to update the current Sociale (called by parent)

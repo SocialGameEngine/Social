@@ -509,8 +509,14 @@ export function RoomPageContent() {
     }
   }, [user, authLoading, signInAnonymously]);
 
-  // Show loading skeleton while data is loading
-  const isDataLoading = !session && !primaryRoomSociale;
+  // Show loading skeleton while data is loading.
+  // Guard: if the pointed-to sociale is already completed/cancelled, don't
+  // spin forever — primaryRoomSociale will be undefined (filtered out) even
+  // though room.currentSocialeId is still set.
+  const activeSocialeIsEnded =
+    activeRoomSociale?.status === 'completed' ||
+    activeRoomSociale?.status === 'cancelled';
+  const isDataLoading = !session && !primaryRoomSociale && !activeSocialeIsEnded;
   if (isDataLoading && (room?.currentSessionId || room?.currentSocialeId)) {
     return <SessionSkeleton />;
   }
@@ -684,9 +690,9 @@ export function RoomPageContent() {
   
   // Main content with 4-section layout
   const mainContent = (
-    <div className={cn("flex-1 overflow-hidden relative z-10 flex flex-col", 
+    <div className={cn("flex-1 min-w-0 overflow-hidden relative z-10 flex flex-col", 
       isMainEventMode && "room-main-event-mode")}>
-      <div className="flex-1 overflow-y-auto pt-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4">
         {/* Section 1: Session or Sociale (latest room Sociale replaces session panel) */}
         <RoomMainEventPanel
           roomId={room?.id}
@@ -766,10 +772,11 @@ export function RoomPageContent() {
             primaryRoomSociale?.currentPhase === 'results' ||
             primaryRoomSociale?.currentPhase === 'reveal'
           }
+          playerCount={memberships?.length ?? 1}
         />
         <BackgroundAnimation show={true} />
-        <div className="flex-1 flex min-h-0">
-          <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex min-h-0 min-w-0">
+          <div className="flex-1 flex flex-col min-h-0 min-w-0">
             <RoomHeader
               roomCode={room?.code}
               currentPhase={primaryRoomSociale?.currentPhase as any}
@@ -911,6 +918,7 @@ export function RoomPageContent() {
           primaryRoomSociale?.currentPhase === 'results' ||
           primaryRoomSociale?.currentPhase === 'reveal'
         }
+        playerCount={memberships?.length ?? 1}
       />
       <BackgroundAnimation show={true} />
       <div className="flex-1 flex min-h-0 sm:overflow-hidden">

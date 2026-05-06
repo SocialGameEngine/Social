@@ -144,6 +144,7 @@ logs/*.txt
 *.dll
 *.so
 *.dylib
+*.tar.gz
 
 # Build artifacts and caches
 .cache/
@@ -167,3 +168,6 @@ logs/*.txt
 # Web app build artifacts (Vite bundles with hash suffixes)
 apps/web/index-*.js
 apps/web/index-*.css
+
+# Documentation
+docs/
