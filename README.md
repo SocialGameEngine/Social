@@ -1,177 +1,139 @@
-# Supabase CLI
+# Social
 
-[![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=develop)](https://coveralls.io/github/supabase/cli?branch=develop) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)
-](https://gitlab.com/sweatybridge/setup-cli/-/pipelines)
+A pnpm + Turborepo monorepo for the **Social** platform — a real-time, room-based bar engagement suite (trivia, top-comment, headline-fibbage, mashup, etc.) built on **React + Vite**, **Supabase** (Postgres, Auth, Realtime, Storage), and **Stripe**. Designed to drive crowd participation and patron engagement in bars and similar venues.
 
-[Supabase](https://supabase.io) is an open source Firebase alternative. We're building the features of Firebase using enterprise-grade open source tools.
+## Tech stack
 
-This repository contains all the functionality for Supabase CLI.
+- **Package manager:** pnpm `>=10` (pinned to `pnpm@10.26.1`)
+- **Node:** `>=20`
+- **Build orchestrator:** Turborepo 2
+- **Frontend:** React 18, Vite 7, TypeScript 5, TailwindCSS, framer-motion, react-router-dom 7, TanStack Query
+- **Backend / data:** Supabase (Postgres + RLS + Realtime), edge functions in `supabase/`
+- **Payments:** Stripe
+- **AI / TTS:** OpenAI, Google Cloud Text-to-Speech
+- **Testing:** Vitest, Playwright
 
-- [x] Running Supabase locally
-- [x] Managing database migrations
-- [x] Creating and deploying Supabase Functions
-- [x] Generating types directly from your database schema
-- [x] Making authenticated HTTP requests to [Management API](https://supabase.com/docs/reference/api/introduction)
+## Repository layout
+
+```
+Social/
+├── apps/
+│   ├── top-comment/      # Main game client (Vite/React) — primary app
+│   ├── dashboard/        # Operator/host dashboard
+│   ├── prompt-admin/     # Prompt + content admin tool
+│   └── web/              # Marketing / public web surface
+├── packages/
+│   ├── ai/               # AI helpers (OpenAI, prompt utils)
+│   ├── auth/             # Auth helpers
+│   ├── db/               # Supabase client + typed DB access
+│   ├── game-engine/      # Shared room/round state machine
+│   ├── games/            # Per-game packages (trivia, top-comment, etc.)
+│   ├── payments/         # Stripe integration
+│   ├── ui/               # Shared React UI components + Tailwind preset
+│   └── utils/            # Cross-cutting utilities
+├── database/             # Raw SQL migrations + ad-hoc fix scripts
+├── supabase/             # Supabase project (config, functions, migrations)
+├── scripts/              # Dev / migration / deploy scripts
+├── docs/                 # Project documentation
+├── tests/                # Cross-package tests
+├── turbo.json
+├── pnpm-workspace.yaml
+└── package.json
+```
+
+## Prerequisites
+
+- **Node.js** `>=20`
+- **pnpm** `>=10` — install via `npm i -g pnpm` or `corepack enable && corepack prepare pnpm@10.26.1 --activate`
+- **Supabase CLI** (a local `supabase.exe` is checked in for Windows; otherwise install from https://supabase.com/docs/guides/cli)
+- **Docker** (or Podman) for running Supabase locally — see `scripts/setup_portable_docker.bat` / `scripts/setup_portable_podman.bat` / `scripts/setup_wsl_docker.sh`
 
 ## Getting started
 
-### Install the CLI
+```bash
+# 1. Install dependencies (root + all workspaces)
+pnpm install
 
-Available via [NPM](https://www.npmjs.com) as dev dependency. To install:
+# 2. Configure environment
+cp .env.local .env.local.bak    # back up if it already exists
+# Edit .env.local — see "Environment variables" below
+
+# 3. (Optional) Start local Supabase
+./scripts/start-supabase.bat    # Windows
+# or: supabase start
+
+# 4. Run all dev servers via Turbo
+pnpm dev
+```
+
+The primary app (`@social/top-comment`) starts on http://localhost:5173.
+
+## Common scripts
+
+Run from the repo root — Turbo will fan out to all workspaces.
+
+| Script              | What it does                                    |
+| ------------------- | ----------------------------------------------- |
+| `pnpm dev`          | Run every workspace's `dev` task in parallel    |
+| `pnpm build`        | Build all apps + packages                       |
+| `pnpm lint`         | Lint all workspaces                             |
+| `pnpm test`         | Run unit/integration tests across workspaces    |
+| `pnpm type-check`   | TypeScript `--noEmit` across the monorepo       |
+| `pnpm pre-commit`   | Runs `type-check` (intended as a git hook)      |
+| `pnpm clean`        | `turbo run clean` + remove root `node_modules`  |
+| `pnpm dev:kill`     | Kill stuck dev processes (Windows PowerShell)   |
+
+### Targeting a single workspace
 
 ```bash
-npm i supabase --save-dev
+# Run dev for just the top-comment app
+pnpm --filter @social/top-comment dev
+
+# Build a single package
+pnpm --filter @social/ui build
+
+# Add a dep to one app
+pnpm --filter @social/top-comment add zod
 ```
 
-When installing with yarn 4, you need to disable experimental fetch with the following nodejs config.
+### App-specific scripts
+
+`@social/top-comment` also exposes:
+
+- `pnpm --filter @social/top-comment test` — Vitest
+- `pnpm --filter @social/top-comment test:e2e` — Playwright
+- `pnpm --filter @social/top-comment preview` — preview production build
+
+## Environment variables
+
+Defined in `.env.local` at the repo root and consumed by Turbo (see `turbo.json`). At minimum:
 
 ```
-NODE_OPTIONS=--no-experimental-fetch yarn add supabase
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# Payments
+VITE_STRIPE_PUBLISHABLE_KEY=
+STRIPE_SECRET_KEY=
+
+# AI / TTS
+OPENAI_API_KEY=
+VITE_OPENAI_API_KEY=
 ```
 
-> **Note**
-For Bun versions below v1.0.17, you must add `supabase` as a [trusted dependency](https://bun.sh/guides/install/trusted) before running `bun add -D supabase`.
+Never commit real secrets. `VITE_*` values are exposed to the client; everything else is server-only.
 
-<details>
-  <summary><b>macOS</b></summary>
+## Database & Supabase
 
-  Available via [Homebrew](https://brew.sh). To install:
+- **Authoritative migrations** live under `supabase/migrations/`. Apply with `supabase db push` or `supabase migration up`.
+- **`database/`** contains raw SQL — full schema dumps (`production_schema.sql`), realtime/RLS fixes, and content-seeding scripts. These are reference / one-off helpers, not the normal migration path.
+- Helper scripts in `scripts/` (e.g. `apply_headline_fibbage_migration.js`, `add_trivia_library.js`, `generate-prompt-migration.js`) automate common content + migration tasks.
 
-  ```sh
-  brew install supabase/tap/supabase
-  ```
+## Documentation
 
-  To install the beta release channel:
-  
-  ```sh
-  brew install supabase/tap/supabase-beta
-  brew link --overwrite supabase-beta
-  ```
-  
-  To upgrade:
+Project docs live in `docs/` (architecture, implementation plans, migration notes). Start with `docs/implementation/00-index.md`.
 
-  ```sh
-  brew upgrade supabase
-  ```
-</details>
+## License
 
-<details>
-  <summary><b>Windows</b></summary>
-
-  Available via [Scoop](https://scoop.sh). To install:
-
-  ```powershell
-  scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-  scoop install supabase
-  ```
-
-  To upgrade:
-
-  ```powershell
-  scoop update supabase
-  ```
-</details>
-
-<details>
-  <summary><b>Linux</b></summary>
-
-  Available via [Homebrew](https://brew.sh) and Linux packages.
-
-  #### via Homebrew
-
-  To install:
-
-  ```sh
-  brew install supabase/tap/supabase
-  ```
-
-  To upgrade:
-
-  ```sh
-  brew upgrade supabase
-  ```
-
-  #### via Linux packages
-
-  Linux packages are provided in [Releases](https://github.com/supabase/cli/releases). To install, download the `.apk`/`.deb`/`.rpm`/`.pkg.tar.zst` file depending on your package manager and run the respective commands.
-
-  ```sh
-  sudo apk add --allow-untrusted <...>.apk
-  ```
-
-  ```sh
-  sudo dpkg -i <...>.deb
-  ```
-
-  ```sh
-  sudo rpm -i <...>.rpm
-  ```
-
-  ```sh
-  sudo pacman -U <...>.pkg.tar.zst
-  ```
-</details>
-
-<details>
-  <summary><b>Other Platforms</b></summary>
-
-  You can also install the CLI via [go modules](https://go.dev/ref/mod#go-install) without the help of package managers.
-
-  ```sh
-  go install github.com/supabase/cli@latest
-  ```
-
-  Add a symlink to the binary in `$PATH` for easier access:
-
-  ```sh
-  ln -s "$(go env GOPATH)/bin/cli" /usr/bin/supabase
-  ```
-
-  This works on other non-standard Linux distros.
-</details>
-
-<details>
-  <summary><b>Community Maintained Packages</b></summary>
-
-  Available via [pkgx](https://pkgx.sh/). Package script [here](https://github.com/pkgxdev/pantry/blob/main/projects/supabase.com/cli/package.yml).
-  To install in your working directory:
-
-  ```bash
-  pkgx install supabase
-  ```
-
-  Available via [Nixpkgs](https://nixos.org/). Package script [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/supabase-cli/default.nix).
-</details>
-
-### Run the CLI
-
-```bash
-supabase bootstrap
-```
-
-Or using npx:
-
-```bash
-npx supabase bootstrap
-```
-
-The bootstrap command will guide you through the process of setting up a Supabase project using one of the [starter](https://github.com/supabase-community/supabase-samples/blob/main/samples.json) templates.
-
-## Docs
-
-Command & config reference can be found [here](https://supabase.com/docs/reference/cli/about).
-
-## Breaking changes
-
-We follow semantic versioning for changes that directly impact CLI commands, flags, and configurations.
-
-However, due to dependencies on other service images, we cannot guarantee that schema migrations, seed.sql, and generated types will always work for the same CLI major version. If you need such guarantees, we encourage you to pin a specific version of CLI in package.json.
-
-## Developing
-
-To run from source:
-
-```sh
-# Go >= 1.22
-go run . help
-```
+See `LICENSE`.
